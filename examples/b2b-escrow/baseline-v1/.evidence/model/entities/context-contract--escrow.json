@@ -1,0 +1,10 @@
+{
+  "type": "entity",
+  "id": "context.escrow",
+  "category": "context",
+  "kind": "contract",
+  "label": "escrow",
+  "rootRefs": [
+    "contract.escrow"
+  ]
+}

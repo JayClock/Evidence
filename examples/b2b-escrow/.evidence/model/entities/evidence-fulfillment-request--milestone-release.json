@@ -1,0 +1,105 @@
+{
+  "type": "entity",
+  "id": "request.milestone-release",
+  "category": "evidence",
+  "kind": "fulfillment_request",
+  "contextRef": "context.settlement",
+  "label": "milestone-release",
+  "notes": "seller's claim on escrow; expires 48 hours after its server-recorded start.",
+  "responsibleRoleRef": "role.settlement-seller",
+  "attributes": [
+    {
+      "name": "id",
+      "label": "id",
+      "meaning": "Unique immutable business evidence identifier.",
+      "valueType": "id",
+      "required": true
+    },
+    {
+      "name": "started_at",
+      "timeRole": "start",
+      "label": "started_at",
+      "meaning": "Server-recorded UTC business time; caller may not supply this field.",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "expired_at",
+      "timeRole": "deadline",
+      "label": "expired_at",
+      "meaning": "Server-recorded UTC business time; caller may not supply this field.",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true,
+      "derivedByRuleRef": "rule.milestone-release-expiry"
+    }
+  ],
+  "examples": [
+    {
+      "label": "milestone-on-time",
+      "value": {
+        "id": "milestone-on-time-request-milestone-release",
+        "started_at": "2026-06-15T00:00:00Z",
+        "expired_at": "2026-06-17T00:00:00Z"
+      },
+      "test": {
+        "flow": "milestone-on-time",
+        "tags": [
+          "dod",
+          "milestone",
+          "on-time"
+        ],
+        "actingRoleRef": "role.settlement-seller",
+        "asOf": "2026-06-15T00:00:00Z",
+        "basedOn": [
+          "contract.settlement#milestone-on-time"
+        ]
+      }
+    },
+    {
+      "label": "milestone-precision",
+      "value": {
+        "id": "milestone-precision-request-milestone-release",
+        "started_at": "2026-06-15T00:00:01Z",
+        "expired_at": "2026-06-17T00:00:01Z"
+      },
+      "test": {
+        "flow": "milestone-precision",
+        "tags": [
+          "dod",
+          "milestone",
+          "precision",
+          "late"
+        ],
+        "actingRoleRef": "role.settlement-seller",
+        "asOf": "2026-06-15T00:00:01Z",
+        "basedOn": [
+          "contract.settlement#milestone-precision"
+        ]
+      }
+    },
+    {
+      "label": "milestone-capped",
+      "value": {
+        "id": "milestone-capped-request-milestone-release",
+        "started_at": "2026-06-30T00:00:00Z",
+        "expired_at": "2026-07-02T00:00:00Z"
+      },
+      "test": {
+        "flow": "milestone-capped",
+        "tags": [
+          "dod",
+          "milestone",
+          "capped",
+          "late"
+        ],
+        "actingRoleRef": "role.settlement-seller",
+        "asOf": "2026-06-30T00:00:00Z",
+        "basedOn": [
+          "contract.settlement#milestone-capped"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "type": "rule",
+  "id": "rule.acceptance-late-days",
+  "kind": "derivation",
+  "label": "acceptance-late-days",
+  "description": "Penalty uses the buyer acceptance instant, not machine-local time. Positive partial days round up; exact deadline has no penalty.",
+  "contextRef": "context.fulfillment",
+  "bindings": {
+    "order": {
+      "ref": "confirmation.order"
+    },
+    "asOf": {
+      "type": "timestamp"
+    }
+  },
+  "expression": "asOf <= order.delivery_deadline ? 0 : ((asOf - order.delivery_deadline).getMilliseconds() + 86399999) / 86400000",
+  "resultType": "int",
+  "target": {
+    "entityRef": "confirmation.acceptance",
+    "attribute": "late_days"
+  }
+}

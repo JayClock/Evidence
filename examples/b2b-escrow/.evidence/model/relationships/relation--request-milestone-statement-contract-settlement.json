@@ -1,0 +1,16 @@
+{
+  "type": "relationship",
+  "id": "relation.request.milestone-statement-contract.settlement",
+  "kind": "references",
+  "sourceRef": "request.milestone-statement",
+  "targetRef": "contract.settlement",
+  "label": "references",
+  "sourceCardinality": {
+    "min": 0,
+    "max": "many"
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

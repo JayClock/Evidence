@@ -1,0 +1,16 @@
+{
+  "type": "relationship",
+  "id": "relation.request.custody-statement-contract.escrow",
+  "kind": "references",
+  "sourceRef": "request.custody-statement",
+  "targetRef": "contract.escrow",
+  "label": "references",
+  "sourceCardinality": {
+    "min": 0,
+    "max": "many"
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

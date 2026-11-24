@@ -1,0 +1,53 @@
+{
+  "type": "entity",
+  "id": "confirmation.backlog",
+  "category": "evidence",
+  "kind": "fulfillment_confirmation",
+  "label": "待办基线锁定凭证",
+  "contextRef": "context.sprint",
+  "responsibleRoleRef": "role.development-team",
+  "attributes": [
+    {
+      "name": "id",
+      "label": "凭证标识",
+      "valueType": "id",
+      "required": true,
+      "meaning": "在此业务凭证类型中唯一的标识"
+    },
+    {
+      "name": "confirmed_at",
+      "timeRole": "occurrence",
+      "label": "形成时刻",
+      "valueType": "timestamp",
+      "required": true,
+      "meaning": "形成时刻",
+      "keyData": true
+    },
+    {
+      "name": "backlog_revision",
+      "label": "锁定的待办版本",
+      "valueType": "id",
+      "required": true,
+      "meaning": "锁定的待办版本",
+      "derivedByRuleRef": "rule.locked-backlog-revision"
+    }
+  ],
+  "examples": [
+    {
+      "label": "freeze-scope",
+      "value": {
+        "id": "locked-42",
+        "backlog_revision": "sprint-42-r1",
+        "confirmed_at": "2026-08-03T11:00:00Z"
+      },
+      "test": {
+        "flow": "two-stories-one-sprint",
+        "actingRoleRef": "role.development-team",
+        "asOf": "2026-08-03T11:00:00Z",
+        "basedOn": [
+          "request.backlog#propose-scope"
+        ]
+      }
+    }
+  ]
+}

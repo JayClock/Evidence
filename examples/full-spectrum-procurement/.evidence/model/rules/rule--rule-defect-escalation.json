@@ -1,0 +1,16 @@
+{
+  "type": "rule",
+  "id": "rule-defect-escalation",
+  "kind": "breach",
+  "label": "技术质检不合格升级独立仲裁",
+  "description": "SGS安全合规核验失败后冻结托管尾款，不自动判定司法结果。",
+  "contextRef": "ctx-main-procurement",
+  "bindings": {
+    "cert": {
+      "ref": "doc-sgs-inspection-cert",
+      "cardinality": "one"
+    }
+  },
+  "expression": "!cert.passed_safety_checks",
+  "resultType": "bool"
+}

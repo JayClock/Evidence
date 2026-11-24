@@ -1,0 +1,16 @@
+{
+  "type": "relationship",
+  "id": "relation.confirmation.story-request.backlog",
+  "kind": "references",
+  "sourceRef": "confirmation.story",
+  "targetRef": "request.backlog",
+  "label": "同一迭代窗口内可追加多笔故事验收",
+  "sourceCardinality": {
+    "min": 0,
+    "max": "many"
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

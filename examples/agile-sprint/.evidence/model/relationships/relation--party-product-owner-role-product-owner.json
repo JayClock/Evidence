@@ -1,0 +1,8 @@
+{
+  "type": "relationship",
+  "id": "relation.party.product-owner-role.product-owner",
+  "kind": "plays_role",
+  "sourceRef": "party.product-owner",
+  "targetRef": "role.product-owner",
+  "label": "扮演产品负责人"
+}

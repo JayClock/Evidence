@@ -1,0 +1,7 @@
+{
+  "type": "entity",
+  "id": "party.seller",
+  "category": "participant",
+  "kind": "party",
+  "label": "seller"
+}

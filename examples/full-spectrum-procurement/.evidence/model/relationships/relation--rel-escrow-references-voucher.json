@@ -1,0 +1,17 @@
+{
+  "type": "relationship",
+  "id": "rel-escrow-references-voucher",
+  "kind": "references",
+  "flowKind": "escalation",
+  "sourceRef": "doc-escrow-agreement",
+  "targetRef": "role-collateral-voucher",
+  "label": "托管监管协议在违约争议时依据质押凭单裁决冻结资金",
+  "sourceCardinality": {
+    "min": 1,
+    "max": 1
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "type": "entity",
+  "id": "role-seller",
+  "category": "role",
+  "kind": "party",
+  "contextRef": "ctx-main-procurement",
+  "label": "供货方当事人卖方角色（Equipment Supplier Role）"
+}

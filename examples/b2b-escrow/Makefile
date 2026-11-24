@@ -12,7 +12,7 @@ PORT ?= 8085
 MODE ?= v2
 FAULT ?= none
 GATE ?= regression
-BASELINE ?= $(ROOT)/model/b2b-escrow-v1.evidence.json
+BASELINE ?= $(ROOT)/baseline-v1
 # Optional; must be a NEW directory. Otherwise the verifier uses a temp directory.
 REPORT_DIR ?=
 REPORT_FLAG = $(if $(REPORT_DIR),--report-dir "$(REPORT_DIR)",)
@@ -41,7 +41,7 @@ help:
 	 '  prepare       Selected implementation: install, native tests, build' \
 	 '  setup | native-test | build   Run one selected native step' \
 	 '  verify        Run built implementation through 11 demo cases; new process per case' \
-	 '  gate          Strict Git-baseline gate: GATE=regression|dod BASELINE=/absolute/model.evidence.json' \
+	 '  gate          Strict Git-baseline gate: GATE=regression|dod BASELINE=/absolute/workspace' \
 	 '  up            Run built selected service in foreground; Ctrl-C stops it' \
 	 '  up-gin | up-spring | up-fastapi | up-fastify   Explicit foreground service' \
 	 'Variables: IMPLEMENTATION=ts-fastify|golang-gin|java-spring|python-fastapi' \
@@ -52,9 +52,9 @@ framework:
 	cd "$(REPO)" && pnpm install --frozen-lockfile && pnpm exec nx build cli
 
 check:
-	cd "$(REPO)" && node apps/cli/dist/cli.js check "$(ROOT)/model/b2b-escrow-v1.evidence.json" --scope context.procurement --scope context.escrow --scope context.fulfillment --scope context.settlement
-	cd "$(REPO)" && node apps/cli/dist/cli.js check "$(ROOT)/model/b2b-escrow.evidence.json" --scope context.procurement --scope context.escrow --scope context.fulfillment --scope context.settlement
-	cd "$(REPO)" && node apps/cli/dist/cli.js export --model "$(ROOT)/model/b2b-escrow.evidence.json" --out "$(ROOT)/generated" --verify
+	cd "$(REPO)" && node apps/cli/dist/cli.js check --workspace "$(ROOT)/baseline-v1" --scope context.procurement --scope context.escrow --scope context.fulfillment --scope context.settlement
+	cd "$(REPO)" && node apps/cli/dist/cli.js check --workspace "$(ROOT)" --scope context.procurement --scope context.escrow --scope context.fulfillment --scope context.settlement
+	cd "$(REPO)" && node apps/cli/dist/cli.js export --workspace "$(ROOT)" --verify
 
 tools-test:
 	node --test "$(ROOT)"/verification/*.test.mjs
@@ -113,7 +113,7 @@ up-fastify:
 verify:
 	node "$(ROOT)/verification/run.mjs" --implementation "$(IMPLEMENTATION)" $(REPORT_FLAG)
 gate:
-	node "$(ROOT)/verification/run.mjs" --implementation "$(IMPLEMENTATION)" --gate "$(GATE)" --baseline-model "$(BASELINE)" $(REPORT_FLAG)
+	node "$(ROOT)/verification/run.mjs" --implementation "$(IMPLEMENTATION)" --gate "$(GATE)" --baseline-workspace "$(BASELINE)" $(REPORT_FLAG)
 
 test:
 	$(MAKE) -C "$(ROOT)" framework

@@ -1,0 +1,68 @@
+{
+  "type": "entity",
+  "id": "request.daily-report",
+  "category": "evidence",
+  "kind": "fulfillment_request",
+  "label": "日报生成请求",
+  "contextRef": "context.advertising-order",
+  "responsibleRoleRef": "role.advertiser",
+  "attributes": [
+    {
+      "name": "id",
+      "label": "凭证标识",
+      "valueType": "id",
+      "required": true,
+      "meaning": "在此业务凭证类型中唯一的标识"
+    },
+    {
+      "name": "started_at",
+      "timeRole": "start",
+      "label": "开启时刻",
+      "valueType": "timestamp",
+      "required": true,
+      "meaning": "开启时刻",
+      "keyData": true
+    },
+    {
+      "name": "expired_at",
+      "timeRole": "deadline",
+      "label": "截止时刻",
+      "valueType": "timestamp",
+      "required": true,
+      "meaning": "截止时刻",
+      "keyData": true,
+      "derivedByRuleRef": "rule.request.daily-report-deadline"
+    },
+    {
+      "name": "report_date",
+      "label": "统计日",
+      "valueType": "string",
+      "required": true,
+      "meaning": "广告主业务时区中的 YYYY-MM-DD"
+    }
+  ],
+  "asyncAcceptance": true,
+  "examples": [
+    {
+      "label": "report-accepted",
+      "value": {
+        "id": "report-request-summer",
+        "report_date": "2026-07-02",
+        "started_at": "2026-07-03T00:10:00Z",
+        "expired_at": "2026-07-04T00:10:00Z"
+      },
+      "test": {
+        "flow": "negotiation-to-daily-report",
+        "actingRoleRef": "role.advertiser",
+        "asOf": "2026-07-03T00:10:00Z",
+        "basedOn": [
+          "confirmation.advertising#campaign-live"
+        ],
+        "expectedStatus": 202,
+        "expect": {
+          "$._links.self.href": "/ads-promotion-orders/ads-order-summer/daily-reports/report-request-summer"
+        }
+      }
+    }
+  ]
+}

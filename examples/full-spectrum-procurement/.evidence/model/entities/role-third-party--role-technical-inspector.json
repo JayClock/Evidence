@@ -1,0 +1,8 @@
+{
+  "type": "entity",
+  "id": "role-technical-inspector",
+  "category": "role",
+  "kind": "third_party",
+  "contextRef": "ctx-inspection-domain",
+  "label": "中立第三方专业质检官"
+}

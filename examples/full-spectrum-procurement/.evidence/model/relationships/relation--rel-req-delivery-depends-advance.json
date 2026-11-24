@@ -1,0 +1,17 @@
+{
+  "type": "relationship",
+  "id": "rel-req-delivery-depends-advance",
+  "kind": "references",
+  "flowKind": "primary",
+  "sourceRef": "req-equipment-delivery",
+  "targetRef": "conf-advance-payment",
+  "label": "发货交付要求以预付款到账确认作为前置依据",
+  "sourceCardinality": {
+    "min": 1,
+    "max": 1
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

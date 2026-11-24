@@ -1,0 +1,10 @@
+{
+  "type": "entity",
+  "id": "ctx-inspection-domain",
+  "category": "context",
+  "kind": "domain",
+  "label": "国际出入境检验与合规认证支持域（Regulatory Inspection Domain）",
+  "rootRefs": [
+    "thing-compliance-checker"
+  ]
+}

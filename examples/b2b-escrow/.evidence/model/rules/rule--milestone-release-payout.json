@@ -1,0 +1,19 @@
+{
+  "type": "rule",
+  "id": "rule.milestone-release-payout",
+  "kind": "derivation",
+  "label": "milestone-release-payout",
+  "description": "Final ledger identity: gross = reserve + penalty + seller payout.",
+  "contextRef": "context.settlement",
+  "bindings": {
+    "settlement": {
+      "ref": "confirmation.milestone-release"
+    }
+  },
+  "expression": "settlement.gross_amount_minor - settlement.retention_minor - settlement.late_penalty_minor",
+  "resultType": "int",
+  "target": {
+    "entityRef": "confirmation.milestone-release",
+    "attribute": "payout_minor"
+  }
+}

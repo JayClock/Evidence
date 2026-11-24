@@ -1,0 +1,8 @@
+{
+  "type": "entity",
+  "id": "role.payment-gateway",
+  "category": "role",
+  "kind": "third_party",
+  "label": "支付对账系统",
+  "contextRef": "context.advertising-order"
+}

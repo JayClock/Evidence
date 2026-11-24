@@ -1,0 +1,19 @@
+{
+  "type": "rule",
+  "id": "rule.delivery-expiry",
+  "kind": "derivation",
+  "label": "delivery request expiry",
+  "description": "Each request is valid for 48 hours from its server-recorded start; callers cannot choose or backdate the expiration.",
+  "contextRef": "context.fulfillment",
+  "bindings": {
+    "request": {
+      "ref": "request.delivery"
+    }
+  },
+  "expression": "request.started_at + duration(\"48h\")",
+  "resultType": "timestamp",
+  "target": {
+    "entityRef": "request.delivery",
+    "attribute": "expired_at"
+  }
+}

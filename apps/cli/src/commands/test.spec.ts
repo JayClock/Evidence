@@ -1,18 +1,24 @@
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { mkdtemp, writeFile, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { renderAcceptanceSuite } from '@evidence-poc/evidence-acceptance';
 import { writeOutput } from '@evidence-poc/evidence-api';
 import path from 'node:path';
 import { tmpdir } from 'node:os';
 import { afterEach, beforeEach, expect, it } from 'vitest';
+import { initializeWorkspace } from '@evidence-poc/evidence-model-io';
+import { createEmptyDomainModel } from '@evidence-poc/evidence-schema';
 import { dispatch } from '../router.js';
 
 let root: string;
 beforeEach(async () => {
   root = await mkdtemp(path.join(tmpdir(), 'evidence-test-'));
+  const { acceptance } = await initializeWorkspace(
+    root,
+    createEmptyDomainModel(),
+  );
   writeOutput(
-    path.join(root, 'smoke'),
+    acceptance,
     renderAcceptanceSuite({
       modelId: 'smoke',
       flows: [
@@ -62,7 +68,7 @@ it('prints green, red and parseable JSON, ignoring a 404 health probe', async ()
       stderr: (text: string) => errors.push(text),
       color: false,
     };
-    const args = ['test', '--target', target, '--scenarios', 'smoke'];
+    const args = ['test', '--target', target];
     expect(await dispatch(args, context)).toBe(0);
     expect(output.pop()).toContain('PASSED (Green)');
     amount = 501;
@@ -95,8 +101,7 @@ it('prints green, red and parseable JSON, ignoring a 404 health probe', async ()
           'dod',
           '--allow-pending',
           '--json',
-          '--report-dir',
-          'reports',
+          '--write-reports',
         ],
         context,
       ),
@@ -107,15 +112,15 @@ it('prints green, red and parseable JSON, ignoring a 404 health probe', async ()
       gate: 'dod',
     });
     const saved = JSON.parse(
-      await readFile(path.join(root, 'reports/dod.json'), 'utf8'),
+      await readFile(path.join(root, '.evidence/reports/dod.json'), 'utf8'),
     );
     expect(saved).toMatchObject({ passed: false, pending: true });
     expect(
-      await readFile(path.join(root, 'reports/dod.xml'), 'utf8'),
+      await readFile(path.join(root, '.evidence/reports/dod.xml'), 'utf8'),
     ).toContain('<failure');
-    expect(await readFile(path.join(root, 'reports/dod.md'), 'utf8')).toContain(
-      'PENDING',
-    );
+    expect(
+      await readFile(path.join(root, '.evidence/reports/dod.md'), 'utf8'),
+    ).toContain('PENDING');
     expect(
       await dispatch(
         [...args, '--gate', 'dod', '--report', 'markdown'],
@@ -156,17 +161,14 @@ it('fails closed for unreachable targets, invalid clocks and unsupported inputs'
     stderr: () => undefined,
     color: false,
   };
-  const args = ['test', '--target', target, '--scenarios', 'smoke', '--json'];
-  await writeFile(path.join(root, 'old.hurl'), 'old');
+  const args = ['test', '--target', target, '--json'];
   expect(
     await dispatch(
       ['test', '--target', target, '--scenarios', 'old.hurl', '--json'],
       context,
     ),
   ).toBe(1);
-  expect(JSON.parse(output.pop()!).error).toContain(
-    'Invalid generated Bruno collection',
-  );
+  expect(JSON.parse(output.pop()!).error).toContain('Unknown option');
   expect(await dispatch(args, context)).toBe(1);
   expect(JSON.parse(output.pop()!).error).toContain('is unreachable');
   for (const extra of [

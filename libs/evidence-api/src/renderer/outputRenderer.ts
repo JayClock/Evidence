@@ -181,5 +181,3 @@ const exists = (target: string): boolean => {
 };
 
 /** Where a projection lands when the caller does not say. */
-export const defaultOutputDirectory = (projectRoot: string): string =>
-  path.join(projectRoot, '.evidence', 'api', 'generated');

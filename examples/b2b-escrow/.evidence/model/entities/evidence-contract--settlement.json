@@ -1,0 +1,171 @@
+{
+  "type": "entity",
+  "id": "contract.settlement",
+  "category": "evidence",
+  "kind": "contract",
+  "contextRef": "context.settlement",
+  "label": "settlement",
+  "notes": "Bilateral settlement agreement. The third party participates through its own contract, not a third signatory on this contract.",
+  "roleRefs": [
+    "role.settlement-seller",
+    "role.settlement-escrow"
+  ],
+  "attributes": [
+    {
+      "name": "id",
+      "label": "id",
+      "meaning": "Unique immutable business evidence identifier.",
+      "valueType": "id",
+      "required": true
+    },
+    {
+      "name": "signed_at",
+      "timeRole": "occurrence",
+      "label": "signed_at",
+      "meaning": "Server-recorded UTC business time; caller may not supply this field.",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "order_confirmation_id",
+      "label": "order_confirmation_id",
+      "meaning": "Existing seller order confirmation selected for this contract; backend must resolve and authorize it.",
+      "valueType": "id",
+      "required": true
+    },
+    {
+      "name": "deposit_confirmation_id",
+      "label": "deposit_confirmation_id",
+      "meaning": "Existing custodian deposit-lock confirmation for the same order.",
+      "valueType": "id",
+      "required": true
+    },
+    {
+      "name": "acceptance_confirmation_id",
+      "label": "acceptance_confirmation_id",
+      "meaning": "Existing buyer final acceptance (single delivery or optional milestones) for the same order.",
+      "valueType": "id",
+      "required": true
+    }
+  ],
+  "examples": [
+    {
+      "label": "single-on-time",
+      "value": {
+        "id": "single-on-time-contract-settlement",
+        "signed_at": "2026-06-15T00:00:00Z",
+        "order_confirmation_id": "single-on-time-confirmation-order",
+        "deposit_confirmation_id": "single-on-time-confirmation-deposit-lock",
+        "acceptance_confirmation_id": "single-on-time-confirmation-acceptance"
+      },
+      "test": {
+        "flow": "single-on-time",
+        "tags": [
+          "regression",
+          "single",
+          "on-time"
+        ],
+        "actingRoleRef": "role.settlement-seller",
+        "asOf": "2026-06-15T00:00:00Z",
+        "basedOn": [
+          "confirmation.acceptance#single-on-time"
+        ]
+      }
+    },
+    {
+      "label": "single-late",
+      "value": {
+        "id": "single-late-contract-settlement",
+        "signed_at": "2026-06-30T00:00:00Z",
+        "order_confirmation_id": "single-late-confirmation-order",
+        "deposit_confirmation_id": "single-late-confirmation-deposit-lock",
+        "acceptance_confirmation_id": "single-late-confirmation-acceptance"
+      },
+      "test": {
+        "flow": "single-late",
+        "tags": [
+          "regression",
+          "single",
+          "late"
+        ],
+        "actingRoleRef": "role.settlement-seller",
+        "asOf": "2026-06-30T00:00:00Z",
+        "basedOn": [
+          "confirmation.acceptance#single-late"
+        ]
+      }
+    },
+    {
+      "label": "milestone-on-time",
+      "value": {
+        "id": "milestone-on-time-contract-settlement",
+        "signed_at": "2026-06-15T00:00:00Z",
+        "order_confirmation_id": "milestone-on-time-confirmation-order",
+        "deposit_confirmation_id": "milestone-on-time-confirmation-deposit-lock",
+        "acceptance_confirmation_id": "milestone-on-time-confirmation-milestone-acceptance"
+      },
+      "test": {
+        "flow": "milestone-on-time",
+        "tags": [
+          "dod",
+          "milestone",
+          "on-time"
+        ],
+        "actingRoleRef": "role.settlement-seller",
+        "asOf": "2026-06-15T00:00:00Z",
+        "basedOn": [
+          "confirmation.milestone-acceptance#milestone-on-time"
+        ]
+      }
+    },
+    {
+      "label": "milestone-precision",
+      "value": {
+        "id": "milestone-precision-contract-settlement",
+        "signed_at": "2026-06-15T00:00:01Z",
+        "order_confirmation_id": "milestone-precision-confirmation-order",
+        "deposit_confirmation_id": "milestone-precision-confirmation-deposit-lock",
+        "acceptance_confirmation_id": "milestone-precision-confirmation-milestone-acceptance"
+      },
+      "test": {
+        "flow": "milestone-precision",
+        "tags": [
+          "dod",
+          "milestone",
+          "precision",
+          "late"
+        ],
+        "actingRoleRef": "role.settlement-seller",
+        "asOf": "2026-06-15T00:00:01Z",
+        "basedOn": [
+          "confirmation.milestone-acceptance#milestone-precision"
+        ]
+      }
+    },
+    {
+      "label": "milestone-capped",
+      "value": {
+        "id": "milestone-capped-contract-settlement",
+        "signed_at": "2026-06-30T00:00:00Z",
+        "order_confirmation_id": "milestone-capped-confirmation-order",
+        "deposit_confirmation_id": "milestone-capped-confirmation-deposit-lock",
+        "acceptance_confirmation_id": "milestone-capped-confirmation-milestone-acceptance"
+      },
+      "test": {
+        "flow": "milestone-capped",
+        "tags": [
+          "dod",
+          "milestone",
+          "capped",
+          "late"
+        ],
+        "actingRoleRef": "role.settlement-seller",
+        "asOf": "2026-06-30T00:00:00Z",
+        "basedOn": [
+          "confirmation.milestone-acceptance#milestone-capped"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "type": "rule",
+  "id": "rule.complete-delivery",
+  "kind": "completion",
+  "label": "complete-delivery",
+  "description": "Buyer final acceptance closes only a complete single delivery.",
+  "contextRef": "context.fulfillment",
+  "bindings": {
+    "order": {
+      "ref": "confirmation.order"
+    },
+    "delivery": {
+      "ref": "confirmation.delivery"
+    },
+    "acceptance": {
+      "ref": "confirmation.acceptance"
+    }
+  },
+  "expression": "acceptance.accepted && delivery.delivered_quantity == order.quantity && acceptance.accepted_quantity == order.quantity",
+  "resultType": "bool"
+}

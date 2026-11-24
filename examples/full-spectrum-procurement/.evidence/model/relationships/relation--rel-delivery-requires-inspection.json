@@ -1,0 +1,17 @@
+{
+  "type": "relationship",
+  "id": "rel-delivery-requires-inspection",
+  "kind": "references",
+  "flowKind": "primary",
+  "sourceRef": "doc-sgs-inspection-cert",
+  "targetRef": "conf-equipment-delivery",
+  "label": "到港签收后签发SGS国际技术质量核验证书",
+  "sourceCardinality": {
+    "min": 1,
+    "max": 1
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

@@ -1,0 +1,107 @@
+{
+  "type": "entity",
+  "id": "doc-procurement-contract",
+  "category": "evidence",
+  "kind": "contract",
+  "contextRef": "ctx-main-procurement",
+  "roleRefs": [
+    "role-buyer",
+    "role-seller"
+  ],
+  "label": "高端智能装备国际采购主买卖契约（Master Equipment Procurement Agreement）",
+  "examples": [
+    {
+      "label": "顺畅履约",
+      "value": {
+        "contract_total_amount": {
+          "minorUnits": 100000000,
+          "currency": "CNY"
+        },
+        "down_payment_rate": 0.3,
+        "delivery_deadline_days": 35,
+        "signed_at": "2026-01-03T09:00:00Z"
+      },
+      "test": {
+        "flow": "happy-path",
+        "actingRoleRef": "role-buyer",
+        "asOf": "2026-01-03T09:00:00Z",
+        "basedOn": [
+          "doc-supplier-proposal#顺畅履约"
+        ]
+      }
+    },
+    {
+      "label": "逾期交货",
+      "value": {
+        "contract_total_amount": {
+          "minorUnits": 100000000,
+          "currency": "CNY"
+        },
+        "down_payment_rate": 0.3,
+        "delivery_deadline_days": 35,
+        "signed_at": "2026-01-03T09:00:00Z"
+      },
+      "test": {
+        "flow": "late-delivery",
+        "actingRoleRef": "role-buyer",
+        "asOf": "2026-01-03T09:00:00Z",
+        "basedOn": [
+          "doc-supplier-proposal#逾期交货"
+        ]
+      }
+    },
+    {
+      "label": "质检争议",
+      "value": {
+        "contract_total_amount": {
+          "minorUnits": 100000000,
+          "currency": "CNY"
+        },
+        "down_payment_rate": 0.3,
+        "delivery_deadline_days": 35,
+        "signed_at": "2026-01-03T09:00:00Z"
+      },
+      "test": {
+        "flow": "defect-escalation",
+        "actingRoleRef": "role-buyer",
+        "asOf": "2026-01-03T09:00:00Z",
+        "basedOn": [
+          "doc-supplier-proposal#质检争议"
+        ]
+      }
+    }
+  ],
+  "attributes": [
+    {
+      "name": "contract_total_amount",
+      "label": "合同签约总价",
+      "meaning": "买卖双方正式签署的设备交钥匙总价款",
+      "valueType": "money",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "down_payment_rate",
+      "label": "预付款比例",
+      "meaning": "签约后卖方排产前须支付的预付款百分比",
+      "valueType": "decimal",
+      "required": true
+    },
+    {
+      "name": "delivery_deadline_days",
+      "label": "发货交期允许天数",
+      "meaning": "自收到预付款到出厂发货的最大允许日历天数",
+      "valueType": "int",
+      "required": true
+    },
+    {
+      "name": "signed_at",
+      "timeRole": "occurrence",
+      "label": "契约签署生效时刻",
+      "meaning": "双方加盖电子印章正式生效时刻",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    }
+  ]
+}

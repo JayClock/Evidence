@@ -1,0 +1,87 @@
+{
+  "type": "entity",
+  "id": "doc-escrow-agreement",
+  "category": "evidence",
+  "kind": "contract",
+  "contextRef": "ctx-escrow-settlement",
+  "roleRefs": [
+    "role-escrow-depositor",
+    "role-escrow-agent"
+  ],
+  "label": "买方与托管行三方资金托管监管协议（Tripartite Escrow Agreement）",
+  "examples": [
+    {
+      "label": "顺畅履约",
+      "value": {
+        "escrow_locked_amount": {
+          "minorUnits": 100000000,
+          "currency": "CNY"
+        },
+        "signed_at": "2026-01-04T09:00:00Z"
+      },
+      "test": {
+        "flow": "happy-path",
+        "actingRoleRef": "role-escrow-depositor",
+        "asOf": "2026-01-04T09:00:00Z",
+        "basedOn": [
+          "doc-procurement-contract#顺畅履约"
+        ]
+      }
+    },
+    {
+      "label": "逾期交货",
+      "value": {
+        "escrow_locked_amount": {
+          "minorUnits": 100000000,
+          "currency": "CNY"
+        },
+        "signed_at": "2026-01-04T09:00:00Z"
+      },
+      "test": {
+        "flow": "late-delivery",
+        "actingRoleRef": "role-escrow-depositor",
+        "asOf": "2026-01-04T09:00:00Z",
+        "basedOn": [
+          "doc-procurement-contract#逾期交货"
+        ]
+      }
+    },
+    {
+      "label": "质检争议",
+      "value": {
+        "escrow_locked_amount": {
+          "minorUnits": 100000000,
+          "currency": "CNY"
+        },
+        "signed_at": "2026-01-04T09:00:00Z"
+      },
+      "test": {
+        "flow": "defect-escalation",
+        "actingRoleRef": "role-escrow-depositor",
+        "asOf": "2026-01-04T09:00:00Z",
+        "basedOn": [
+          "doc-procurement-contract#质检争议"
+        ]
+      }
+    }
+  ],
+  "attributes": [
+    {
+      "name": "escrow_locked_amount",
+      "label": "托管账户冻结资金",
+      "meaning": "买方存入托管指定独立账户的全额待清算资金",
+      "valueType": "money",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "signed_at",
+      "timeRole": "occurrence",
+      "label": "托管协议签署时刻",
+      "meaning": "托管银行完成账户开立并签署监管协议生效时刻",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    }
+  ]
+}

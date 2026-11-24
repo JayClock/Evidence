@@ -1,0 +1,8 @@
+{
+  "type": "entity",
+  "id": "role-escrow-depositor",
+  "category": "role",
+  "kind": "party",
+  "contextRef": "ctx-escrow-settlement",
+  "label": "资金托管委托人角色（Escrow Depositor Role）"
+}

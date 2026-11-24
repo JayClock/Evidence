@@ -1,0 +1,21 @@
+{
+  "type": "rule",
+  "id": "rule.funded-release",
+  "kind": "precondition",
+  "label": "funded-release",
+  "description": "The custodian releases only funded and fully accepted delivery, exactly once per request.",
+  "contextRef": "context.settlement",
+  "bindings": {
+    "order": {
+      "ref": "confirmation.order"
+    },
+    "deposit": {
+      "ref": "confirmation.deposit-lock"
+    },
+    "acceptance": {
+      "ref": "confirmation.acceptance"
+    }
+  },
+  "expression": "deposit.locked_amount_minor == order.gross_amount_minor && acceptance.accepted && acceptance.accepted_quantity == order.quantity",
+  "resultType": "bool"
+}

@@ -1,0 +1,19 @@
+{
+  "type": "rule",
+  "id": "rule.order-daily-penalty-bps",
+  "kind": "derivation",
+  "label": "order-daily-penalty-bps",
+  "description": "Seller order evidence preserves the agreed term for cross-context consumers.",
+  "contextRef": "context.procurement",
+  "bindings": {
+    "agreement": {
+      "ref": "contract.agreement"
+    }
+  },
+  "expression": "agreement.daily_penalty_bps",
+  "resultType": "int",
+  "target": {
+    "entityRef": "confirmation.order",
+    "attribute": "daily_penalty_bps"
+  }
+}

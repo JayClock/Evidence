@@ -1,0 +1,16 @@
+{
+  "type": "relationship",
+  "id": "relation.confirmation.commitment-request.commitment",
+  "kind": "references",
+  "sourceRef": "confirmation.commitment",
+  "targetRef": "request.commitment",
+  "label": "references",
+  "sourceCardinality": {
+    "min": 0,
+    "max": 1
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

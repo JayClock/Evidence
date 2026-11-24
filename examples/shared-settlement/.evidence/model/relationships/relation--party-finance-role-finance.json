@@ -1,0 +1,8 @@
+{
+  "type": "relationship",
+  "id": "relation.party.finance-role.finance",
+  "kind": "plays_role",
+  "sourceRef": "party.finance",
+  "targetRef": "role.finance",
+  "label": "扮演财务控制方"
+}

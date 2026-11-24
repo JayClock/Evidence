@@ -6,7 +6,7 @@ export function selectScenarios({ gate, baselineModel }) {
   if (gate === undefined && baselineModel === undefined) return cases;
   if (!['regression', 'dod'].includes(gate) || !baselineModel)
     throw new Error(
-      '--gate regression|dod requires --baseline-model FILE (and vice versa)',
+      '--gate regression|dod requires --baseline-workspace DIRECTORY (and vice versa)',
     );
   return [{ name: gate, gate, mode: 'v2', fault: 'none', strict: true }];
 }

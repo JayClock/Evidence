@@ -1,0 +1,16 @@
+{
+  "type": "relationship",
+  "id": "relation.request.deposit-lock-contract.escrow",
+  "kind": "references",
+  "sourceRef": "request.deposit-lock",
+  "targetRef": "contract.escrow",
+  "label": "references",
+  "sourceCardinality": {
+    "min": 0,
+    "max": "many"
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

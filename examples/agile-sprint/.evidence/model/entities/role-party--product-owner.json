@@ -1,0 +1,8 @@
+{
+  "type": "entity",
+  "id": "role.product-owner",
+  "category": "role",
+  "kind": "party",
+  "label": "产品负责人",
+  "contextRef": "context.sprint"
+}

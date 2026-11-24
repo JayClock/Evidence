@@ -1,0 +1,17 @@
+{
+  "type": "relationship",
+  "id": "rel-proposal-references-rfp",
+  "kind": "references",
+  "flowKind": "primary",
+  "sourceRef": "doc-supplier-proposal",
+  "targetRef": "doc-sourcing-rfp",
+  "label": "投标报价回应采购招标",
+  "sourceCardinality": {
+    "min": 1,
+    "max": 1
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "type": "entity",
+  "id": "request.quarterly-target",
+  "category": "evidence",
+  "kind": "fulfillment_request",
+  "label": "季度收入指标",
+  "contextRef": "context.performance",
+  "responsibleRoleRef": "role.finance",
+  "attributes": [
+    {
+      "name": "id",
+      "label": "凭证标识",
+      "valueType": "id",
+      "required": true,
+      "meaning": "在此业务凭证类型中唯一的标识"
+    },
+    {
+      "name": "started_at",
+      "timeRole": "start",
+      "label": "开启时刻",
+      "valueType": "timestamp",
+      "required": true,
+      "meaning": "开启时刻",
+      "keyData": true
+    },
+    {
+      "name": "expired_at",
+      "timeRole": "deadline",
+      "label": "截止时刻",
+      "valueType": "timestamp",
+      "required": true,
+      "meaning": "截止时刻",
+      "keyData": true,
+      "derivedByRuleRef": "rule.request.quarterly-target-deadline"
+    },
+    {
+      "name": "quarter",
+      "label": "季度",
+      "valueType": "string",
+      "required": true,
+      "meaning": "例如 2026-Q1"
+    },
+    {
+      "name": "target_amount_minor",
+      "label": "季度指标金额",
+      "valueType": "int",
+      "required": true,
+      "meaning": "季度指标金额，单位为 CNY 分"
+    }
+  ],
+  "examples": [
+    {
+      "label": "open-q1",
+      "value": {
+        "id": "target-2026-q1",
+        "quarter": "2026-Q1",
+        "target_amount_minor": 12000000,
+        "started_at": "2026-01-02T10:00:00Z",
+        "expired_at": "2026-04-02T10:00:00Z"
+      },
+      "test": {
+        "flow": "credit-quarter-and-year-once",
+        "actingRoleRef": "role.finance",
+        "asOf": "2026-01-02T10:00:00Z",
+        "basedOn": [
+          "contract.performance-agreement#sign-fy26"
+        ]
+      }
+    }
+  ]
+}

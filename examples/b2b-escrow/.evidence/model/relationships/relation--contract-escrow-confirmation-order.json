@@ -1,0 +1,16 @@
+{
+  "type": "relationship",
+  "id": "relation.contract.escrow-confirmation.order",
+  "kind": "references",
+  "sourceRef": "contract.escrow",
+  "targetRef": "confirmation.order",
+  "label": "references",
+  "sourceCardinality": {
+    "min": 0,
+    "max": "many"
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

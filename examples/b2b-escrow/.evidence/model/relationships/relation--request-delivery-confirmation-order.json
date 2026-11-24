@@ -1,0 +1,16 @@
+{
+  "type": "relationship",
+  "id": "relation.request.delivery-confirmation.order",
+  "kind": "references",
+  "sourceRef": "request.delivery",
+  "targetRef": "confirmation.order",
+  "label": "references",
+  "sourceCardinality": {
+    "min": 0,
+    "max": "many"
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

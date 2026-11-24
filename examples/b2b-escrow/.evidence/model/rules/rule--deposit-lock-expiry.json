@@ -1,0 +1,19 @@
+{
+  "type": "rule",
+  "id": "rule.deposit-lock-expiry",
+  "kind": "derivation",
+  "label": "deposit-lock request expiry",
+  "description": "Each request is valid for 48 hours from its server-recorded start; callers cannot choose or backdate the expiration.",
+  "contextRef": "context.escrow",
+  "bindings": {
+    "request": {
+      "ref": "request.deposit-lock"
+    }
+  },
+  "expression": "request.started_at + duration(\"48h\")",
+  "resultType": "timestamp",
+  "target": {
+    "entityRef": "request.deposit-lock",
+    "attribute": "expired_at"
+  }
+}

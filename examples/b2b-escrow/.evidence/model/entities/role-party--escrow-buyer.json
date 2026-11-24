@@ -1,0 +1,8 @@
+{
+  "type": "entity",
+  "id": "role.escrow-buyer",
+  "category": "role",
+  "kind": "party",
+  "contextRef": "context.escrow",
+  "label": "buyer"
+}

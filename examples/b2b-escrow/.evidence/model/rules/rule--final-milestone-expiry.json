@@ -1,0 +1,19 @@
+{
+  "type": "rule",
+  "id": "rule.final-milestone-expiry",
+  "kind": "derivation",
+  "label": "final-milestone request expiry",
+  "description": "Each request is valid for 48 hours from its server-recorded start; callers cannot choose or backdate the expiration.",
+  "contextRef": "context.fulfillment",
+  "bindings": {
+    "request": {
+      "ref": "request.final-milestone"
+    }
+  },
+  "expression": "request.started_at + duration(\"48h\")",
+  "resultType": "timestamp",
+  "target": {
+    "entityRef": "request.final-milestone",
+    "attribute": "expired_at"
+  }
+}

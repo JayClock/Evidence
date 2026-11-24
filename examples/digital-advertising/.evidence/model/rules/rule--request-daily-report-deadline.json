@@ -1,0 +1,19 @@
+{
+  "type": "rule",
+  "id": "rule.request.daily-report-deadline",
+  "kind": "derivation",
+  "label": "日报生成请求窗口为 24 小时",
+  "description": "日报生成请求窗口为 24 小时",
+  "contextRef": "context.advertising-order",
+  "bindings": {
+    "self": {
+      "ref": "request.daily-report"
+    }
+  },
+  "expression": "self.started_at + duration(\"24h\")",
+  "resultType": "timestamp",
+  "target": {
+    "entityRef": "request.daily-report",
+    "attribute": "expired_at"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "type": "entity",
+  "id": "role-clearing-engine",
+  "category": "role",
+  "kind": "domain",
+  "contextRef": "ctx-fintech-domain",
+  "label": "资金清算核算器"
+}

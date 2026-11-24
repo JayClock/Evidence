@@ -1,0 +1,28 @@
+{
+  "type": "rule",
+  "id": "rule-derive-penalty-amount",
+  "kind": "derivation",
+  "label": "逾期交付日阶梯违约赔偿金派生算法",
+  "description": "依据逾期天数与基准日费率派生违约金总额[req.breach.penalty]",
+  "contextRef": "ctx-main-procurement",
+  "bindings": {
+    "req": {
+      "ref": "req-breach-penalty",
+      "cardinality": "one"
+    },
+    "calculator": {
+      "ref": "thing-tariff-calculator",
+      "cardinality": "one"
+    },
+    "contract": {
+      "ref": "doc-procurement-contract",
+      "cardinality": "one"
+    }
+  },
+  "expression": "{\"minorUnits\": dyn(int(double(contract.contract_total_amount.minorUnits) * calculator.penalty_daily_rate * double(req.overdue_days))), \"currency\": contract.contract_total_amount.currency}",
+  "resultType": "money",
+  "target": {
+    "entityRef": "req-breach-penalty",
+    "attribute": "claimed_penalty_amount"
+  }
+}

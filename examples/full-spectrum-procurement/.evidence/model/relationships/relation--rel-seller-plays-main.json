@@ -1,0 +1,16 @@
+{
+  "type": "relationship",
+  "id": "rel-seller-plays-main",
+  "kind": "plays_role",
+  "sourceRef": "party-supplier-apex",
+  "targetRef": "role-seller",
+  "label": "供应商法人扮演主合同卖方角色",
+  "sourceCardinality": {
+    "min": 1,
+    "max": 1
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

@@ -15,9 +15,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  MODEL: examples/b2b-escrow/model/b2b-escrow.evidence.json
-  GENERATED: examples/b2b-escrow/generated
-  BOOTSTRAP_MODEL: examples/b2b-escrow/model/b2b-escrow-v1.evidence.json
+  WORKSPACE: examples/b2b-escrow
+  BOOTSTRAP: examples/b2b-escrow/baseline-v1
   NX_DAEMON: 'false'
 
 jobs:
@@ -43,23 +42,27 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p reports
+          mkdir -p reports/baseline/.evidence
+          SOURCE="$BOOTSTRAP/.evidence/model"
           if [[ -n "$BASE_SHA" && ! "$BASE_SHA" =~ ^0+$ ]]; then
             git cat-file -e "${BASE_SHA}^{commit}"
-            if git cat-file -e "${BASE_SHA}:${MODEL}" 2>/dev/null; then
-              git show "${BASE_SHA}:${MODEL}" > reports/baseline.evidence.json
+            if git cat-file -e "${BASE_SHA}:${WORKSPACE}/.evidence/model/model.json" 2>/dev/null; then
+              SOURCE="$WORKSPACE/.evidence/model"
+              git archive "$BASE_SHA" "$SOURCE" | tar -x -C reports/baseline/.evidence --strip-components=3
+            elif git cat-file -e "${BASE_SHA}:${SOURCE}/model.json" 2>/dev/null; then
+              git archive "$BASE_SHA" "$SOURCE" | tar -x -C reports/baseline/.evidence --strip-components=4
             else
-              # Explicit bootstrap for the PR that first introduces MODEL.
-              git show "${BASE_SHA}:${BOOTSTRAP_MODEL}" > reports/baseline.evidence.json
+              # Explicit bootstrap for the first workspace-format commit.
+              cp -R "$SOURCE" reports/baseline/.evidence/model
             fi
           else
-            cp "$BOOTSTRAP_MODEL" reports/baseline.evidence.json
+            cp -R "$SOURCE" reports/baseline/.evidence/model
           fi
       - name: Breaking contract gate
         shell: bash
         run: |
           set -euo pipefail
-          pnpm evidence diff reports/baseline.evidence.json "$MODEL" --format markdown > reports/api-diff.md
+          pnpm evidence diff reports/baseline "$WORKSPACE" --format markdown > reports/api-diff.md
       - name: Publish API summary
         if: always()
         run: test ! -f reports/api-diff.md || cat reports/api-diff.md >> "$GITHUB_STEP_SUMMARY"
@@ -68,6 +71,7 @@ jobs:
         with:
           name: evidence-contract
           path: reports/
+          include-hidden-files: true
 
   acceptance:
     name: ${{ matrix.implementation }} native + Bruno conformance + strict gates
@@ -130,14 +134,14 @@ jobs:
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: >-
           make -C examples/b2b-escrow gate GATE=regression
-          BASELINE="$GITHUB_WORKSPACE/reports/baseline.evidence.json"
+          BASELINE="$GITHUB_WORKSPACE/reports/baseline"
           REPORT_DIR="$GITHUB_WORKSPACE/reports/regression"
       - name: Strict DoD against immutable Git baseline
         # Run even if regression failed, but never use a failed/missing native build.
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: >-
           make -C examples/b2b-escrow gate GATE=dod
-          BASELINE="$GITHUB_WORKSPACE/reports/baseline.evidence.json"
+          BASELINE="$GITHUB_WORKSPACE/reports/baseline"
           REPORT_DIR="$GITHUB_WORKSPACE/reports/dod"
       - name: Publish strict gate summaries
         if: always()
@@ -152,4 +156,5 @@ jobs:
         with:
           name: evidence-${{ matrix.implementation }}
           path: reports/
+          include-hidden-files: true
           if-no-files-found: error

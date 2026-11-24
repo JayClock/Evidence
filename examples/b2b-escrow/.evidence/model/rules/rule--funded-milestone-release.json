@@ -1,0 +1,21 @@
+{
+  "type": "rule",
+  "id": "rule.funded-milestone-release",
+  "kind": "precondition",
+  "label": "funded-milestone-release",
+  "description": "An escrow contract chooses single or milestone settlement, never both. Custodian enforces atomic, exactly-once release.",
+  "contextRef": "context.settlement",
+  "bindings": {
+    "order": {
+      "ref": "confirmation.order"
+    },
+    "deposit": {
+      "ref": "confirmation.deposit-lock"
+    },
+    "acceptance": {
+      "ref": "confirmation.milestone-acceptance"
+    }
+  },
+  "expression": "deposit.locked_amount_minor == order.gross_amount_minor && acceptance.accepted && acceptance.accepted_quantity == order.quantity",
+  "resultType": "bool"
+}

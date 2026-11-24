@@ -1,0 +1,52 @@
+{
+  "type": "entity",
+  "id": "confirmation.review",
+  "category": "evidence",
+  "kind": "fulfillment_confirmation",
+  "label": "迭代评审纪要",
+  "contextRef": "context.sprint",
+  "responsibleRoleRef": "role.product-owner",
+  "attributes": [
+    {
+      "name": "id",
+      "label": "凭证标识",
+      "valueType": "id",
+      "required": true,
+      "meaning": "在此业务凭证类型中唯一的标识"
+    },
+    {
+      "name": "confirmed_at",
+      "timeRole": "occurrence",
+      "label": "形成时刻",
+      "valueType": "timestamp",
+      "required": true,
+      "meaning": "形成时刻",
+      "keyData": true
+    },
+    {
+      "name": "outcome",
+      "label": "评审结论",
+      "valueType": "string",
+      "required": true,
+      "meaning": "评审结论"
+    }
+  ],
+  "examples": [
+    {
+      "label": "complete-review",
+      "value": {
+        "id": "review-minutes-42",
+        "outcome": "同意验收结果并归档",
+        "confirmed_at": "2026-08-14T13:00:00Z"
+      },
+      "test": {
+        "flow": "two-stories-one-sprint",
+        "actingRoleRef": "role.product-owner",
+        "asOf": "2026-08-14T13:00:00Z",
+        "basedOn": [
+          "request.review#review-iteration"
+        ]
+      }
+    }
+  ]
+}

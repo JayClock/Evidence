@@ -16,7 +16,6 @@ export {
   type ContextDeliveryPlan,
 } from './delivery/contextDelivery.js';
 export {
-  contextOutputDirectory,
   contextDeliveryFiles,
   verifyContextDelivery,
   writeContextDelivery,
@@ -73,7 +72,6 @@ export { allowedCallerRoleRefs } from './delivery/addressing.js';
 export {
   TOOL_NAME,
   TOOL_VERSION,
-  defaultOutputDirectory,
   renderOutputs,
   writeOutput,
 } from './renderer/outputRenderer.js';

@@ -1,0 +1,213 @@
+{
+  "type": "entity",
+  "id": "confirmation.order",
+  "category": "evidence",
+  "kind": "fulfillment_confirmation",
+  "contextRef": "context.procurement",
+  "label": "order",
+  "notes": "seller's immutable answer to request.order.",
+  "responsibleRoleRef": "role.procurement-seller",
+  "attributes": [
+    {
+      "name": "id",
+      "label": "id",
+      "meaning": "Unique immutable business evidence identifier.",
+      "valueType": "id",
+      "required": true
+    },
+    {
+      "name": "confirmed_at",
+      "timeRole": "occurrence",
+      "label": "confirmed_at",
+      "meaning": "Server-recorded UTC business time; caller may not supply this field.",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "subtotal_minor",
+      "label": "subtotal_minor",
+      "meaning": "Tier unit price multiplied by the agreed quantity, before tax. In CNY minor units (fen), never a floating-point yuan amount.",
+      "valueType": "int",
+      "required": true,
+      "keyData": true,
+      "derivedByRuleRef": "rule.subtotal"
+    },
+    {
+      "name": "gross_amount_minor",
+      "label": "gross_amount_minor",
+      "meaning": "Tax-inclusive order value, rounded half up once to a minor unit. In CNY minor units (fen), never a floating-point yuan amount.",
+      "valueType": "int",
+      "required": true,
+      "keyData": true,
+      "derivedByRuleRef": "rule.gross"
+    },
+    {
+      "name": "quantity",
+      "label": "quantity",
+      "meaning": "Buyer-agreed total quantity, positive and fully deliverable.",
+      "valueType": "int",
+      "required": true,
+      "derivedByRuleRef": "rule.order-quantity"
+    },
+    {
+      "name": "retention_bps",
+      "label": "retention_bps",
+      "meaning": "Contractual retained warranty share, inclusive range 0..10000.",
+      "valueType": "int",
+      "required": true,
+      "derivedByRuleRef": "rule.order-retention-bps"
+    },
+    {
+      "name": "daily_penalty_bps",
+      "label": "daily_penalty_bps",
+      "meaning": "Penalty basis points per started 24-hour period, inclusive range 0..10000.",
+      "valueType": "int",
+      "required": true,
+      "derivedByRuleRef": "rule.order-daily-penalty-bps"
+    },
+    {
+      "name": "delivery_deadline",
+      "label": "delivery_deadline",
+      "meaning": "Agreed delivery acceptance deadline in UTC; a contract term, not a server stamp.",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true,
+      "derivedByRuleRef": "rule.order-delivery-deadline"
+    }
+  ],
+  "examples": [
+    {
+      "label": "single-on-time",
+      "value": {
+        "id": "single-on-time-confirmation-order",
+        "confirmed_at": "2026-06-01T00:01:00Z",
+        "subtotal_minor": 1297701,
+        "gross_amount_minor": 1466402,
+        "quantity": 999,
+        "retention_bps": 500,
+        "daily_penalty_bps": 100,
+        "delivery_deadline": "2026-06-15T00:00:00Z"
+      },
+      "test": {
+        "flow": "single-on-time",
+        "tags": [
+          "regression",
+          "single",
+          "on-time"
+        ],
+        "actingRoleRef": "role.procurement-seller",
+        "asOf": "2026-06-01T00:01:00Z",
+        "basedOn": [
+          "request.order#single-on-time"
+        ]
+      }
+    },
+    {
+      "label": "single-late",
+      "value": {
+        "id": "single-late-confirmation-order",
+        "confirmed_at": "2026-06-01T00:01:00Z",
+        "subtotal_minor": 1199000,
+        "gross_amount_minor": 1354870,
+        "quantity": 1000,
+        "retention_bps": 500,
+        "daily_penalty_bps": 100,
+        "delivery_deadline": "2026-06-15T00:00:00Z"
+      },
+      "test": {
+        "flow": "single-late",
+        "tags": [
+          "regression",
+          "single",
+          "late"
+        ],
+        "actingRoleRef": "role.procurement-seller",
+        "asOf": "2026-06-01T00:01:00Z",
+        "basedOn": [
+          "request.order#single-late"
+        ]
+      }
+    },
+    {
+      "label": "milestone-on-time",
+      "value": {
+        "id": "milestone-on-time-confirmation-order",
+        "confirmed_at": "2026-06-01T00:01:00Z",
+        "subtotal_minor": 1199000,
+        "gross_amount_minor": 1354870,
+        "quantity": 1000,
+        "retention_bps": 500,
+        "daily_penalty_bps": 100,
+        "delivery_deadline": "2026-06-15T00:00:00Z"
+      },
+      "test": {
+        "flow": "milestone-on-time",
+        "tags": [
+          "dod",
+          "milestone",
+          "on-time"
+        ],
+        "actingRoleRef": "role.procurement-seller",
+        "asOf": "2026-06-01T00:01:00Z",
+        "basedOn": [
+          "request.order#milestone-on-time"
+        ]
+      }
+    },
+    {
+      "label": "milestone-precision",
+      "value": {
+        "id": "milestone-precision-confirmation-order",
+        "confirmed_at": "2026-06-01T00:01:00Z",
+        "subtotal_minor": "20000000000000002",
+        "gross_amount_minor": "22600000000000002",
+        "quantity": 2,
+        "retention_bps": 500,
+        "daily_penalty_bps": 100,
+        "delivery_deadline": "2026-06-15T00:00:00Z"
+      },
+      "test": {
+        "flow": "milestone-precision",
+        "tags": [
+          "dod",
+          "milestone",
+          "precision",
+          "late"
+        ],
+        "actingRoleRef": "role.procurement-seller",
+        "asOf": "2026-06-01T00:01:00Z",
+        "basedOn": [
+          "request.order#milestone-precision"
+        ]
+      }
+    },
+    {
+      "label": "milestone-capped",
+      "value": {
+        "id": "milestone-capped-confirmation-order",
+        "confirmed_at": "2026-06-01T00:01:00Z",
+        "subtotal_minor": 1200199,
+        "gross_amount_minor": 1356225,
+        "quantity": 1001,
+        "retention_bps": 500,
+        "daily_penalty_bps": 1000,
+        "delivery_deadline": "2026-06-15T00:00:00Z"
+      },
+      "test": {
+        "flow": "milestone-capped",
+        "tags": [
+          "dod",
+          "milestone",
+          "capped",
+          "late"
+        ],
+        "actingRoleRef": "role.procurement-seller",
+        "asOf": "2026-06-01T00:01:00Z",
+        "basedOn": [
+          "request.order#milestone-capped"
+        ]
+      }
+    }
+  ]
+}

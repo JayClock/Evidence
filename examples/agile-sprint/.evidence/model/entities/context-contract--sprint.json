@@ -1,0 +1,10 @@
+{
+  "type": "entity",
+  "id": "context.sprint",
+  "category": "context",
+  "kind": "contract",
+  "label": "产研迭代计划",
+  "rootRefs": [
+    "contract.iteration-plan"
+  ]
+}

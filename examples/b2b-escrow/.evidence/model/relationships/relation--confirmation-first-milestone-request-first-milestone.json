@@ -1,0 +1,16 @@
+{
+  "type": "relationship",
+  "id": "relation.confirmation.first-milestone-request.first-milestone",
+  "kind": "references",
+  "sourceRef": "confirmation.first-milestone",
+  "targetRef": "request.first-milestone",
+  "label": "references",
+  "sourceCardinality": {
+    "min": 0,
+    "max": 1
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

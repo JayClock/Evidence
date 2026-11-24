@@ -1,0 +1,144 @@
+{
+  "type": "entity",
+  "id": "confirmation.custody-statement",
+  "category": "evidence",
+  "kind": "fulfillment_confirmation",
+  "contextRef": "context.escrow",
+  "label": "custody-statement",
+  "notes": "buyer's immutable answer to request.custody-statement.",
+  "responsibleRoleRef": "role.escrow-buyer",
+  "attributes": [
+    {
+      "name": "id",
+      "label": "id",
+      "meaning": "Unique immutable business evidence identifier.",
+      "valueType": "id",
+      "required": true
+    },
+    {
+      "name": "confirmed_at",
+      "timeRole": "occurrence",
+      "label": "confirmed_at",
+      "meaning": "Server-recorded UTC business time; caller may not supply this field.",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "acknowledged",
+      "label": "acknowledged",
+      "meaning": "Buyer acknowledges the escrow custody statement.",
+      "valueType": "bool",
+      "required": true
+    }
+  ],
+  "examples": [
+    {
+      "label": "single-on-time",
+      "value": {
+        "id": "single-on-time-confirmation-custody-statement",
+        "confirmed_at": "2026-06-02T00:02:00Z",
+        "acknowledged": true
+      },
+      "test": {
+        "flow": "single-on-time",
+        "tags": [
+          "regression",
+          "single",
+          "on-time"
+        ],
+        "actingRoleRef": "role.escrow-buyer",
+        "asOf": "2026-06-02T00:02:00Z",
+        "basedOn": [
+          "request.custody-statement#single-on-time"
+        ]
+      }
+    },
+    {
+      "label": "single-late",
+      "value": {
+        "id": "single-late-confirmation-custody-statement",
+        "confirmed_at": "2026-06-02T00:02:00Z",
+        "acknowledged": true
+      },
+      "test": {
+        "flow": "single-late",
+        "tags": [
+          "regression",
+          "single",
+          "late"
+        ],
+        "actingRoleRef": "role.escrow-buyer",
+        "asOf": "2026-06-02T00:02:00Z",
+        "basedOn": [
+          "request.custody-statement#single-late"
+        ]
+      }
+    },
+    {
+      "label": "milestone-on-time",
+      "value": {
+        "id": "milestone-on-time-confirmation-custody-statement",
+        "confirmed_at": "2026-06-02T00:02:00Z",
+        "acknowledged": true
+      },
+      "test": {
+        "flow": "milestone-on-time",
+        "tags": [
+          "dod",
+          "milestone",
+          "on-time"
+        ],
+        "actingRoleRef": "role.escrow-buyer",
+        "asOf": "2026-06-02T00:02:00Z",
+        "basedOn": [
+          "request.custody-statement#milestone-on-time"
+        ]
+      }
+    },
+    {
+      "label": "milestone-precision",
+      "value": {
+        "id": "milestone-precision-confirmation-custody-statement",
+        "confirmed_at": "2026-06-02T00:02:00Z",
+        "acknowledged": true
+      },
+      "test": {
+        "flow": "milestone-precision",
+        "tags": [
+          "dod",
+          "milestone",
+          "precision",
+          "late"
+        ],
+        "actingRoleRef": "role.escrow-buyer",
+        "asOf": "2026-06-02T00:02:00Z",
+        "basedOn": [
+          "request.custody-statement#milestone-precision"
+        ]
+      }
+    },
+    {
+      "label": "milestone-capped",
+      "value": {
+        "id": "milestone-capped-confirmation-custody-statement",
+        "confirmed_at": "2026-06-02T00:02:00Z",
+        "acknowledged": true
+      },
+      "test": {
+        "flow": "milestone-capped",
+        "tags": [
+          "dod",
+          "milestone",
+          "capped",
+          "late"
+        ],
+        "actingRoleRef": "role.escrow-buyer",
+        "asOf": "2026-06-02T00:02:00Z",
+        "basedOn": [
+          "request.custody-statement#milestone-capped"
+        ]
+      }
+    }
+  ]
+}

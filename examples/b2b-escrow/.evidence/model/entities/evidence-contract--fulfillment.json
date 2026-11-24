@@ -1,0 +1,159 @@
+{
+  "type": "entity",
+  "id": "contract.fulfillment",
+  "category": "evidence",
+  "kind": "contract",
+  "contextRef": "context.fulfillment",
+  "label": "fulfillment",
+  "notes": "Bilateral fulfillment agreement. The third party participates through its own contract, not a third signatory on this contract.",
+  "roleRefs": [
+    "role.fulfillment-buyer",
+    "role.fulfillment-seller"
+  ],
+  "attributes": [
+    {
+      "name": "id",
+      "label": "id",
+      "meaning": "Unique immutable business evidence identifier.",
+      "valueType": "id",
+      "required": true
+    },
+    {
+      "name": "signed_at",
+      "timeRole": "occurrence",
+      "label": "signed_at",
+      "meaning": "Server-recorded UTC business time; caller may not supply this field.",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "order_confirmation_id",
+      "label": "order_confirmation_id",
+      "meaning": "Existing seller order confirmation selected for this contract; backend must resolve and authorize it.",
+      "valueType": "id",
+      "required": true
+    },
+    {
+      "name": "deposit_confirmation_id",
+      "label": "deposit_confirmation_id",
+      "meaning": "Existing custodian deposit-lock confirmation for the same order.",
+      "valueType": "id",
+      "required": true
+    }
+  ],
+  "examples": [
+    {
+      "label": "single-on-time",
+      "value": {
+        "id": "single-on-time-contract-fulfillment",
+        "signed_at": "2026-06-03T00:00:00Z",
+        "order_confirmation_id": "single-on-time-confirmation-order",
+        "deposit_confirmation_id": "single-on-time-confirmation-deposit-lock"
+      },
+      "test": {
+        "flow": "single-on-time",
+        "tags": [
+          "regression",
+          "single",
+          "on-time"
+        ],
+        "actingRoleRef": "role.fulfillment-buyer",
+        "asOf": "2026-06-03T00:00:00Z",
+        "basedOn": [
+          "confirmation.custody-statement#single-on-time"
+        ]
+      }
+    },
+    {
+      "label": "single-late",
+      "value": {
+        "id": "single-late-contract-fulfillment",
+        "signed_at": "2026-06-03T00:00:00Z",
+        "order_confirmation_id": "single-late-confirmation-order",
+        "deposit_confirmation_id": "single-late-confirmation-deposit-lock"
+      },
+      "test": {
+        "flow": "single-late",
+        "tags": [
+          "regression",
+          "single",
+          "late"
+        ],
+        "actingRoleRef": "role.fulfillment-buyer",
+        "asOf": "2026-06-03T00:00:00Z",
+        "basedOn": [
+          "confirmation.custody-statement#single-late"
+        ]
+      }
+    },
+    {
+      "label": "milestone-on-time",
+      "value": {
+        "id": "milestone-on-time-contract-fulfillment",
+        "signed_at": "2026-06-03T00:00:00Z",
+        "order_confirmation_id": "milestone-on-time-confirmation-order",
+        "deposit_confirmation_id": "milestone-on-time-confirmation-deposit-lock"
+      },
+      "test": {
+        "flow": "milestone-on-time",
+        "tags": [
+          "dod",
+          "milestone",
+          "on-time"
+        ],
+        "actingRoleRef": "role.fulfillment-buyer",
+        "asOf": "2026-06-03T00:00:00Z",
+        "basedOn": [
+          "confirmation.custody-statement#milestone-on-time"
+        ]
+      }
+    },
+    {
+      "label": "milestone-precision",
+      "value": {
+        "id": "milestone-precision-contract-fulfillment",
+        "signed_at": "2026-06-03T00:00:00Z",
+        "order_confirmation_id": "milestone-precision-confirmation-order",
+        "deposit_confirmation_id": "milestone-precision-confirmation-deposit-lock"
+      },
+      "test": {
+        "flow": "milestone-precision",
+        "tags": [
+          "dod",
+          "milestone",
+          "precision",
+          "late"
+        ],
+        "actingRoleRef": "role.fulfillment-buyer",
+        "asOf": "2026-06-03T00:00:00Z",
+        "basedOn": [
+          "confirmation.custody-statement#milestone-precision"
+        ]
+      }
+    },
+    {
+      "label": "milestone-capped",
+      "value": {
+        "id": "milestone-capped-contract-fulfillment",
+        "signed_at": "2026-06-03T00:00:00Z",
+        "order_confirmation_id": "milestone-capped-confirmation-order",
+        "deposit_confirmation_id": "milestone-capped-confirmation-deposit-lock"
+      },
+      "test": {
+        "flow": "milestone-capped",
+        "tags": [
+          "dod",
+          "milestone",
+          "capped",
+          "late"
+        ],
+        "actingRoleRef": "role.fulfillment-buyer",
+        "asOf": "2026-06-03T00:00:00Z",
+        "basedOn": [
+          "confirmation.custody-statement#milestone-capped"
+        ]
+      }
+    }
+  ]
+}

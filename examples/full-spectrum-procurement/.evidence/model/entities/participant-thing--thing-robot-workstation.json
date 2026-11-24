@@ -1,0 +1,24 @@
+{
+  "type": "entity",
+  "id": "thing-robot-workstation",
+  "category": "participant",
+  "kind": "thing",
+  "contextRef": "ctx-machinery-domain",
+  "label": "六轴重载工业机器人柔性装配单元标的物",
+  "attributes": [
+    {
+      "name": "unit_model",
+      "label": "设备型号",
+      "meaning": "交付工业母机出厂技术型号代码",
+      "valueType": "string",
+      "required": true
+    },
+    {
+      "name": "nominal_capacity",
+      "label": "额定负载能力(kg)",
+      "meaning": "机械臂末端额定最大有效载荷",
+      "valueType": "int",
+      "required": true
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "type": "rule",
+  "id": "rule.valid-terms",
+  "kind": "precondition",
+  "label": "valid-terms",
+  "description": "Implementations must reject invalid commercial terms before committing an agreement; monetary results must fit signed int64.",
+  "contextRef": "context.procurement",
+  "bindings": {
+    "agreement": {
+      "ref": "contract.agreement"
+    }
+  },
+  "expression": "agreement.quantity > 0 && agreement.tier_threshold > 0 && agreement.tier1_unit_price_minor > 0 && agreement.tier2_unit_price_minor > 0 && agreement.tax_bps >= 0 && agreement.tax_bps <= 10000 && agreement.retention_bps >= 0 && agreement.retention_bps <= 10000 && agreement.daily_penalty_bps >= 0 && agreement.daily_penalty_bps <= 10000",
+  "resultType": "bool"
+}

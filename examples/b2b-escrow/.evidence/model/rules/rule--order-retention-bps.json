@@ -1,0 +1,19 @@
+{
+  "type": "rule",
+  "id": "rule.order-retention-bps",
+  "kind": "derivation",
+  "label": "order-retention-bps",
+  "description": "Seller order evidence preserves the agreed term for cross-context consumers.",
+  "contextRef": "context.procurement",
+  "bindings": {
+    "agreement": {
+      "ref": "contract.agreement"
+    }
+  },
+  "expression": "agreement.retention_bps",
+  "resultType": "int",
+  "target": {
+    "entityRef": "confirmation.order",
+    "attribute": "retention_bps"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "type": "relationship",
+  "id": "relation.request.release-confirmation.acceptance",
+  "kind": "references",
+  "sourceRef": "request.release",
+  "targetRef": "confirmation.acceptance",
+  "label": "references",
+  "sourceCardinality": {
+    "min": 0,
+    "max": "many"
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

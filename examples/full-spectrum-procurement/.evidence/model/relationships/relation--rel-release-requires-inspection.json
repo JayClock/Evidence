@@ -1,0 +1,17 @@
+{
+  "type": "relationship",
+  "id": "rel-release-requires-inspection",
+  "kind": "references",
+  "flowKind": "primary",
+  "sourceRef": "req-escrow-release",
+  "targetRef": "doc-sgs-inspection-cert",
+  "label": "托管放款核验技术验收证书",
+  "sourceCardinality": {
+    "min": 1,
+    "max": 1
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

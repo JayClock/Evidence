@@ -9,15 +9,14 @@ const run = new URL('./run.mjs', import.meta.url);
 test('demo and Git-baseline policy gates are separate, strict selections', () => {
   assert.equal(selectScenarios({}), cases);
   for (const gate of ['regression', 'dod']) {
-    assert.deepEqual(
-      selectScenarios({ gate, baselineModel: 'baseline.json' }),
-      [{ name: gate, gate, mode: 'v2', fault: 'none', strict: true }],
-    );
+    assert.deepEqual(selectScenarios({ gate, baselineModel: 'baseline' }), [
+      { name: gate, gate, mode: 'v2', fault: 'none', strict: true },
+    ]);
   }
   for (const input of [
     { gate: 'regression' },
-    { baselineModel: 'baseline.json' },
-    { gate: 'unknown', baselineModel: 'baseline.json' },
+    { baselineModel: 'baseline' },
+    { gate: 'unknown', baselineModel: 'baseline' },
     { gate: 'dod', baselineModel: '' },
   ])
     assert.throws(() => selectScenarios(input));
@@ -104,8 +103,8 @@ test('only an explicitly unchanged DoD may succeed without executing HTTP', () =
 test('CLI rejects incomplete gate options and policy bypasses before starting a SUT', () => {
   for (const args of [
     ['--gate', 'dod'],
-    ['--baseline-model', 'baseline.json'],
-    ['--gate', 'other', '--baseline-model', 'baseline.json'],
+    ['--baseline-workspace', 'baseline'],
+    ['--gate', 'other', '--baseline-workspace', 'baseline'],
     ['--allow-pending'],
   ]) {
     const result = spawnSync(

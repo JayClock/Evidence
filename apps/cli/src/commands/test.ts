@@ -1,5 +1,9 @@
-import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import {
+  openWorkspace,
+  checkWorkspacePath,
+  writeWorkspaceFile,
+} from '@evidence-poc/evidence-model-io';
 import {
   runAcceptanceSuite,
   type AcceptanceGate,
@@ -7,7 +11,7 @@ import {
   validateTargetUrl,
 } from '@evidence-poc/evidence-acceptance/runner';
 import { compileAcceptanceBaseline } from '@evidence-poc/evidence-acceptance';
-import { loadModel } from '../model.js';
+import { getWorkspace, loadModel } from '../model.js';
 import { markdownReport, junitReport } from '../ui/markdownReporter.js';
 import {
   stringOption,
@@ -45,9 +49,9 @@ export async function testCommand(
     throw new Error('--gate must be regression or dod');
   if (values.allowPending && gate !== 'dod')
     throw new Error('--allow-pending is only valid for --gate dod');
-  const baselinePath = stringOption(values.baselineModel);
+  const baselinePath = stringOption(values.baselineWorkspace);
   if (baselinePath && !gate)
-    throw new Error('--baseline-model requires --gate');
+    throw new Error('--baseline-workspace requires --gate');
   const format = stringOption(values.report);
   if (format && !['markdown', 'junit'].includes(format))
     throw new Error('--report must be markdown or junit');
@@ -67,10 +71,14 @@ export async function testCommand(
     throw new Error(
       '--timeout must be a positive integer <= 2147483647 milliseconds',
     );
-  const suitePath = path.resolve(context.cwd, stringOption(values.scenarios)!);
+  const workspace = getWorkspace(context, values);
+  const suitePath = workspace.acceptance;
+  checkWorkspacePath(workspace.root, suitePath, 'directory');
   const baseline = baselinePath
     ? await compileAcceptanceBaseline(
-        await loadModel(path.resolve(context.cwd, baselinePath)),
+        await loadModel(
+          openWorkspace(path.resolve(context.cwd, baselinePath)).model,
+        ),
       )
     : undefined;
   const suite = await runAcceptanceSuite({
@@ -103,21 +111,28 @@ export async function testCommand(
           step.errored || (values.strictDrift && step.driftIssues?.length),
       ),
   };
-  const reportDir = stringOption(values.reportDir);
-  if (reportDir) {
-    const directory = path.resolve(context.cwd, reportDir);
-    await mkdir(directory, { recursive: true });
+  if (values.writeReports) {
+    const directory = workspace.reports;
     const name = gate ?? 'acceptance';
+    for (const extension of ['json', 'md', 'xml'])
+      checkWorkspacePath(
+        workspace.root,
+        path.join(directory, `${name}.${extension}`),
+        'file',
+      );
     await Promise.all([
-      writeFile(
+      writeWorkspaceFile(
+        workspace.root,
         path.join(directory, `${name}.json`),
         JSON.stringify(report, null, 2) + '\n',
       ),
-      writeFile(
+      writeWorkspaceFile(
+        workspace.root,
         path.join(directory, `${name}.md`),
         markdownReport(report) + '\n',
       ),
-      writeFile(
+      writeWorkspaceFile(
+        workspace.root,
         path.join(directory, `${name}.xml`),
         junitReport(report) + '\n',
       ),

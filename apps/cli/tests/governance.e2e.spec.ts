@@ -1,23 +1,33 @@
 import { execFile, spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
+import {
+  cpSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  writeFileSync,
+  rmSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  initializeWorkspace,
+  readModelDirectory,
+} from '@evidence-poc/evidence-model-io';
 import { afterEach, beforeEach, expect, it } from 'vitest';
 
 const repo = fileURLToPath(new URL('../../../', import.meta.url));
-const baseline = path.join(
-  repo,
-  'examples/b2b-escrow/model/b2b-escrow-v1.evidence.json',
-);
-const current = path.join(
-  repo,
-  'examples/b2b-escrow/model/b2b-escrow.evidence.json',
-);
+const baseline = path.join(repo, 'examples/b2b-escrow/baseline-v1');
+const current = path.join(repo, 'examples/b2b-escrow');
 let root: string;
 beforeEach(() => {
   root = mkdtempSync(path.join(tmpdir(), 'evidence-governance-'));
+  cpSync(
+    path.join(current, '.evidence/model'),
+    path.join(root, '.evidence/model'),
+    { recursive: true },
+  );
 });
 afterEach(() => rmSync(root, { recursive: true, force: true }));
 const invoke = (args: string[]) =>
@@ -37,13 +47,7 @@ const invoke = (args: string[]) =>
     );
   });
 async function exported() {
-  const result = await invoke([
-    'export',
-    '--model',
-    current,
-    '--out',
-    'generated',
-  ]);
+  const result = await invoke(['export']);
   expect(result.code, result.stderr).toBe(0);
 }
 
@@ -76,15 +80,7 @@ async function runBackend(args: string[], mode = 'v2', fault = 'none') {
       signal: AbortSignal.timeout(5000),
     });
     const url = (JSON.parse(String(line)) as { host: string }).host;
-    return await invoke([
-      'test',
-      '--target',
-      url,
-      '--scenarios',
-      'generated',
-      ...args,
-      '--json',
-    ]);
+    return await invoke(['test', '--target', url, ...args, '--json']);
   } finally {
     if (child.exitCode === null && child.signalCode === null) {
       const exited = once(child, 'exit');
@@ -95,7 +91,7 @@ async function runBackend(args: string[], mode = 'v2', fault = 'none') {
   }
 }
 const gateArgs = (gate: string) => [
-  '--baseline-model',
+  '--baseline-workspace',
   baseline,
   '--gate',
   gate,
@@ -104,31 +100,33 @@ const gateArgs = (gate: string) => [
 it('verifies committed exports and rejects stale models without mutating artifacts', async () => {
   const checkedIn = await invoke([
     'export',
-    '--model',
+    '--workspace',
     current,
-    '--out',
-    path.join(repo, 'examples/b2b-escrow/generated'),
     '--verify',
   ]);
   expect(checkedIn.code, checkedIn.stderr).toBe(0);
-  const model = path.join(root, 'model.evidence.json');
-  writeFileSync(model, readFileSync(current));
-  const args = ['export', '--model', model, '--out', 'generated'];
+  const model = path.join(root, '.evidence/model/model.json');
+  const args = ['export'];
   expect((await invoke(args)).code).toBe(0);
   const before = readFileSync(
-    path.join(root, 'generated/openapi.json'),
+    path.join(root, '.evidence/delivery/release/openapi.json'),
     'utf8',
   );
   expect((await invoke([...args, '--verify'])).code).toBe(0);
   const changed = JSON.parse(readFileSync(model, 'utf8'));
-  changed.manifest.version = '9.0.0';
+  changed.version = '9.0.0';
   writeFileSync(model, JSON.stringify(changed));
   const stale = await invoke([...args, '--verify']);
   expect(stale.code).toBe(1);
-  expect(stale.stderr).toContain('MODIFIED: openapi.json');
-  expect(readFileSync(path.join(root, 'generated/openapi.json'), 'utf8')).toBe(
-    before,
+  expect(stale.stderr).toContain(
+    'MODIFIED: .evidence/delivery/release/openapi.json',
   );
+  expect(
+    readFileSync(
+      path.join(root, '.evidence/delivery/release/openapi.json'),
+      'utf8',
+    ),
+  ).toBe(before);
   expect((await invoke(args)).code).toBe(0);
   expect((await invoke([...args, '--verify'])).code).toBe(0);
 }, 30000);
@@ -144,10 +142,7 @@ it('keeps v1 regression green and marks unavailable milestone DoD as failed or e
       step.flow.startsWith('single-'),
     ),
   ).toBe(true);
-  const dod = await runBackend(
-    [...gateArgs('dod'), '--report-dir', 'reports'],
-    'v1',
-  );
+  const dod = await runBackend([...gateArgs('dod'), '--write-reports'], 'v1');
   expect(dod.code, dod.stderr).toBe(1);
   const report = JSON.parse(dod.stdout);
   expect(report.suites[0].steps).toHaveLength(75);
@@ -157,12 +152,12 @@ it('keeps v1 regression green and marks unavailable milestone DoD as failed or e
   expect(
     report.suites[0].steps.some((step: { skipped: boolean }) => step.skipped),
   ).toBe(true);
-  expect(readFileSync(path.join(root, 'reports/dod.md'), 'utf8')).toContain(
-    '- [ ]',
-  );
-  expect(readFileSync(path.join(root, 'reports/dod.xml'), 'utf8')).toContain(
-    '<failure',
-  );
+  expect(
+    readFileSync(path.join(root, '.evidence/reports/dod.md'), 'utf8'),
+  ).toContain('- [ ]');
+  expect(
+    readFileSync(path.join(root, '.evidence/reports/dod.xml'), 'utf8'),
+  ).toContain('<failure');
   const wip = await runBackend([...gateArgs('dod'), '--allow-pending'], 'v1');
   expect(wip.code, wip.stderr).toBe(0);
   expect(JSON.parse(wip.stdout)).toMatchObject({
@@ -190,7 +185,7 @@ it('makes both v2 gates green, filters whole milestone flows and reports unchang
   expect(selected.code, selected.stdout + selected.stderr).toBe(0);
   expect(JSON.parse(selected.stdout).suites[0].steps).toHaveLength(75);
   const unchanged = await runBackend([
-    '--baseline-model',
+    '--baseline-workspace',
     current,
     '--gate',
     'dod',
@@ -250,10 +245,13 @@ it('accepts additive milestone contracts and blocks new required caller fields',
   ]);
   expect(compatible.code, compatible.stderr).toBe(0);
   expect(JSON.parse(compatible.stdout).hasBreakingChanges).toBe(false);
-  const model = JSON.parse(readFileSync(current, 'utf8'));
+  const { document: model } = await readModelDirectory(
+    path.join(current, '.evidence/model'),
+  );
   const confirmation = model.entities.find(
     (entity: { id: string }) => entity.id === 'confirmation.order',
   );
+  if (!confirmation?.attributes) throw new Error('missing attributes');
   confirmation.attributes.push({
     name: 'note',
     label: 'Note',
@@ -261,10 +259,11 @@ it('accepts additive milestone contracts and blocks new required caller fields',
     valueType: 'string',
     required: true,
   });
-  for (const example of confirmation.examples)
+  for (const example of confirmation.examples ?? [])
     example.value.note = 'now required';
-  const broken = path.join(root, 'breaking.evidence.json');
-  writeFileSync(broken, JSON.stringify(model));
+  const broken = path.join(root, 'breaking');
+  mkdirSync(broken);
+  await initializeWorkspace(broken, model);
   const result = await invoke(['diff', current, broken, '--format', 'json']);
   expect(result.code, result.stdout + result.stderr).toBe(1);
   expect(JSON.parse(result.stdout).hasBreakingChanges).toBe(true);

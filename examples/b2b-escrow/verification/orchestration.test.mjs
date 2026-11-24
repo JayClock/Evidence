@@ -65,20 +65,20 @@ test('policy gate passes exact baseline and NEW report paths, not demo defaults'
     'gate',
     'IMPLEMENTATION=golang-gin',
     'GATE=dod',
-    'BASELINE=/tmp/immutable baseline.evidence.json',
+    'BASELINE=/tmp/immutable baseline',
     'REPORT_DIR=/tmp/new reports',
   );
   assert.equal(result.status, 0, result.stderr);
   assert.match(
     result.stdout,
-    /--gate "dod" --baseline-model "\/tmp\/immutable baseline.evidence.json"/,
+    /--gate "dod" --baseline-workspace "\/tmp\/immutable baseline"/,
   );
   assert.match(result.stdout, /--report-dir "\/tmp\/new reports"/);
   assert.doesNotMatch(result.stdout, /allow-pending|install|api:setup/);
 });
 
 test('test-all runs conformance and both strict gates separately for every implementation', () => {
-  const baseline = '/tmp/immutable baseline.evidence.json';
+  const baseline = '/tmp/immutable baseline';
   const reports = '/tmp/new reports';
   const result = make(
     '-n',
@@ -101,7 +101,7 @@ test('test-all runs conformance and both strict gates separately for every imple
         `${prefix} ${report('conformance')}`,
         ...['regression', 'dod'].map(
           (gate) =>
-            `${prefix} --gate "${gate}" --baseline-model "${baseline}" ${report(gate)}`,
+            `${prefix} --gate "${gate}" --baseline-workspace "${baseline}" ${report(gate)}`,
         ),
       ];
     }),

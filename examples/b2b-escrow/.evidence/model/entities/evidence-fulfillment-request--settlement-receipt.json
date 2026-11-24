@@ -1,0 +1,82 @@
+{
+  "type": "entity",
+  "id": "request.settlement-receipt",
+  "category": "evidence",
+  "kind": "fulfillment_request",
+  "contextRef": "context.settlement",
+  "label": "settlement-receipt",
+  "notes": "escrow's claim on seller; expires 48 hours after its server-recorded start.",
+  "responsibleRoleRef": "role.settlement-escrow",
+  "attributes": [
+    {
+      "name": "id",
+      "label": "id",
+      "meaning": "Unique immutable business evidence identifier.",
+      "valueType": "id",
+      "required": true
+    },
+    {
+      "name": "started_at",
+      "timeRole": "start",
+      "label": "started_at",
+      "meaning": "Server-recorded UTC business time; caller may not supply this field.",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "expired_at",
+      "timeRole": "deadline",
+      "label": "expired_at",
+      "meaning": "Server-recorded UTC business time; caller may not supply this field.",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true,
+      "derivedByRuleRef": "rule.settlement-receipt-expiry"
+    }
+  ],
+  "examples": [
+    {
+      "label": "single-on-time",
+      "value": {
+        "id": "single-on-time-request-settlement-receipt",
+        "started_at": "2026-06-15T00:00:00Z",
+        "expired_at": "2026-06-17T00:00:00Z"
+      },
+      "test": {
+        "flow": "single-on-time",
+        "tags": [
+          "regression",
+          "single",
+          "on-time"
+        ],
+        "actingRoleRef": "role.settlement-escrow",
+        "asOf": "2026-06-15T00:00:00Z",
+        "basedOn": [
+          "confirmation.release#single-on-time-10-confirmed"
+        ]
+      }
+    },
+    {
+      "label": "single-late",
+      "value": {
+        "id": "single-late-request-settlement-receipt",
+        "started_at": "2026-06-30T00:00:00Z",
+        "expired_at": "2026-07-02T00:00:00Z"
+      },
+      "test": {
+        "flow": "single-late",
+        "tags": [
+          "regression",
+          "single",
+          "late"
+        ],
+        "actingRoleRef": "role.settlement-escrow",
+        "asOf": "2026-06-30T00:00:00Z",
+        "basedOn": [
+          "confirmation.release#single-late-10-confirmed"
+        ]
+      }
+    }
+  ]
+}

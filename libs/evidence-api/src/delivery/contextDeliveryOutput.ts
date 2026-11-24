@@ -44,36 +44,6 @@ function checkDirectory(dir: string, create: boolean): void {
   if (create) mkdirSync(dir);
 }
 
-/** Check all descendants of a real project root without following symbolic links. */
-export function contextOutputDirectory(
-  project: string,
-  relative = 'delivery',
-): string {
-  const root = path.resolve(project);
-  const out = path.resolve(root, relative);
-  const segments = path.relative(root, out).split(path.sep);
-  if (
-    path.isAbsolute(relative) ||
-    relative.includes('\\') ||
-    relative.includes('\0') ||
-    segments.some(
-      (part) =>
-        !part ||
-        part === '..' ||
-        ['.git', '.evidence'].includes(part.toLowerCase()),
-    )
-  )
-    throw new Error(
-      'DELIVERY_UNSAFE_OUTPUT: use a dedicated relative directory inside the project',
-    );
-  let cursor = root;
-  for (const segment of segments) {
-    cursor = path.join(cursor, segment);
-    checkDirectory(cursor, false);
-  }
-  return out;
-}
-
 /** Generated files only. The manifest is the commit marker for each context. */
 export function contextDeliveryFiles(
   plan: ContextDeliveryPlan,

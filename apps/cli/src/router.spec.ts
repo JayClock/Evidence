@@ -32,6 +32,11 @@ describe('unified CLI dispatch', () => {
       ['api', 'inspect'],
       ['api', 'migrate-overlay'],
       ['diff', 'api', 'base', 'target'],
+      ['pack', '.evidence/model'],
+      ['unpack', 'old.evidence.json'],
+      ['check', 'old.evidence.json'],
+      ['export', '--model', '.evidence/fm'],
+      ['export', '--out', 'delivery'],
       ['timeline'],
       ['simulate'],
       ['role-play'],
@@ -64,22 +69,15 @@ describe('unified CLI dispatch', () => {
     }
   });
 
-  it('checks bundle models through the static engine', async () => {
-    const { context, output } = captureContext();
-    expect(
-      await dispatch(
-        [
-          'check',
-          'libs/evidence-model-core/tests/fixtures/acceptance/procurement.evidence.json',
-          '--json',
-        ],
-        context,
-      ),
-    ).toBe(0);
-    expect(JSON.parse(output[0]!)).toMatchObject({
-      valid: true,
-      humanConfirmation: 'not-asserted-by-machine',
-    });
+  it('discovers the nearest workspace from a project subdirectory', async () => {
+    const { context, output } = captureContext(
+      new URL(
+        '../../../examples/b2b-escrow/.evidence/model/entities',
+        import.meta.url,
+      ).pathname,
+    );
+    expect(await dispatch(['check', '--json'], context)).toBe(0);
+    expect(JSON.parse(output[0]!)).toMatchObject({ valid: true });
   });
   it('returns machine-readable errors and rejects duplicate arguments', async () => {
     const { context, output, errors } = captureContext();

@@ -1,0 +1,79 @@
+{
+  "type": "entity",
+  "id": "confirmation.commitment",
+  "category": "evidence",
+  "kind": "fulfillment_confirmation",
+  "contextRef": "context.procurement",
+  "label": "commitment",
+  "notes": "buyer's immutable answer to request.commitment.",
+  "responsibleRoleRef": "role.procurement-buyer",
+  "attributes": [
+    {
+      "name": "id",
+      "label": "id",
+      "meaning": "Unique immutable business evidence identifier.",
+      "valueType": "id",
+      "required": true
+    },
+    {
+      "name": "confirmed_at",
+      "timeRole": "occurrence",
+      "label": "confirmed_at",
+      "meaning": "Server-recorded UTC business time; caller may not supply this field.",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "acknowledged",
+      "label": "acknowledged",
+      "meaning": "Buyer records acknowledgment of the seller order terms.",
+      "valueType": "bool",
+      "required": true
+    }
+  ],
+  "examples": [
+    {
+      "label": "single-on-time",
+      "value": {
+        "id": "single-on-time-confirmation-commitment",
+        "confirmed_at": "2026-06-01T00:02:00Z",
+        "acknowledged": true
+      },
+      "test": {
+        "flow": "single-on-time",
+        "tags": [
+          "regression",
+          "single",
+          "on-time"
+        ],
+        "actingRoleRef": "role.procurement-buyer",
+        "asOf": "2026-06-01T00:02:00Z",
+        "basedOn": [
+          "request.commitment#single-on-time"
+        ]
+      }
+    },
+    {
+      "label": "single-late",
+      "value": {
+        "id": "single-late-confirmation-commitment",
+        "confirmed_at": "2026-06-01T00:02:00Z",
+        "acknowledged": true
+      },
+      "test": {
+        "flow": "single-late",
+        "tags": [
+          "regression",
+          "single",
+          "late"
+        ],
+        "actingRoleRef": "role.procurement-buyer",
+        "asOf": "2026-06-01T00:02:00Z",
+        "basedOn": [
+          "request.commitment#single-late"
+        ]
+      }
+    }
+  ]
+}

@@ -15,9 +15,6 @@ import { assertOpenApiContract } from '@evidence-poc/evidence-api';
 import { renderAcceptanceSuite } from './renderer/brunoSuite.js';
 import { writeOutput } from '@evidence-poc/evidence-api';
 
-export const defaultAcceptanceDirectory = (root: string): string =>
-  path.join(root, '.evidence', 'api', 'acceptance');
-
 /** Direct source loader: inline examples are the only acceptance source. */
 export async function exportAcceptanceTests(options: {
   fm: string;

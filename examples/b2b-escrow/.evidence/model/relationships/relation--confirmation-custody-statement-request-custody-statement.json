@@ -1,0 +1,16 @@
+{
+  "type": "relationship",
+  "id": "relation.confirmation.custody-statement-request.custody-statement",
+  "kind": "references",
+  "sourceRef": "confirmation.custody-statement",
+  "targetRef": "request.custody-statement",
+  "label": "references",
+  "sourceCardinality": {
+    "min": 0,
+    "max": 1
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

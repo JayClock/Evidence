@@ -12,8 +12,13 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { BusinessStoryProjection } from '@evidence-poc/evidence-agent';
-import { unpackModelBundle } from '@evidence-poc/evidence-model-io';
-import type { DomainModelBundle } from '@evidence-poc/evidence-schema';
+import {
+  initializeWorkspace,
+  readModelBundle,
+  readModelDirectory,
+  writeModelDirectory,
+} from '@evidence-poc/evidence-model-io';
+import type { DomainModelDocument } from '@evidence-poc/evidence-schema';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 const repo = fileURLToPath(new URL('../../../', import.meta.url));
@@ -24,10 +29,13 @@ const fixture = (name: string) =>
     `libs/evidence-model-core/tests/fixtures/acceptance/${name}.evidence.json`,
   );
 let root: string;
-const model = 'model.evidence.json';
-beforeEach(() => {
+const model = () => path.join(root, '.evidence/model');
+beforeEach(async () => {
   root = realpathSync(mkdtempSync(path.join(tmpdir(), 'evidence-story-e2e-')));
-  writeFileSync(path.join(root, model), readFileSync(fixture('procurement')));
+  await initializeWorkspace(
+    root,
+    (await readModelBundle(fixture('procurement'))).document,
+  );
 });
 afterEach(() => rmSync(root, { recursive: true, force: true }));
 
@@ -51,19 +59,17 @@ function invoke(args: string[]) {
   );
 }
 
-function editModel(change: (bundle: DomainModelBundle) => void) {
-  const bundle: DomainModelBundle = JSON.parse(
-    readFileSync(path.join(root, model), 'utf8'),
-  );
-  change(bundle);
-  writeFileSync(path.join(root, model), JSON.stringify(bundle));
+async function editModel(change: (document: DomainModelDocument) => void) {
+  const { document } = await readModelDirectory(model());
+  change(document);
+  await writeModelDirectory(model(), document);
 }
 const stories = (content: string): BusinessStoryProjection[] =>
   JSON.parse(content);
 
 describe('built evidence story binary', () => {
   it('projects all declared steps, including the negative case, deterministically without AI or source writes', async () => {
-    const args = [model, '--no-ai', '--format', 'json'];
+    const args = ['--no-ai', '--format', 'json'];
     const result = await invoke(args);
     expect(result.code, result.stderr).toBe(0);
     expect(result.stderr).toBe('');
@@ -93,24 +99,13 @@ describe('built evidence story binary', () => {
     ).toBe(true);
     expect(payment?.scenes.some((scene) => scene.pendingSuspense)).toBe(true);
     expect((await invoke(args)).stdout).toBe(result.stdout);
-    expect(readdirSync(root)).toEqual([model]);
-    expect(readFileSync(path.join(root, model))).toEqual(
-      readFileSync(fixture('procurement')),
-    );
+    expect(readdirSync(root)).toEqual(['.evidence']);
     expect(result.stdout).not.toContain('\u001b');
   });
 
-  it('defaults to the cwd model tree and Markdown, equivalent to an explicit bundle', async () => {
-    const unpacked = await unpackModelBundle(
-      path.join(root, model),
-      path.join(root, '.evidence/fm'),
-    );
-    expect(unpacked.issues).toEqual([]);
+  it('defaults to Markdown', async () => {
     const fromTree = await invoke(['--no-ai']);
-    const fromBundle = await invoke([model, '--no-ai', '--format', 'markdown']);
     expect(fromTree.code, fromTree.stderr).toBe(0);
-    expect(fromBundle.code, fromBundle.stderr).toBe(0);
-    expect(fromTree.stdout).toBe(fromBundle.stdout);
     expect(fromTree.stdout).toMatch(/^# 业务故事\n/u);
     expect(fromTree.stdout).toContain('### 1.');
     expect(fromTree.stdout).toContain('| 字段 | 值 | 关键数据 | 来源 |');
@@ -118,11 +113,11 @@ describe('built evidence story binary', () => {
   });
 
   it('filters exact flow IDs without losing steps and rejects an absent flow', async () => {
-    writeFileSync(
-      path.join(root, model),
-      readFileSync(fixture('procurement-deposit')),
+    await writeModelDirectory(
+      model(),
+      (await readModelBundle(fixture('procurement-deposit'))).document,
     );
-    const all = await invoke([model, '--no-ai', '--format', 'json']);
+    const all = await invoke(['--no-ai', '--format', 'json']);
     expect(all.code, all.stderr).toBe(0);
     expect(stories(all.stdout).map((story) => story.flowId)).toEqual([
       'deposit',
@@ -130,7 +125,6 @@ describe('built evidence story binary', () => {
     ]);
     for (const flow of ['payment', 'deposit']) {
       const selected = await invoke([
-        model,
         '--no-ai',
         '--format',
         'json',
@@ -142,27 +136,20 @@ describe('built evidence story binary', () => {
         stories(all.stdout).filter((story) => story.flowId === flow),
       );
     }
-    const absent = await invoke([
-      model,
-      '--no-ai',
-      '--flow',
-      'pay',
-      '--export',
-      'never/story.md',
-    ]);
+    const absent = await invoke(['--no-ai', '--flow', 'pay', '--export']);
     expect(absent.code).toBe(1);
     expect(absent.stdout).toBe('');
     expect(absent.stderr).toContain("未找到 ID 为 'pay' 的业务流");
-    expect(readdirSync(root)).toEqual([model]);
+    expect(readdirSync(root)).toEqual(['.evidence']);
   });
 
   it.each(['markdown', 'json', 'text'])(
     'exports %s into newly created parent directories',
     async (format) => {
-      const out = `nested/stories.${format}`;
-      const args = [model, '--no-ai', '--format', format];
+      const out = `.evidence/stories/story.${format === 'markdown' ? 'md' : format === 'text' ? 'txt' : 'json'}`;
+      const args = ['--no-ai', '--format', format];
       const direct = await invoke(args);
-      const exported = await invoke([...args, '--export', out]);
+      const exported = await invoke([...args, '--export']);
       expect(direct.code, direct.stderr).toBe(0);
       expect(exported.code, exported.stderr).toBe(0);
       expect(exported.stdout.trim()).toBe(
@@ -181,7 +168,7 @@ describe('built evidence story binary', () => {
   );
 
   it('compacts JSON without losing projection data and compacts text without losing document fields', async () => {
-    const args = [model, '--no-ai'];
+    const args = ['--no-ai'];
     const pretty = await invoke([...args, '--format', 'json']);
     const compact = await invoke([...args, '--format', 'json', '--compact']);
     expect(compact.code, compact.stderr).toBe(0);
@@ -200,26 +187,21 @@ describe('built evidence story binary', () => {
   });
 
   it('returns an empty JSON array or a human explanation for models without flow declarations', async () => {
-    editModel((bundle) => {
+    await editModel((bundle) => {
       for (const entity of bundle.entities)
         for (const example of entity.examples ?? []) delete example.test;
     });
-    const json = await invoke([
-      model,
-      '--no-ai',
-      '--format',
-      'json',
-      '--export',
-      'empty/stories.json',
-    ]);
+    const json = await invoke(['--no-ai', '--format', 'json', '--export']);
     expect(json.code, json.stderr).toBe(0);
     expect(
-      stories(readFileSync(path.join(root, 'empty/stories.json'), 'utf8')),
+      stories(
+        readFileSync(path.join(root, '.evidence/stories/story.json'), 'utf8'),
+      ),
     ).toEqual([]);
-    const human = await invoke([model, '--no-ai']);
+    const human = await invoke(['--no-ai']);
     expect(human.code, human.stderr).toBe(0);
     expect(human.stdout).toContain('未检测到');
-    const stdoutJson = await invoke([model, '--no-ai', '--format', 'json']);
+    const stdoutJson = await invoke(['--no-ai', '--format', 'json']);
     expect(stdoutJson.code, stdoutJson.stderr).toBe(0);
     expect(stories(stdoutJson.stdout)).toEqual([]);
   });
@@ -231,11 +213,11 @@ describe('built evidence story binary', () => {
       ['missing.evidence.json', '--no-ai'],
       ['invalid.evidence.json', '--no-ai'],
       ['wrong.evidence.json', '--no-ai'],
-      [model, '--no-ai', '--format', 'yaml'],
-      [model, '--no-ai', '--flow'],
-      [model, '--no-ai', '--format', 'json', '--format', 'text'],
+      ['--no-ai', '--format', 'yaml'],
+      ['--no-ai', '--flow'],
+      ['--no-ai', '--format', 'json', '--format', 'text'],
     ]) {
-      const result = await invoke([...args, '--export', 'never/story.md']);
+      const result = await invoke([...args, '--export']);
       expect(result.code, args.join(' ')).toBe(1);
       expect(result.stdout).toBe('');
       expect(result.stderr).toContain('Error:');
@@ -244,35 +226,27 @@ describe('built evidence story binary', () => {
   });
 
   it('refuses cyclic example dependencies rather than emitting a plausible story', async () => {
-    editModel((bundle) => {
+    await editModel((bundle) => {
       const example = bundle.entities.find(
         (entity) => entity.id === 'contract.agreement',
       )?.examples?.[0];
       if (!example?.test) throw new Error('Missing fixture example');
       example.test.basedOn = ['confirmation.payment#confirmed'];
     });
-    const result = await invoke([
-      model,
-      '--no-ai',
-      '--format',
-      'json',
-      '--export',
-      'never/story.json',
-    ]);
+    const result = await invoke(['--no-ai', '--format', 'json', '--export']);
     expect(result.code).toBe(1);
     expect(result.stderr).toContain('CYCLIC_DEPENDENCY');
     expect(result.stdout).toBe('');
-    expect(readdirSync(root)).toEqual([model]);
+    expect(readdirSync(root)).toEqual(['.evidence']);
   });
 
   it('reports export write failures with exit 1 and no success message', async () => {
-    mkdirSync(path.join(root, 'occupied'));
-    const result = await invoke([model, '--no-ai', '--export', 'occupied']);
+    mkdirSync(path.join(root, '.evidence/stories/story.md'), {
+      recursive: true,
+    });
+    const result = await invoke(['--no-ai', '--export']);
     expect(result.code).toBe(1);
     expect(result.stdout).toBe('');
     expect(result.stderr).toContain('Error:');
-    expect(readFileSync(path.join(root, model))).toEqual(
-      readFileSync(fixture('procurement')),
-    );
   });
 });

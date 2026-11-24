@@ -1,0 +1,8 @@
+{
+  "type": "entity",
+  "id": "role-buyer",
+  "category": "role",
+  "kind": "party",
+  "contextRef": "ctx-main-procurement",
+  "label": "采购方当事人买方角色（Procurement Buyer Role）"
+}

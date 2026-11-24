@@ -1,0 +1,16 @@
+{
+  "type": "relationship",
+  "id": "relation.party.buyer-role.procurement-buyer",
+  "kind": "plays_role",
+  "sourceRef": "party.buyer",
+  "targetRef": "role.procurement-buyer",
+  "label": "plays_role",
+  "sourceCardinality": {
+    "min": 0,
+    "max": "many"
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

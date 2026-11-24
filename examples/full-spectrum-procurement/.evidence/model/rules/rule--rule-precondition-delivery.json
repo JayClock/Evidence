@@ -1,0 +1,20 @@
+{
+  "type": "rule",
+  "id": "rule-precondition-delivery",
+  "kind": "precondition",
+  "label": "设备出厂发货前置全额收到预付款守卫",
+  "description": "买方必须先全额履约首期预付款，卖方才具备出厂发货义务[req.equipment.delivery]",
+  "contextRef": "ctx-main-procurement",
+  "bindings": {
+    "adv_conf": {
+      "ref": "conf-advance-payment",
+      "cardinality": "one"
+    },
+    "adv_req": {
+      "ref": "req-advance-payment",
+      "cardinality": "one"
+    }
+  },
+  "expression": "adv_conf.confirmed_amount.minorUnits >= adv_req.advance_amount.minorUnits",
+  "resultType": "bool"
+}

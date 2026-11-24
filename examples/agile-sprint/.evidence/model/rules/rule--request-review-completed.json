@@ -1,0 +1,19 @@
+{
+  "type": "rule",
+  "id": "rule.request.review-completed",
+  "kind": "completion",
+  "label": "在评审窗口内确认纪要",
+  "description": "在评审窗口内确认纪要",
+  "contextRef": "context.sprint",
+  "bindings": {
+    "request": {
+      "ref": "request.review"
+    },
+    "results": {
+      "ref": "confirmation.review",
+      "cardinality": "many"
+    }
+  },
+  "expression": "results.exists(c, c.confirmed_at >= request.started_at && c.confirmed_at <= request.expired_at)",
+  "resultType": "bool"
+}

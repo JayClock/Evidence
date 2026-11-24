@@ -1,0 +1,7 @@
+{
+  "type": "entity",
+  "id": "party.payment-gateway",
+  "category": "participant",
+  "kind": "party",
+  "label": "支付对账系统"
+}

@@ -1,0 +1,16 @@
+{
+  "type": "relationship",
+  "id": "relation.request.milestone-release-confirmation.order",
+  "kind": "references",
+  "sourceRef": "request.milestone-release",
+  "targetRef": "confirmation.order",
+  "label": "references",
+  "sourceCardinality": {
+    "min": 0,
+    "max": "many"
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

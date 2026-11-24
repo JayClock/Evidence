@@ -1,0 +1,20 @@
+{
+  "type": "rule",
+  "id": "rule-completion-advance-payment",
+  "kind": "completion",
+  "label": "首期预付款履约项对账完结认定准则",
+  "description": "实付到账金额达到申请金额且在到账时效内完成视为该项履约闭环[req.advance.payment]",
+  "contextRef": "ctx-main-procurement",
+  "bindings": {
+    "adv_req": {
+      "ref": "req-advance-payment",
+      "cardinality": "one"
+    },
+    "adv_conf": {
+      "ref": "conf-advance-payment",
+      "cardinality": "one"
+    }
+  },
+  "expression": "adv_conf.confirmed_amount.minorUnits >= adv_req.advance_amount.minorUnits && adv_conf.confirmed_at <= adv_req.expired_at",
+  "resultType": "bool"
+}

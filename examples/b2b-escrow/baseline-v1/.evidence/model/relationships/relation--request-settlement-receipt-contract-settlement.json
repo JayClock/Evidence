@@ -1,0 +1,16 @@
+{
+  "type": "relationship",
+  "id": "relation.request.settlement-receipt-contract.settlement",
+  "kind": "references",
+  "sourceRef": "request.settlement-receipt",
+  "targetRef": "contract.settlement",
+  "label": "references",
+  "sourceCardinality": {
+    "min": 0,
+    "max": "many"
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

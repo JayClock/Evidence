@@ -1,0 +1,19 @@
+{
+  "type": "rule",
+  "id": "rule.order-quantity",
+  "kind": "derivation",
+  "label": "order-quantity",
+  "description": "Seller order evidence preserves the agreed term for cross-context consumers.",
+  "contextRef": "context.procurement",
+  "bindings": {
+    "agreement": {
+      "ref": "contract.agreement"
+    }
+  },
+  "expression": "agreement.quantity",
+  "resultType": "int",
+  "target": {
+    "entityRef": "confirmation.order",
+    "attribute": "quantity"
+  }
+}

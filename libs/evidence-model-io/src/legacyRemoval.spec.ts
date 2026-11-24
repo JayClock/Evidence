@@ -17,7 +17,6 @@ import {
   unpackModelBundle,
   writeModelDirectory,
 } from './index.js';
-import { runModelCommand } from './commands.js';
 
 let root: string;
 beforeEach(async () => {
@@ -47,20 +46,6 @@ describe('breaking removal of validation files', () => {
         );
         expect(result.bundle).not.toHaveProperty('validation');
       }
-      expect(
-        await runModelCommand(
-          'pack',
-          {
-            target: fm,
-            out: 'refused.evidence.json',
-            compact: false,
-            sortKeys: false,
-            json: false,
-          },
-          { cwd: root, stdout: () => undefined, stderr: () => undefined },
-        ),
-      ).toBe(1);
-      expect(await readdir(root)).not.toContain('refused.evidence.json');
     },
   );
   it('refuses unpacking an old envelope without creating or overwriting output', async () => {

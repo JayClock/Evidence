@@ -1,0 +1,10 @@
+{
+  "type": "entity",
+  "id": "context.advertising-order",
+  "category": "context",
+  "kind": "contract",
+  "label": "数字广告投放",
+  "rootRefs": [
+    "contract.ads-promotion-order"
+  ]
+}

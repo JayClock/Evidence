@@ -1,0 +1,71 @@
+{
+  "type": "entity",
+  "id": "request.backlog",
+  "category": "evidence",
+  "kind": "fulfillment_request",
+  "label": "待办范围确认请求",
+  "contextRef": "context.sprint",
+  "responsibleRoleRef": "role.product-owner",
+  "attributes": [
+    {
+      "name": "id",
+      "label": "凭证标识",
+      "valueType": "id",
+      "required": true,
+      "meaning": "在此业务凭证类型中唯一的标识"
+    },
+    {
+      "name": "started_at",
+      "timeRole": "start",
+      "label": "开启时刻",
+      "valueType": "timestamp",
+      "required": true,
+      "meaning": "开启时刻",
+      "keyData": true
+    },
+    {
+      "name": "expired_at",
+      "timeRole": "deadline",
+      "label": "截止时刻",
+      "valueType": "timestamp",
+      "required": true,
+      "meaning": "截止时刻",
+      "keyData": true,
+      "derivedByRuleRef": "rule.request.backlog-deadline"
+    },
+    {
+      "name": "backlog_revision",
+      "label": "待办清单版本",
+      "valueType": "id",
+      "required": true,
+      "meaning": "待办清单版本"
+    },
+    {
+      "name": "story_count",
+      "label": "约定故事数",
+      "valueType": "int",
+      "required": true,
+      "meaning": "约定故事数"
+    }
+  ],
+  "examples": [
+    {
+      "label": "propose-scope",
+      "value": {
+        "id": "backlog-42",
+        "backlog_revision": "sprint-42-r1",
+        "story_count": 2,
+        "started_at": "2026-08-03T10:00:00Z",
+        "expired_at": "2026-08-17T10:00:00Z"
+      },
+      "test": {
+        "flow": "two-stories-one-sprint",
+        "actingRoleRef": "role.product-owner",
+        "asOf": "2026-08-03T10:00:00Z",
+        "basedOn": [
+          "contract.iteration-plan#sprint-42"
+        ]
+      }
+    }
+  ]
+}

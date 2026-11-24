@@ -7,7 +7,7 @@ import { projectAcceptanceTests } from './delivery/scenarioProjector.js';
 
 function loadExample(name: string) {
   const file = new URL(
-    `../../../examples/${name}/model/${name}.evidence.json`,
+    `../../../libs/evidence-model-core/tests/fixtures/examples/${name}.evidence.json`,
     import.meta.url,
   );
   const parsed = parseModelBundleText(readFileSync(file, 'utf8'));

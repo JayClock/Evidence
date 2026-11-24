@@ -1,0 +1,147 @@
+{
+  "type": "entity",
+  "id": "request.order",
+  "category": "evidence",
+  "kind": "fulfillment_request",
+  "contextRef": "context.procurement",
+  "label": "order",
+  "notes": "buyer's claim on seller; expires 48 hours after its server-recorded start.",
+  "responsibleRoleRef": "role.procurement-buyer",
+  "attributes": [
+    {
+      "name": "id",
+      "label": "id",
+      "meaning": "Unique immutable business evidence identifier.",
+      "valueType": "id",
+      "required": true
+    },
+    {
+      "name": "started_at",
+      "timeRole": "start",
+      "label": "started_at",
+      "meaning": "Server-recorded UTC business time; caller may not supply this field.",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "expired_at",
+      "timeRole": "deadline",
+      "label": "expired_at",
+      "meaning": "Server-recorded UTC business time; caller may not supply this field.",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true,
+      "derivedByRuleRef": "rule.order-expiry"
+    }
+  ],
+  "examples": [
+    {
+      "label": "single-on-time",
+      "value": {
+        "id": "single-on-time-request-order",
+        "started_at": "2026-06-01T00:01:00Z",
+        "expired_at": "2026-06-03T00:01:00Z"
+      },
+      "test": {
+        "flow": "single-on-time",
+        "tags": [
+          "regression",
+          "single",
+          "on-time"
+        ],
+        "actingRoleRef": "role.procurement-buyer",
+        "asOf": "2026-06-01T00:01:00Z",
+        "basedOn": [
+          "contract.agreement#single-on-time"
+        ]
+      }
+    },
+    {
+      "label": "single-late",
+      "value": {
+        "id": "single-late-request-order",
+        "started_at": "2026-06-01T00:01:00Z",
+        "expired_at": "2026-06-03T00:01:00Z"
+      },
+      "test": {
+        "flow": "single-late",
+        "tags": [
+          "regression",
+          "single",
+          "late"
+        ],
+        "actingRoleRef": "role.procurement-buyer",
+        "asOf": "2026-06-01T00:01:00Z",
+        "basedOn": [
+          "contract.agreement#single-late"
+        ]
+      }
+    },
+    {
+      "label": "milestone-on-time",
+      "value": {
+        "id": "milestone-on-time-request-order",
+        "started_at": "2026-06-01T00:01:00Z",
+        "expired_at": "2026-06-03T00:01:00Z"
+      },
+      "test": {
+        "flow": "milestone-on-time",
+        "tags": [
+          "dod",
+          "milestone",
+          "on-time"
+        ],
+        "actingRoleRef": "role.procurement-buyer",
+        "asOf": "2026-06-01T00:01:00Z",
+        "basedOn": [
+          "contract.agreement#milestone-on-time"
+        ]
+      }
+    },
+    {
+      "label": "milestone-precision",
+      "value": {
+        "id": "milestone-precision-request-order",
+        "started_at": "2026-06-01T00:01:00Z",
+        "expired_at": "2026-06-03T00:01:00Z"
+      },
+      "test": {
+        "flow": "milestone-precision",
+        "tags": [
+          "dod",
+          "milestone",
+          "precision",
+          "late"
+        ],
+        "actingRoleRef": "role.procurement-buyer",
+        "asOf": "2026-06-01T00:01:00Z",
+        "basedOn": [
+          "contract.agreement#milestone-precision"
+        ]
+      }
+    },
+    {
+      "label": "milestone-capped",
+      "value": {
+        "id": "milestone-capped-request-order",
+        "started_at": "2026-06-01T00:01:00Z",
+        "expired_at": "2026-06-03T00:01:00Z"
+      },
+      "test": {
+        "flow": "milestone-capped",
+        "tags": [
+          "dod",
+          "milestone",
+          "capped",
+          "late"
+        ],
+        "actingRoleRef": "role.procurement-buyer",
+        "asOf": "2026-06-01T00:01:00Z",
+        "basedOn": [
+          "contract.agreement#milestone-capped"
+        ]
+      }
+    }
+  ]
+}

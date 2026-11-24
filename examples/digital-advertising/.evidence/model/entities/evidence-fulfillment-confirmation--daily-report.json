@@ -1,0 +1,64 @@
+{
+  "type": "entity",
+  "id": "confirmation.daily-report",
+  "category": "evidence",
+  "kind": "fulfillment_confirmation",
+  "label": "广告日报凭证",
+  "contextRef": "context.advertising-order",
+  "responsibleRoleRef": "role.agency",
+  "attributes": [
+    {
+      "name": "id",
+      "label": "凭证标识",
+      "valueType": "id",
+      "required": true,
+      "meaning": "在此业务凭证类型中唯一的标识"
+    },
+    {
+      "name": "confirmed_at",
+      "timeRole": "occurrence",
+      "label": "形成时刻",
+      "valueType": "timestamp",
+      "required": true,
+      "meaning": "形成时刻",
+      "keyData": true
+    },
+    {
+      "name": "impressions",
+      "label": "展示次数",
+      "valueType": "int",
+      "required": true,
+      "meaning": "展示次数"
+    },
+    {
+      "name": "report_ref",
+      "label": "归档报表标识",
+      "valueType": "id",
+      "required": true,
+      "meaning": "归档报表标识"
+    }
+  ],
+  "examples": [
+    {
+      "label": "report-published",
+      "value": {
+        "id": "daily-report-summer",
+        "impressions": 12904,
+        "report_ref": "archive-summer-20260702",
+        "confirmed_at": "2026-07-03T00:20:00Z"
+      },
+      "test": {
+        "flow": "negotiation-to-daily-report",
+        "actingRoleRef": "role.agency",
+        "asOf": "2026-07-03T00:20:00Z",
+        "basedOn": [
+          "request.daily-report#report-accepted"
+        ],
+        "expectedStatus": 201,
+        "expect": {
+          "$._links.self.href": "/daily-report-confirmations/daily-report-summer"
+        }
+      }
+    }
+  ]
+}

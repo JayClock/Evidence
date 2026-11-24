@@ -1,0 +1,96 @@
+{
+  "type": "entity",
+  "id": "doc-supplier-proposal",
+  "category": "evidence",
+  "kind": "proposal",
+  "contextRef": "ctx-sourcing",
+  "responsibleRoleRef": "role-seller",
+  "label": "顶峰数控智能制造装备竞标技术报价单（Apex Bid Proposal）",
+  "examples": [
+    {
+      "label": "顺畅履约",
+      "value": {
+        "quoted_total_price": {
+          "minorUnits": 100000000,
+          "currency": "CNY"
+        },
+        "started_at": "2026-01-02T09:00:00Z",
+        "expired_at": "2026-01-04T18:00:00Z"
+      },
+      "test": {
+        "flow": "happy-path",
+        "actingRoleRef": "role-seller",
+        "asOf": "2026-01-02T09:00:00Z",
+        "basedOn": [
+          "doc-sourcing-rfp#顺畅履约"
+        ]
+      }
+    },
+    {
+      "label": "逾期交货",
+      "value": {
+        "quoted_total_price": {
+          "minorUnits": 100000000,
+          "currency": "CNY"
+        },
+        "started_at": "2026-01-02T09:00:00Z",
+        "expired_at": "2026-01-04T18:00:00Z"
+      },
+      "test": {
+        "flow": "late-delivery",
+        "actingRoleRef": "role-seller",
+        "asOf": "2026-01-02T09:00:00Z",
+        "basedOn": [
+          "doc-sourcing-rfp#逾期交货"
+        ]
+      }
+    },
+    {
+      "label": "质检争议",
+      "value": {
+        "quoted_total_price": {
+          "minorUnits": 100000000,
+          "currency": "CNY"
+        },
+        "started_at": "2026-01-02T09:00:00Z",
+        "expired_at": "2026-01-04T18:00:00Z"
+      },
+      "test": {
+        "flow": "defect-escalation",
+        "actingRoleRef": "role-seller",
+        "asOf": "2026-01-02T09:00:00Z",
+        "basedOn": [
+          "doc-sourcing-rfp#质检争议"
+        ]
+      }
+    }
+  ],
+  "attributes": [
+    {
+      "name": "quoted_total_price",
+      "label": "投标总报价",
+      "meaning": "供应商投标文件填报的整机集成总报价",
+      "valueType": "money",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "started_at",
+      "timeRole": "start",
+      "label": "报价承诺生效时间",
+      "meaning": "投标文件提交并锁定承诺的起始时刻",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "expired_at",
+      "timeRole": "deadline",
+      "label": "报价有效截止日",
+      "meaning": "该投标文件报价承诺具有约束力的最终时刻",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    }
+  ]
+}

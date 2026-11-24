@@ -1,0 +1,18 @@
+{
+  "type": "rule",
+  "id": "rule.funded-delivery",
+  "kind": "precondition",
+  "label": "funded-delivery",
+  "description": "Physical delivery is allowed only after full custody funds exist.",
+  "contextRef": "context.fulfillment",
+  "bindings": {
+    "order": {
+      "ref": "confirmation.order"
+    },
+    "deposit": {
+      "ref": "confirmation.deposit-lock"
+    }
+  },
+  "expression": "deposit.locked_amount_minor == order.gross_amount_minor",
+  "resultType": "bool"
+}

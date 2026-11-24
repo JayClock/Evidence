@@ -1,0 +1,7 @@
+{
+  "type": "entity",
+  "id": "party.agency",
+  "category": "participant",
+  "kind": "party",
+  "label": "广告代理"
+}

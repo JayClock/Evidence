@@ -1,0 +1,19 @@
+{
+  "type": "rule",
+  "id": "rule.order-expiry",
+  "kind": "derivation",
+  "label": "order request expiry",
+  "description": "Each request is valid for 48 hours from its server-recorded start; callers cannot choose or backdate the expiration.",
+  "contextRef": "context.procurement",
+  "bindings": {
+    "request": {
+      "ref": "request.order"
+    }
+  },
+  "expression": "request.started_at + duration(\"48h\")",
+  "resultType": "timestamp",
+  "target": {
+    "entityRef": "request.order",
+    "attribute": "expired_at"
+  }
+}

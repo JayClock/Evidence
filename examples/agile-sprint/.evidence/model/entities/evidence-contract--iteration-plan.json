@@ -1,0 +1,52 @@
+{
+  "type": "entity",
+  "id": "contract.iteration-plan",
+  "category": "evidence",
+  "kind": "contract",
+  "label": "产研迭代计划",
+  "contextRef": "context.sprint",
+  "roleRefs": [
+    "role.product-owner",
+    "role.development-team"
+  ],
+  "attributes": [
+    {
+      "name": "id",
+      "label": "凭证标识",
+      "valueType": "id",
+      "required": true,
+      "meaning": "在此业务凭证类型中唯一的标识"
+    },
+    {
+      "name": "signed_at",
+      "timeRole": "occurrence",
+      "label": "签署时刻",
+      "valueType": "timestamp",
+      "required": true,
+      "meaning": "签署时刻",
+      "keyData": true
+    },
+    {
+      "name": "sprint_goal",
+      "label": "迭代目标",
+      "valueType": "string",
+      "required": true,
+      "meaning": "迭代目标"
+    }
+  ],
+  "examples": [
+    {
+      "label": "sprint-42",
+      "value": {
+        "id": "iteration-42",
+        "sprint_goal": "买家可查看订单并导出历史记录",
+        "signed_at": "2026-08-03T09:00:00Z"
+      },
+      "test": {
+        "flow": "two-stories-one-sprint",
+        "actingRoleRef": "role.product-owner",
+        "asOf": "2026-08-03T09:00:00Z"
+      }
+    }
+  ]
+}

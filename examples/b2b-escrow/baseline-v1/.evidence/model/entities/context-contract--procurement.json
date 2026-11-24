@@ -1,0 +1,10 @@
+{
+  "type": "entity",
+  "id": "context.procurement",
+  "category": "context",
+  "kind": "contract",
+  "label": "procurement",
+  "rootRefs": [
+    "contract.agreement"
+  ]
+}

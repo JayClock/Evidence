@@ -53,8 +53,8 @@ it('ships a strict runnable GitHub dual-gate workflow with immutable baseline an
     }),
   );
   expect(text).toContain('github.event.pull_request.base.sha');
-  expect(text).toContain('git show "${BASE_SHA}:${MODEL}"');
-  expect(text).toContain('git show "${BASE_SHA}:${BOOTSTRAP_MODEL}"');
+  expect(text).toContain('git archive "$BASE_SHA" "$SOURCE"');
+  expect(text).toContain('git cat-file -e "${BASE_SHA}:${SOURCE}/model.json"');
   expect(acceptance.steps).toContainEqual(
     expect.objectContaining({
       uses: 'actions/download-artifact@v4',
@@ -75,7 +75,7 @@ it('ships a strict runnable GitHub dual-gate workflow with immutable baseline an
     expect(gateSteps[index]).toMatchObject({
       // DoD must still run after a failed regression, but never after a failed build.
       if: "${{ !cancelled() && steps.build.outcome == 'success' }}",
-      run: `make -C examples/b2b-escrow gate GATE=${gate} BASELINE="$GITHUB_WORKSPACE/reports/baseline.evidence.json" REPORT_DIR="$GITHUB_WORKSPACE/reports/${gate}"`,
+      run: `make -C examples/b2b-escrow gate GATE=${gate} BASELINE="$GITHUB_WORKSPACE/reports/baseline" REPORT_DIR="$GITHUB_WORKSPACE/reports/${gate}"`,
     });
   }
   for (const [job, name] of [
@@ -127,13 +127,11 @@ it('ships a GitLab template with the same strict policy and native JUnit artifac
   expect(script).toContain(
     'make -C examples/b2b-escrow gate IMPLEMENTATION=ts-fastify GATE="$GATE"',
   );
-  expect(script).toContain(
-    'BASELINE="$CI_PROJECT_DIR/reports/baseline.evidence.json"',
-  );
+  expect(script).toContain('BASELINE="$CI_PROJECT_DIR/reports/baseline"');
   expect(script).toContain('REPORT_DIR="$CI_PROJECT_DIR/reports/$GATE"');
   expect(text).toContain('CI_MERGE_REQUEST_DIFF_BASE_SHA');
-  expect(text).toContain('git show "${BASE_SHA}:${MODEL}"');
-  expect(text).toContain('git show "${BASE_SHA}:${BOOTSTRAP_MODEL}"');
+  expect(text).toContain('git archive "$BASE_SHA" "$SOURCE"');
+  expect(text).toContain('git cat-file -e "${BASE_SHA}:${SOURCE}/model.json"');
   expect(text).toContain('--verify');
   expect(text).not.toContain('dogfood-backend');
   expect(text).not.toMatch(/allow_failure|--allow-pending/);
@@ -144,11 +142,9 @@ it('delegates generated-file verification and strict policy gates without losing
     path.join(root, 'examples/b2b-escrow/Makefile'),
     'utf8',
   );
+  expect(makefile).toContain('export --workspace "$(ROOT)" --verify');
   expect(makefile).toContain(
-    'export --model "$(ROOT)/model/b2b-escrow.evidence.json" --out "$(ROOT)/generated" --verify',
-  );
-  expect(makefile).toContain(
-    'gate:\n\tnode "$(ROOT)/verification/run.mjs" --implementation "$(IMPLEMENTATION)" --gate "$(GATE)" --baseline-model "$(BASELINE)" $(REPORT_FLAG)',
+    'gate:\n\tnode "$(ROOT)/verification/run.mjs" --implementation "$(IMPLEMENTATION)" --gate "$(GATE)" --baseline-workspace "$(BASELINE)" $(REPORT_FLAG)',
   );
   expect(makefile).toContain(
     'REPORT_FLAG = $(if $(REPORT_DIR),--report-dir "$(REPORT_DIR)",)',
@@ -162,7 +158,7 @@ it('delegates generated-file verification and strict policy gates without losing
     'utf8',
   );
   expect(runner).toContain(
-    "args.push('--baseline-model', baseline, '--gate', scenario.gate)",
+    "args.push('--baseline-workspace', baseline, '--gate', scenario.gate)",
   );
   expect(runner).toContain("if (scenario.strict) args.push('--strict-drift')");
   expect(runner).toContain(

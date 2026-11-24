@@ -1,0 +1,16 @@
+{
+  "type": "relationship",
+  "id": "relation.confirmation.revenue-request.annual-target",
+  "kind": "references",
+  "sourceRef": "confirmation.revenue",
+  "targetRef": "request.annual-target",
+  "label": "同一笔收入同时计入年度指标，不另写一份年度凭证",
+  "sourceCardinality": {
+    "min": 0,
+    "max": "many"
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

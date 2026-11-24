@@ -1,0 +1,22 @@
+{
+  "type": "rule",
+  "id": "rule.release-retention",
+  "kind": "derivation",
+  "label": "release-retention",
+  "description": "Half-up warranty reserve in minor units.",
+  "contextRef": "context.settlement",
+  "bindings": {
+    "settlement": {
+      "ref": "confirmation.release"
+    },
+    "order": {
+      "ref": "confirmation.order"
+    }
+  },
+  "expression": "((settlement.gross_amount_minor / 10000) * (order.retention_bps) + ((settlement.gross_amount_minor % 10000) * (order.retention_bps) + 5000) / 10000)",
+  "resultType": "int",
+  "target": {
+    "entityRef": "confirmation.release",
+    "attribute": "retention_minor"
+  }
+}

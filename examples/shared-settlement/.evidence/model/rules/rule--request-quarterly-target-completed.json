@@ -1,0 +1,19 @@
+{
+  "type": "rule",
+  "id": "rule.request.quarterly-target-completed",
+  "kind": "completion",
+  "label": "本例季度仅需一笔足额的关联到账记录；锁账另行确认",
+  "description": "本例季度仅需一笔足额的关联到账记录；锁账另行确认",
+  "contextRef": "context.performance",
+  "bindings": {
+    "request": {
+      "ref": "request.quarterly-target"
+    },
+    "results": {
+      "ref": "confirmation.revenue",
+      "cardinality": "many"
+    }
+  },
+  "expression": "results.exists(c, c.confirmed_at >= request.started_at && c.confirmed_at <= request.expired_at && c.request_ids.exists(id, id == request.id) && c.amount_minor >= request.target_amount_minor)",
+  "resultType": "bool"
+}

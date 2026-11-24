@@ -1,0 +1,19 @@
+{
+  "type": "rule",
+  "id": "rule.request.payment-deadline",
+  "kind": "derivation",
+  "label": "预付款申请窗口为 24 小时",
+  "description": "预付款申请窗口为 24 小时",
+  "contextRef": "context.advertising-order",
+  "bindings": {
+    "self": {
+      "ref": "request.payment"
+    }
+  },
+  "expression": "self.started_at + duration(\"24h\")",
+  "resultType": "timestamp",
+  "target": {
+    "entityRef": "request.payment",
+    "attribute": "expired_at"
+  }
+}

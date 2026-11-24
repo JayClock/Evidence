@@ -1,0 +1,19 @@
+{
+  "type": "rule",
+  "id": "rule.locked-backlog-revision",
+  "kind": "derivation",
+  "label": "锁定请求中的待办版本",
+  "description": "锁定请求中的待办版本",
+  "contextRef": "context.sprint",
+  "bindings": {
+    "backlog": {
+      "ref": "request.backlog"
+    }
+  },
+  "expression": "backlog.backlog_revision",
+  "resultType": "id",
+  "target": {
+    "entityRef": "confirmation.backlog",
+    "attribute": "backlog_revision"
+  }
+}

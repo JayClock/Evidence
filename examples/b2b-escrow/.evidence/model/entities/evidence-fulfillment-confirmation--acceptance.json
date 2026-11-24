@@ -1,0 +1,99 @@
+{
+  "type": "entity",
+  "id": "confirmation.acceptance",
+  "category": "evidence",
+  "kind": "fulfillment_confirmation",
+  "contextRef": "context.fulfillment",
+  "label": "acceptance",
+  "notes": "buyer's immutable answer to request.acceptance.",
+  "responsibleRoleRef": "role.fulfillment-buyer",
+  "attributes": [
+    {
+      "name": "id",
+      "label": "id",
+      "meaning": "Unique immutable business evidence identifier.",
+      "valueType": "id",
+      "required": true
+    },
+    {
+      "name": "confirmed_at",
+      "timeRole": "occurrence",
+      "label": "confirmed_at",
+      "meaning": "Server-recorded UTC business time; caller may not supply this field.",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "accepted",
+      "label": "accepted",
+      "meaning": "Buyer records final acceptance of the physical delivery.",
+      "valueType": "bool",
+      "required": true
+    },
+    {
+      "name": "accepted_quantity",
+      "label": "accepted_quantity",
+      "meaning": "Quantity taken from the seller delivery evidence.",
+      "valueType": "int",
+      "required": true,
+      "derivedByRuleRef": "rule.acceptance-quantity"
+    },
+    {
+      "name": "late_days",
+      "label": "late_days",
+      "meaning": "Started 24-hour periods after the acceptance deadline; zero at or before the deadline.",
+      "valueType": "int",
+      "required": true,
+      "derivedByRuleRef": "rule.acceptance-late-days"
+    }
+  ],
+  "examples": [
+    {
+      "label": "single-on-time",
+      "value": {
+        "id": "single-on-time-confirmation-acceptance",
+        "confirmed_at": "2026-06-15T00:00:00Z",
+        "accepted": true,
+        "accepted_quantity": 999,
+        "late_days": 0
+      },
+      "test": {
+        "flow": "single-on-time",
+        "tags": [
+          "regression",
+          "single",
+          "on-time"
+        ],
+        "actingRoleRef": "role.fulfillment-buyer",
+        "asOf": "2026-06-15T00:00:00Z",
+        "basedOn": [
+          "request.acceptance#single-on-time"
+        ]
+      }
+    },
+    {
+      "label": "single-late",
+      "value": {
+        "id": "single-late-confirmation-acceptance",
+        "confirmed_at": "2026-06-30T00:00:00Z",
+        "accepted": true,
+        "accepted_quantity": 1000,
+        "late_days": 15
+      },
+      "test": {
+        "flow": "single-late",
+        "tags": [
+          "regression",
+          "single",
+          "late"
+        ],
+        "actingRoleRef": "role.fulfillment-buyer",
+        "asOf": "2026-06-30T00:00:00Z",
+        "basedOn": [
+          "request.acceptance#single-late"
+        ]
+      }
+    }
+  ]
+}

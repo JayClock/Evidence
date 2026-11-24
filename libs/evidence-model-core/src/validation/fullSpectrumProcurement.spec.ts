@@ -7,7 +7,7 @@ it('keeps the full-spectrum example schema-valid, traceable and CEL-compilable',
   const parsed = parseModelBundleText(
     readFileSync(
       new URL(
-        '../../../../examples/full-spectrum-procurement/model/full-spectrum-procurement.evidence.json',
+        '../../../../libs/evidence-model-core/tests/fixtures/examples/full-spectrum-procurement.evidence.json',
         import.meta.url,
       ),
       'utf8',

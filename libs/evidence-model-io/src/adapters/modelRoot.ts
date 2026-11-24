@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import type { Dirent } from 'node:fs';
-import { readdir, readFile } from 'node:fs/promises';
+import { lstat, readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import {
@@ -30,11 +30,21 @@ const isIgnored = (relativePath: string): boolean =>
         part.startsWith('.'),
     );
 
+const rejectLink = async (file: string) => {
+  const entry = await lstat(file).catch((error: NodeJS.ErrnoException) => {
+    if (error.code === 'ENOENT') return undefined;
+    throw error;
+  });
+  if (entry?.isSymbolicLink())
+    throw new Error(`MODEL_UNSAFE_PATH: ${file} is a symlink`);
+};
+
 const readTree = async (
   root: string,
   relativeDirectory: string,
 ): Promise<ModelSourceFile[]> => {
   const absolute = path.join(root, relativeDirectory);
+  await rejectLink(absolute);
   let entries: Dirent[];
 
   try {
@@ -88,7 +98,9 @@ const readTree = async (
 export async function readModelRootFiles(
   root: string,
 ): Promise<ModelSourceFile[]> {
-  const manifest = await readFile(path.join(root, MODEL_MANIFEST_PATH), 'utf8')
+  const file = path.join(root, MODEL_MANIFEST_PATH);
+  await rejectLink(file);
+  const manifest = await readFile(file, 'utf8')
     .then((content): ModelSourceFile[] => [
       { path: MODEL_MANIFEST_PATH, content },
     ])

@@ -1,0 +1,124 @@
+{
+  "type": "entity",
+  "id": "confirmation.milestone-acceptance",
+  "category": "evidence",
+  "kind": "fulfillment_confirmation",
+  "contextRef": "context.fulfillment",
+  "label": "milestone-acceptance",
+  "notes": "buyer's immutable answer to request.milestone-acceptance.",
+  "responsibleRoleRef": "role.fulfillment-buyer",
+  "attributes": [
+    {
+      "name": "id",
+      "label": "id",
+      "meaning": "Unique immutable business evidence identifier.",
+      "valueType": "id",
+      "required": true
+    },
+    {
+      "name": "confirmed_at",
+      "timeRole": "occurrence",
+      "label": "confirmed_at",
+      "meaning": "Server-recorded UTC business time; caller may not supply this field.",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "accepted",
+      "label": "accepted",
+      "meaning": "Buyer records acceptance of both physical milestones.",
+      "valueType": "bool",
+      "required": true
+    },
+    {
+      "name": "accepted_quantity",
+      "label": "accepted_quantity",
+      "meaning": "Sum of both seller-formed milestone quantities.",
+      "valueType": "int",
+      "required": true,
+      "derivedByRuleRef": "rule.milestone-acceptance-quantity"
+    },
+    {
+      "name": "late_days",
+      "label": "late_days",
+      "meaning": "Started 24-hour periods after the contractual deadline until buyer final acceptance.",
+      "valueType": "int",
+      "required": true,
+      "derivedByRuleRef": "rule.milestone-acceptance-late-days"
+    }
+  ],
+  "examples": [
+    {
+      "label": "milestone-on-time",
+      "value": {
+        "id": "milestone-on-time-confirmation-milestone-acceptance",
+        "confirmed_at": "2026-06-15T00:00:00Z",
+        "accepted": true,
+        "accepted_quantity": 1000,
+        "late_days": 0
+      },
+      "test": {
+        "flow": "milestone-on-time",
+        "tags": [
+          "dod",
+          "milestone",
+          "on-time"
+        ],
+        "actingRoleRef": "role.fulfillment-buyer",
+        "asOf": "2026-06-15T00:00:00Z",
+        "basedOn": [
+          "request.milestone-acceptance#milestone-on-time"
+        ]
+      }
+    },
+    {
+      "label": "milestone-precision",
+      "value": {
+        "id": "milestone-precision-confirmation-milestone-acceptance",
+        "confirmed_at": "2026-06-15T00:00:01Z",
+        "accepted": true,
+        "accepted_quantity": 2,
+        "late_days": 1
+      },
+      "test": {
+        "flow": "milestone-precision",
+        "tags": [
+          "dod",
+          "milestone",
+          "precision",
+          "late"
+        ],
+        "actingRoleRef": "role.fulfillment-buyer",
+        "asOf": "2026-06-15T00:00:01Z",
+        "basedOn": [
+          "request.milestone-acceptance#milestone-precision"
+        ]
+      }
+    },
+    {
+      "label": "milestone-capped",
+      "value": {
+        "id": "milestone-capped-confirmation-milestone-acceptance",
+        "confirmed_at": "2026-06-30T00:00:00Z",
+        "accepted": true,
+        "accepted_quantity": 1001,
+        "late_days": 15
+      },
+      "test": {
+        "flow": "milestone-capped",
+        "tags": [
+          "dod",
+          "milestone",
+          "capped",
+          "late"
+        ],
+        "actingRoleRef": "role.fulfillment-buyer",
+        "asOf": "2026-06-30T00:00:00Z",
+        "basedOn": [
+          "request.milestone-acceptance#milestone-capped"
+        ]
+      }
+    }
+  ]
+}

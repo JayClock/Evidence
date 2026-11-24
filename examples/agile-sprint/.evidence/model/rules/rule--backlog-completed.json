@@ -1,0 +1,22 @@
+{
+  "type": "rule",
+  "id": "rule.backlog-completed",
+  "kind": "completion",
+  "label": "锁定后，时窗内验收的不同故事达到约定数量才完成",
+  "description": "锁定后，时窗内验收的不同故事达到约定数量才完成",
+  "contextRef": "context.sprint",
+  "bindings": {
+    "backlog": {
+      "ref": "request.backlog"
+    },
+    "baseline": {
+      "ref": "confirmation.backlog"
+    },
+    "stories": {
+      "ref": "confirmation.story",
+      "cardinality": "many"
+    }
+  },
+  "expression": "size(stories.filter(s, s.confirmed_at >= baseline.confirmed_at && s.confirmed_at <= backlog.expired_at)) == backlog.story_count && stories.all(s, size(stories.filter(t, t.story_id == s.story_id)) == 1)",
+  "resultType": "bool"
+}

@@ -1,0 +1,13 @@
+{
+  "type": "fm_model",
+  "schemaVersion": "6.0",
+  "id": "full-spectrum-procurement",
+  "name": "工业智能制造装备跨境采购与托管清结算全生命周期履约模型",
+  "version": "1.0.0",
+  "ruleLanguage": "CEL",
+  "description": "全节点覆盖模型：覆盖寻源比选、主采购合同、多方托管监管、技术核验与阶梯费率测算、违约追偿与跨合同凭证角色化的全要素8X Flow复杂工业级案例",
+  "entryContextRefs": [
+    "ctx-main-procurement",
+    "ctx-escrow-settlement"
+  ]
+}

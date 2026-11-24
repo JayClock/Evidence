@@ -1,0 +1,8 @@
+{
+  "type": "entity",
+  "id": "role.agency",
+  "category": "role",
+  "kind": "party",
+  "label": "广告代理",
+  "contextRef": "context.advertising-order"
+}

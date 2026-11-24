@@ -1,0 +1,64 @@
+{
+  "type": "entity",
+  "id": "request.review",
+  "category": "evidence",
+  "kind": "fulfillment_request",
+  "label": "迭代评审请求",
+  "contextRef": "context.sprint",
+  "responsibleRoleRef": "role.development-team",
+  "attributes": [
+    {
+      "name": "id",
+      "label": "凭证标识",
+      "valueType": "id",
+      "required": true,
+      "meaning": "在此业务凭证类型中唯一的标识"
+    },
+    {
+      "name": "started_at",
+      "timeRole": "start",
+      "label": "开启时刻",
+      "valueType": "timestamp",
+      "required": true,
+      "meaning": "开启时刻",
+      "keyData": true
+    },
+    {
+      "name": "expired_at",
+      "timeRole": "deadline",
+      "label": "截止时刻",
+      "valueType": "timestamp",
+      "required": true,
+      "meaning": "截止时刻",
+      "keyData": true,
+      "derivedByRuleRef": "rule.request.review-deadline"
+    },
+    {
+      "name": "demo_ref",
+      "label": "演示材料",
+      "valueType": "id",
+      "required": true,
+      "meaning": "演示材料"
+    }
+  ],
+  "examples": [
+    {
+      "label": "review-iteration",
+      "value": {
+        "id": "review-request-42",
+        "demo_ref": "demo-sprint-42",
+        "started_at": "2026-08-14T09:00:00Z",
+        "expired_at": "2026-08-16T09:00:00Z"
+      },
+      "test": {
+        "flow": "two-stories-one-sprint",
+        "actingRoleRef": "role.development-team",
+        "asOf": "2026-08-14T09:00:00Z",
+        "basedOn": [
+          "confirmation.story#accept-01-history",
+          "confirmation.story#accept-02-export"
+        ]
+      }
+    }
+  ]
+}

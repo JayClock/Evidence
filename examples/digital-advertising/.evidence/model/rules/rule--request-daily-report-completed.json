@@ -1,0 +1,19 @@
+{
+  "type": "rule",
+  "id": "rule.request.daily-report-completed",
+  "kind": "completion",
+  "label": "受理不算完成；只有时窗内形成的日报凭证才完成请求",
+  "description": "受理不算完成；只有时窗内形成的日报凭证才完成请求",
+  "contextRef": "context.advertising-order",
+  "bindings": {
+    "request": {
+      "ref": "request.daily-report"
+    },
+    "results": {
+      "ref": "confirmation.daily-report",
+      "cardinality": "many"
+    }
+  },
+  "expression": "results.exists(c, c.confirmed_at >= request.started_at && c.confirmed_at <= request.expired_at)",
+  "resultType": "bool"
+}

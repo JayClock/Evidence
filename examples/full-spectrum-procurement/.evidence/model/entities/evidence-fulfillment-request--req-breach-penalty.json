@@ -1,0 +1,72 @@
+{
+  "type": "entity",
+  "id": "req-breach-penalty",
+  "category": "evidence",
+  "kind": "fulfillment_request",
+  "contextRef": "ctx-main-procurement",
+  "responsibleRoleRef": "role-buyer",
+  "label": "交货逾期违约赔偿与滞纳金索赔请求（Late Delivery Penalty Request）",
+  "examples": [
+    {
+      "label": "逾期交货",
+      "value": {
+        "overdue_days": 2,
+        "claimed_penalty_amount": {
+          "minorUnits": 100000,
+          "currency": "CNY"
+        },
+        "started_at": "2026-02-12T10:00:00Z",
+        "expired_at": "2026-02-15T18:00:00Z"
+      },
+      "test": {
+        "flow": "late-delivery",
+        "actingRoleRef": "role-buyer",
+        "asOf": "2026-02-12T10:00:00Z",
+        "basedOn": [
+          "conf-equipment-delivery#逾期交货",
+          "req-equipment-delivery#逾期交货"
+        ],
+        "expect": {
+          "$.claimed_penalty_amount.minorUnits": 100000
+        }
+      }
+    }
+  ],
+  "attributes": [
+    {
+      "name": "overdue_days",
+      "label": "实际逾期天数",
+      "meaning": "超出合同发货时限的日历天数",
+      "valueType": "int",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "claimed_penalty_amount",
+      "label": "索赔违约金总额",
+      "meaning": "依据CEL派生规则计算出的违约金赔付总额",
+      "valueType": "money",
+      "required": true,
+      "keyData": true,
+      "derivedByRuleRef": "rule-derive-penalty-amount"
+    },
+    {
+      "name": "started_at",
+      "timeRole": "start",
+      "label": "索赔主张发起时间",
+      "meaning": "买方正式递交违约追偿通知书时刻",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "expired_at",
+      "timeRole": "deadline",
+      "label": "清偿宽限期截止时间",
+      "meaning": "卖方支付或签署划拨确认的最后救济期限",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    }
+  ]
+}

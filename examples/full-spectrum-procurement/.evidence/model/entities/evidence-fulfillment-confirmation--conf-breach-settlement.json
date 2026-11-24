@@ -1,0 +1,48 @@
+{
+  "type": "entity",
+  "id": "conf-breach-settlement",
+  "category": "evidence",
+  "kind": "fulfillment_confirmation",
+  "contextRef": "ctx-main-procurement",
+  "responsibleRoleRef": "role-seller",
+  "label": "违约金抵扣与赔偿结清确认凭据（Penalty Compensation Settlement Receipt）",
+  "examples": [
+    {
+      "label": "逾期交货",
+      "value": {
+        "settled_penalty_amount": {
+          "minorUnits": 100000,
+          "currency": "CNY"
+        },
+        "confirmed_at": "2026-02-13T10:00:00Z"
+      },
+      "test": {
+        "flow": "late-delivery",
+        "actingRoleRef": "role-seller",
+        "asOf": "2026-02-13T10:00:00Z",
+        "basedOn": [
+          "req-breach-penalty#逾期交货"
+        ]
+      }
+    }
+  ],
+  "attributes": [
+    {
+      "name": "settled_penalty_amount",
+      "label": "实际结清违约金额",
+      "meaning": "从托管尾款中实际划拨抵扣或转账偿付的违约金额",
+      "valueType": "money",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "confirmed_at",
+      "timeRole": "occurrence",
+      "label": "违约清结确认时刻",
+      "meaning": "双方在违约结清协议上双签盖章确认时刻",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    }
+  ]
+}

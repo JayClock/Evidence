@@ -1,0 +1,11 @@
+{
+  "type": "fm_model",
+  "schemaVersion": "6.0",
+  "id": "agile-sprint",
+  "name": "产研迭代计划",
+  "version": "1.0.0",
+  "ruleLanguage": "CEL",
+  "entryContextRefs": [
+    "context.sprint"
+  ]
+}

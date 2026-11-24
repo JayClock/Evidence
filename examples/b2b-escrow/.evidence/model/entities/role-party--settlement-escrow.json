@@ -1,0 +1,8 @@
+{
+  "type": "entity",
+  "id": "role.settlement-escrow",
+  "category": "role",
+  "kind": "party",
+  "contextRef": "context.settlement",
+  "label": "escrow"
+}

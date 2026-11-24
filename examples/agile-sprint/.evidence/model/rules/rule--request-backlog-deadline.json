@@ -1,0 +1,19 @@
+{
+  "type": "rule",
+  "id": "rule.request.backlog-deadline",
+  "kind": "derivation",
+  "label": "待办范围确认请求窗口为 336 小时",
+  "description": "待办范围确认请求窗口为 336 小时",
+  "contextRef": "context.sprint",
+  "bindings": {
+    "self": {
+      "ref": "request.backlog"
+    }
+  },
+  "expression": "self.started_at + duration(\"336h\")",
+  "resultType": "timestamp",
+  "target": {
+    "entityRef": "request.backlog",
+    "attribute": "expired_at"
+  }
+}

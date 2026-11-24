@@ -1,0 +1,16 @@
+{
+  "type": "relationship",
+  "id": "rel-buyer-plays-depositor",
+  "kind": "plays_role",
+  "sourceRef": "party-buyer-corp",
+  "targetRef": "role-escrow-depositor",
+  "label": "买方企业法人扮演托管委托人角色",
+  "sourceCardinality": {
+    "min": 1,
+    "max": 1
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

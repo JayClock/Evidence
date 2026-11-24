@@ -1,0 +1,19 @@
+{
+  "type": "rule",
+  "id": "rule.request.payment-completed",
+  "kind": "completion",
+  "label": "时窗内收到到账凭证后关闭付款履约",
+  "description": "时窗内收到到账凭证后关闭付款履约",
+  "contextRef": "context.advertising-order",
+  "bindings": {
+    "request": {
+      "ref": "request.payment"
+    },
+    "results": {
+      "ref": "confirmation.payment",
+      "cardinality": "many"
+    }
+  },
+  "expression": "results.exists(c, c.confirmed_at >= request.started_at && c.confirmed_at <= request.expired_at)",
+  "resultType": "bool"
+}

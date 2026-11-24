@@ -1,0 +1,10 @@
+{
+  "type": "entity",
+  "id": "context.fulfillment",
+  "category": "context",
+  "kind": "contract",
+  "label": "fulfillment",
+  "rootRefs": [
+    "contract.fulfillment"
+  ]
+}

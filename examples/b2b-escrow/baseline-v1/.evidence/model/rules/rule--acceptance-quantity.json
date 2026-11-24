@@ -1,0 +1,19 @@
+{
+  "type": "rule",
+  "id": "rule.acceptance-quantity",
+  "kind": "derivation",
+  "label": "acceptance-quantity",
+  "description": "Buyer final acceptance quantity comes only from seller-formed delivery facts.",
+  "contextRef": "context.fulfillment",
+  "bindings": {
+    "delivery": {
+      "ref": "confirmation.delivery"
+    }
+  },
+  "expression": "delivery.delivered_quantity",
+  "resultType": "int",
+  "target": {
+    "entityRef": "confirmation.acceptance",
+    "attribute": "accepted_quantity"
+  }
+}

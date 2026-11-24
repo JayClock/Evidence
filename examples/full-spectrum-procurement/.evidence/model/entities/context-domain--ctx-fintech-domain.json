@@ -1,0 +1,10 @@
+{
+  "type": "entity",
+  "id": "ctx-fintech-domain",
+  "category": "context",
+  "kind": "domain",
+  "label": "金融科技清算与违约测算领域（FinTech & Calculation Domain）",
+  "rootRefs": [
+    "thing-tariff-calculator"
+  ]
+}

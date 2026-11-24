@@ -4,9 +4,8 @@ stages: [contract, acceptance]
 
 variables:
   GIT_DEPTH: '0'
-  MODEL: examples/b2b-escrow/model/b2b-escrow.evidence.json
-  GENERATED: examples/b2b-escrow/generated
-  BOOTSTRAP_MODEL: examples/b2b-escrow/model/b2b-escrow-v1.evidence.json
+  WORKSPACE: examples/b2b-escrow
+  BOOTSTRAP: examples/b2b-escrow/baseline-v1
   NX_DAEMON: 'false'
 
 .evidence-job:
@@ -23,23 +22,27 @@ contract-and-hygiene:
   stage: contract
   script:
     - pnpm api:setup
-    - pnpm evidence check "$MODEL"
-    - pnpm evidence export --model "$MODEL" --out "$GENERATED" --verify
+    - pnpm evidence check --workspace "$WORKSPACE"
+    - pnpm evidence export --workspace "$WORKSPACE" --verify
     - |
       set -eu
-      mkdir -p reports
-      BASE_SHA="${CI_MERGE_REQUEST_DIFF_BASE_SHA:-${CI_COMMIT_BEFORE_SHA:-}}"
-      if [ -n "$BASE_SHA" ] && ! printf '%s' "$BASE_SHA" | grep -Eq '^0+$'; then
+      mkdir -p reports/baseline/.evidence
+      SOURCE="$BOOTSTRAP/.evidence/model"
+      if [[ -n "$BASE_SHA" && ! "$BASE_SHA" =~ ^0+$ ]]; then
         git cat-file -e "${BASE_SHA}^{commit}"
-        if git cat-file -e "${BASE_SHA}:${MODEL}" 2>/dev/null; then
-          git show "${BASE_SHA}:${MODEL}" > reports/baseline.evidence.json
+        if git cat-file -e "${BASE_SHA}:${WORKSPACE}/.evidence/model/model.json" 2>/dev/null; then
+          SOURCE="$WORKSPACE/.evidence/model"
+          git archive "$BASE_SHA" "$SOURCE" | tar -x -C reports/baseline/.evidence --strip-components=3
+        elif git cat-file -e "${BASE_SHA}:${SOURCE}/model.json" 2>/dev/null; then
+          git archive "$BASE_SHA" "$SOURCE" | tar -x -C reports/baseline/.evidence --strip-components=4
         else
-          git show "${BASE_SHA}:${BOOTSTRAP_MODEL}" > reports/baseline.evidence.json
+          # Explicit bootstrap for the first workspace-format commit.
+          cp -R "$SOURCE" reports/baseline/.evidence/model
         fi
       else
-        cp "$BOOTSTRAP_MODEL" reports/baseline.evidence.json
+        cp -R "$SOURCE" reports/baseline/.evidence/model
       fi
-      pnpm evidence diff reports/baseline.evidence.json "$MODEL" --format markdown > reports/api-diff.md
+      pnpm evidence diff reports/baseline "$WORKSPACE" --format markdown > reports/api-diff.md
   artifacts:
     when: always
     paths: [reports/]
@@ -55,7 +58,7 @@ contract-and-hygiene:
       set -eu
       make -C examples/b2b-escrow prepare IMPLEMENTATION=ts-fastify
       make -C examples/b2b-escrow gate IMPLEMENTATION=ts-fastify GATE="$GATE" \
-        BASELINE="$CI_PROJECT_DIR/reports/baseline.evidence.json" \
+        BASELINE="$CI_PROJECT_DIR/reports/baseline" \
         REPORT_DIR="$CI_PROJECT_DIR/reports/$GATE"
   artifacts:
     when: always

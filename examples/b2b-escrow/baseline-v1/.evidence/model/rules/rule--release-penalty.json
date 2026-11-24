@@ -1,0 +1,25 @@
+{
+  "type": "rule",
+  "id": "rule.release-penalty",
+  "kind": "derivation",
+  "label": "release-penalty",
+  "description": "Late penalty cannot consume the warranty reserve or make payout negative. Cap before multiplying high rates.",
+  "contextRef": "context.settlement",
+  "bindings": {
+    "settlement": {
+      "ref": "confirmation.release"
+    },
+    "order": {
+      "ref": "confirmation.order"
+    },
+    "acceptance": {
+      "ref": "confirmation.acceptance"
+    }
+  },
+  "expression": "(acceptance.late_days * order.daily_penalty_bps) >= 10000 ? (settlement.gross_amount_minor - settlement.retention_minor) : (((settlement.gross_amount_minor / 10000) * ((acceptance.late_days * order.daily_penalty_bps)) + ((settlement.gross_amount_minor % 10000) * ((acceptance.late_days * order.daily_penalty_bps)) + 5000) / 10000) > (settlement.gross_amount_minor - settlement.retention_minor) ? (settlement.gross_amount_minor - settlement.retention_minor) : ((settlement.gross_amount_minor / 10000) * ((acceptance.late_days * order.daily_penalty_bps)) + ((settlement.gross_amount_minor % 10000) * ((acceptance.late_days * order.daily_penalty_bps)) + 5000) / 10000))",
+  "resultType": "int",
+  "target": {
+    "entityRef": "confirmation.release",
+    "attribute": "late_penalty_minor"
+  }
+}

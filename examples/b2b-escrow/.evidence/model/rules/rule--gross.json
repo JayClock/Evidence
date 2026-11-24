@@ -1,0 +1,22 @@
+{
+  "type": "rule",
+  "id": "rule.gross",
+  "kind": "derivation",
+  "label": "gross",
+  "description": "Half-up tax-inclusive amount; quotient/remainder avoids overflowing the intermediate base * basis_points.",
+  "contextRef": "context.procurement",
+  "bindings": {
+    "agreement": {
+      "ref": "contract.agreement"
+    },
+    "order": {
+      "ref": "confirmation.order"
+    }
+  },
+  "expression": "((order.subtotal_minor / 10000) * (10000 + agreement.tax_bps) + ((order.subtotal_minor % 10000) * (10000 + agreement.tax_bps) + 5000) / 10000)",
+  "resultType": "int",
+  "target": {
+    "entityRef": "confirmation.order",
+    "attribute": "gross_amount_minor"
+  }
+}

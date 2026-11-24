@@ -1,5 +1,9 @@
 import { setTimeout as pause } from 'node:timers/promises';
 import {
+  checkWorkspacePath,
+  openWorkspace,
+} from '@evidence-poc/evidence-model-io';
+import {
   loadFm,
   planContextDelivery,
   verifyContextDelivery,
@@ -9,13 +13,13 @@ import type { CommandContext } from '../context.js';
 
 /** Desktop syncs live edits; the CLI only ever syncs a stable saved source. */
 export async function exportContexts(
-  modelPath: string,
-  out: string,
+  root: string,
   { verify, watch }: { verify: boolean; watch: boolean },
   context: CommandContext,
 ): Promise<number> {
   const read = async () => {
-    const { index, diagnostics } = await loadFm(modelPath);
+    const workspace = openWorkspace(root);
+    const { index, diagnostics } = await loadFm(workspace.model);
     if (!index)
       throw new Error(
         diagnostics
@@ -38,8 +42,10 @@ export async function exportContexts(
           throw new Error(
             'SOURCE_CHANGED: model changed while projecting API contracts',
           );
+        const { root: project, delivery: out, model } = openWorkspace(root);
+        checkWorkspacePath(project, out, 'directory');
         if (verify) {
-          const stale = verifyContextDelivery(out, plan, modelPath);
+          const stale = verifyContextDelivery(out, plan, model);
           if (stale.length)
             context.stderr(
               stale.map((file) => `OUT_OF_SYNC: ${file}`).join('\n'),
@@ -50,7 +56,7 @@ export async function exportContexts(
             );
           return stale.length ? 1 : 0;
         }
-        const result = writeContextDelivery(out, plan, modelPath);
+        const result = writeContextDelivery(out, plan, model);
         context.stdout(
           `Context API drafts: ${result.synced} synced, ${result.blocked} blocked (${result.changedFiles.length} files updated).`,
         );

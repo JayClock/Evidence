@@ -1,0 +1,7 @@
+{
+  "type": "entity",
+  "id": "party-escrow-bank",
+  "category": "participant",
+  "kind": "party",
+  "label": "远东国际信托与离岸托管清算银行（Pacific Escrow Trust Bank）"
+}

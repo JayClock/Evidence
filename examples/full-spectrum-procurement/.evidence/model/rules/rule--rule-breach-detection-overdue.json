@@ -1,0 +1,20 @@
+{
+  "type": "rule",
+  "id": "rule-breach-detection-overdue",
+  "kind": "breach",
+  "label": "发货交期逾期自动判定违约触发规则",
+  "description": "提单签收确认时刻超过发货请求约定截止期时判定卖方违约[req.equipment.delivery]",
+  "contextRef": "ctx-main-procurement",
+  "bindings": {
+    "del_req": {
+      "ref": "req-equipment-delivery",
+      "cardinality": "one"
+    },
+    "del_conf": {
+      "ref": "conf-equipment-delivery",
+      "cardinality": "one"
+    }
+  },
+  "expression": "del_conf.confirmed_at > del_req.expired_at",
+  "resultType": "bool"
+}

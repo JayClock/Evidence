@@ -1,0 +1,16 @@
+{
+  "type": "relationship",
+  "id": "relation.party.seller-role.fulfillment-seller",
+  "kind": "plays_role",
+  "sourceRef": "party.seller",
+  "targetRef": "role.fulfillment-seller",
+  "label": "plays_role",
+  "sourceCardinality": {
+    "min": 0,
+    "max": "many"
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

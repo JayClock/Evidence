@@ -1,5 +1,6 @@
 import {
   mkdtempSync,
+  realpathSync,
   mkdirSync,
   readFileSync,
   rmSync,
@@ -12,6 +13,10 @@ import { fileURLToPath } from 'node:url';
 import { createFlowStoryProjector } from '@evidence-poc/evidence-agent';
 import type { FlowScenarioTrace } from '@evidence-poc/evidence-model-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  initializeWorkspace,
+  readModelBundle,
+} from '@evidence-poc/evidence-model-io';
 import { dispatch } from '../router.js';
 
 vi.mock('@evidence-poc/evidence-agent', () => ({
@@ -39,8 +44,9 @@ const context = () => ({
   stderr: (text: string) => errors.push(text),
   color: true,
 });
-beforeEach(() => {
-  root = mkdtempSync(path.join(tmpdir(), 'evidence-story-'));
+beforeEach(async () => {
+  root = realpathSync(mkdtempSync(path.join(tmpdir(), 'evidence-story-')));
+  await initializeWorkspace(root, (await readModelBundle(model)).document);
   output = [];
   errors = [];
   vi.clearAllMocks();
@@ -54,7 +60,7 @@ describe('story command dispatch', () => {
     async (offline) => {
       expect(
         await dispatch(
-          ['story', model, '--format', 'json', ...(offline ? ['--no-ai'] : [])],
+          ['story', '--format', 'json', ...(offline ? ['--no-ai'] : [])],
           context(),
         ),
       ).toBe(0);
@@ -79,7 +85,7 @@ describe('story command dispatch', () => {
       ['--no-ai', '--no-ai'],
       ['--ai', '--no-ai'],
     ]) {
-      expect(await dispatch(['story', model, ...flags], context())).toBe(1);
+      expect(await dispatch(['story', ...flags], context())).toBe(1);
     }
     expect(createFlowStoryProjector).not.toHaveBeenCalled();
     expect(errors.join('\n')).toContain('未找到');
@@ -88,32 +94,22 @@ describe('story command dispatch', () => {
 
   it('does not create or overwrite an export when AI generation fails', async () => {
     project.mockRejectedValueOnce(new Error('Story agent unavailable'));
-    expect(
-      await dispatch(
-        ['story', model, '--export', 'nested/story.md'],
-        context(),
-      ),
-    ).toBe(1);
+    expect(await dispatch(['story', '--export'], context())).toBe(1);
     expect(errors.join('\n')).toContain('Story agent unavailable');
-    expect(existsSync(path.join(root, 'nested'))).toBe(false);
+    expect(existsSync(path.join(root, '.evidence/stories'))).toBe(false);
     expect(output).toEqual([]);
-    mkdirSync(path.join(root, 'nested'));
-    const exported = path.join(root, 'nested/story.md');
+    mkdirSync(path.join(root, '.evidence/stories'));
+    const exported = path.join(root, '.evidence/stories/story.md');
     writeFileSync(exported, 'Previous story');
     project.mockRejectedValueOnce(new Error('Story agent unavailable'));
-    expect(
-      await dispatch(
-        ['story', model, '--export', 'nested/story.md'],
-        context(),
-      ),
-    ).toBe(1);
+    expect(await dispatch(['story', '--export'], context())).toBe(1);
     expect(readFileSync(exported, 'utf8')).toBe('Previous story');
   });
 
   it('documents defaults and offline negation without projecting any stories', async () => {
     expect(await dispatch(['story', '--help'], context())).toBe(0);
-    expect(output[0]).toContain('story [model]');
-    expect(output[0]).toContain('.evidence/fm');
+    expect(output[0]).toContain('Usage: evidence story');
+    expect(output[0]).toContain('--workspace');
     expect(output[0]).toContain('default: markdown');
     expect(output[0]).toContain(
       '--no-ai  Offline fact cards without LLM expansion (default: false)',
@@ -124,16 +120,16 @@ describe('story command dispatch', () => {
 
   it('exports a requested format relative to cwd without ANSI color', async () => {
     expect(
-      await dispatch(
-        ['story', model, '--format', 'text', '--export', 'nested/story.txt'],
-        context(),
-      ),
+      await dispatch(['story', '--format', 'text', '--export'], context()),
     ).toBe(0);
-    const content = readFileSync(path.join(root, 'nested/story.txt'), 'utf8');
+    const content = readFileSync(
+      path.join(root, '.evidence/stories/story.txt'),
+      'utf8',
+    );
     expect(content).toContain('payment');
     expect(content).not.toContain('\u001b');
     expect(output).toEqual([
-      `业务故事已成功导出至: ${path.join(root, 'nested/story.txt')}`,
+      `业务故事已成功导出至: ${path.join(root, '.evidence/stories/story.txt')}`,
     ]);
   });
 });

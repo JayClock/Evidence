@@ -1,0 +1,16 @@
+{
+  "type": "relationship",
+  "id": "rel-sgs-plays-third-party",
+  "kind": "plays_role",
+  "sourceRef": "party-sgs-inspection",
+  "targetRef": "role-technical-inspector",
+  "label": "SGS出入境检测行扮演中立第三方质检官",
+  "sourceCardinality": {
+    "min": 1,
+    "max": 1
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

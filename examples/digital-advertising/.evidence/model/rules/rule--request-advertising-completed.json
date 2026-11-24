@@ -1,0 +1,19 @@
+{
+  "type": "rule",
+  "id": "rule.request.advertising-completed",
+  "kind": "completion",
+  "label": "时窗内上线才完成投放排期履约",
+  "description": "时窗内上线才完成投放排期履约",
+  "contextRef": "context.advertising-order",
+  "bindings": {
+    "request": {
+      "ref": "request.advertising"
+    },
+    "results": {
+      "ref": "confirmation.advertising",
+      "cardinality": "many"
+    }
+  },
+  "expression": "results.exists(c, c.confirmed_at >= request.started_at && c.confirmed_at <= request.expired_at)",
+  "resultType": "bool"
+}

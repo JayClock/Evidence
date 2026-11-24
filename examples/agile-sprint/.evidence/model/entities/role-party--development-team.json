@@ -1,0 +1,8 @@
+{
+  "type": "entity",
+  "id": "role.development-team",
+  "category": "role",
+  "kind": "party",
+  "label": "研发团队",
+  "contextRef": "context.sprint"
+}

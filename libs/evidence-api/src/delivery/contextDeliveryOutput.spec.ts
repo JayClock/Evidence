@@ -13,7 +13,6 @@ import { afterEach, beforeEach, expect, it } from 'vitest';
 import { fullLifecycleIndex } from '../testing/fixtures.js';
 import { planContextDelivery } from './contextDelivery.js';
 import {
-  contextOutputDirectory,
   verifyContextDelivery,
   writeContextDelivery,
 } from './contextDeliveryOutput.js';
@@ -22,7 +21,7 @@ let root: string;
 let out: string;
 beforeEach(() => {
   root = mkdtempSync(path.join(realpathSync(tmpdir()), 'context-delivery-'));
-  out = contextOutputDirectory(root);
+  out = path.join(root, '.evidence/delivery');
 });
 afterEach(() => rmSync(root, { recursive: true, force: true }));
 
@@ -71,19 +70,10 @@ it('updates ready outputs, retains blocked bytes, and restores the complete gate
   ).toBe('complete');
 });
 
-it('rejects project escapes, symlinked artifacts and an output owned by another model source', async () => {
+it('rejects symlinked artifacts and an output owned by another model source', async () => {
   const { document } = await fullLifecycleIndex();
   const plan = await planContextDelivery(document);
   const source = path.join(root, 'one.evidence.json');
-  expect(() => contextOutputDirectory(root, '../other')).toThrow(
-    'DELIVERY_UNSAFE_OUTPUT',
-  );
-  expect(() => contextOutputDirectory(root, '.evidence/fm')).toThrow(
-    'DELIVERY_UNSAFE_OUTPUT',
-  );
-  expect(() => contextOutputDirectory(root, '.git/hooks')).toThrow(
-    'DELIVERY_UNSAFE_OUTPUT',
-  );
   writeContextDelivery(out, plan, source);
   expect(() =>
     writeContextDelivery(out, plan, path.join(root, 'two.evidence.json')),

@@ -1,0 +1,16 @@
+{
+  "type": "relationship",
+  "id": "rel-buyer-plays-main",
+  "kind": "plays_role",
+  "sourceRef": "party-buyer-corp",
+  "targetRef": "role-buyer",
+  "label": "买方企业法人扮演主合同买方角色",
+  "sourceCardinality": {
+    "min": 1,
+    "max": 1
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

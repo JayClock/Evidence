@@ -1,10 +1,11 @@
 import { cac, type CAC } from 'cac';
+import { initCommand } from './commands/init.js';
+import { migrateOverlayCommand } from './commands/migrateOverlay.js';
 import { testCommand } from './commands/test.js';
 import { exportCommand } from './commands/export.js';
 import { checkCommand } from './commands/check.js';
 import { diffCommand } from './commands/diff.js';
 import { modelCommand } from './commands/model.js';
-import { migrateOverlayCommand } from './commands/migrateOverlay.js';
 import { storyCommand } from './commands/story.js';
 import {
   stringOption,
@@ -21,42 +22,43 @@ const defaultContext = (): CommandContext => ({
 
 export function createCli(context: CommandContext = defaultContext()): CAC {
   const cli = cac('evidence');
+  cli.option(
+    '--workspace <dir>',
+    'Target workspace root (default: discover from current directory)',
+  );
   cli
-    .command('check [model]', 'Static model consistency and scope checks')
+    .command('init', 'Initialize .evidence in an existing directory')
+    .option('--name <name>', 'Model name')
+    .action((options: CommandOptions) => initCommand(options, context));
+  cli
+    .command('check', 'Static model consistency and scope checks')
     .option('--scope <id>', 'Context responsibility scope (repeatable)', {
       type: [],
     })
     .option('--json', 'Machine-readable report')
-    .action((model: string | undefined, options: CommandOptions) =>
-      checkCommand(model, options, context),
-    );
+    .action((options: CommandOptions) => checkCommand(options, context));
   cli
-    .command(
-      'story [model]',
-      'Project declared flow scenarios into business stories (default model: .evidence/fm)',
-    )
+    .command('story', 'Project declared flow scenarios into business stories')
     .option('--flow <id>', 'Filter by exact flow ID')
     .option('--format <type>', 'Output format: markdown | json | text', {
       default: 'markdown',
     })
-    .option('--export <file>', 'Export story projection to a file')
+    .option('--export', 'Write to .evidence/stories')
     .option('--no-ai', 'Offline fact cards without LLM expansion')
     .option('--compact', 'Compact stories (single-line JSON)')
-    .action((model: string | undefined, options: CommandOptions) =>
-      storyCommand(model, options, context),
-    );
+    .action((options: CommandOptions) => storyCommand(options, context));
   cli
     .command('test', 'Run black-box HTTP acceptance suites')
     .option('--target <url>', 'Backend service base URL (required)')
-    .option('--scenarios <path>', 'Generated Bruno collection directory', {
-      default: 'dist',
-    })
     .option('--as-of <utc>', 'Business timestamp')
     .option('--timeout <ms>', 'Request timeout', { default: '5000' })
     .option('--verbose', 'Detailed failures')
     .option('--json', 'Machine-readable report')
     .option('--gate <gate>', 'regression | dod')
-    .option('--baseline-model <path>', 'Baseline model for the gate')
+    .option(
+      '--baseline-workspace <dir>',
+      'Baseline Evidence workspace for the gate',
+    )
     .option('--filter <pattern>', 'Filter acceptance flows')
     .option('--tag <label>', 'Filter tags (repeatable)', { type: [] })
     .option('--detect-drift', 'Report response contract drift')
@@ -66,17 +68,10 @@ export function createCli(context: CommandContext = defaultContext()): CAC {
       'Allow pending DoD results (never turn failures green)',
     )
     .option('--report <format>', 'markdown | junit')
-    .option('--report-dir <dir>', 'Write JSON, Markdown and JUnit reports')
+    .option('--write-reports', 'Write reports to .evidence/reports')
     .action((options: CommandOptions) => testCommand(options, context));
   cli
     .command('export', 'Export OpenAPI 3.1 and HTTP acceptance suites')
-    .option('--model <path>', 'Model directory or bundle', {
-      default: '.evidence/fm',
-    })
-    .option(
-      '-o, --out <dir>',
-      'Dedicated output directory (default: dist, or delivery for context sync)',
-    )
     .option('--openapi', 'Export only the contract')
     .option('--tests', 'Export only the Bruno acceptance collection')
     .option('--verify', 'Read-only exact byte verification')
@@ -92,34 +87,25 @@ export function createCli(context: CommandContext = defaultContext()): CAC {
     .action((base: string, target: string, options: CommandOptions) =>
       diffCommand(base, target, options, context),
     );
-  for (const [command, target, description] of [
-    ['pack', 'modelDir', 'Pack a model tree into one bundle'],
-    ['unpack', 'bundleFile', 'Restore a model tree from a bundle'],
-    ['compile', 'modelDir', 'Compile a checked model snapshot'],
-    ['inspect', 'model', 'Inspect model files and counts'],
-    ['lineage', 'modelDir', 'Export attribute lineage'],
+  for (const [command, description] of [
+    ['compile', 'Compile a checked model snapshot'],
+    ['inspect', 'Inspect model files and counts'],
+    ['lineage', 'Generate attribute lineage'],
   ] as const) {
     const registered = cli
-      .command(`${command} <${target}>`, description)
-      .action((source: string, options: CommandOptions) =>
-        modelCommand(command, source, options, context),
+      .command(command, description)
+      .action((options: CommandOptions) =>
+        modelCommand(command, options, context),
       );
     if (command === 'inspect')
       registered.option('--json', 'Machine-readable summary');
-    else registered.option('-o, --out <path>', 'Output path');
-    if (command === 'compile' || command === 'lineage')
-      registered.option('--compact', 'Compact snapshot');
-    if (command !== 'inspect')
-      registered.option('--sort-keys', 'Stable object key order');
+    else registered.option('--compact', 'Compact JSON');
   }
   cli
-    .command('migrate-overlay', 'Migrate a legacy API overlay to v6')
-    .option(
-      '--model <path>',
-      'Model directory or bundle (default: .evidence/fm)',
+    .command(
+      'migrate-overlay',
+      'Migrate .evidence/overlays/legacy.json to api-v6.json',
     )
-    .option('--in <file>', 'Legacy overlay input (required)')
-    .option('-o, --out <file>', 'New overlay file (required)')
     .action((options: CommandOptions) =>
       migrateOverlayCommand(options, context),
     );

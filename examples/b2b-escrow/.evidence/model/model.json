@@ -1,0 +1,15 @@
+{
+  "type": "fm_model",
+  "schemaVersion": "6.0",
+  "id": "b2b-escrow",
+  "name": "B2B escrow procurement and milestone settlement",
+  "version": "2.0.0",
+  "ruleLanguage": "CEL",
+  "description": "Three independent participants in four bilateral contexts. CNY minor units, basis points, half-up rounding, request-scoped UTC clocks, immutable evidence and capped final payouts. v2 adds optional two-milestone fulfillment without changing v1 single-delivery contracts.",
+  "entryContextRefs": [
+    "context.procurement",
+    "context.escrow",
+    "context.fulfillment",
+    "context.settlement"
+  ]
+}

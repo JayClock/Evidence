@@ -1,0 +1,82 @@
+{
+  "type": "entity",
+  "id": "request.delivery",
+  "category": "evidence",
+  "kind": "fulfillment_request",
+  "contextRef": "context.fulfillment",
+  "label": "delivery",
+  "notes": "buyer's claim on seller; expires 48 hours after its server-recorded start.",
+  "responsibleRoleRef": "role.fulfillment-buyer",
+  "attributes": [
+    {
+      "name": "id",
+      "label": "id",
+      "meaning": "Unique immutable business evidence identifier.",
+      "valueType": "id",
+      "required": true
+    },
+    {
+      "name": "started_at",
+      "timeRole": "start",
+      "label": "started_at",
+      "meaning": "Server-recorded UTC business time; caller may not supply this field.",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "expired_at",
+      "timeRole": "deadline",
+      "label": "expired_at",
+      "meaning": "Server-recorded UTC business time; caller may not supply this field.",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true,
+      "derivedByRuleRef": "rule.delivery-expiry"
+    }
+  ],
+  "examples": [
+    {
+      "label": "single-on-time",
+      "value": {
+        "id": "single-on-time-request-delivery",
+        "started_at": "2026-06-15T00:00:00Z",
+        "expired_at": "2026-06-17T00:00:00Z"
+      },
+      "test": {
+        "flow": "single-on-time",
+        "tags": [
+          "regression",
+          "single",
+          "on-time"
+        ],
+        "actingRoleRef": "role.fulfillment-buyer",
+        "asOf": "2026-06-15T00:00:00Z",
+        "basedOn": [
+          "contract.fulfillment#single-on-time"
+        ]
+      }
+    },
+    {
+      "label": "single-late",
+      "value": {
+        "id": "single-late-request-delivery",
+        "started_at": "2026-06-30T00:00:00Z",
+        "expired_at": "2026-07-02T00:00:00Z"
+      },
+      "test": {
+        "flow": "single-late",
+        "tags": [
+          "regression",
+          "single",
+          "late"
+        ],
+        "actingRoleRef": "role.fulfillment-buyer",
+        "asOf": "2026-06-30T00:00:00Z",
+        "basedOn": [
+          "contract.fulfillment#single-late"
+        ]
+      }
+    }
+  ]
+}

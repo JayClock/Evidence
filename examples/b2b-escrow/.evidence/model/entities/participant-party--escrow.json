@@ -1,0 +1,7 @@
+{
+  "type": "entity",
+  "id": "party.escrow",
+  "category": "participant",
+  "kind": "party",
+  "label": "escrow"
+}

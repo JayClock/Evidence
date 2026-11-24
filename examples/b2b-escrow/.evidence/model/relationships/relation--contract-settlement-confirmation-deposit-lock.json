@@ -1,0 +1,16 @@
+{
+  "type": "relationship",
+  "id": "relation.contract.settlement-confirmation.deposit-lock",
+  "kind": "references",
+  "sourceRef": "contract.settlement",
+  "targetRef": "confirmation.deposit-lock",
+  "label": "references",
+  "sourceCardinality": {
+    "min": 0,
+    "max": "many"
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

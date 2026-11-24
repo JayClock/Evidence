@@ -1,0 +1,19 @@
+{
+  "type": "rule",
+  "id": "rule.request.annual-target-deadline",
+  "kind": "derivation",
+  "label": "年度收入指标窗口为 8760 小时",
+  "description": "年度收入指标窗口为 8760 小时",
+  "contextRef": "context.performance",
+  "bindings": {
+    "self": {
+      "ref": "request.annual-target"
+    }
+  },
+  "expression": "self.started_at + duration(\"8760h\")",
+  "resultType": "timestamp",
+  "target": {
+    "entityRef": "request.annual-target",
+    "attribute": "expired_at"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "type": "entity",
+  "id": "role.finance",
+  "category": "role",
+  "kind": "party",
+  "label": "财务控制方",
+  "contextRef": "context.performance"
+}

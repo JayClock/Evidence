@@ -1,0 +1,7 @@
+/cache/
+/.init-*/
+*.tmp-*
+.sync-*.tmp
+*.stage-*
+*.backup-*
+.context-sync.lock/

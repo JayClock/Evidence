@@ -1,0 +1,8 @@
+{
+  "type": "entity",
+  "id": "role.advertiser",
+  "category": "role",
+  "kind": "party",
+  "label": "广告主",
+  "contextRef": "context.advertising-order"
+}

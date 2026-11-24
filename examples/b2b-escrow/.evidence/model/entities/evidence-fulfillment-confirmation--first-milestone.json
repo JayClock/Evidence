@@ -1,0 +1,102 @@
+{
+  "type": "entity",
+  "id": "confirmation.first-milestone",
+  "category": "evidence",
+  "kind": "fulfillment_confirmation",
+  "contextRef": "context.fulfillment",
+  "label": "first-milestone",
+  "notes": "seller's immutable answer to request.first-milestone.",
+  "responsibleRoleRef": "role.fulfillment-seller",
+  "attributes": [
+    {
+      "name": "id",
+      "label": "id",
+      "meaning": "Unique immutable business evidence identifier.",
+      "valueType": "id",
+      "required": true
+    },
+    {
+      "name": "confirmed_at",
+      "timeRole": "occurrence",
+      "label": "confirmed_at",
+      "meaning": "Server-recorded UTC business time; caller may not supply this field.",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "delivered_quantity",
+      "label": "delivered_quantity",
+      "meaning": "Seller-recorded quantity delivered in the first milestone.",
+      "valueType": "int",
+      "required": true
+    }
+  ],
+  "examples": [
+    {
+      "label": "milestone-on-time",
+      "value": {
+        "id": "milestone-on-time-confirmation-first-milestone",
+        "confirmed_at": "2026-06-10T00:00:00Z",
+        "delivered_quantity": 500
+      },
+      "test": {
+        "flow": "milestone-on-time",
+        "tags": [
+          "dod",
+          "milestone",
+          "on-time"
+        ],
+        "actingRoleRef": "role.fulfillment-seller",
+        "asOf": "2026-06-10T00:00:00Z",
+        "basedOn": [
+          "request.first-milestone#milestone-on-time"
+        ]
+      }
+    },
+    {
+      "label": "milestone-precision",
+      "value": {
+        "id": "milestone-precision-confirmation-first-milestone",
+        "confirmed_at": "2026-06-10T00:00:00Z",
+        "delivered_quantity": 1
+      },
+      "test": {
+        "flow": "milestone-precision",
+        "tags": [
+          "dod",
+          "milestone",
+          "precision",
+          "late"
+        ],
+        "actingRoleRef": "role.fulfillment-seller",
+        "asOf": "2026-06-10T00:00:00Z",
+        "basedOn": [
+          "request.first-milestone#milestone-precision"
+        ]
+      }
+    },
+    {
+      "label": "milestone-capped",
+      "value": {
+        "id": "milestone-capped-confirmation-first-milestone",
+        "confirmed_at": "2026-06-10T00:00:00Z",
+        "delivered_quantity": 500
+      },
+      "test": {
+        "flow": "milestone-capped",
+        "tags": [
+          "dod",
+          "milestone",
+          "capped",
+          "late"
+        ],
+        "actingRoleRef": "role.fulfillment-seller",
+        "asOf": "2026-06-10T00:00:00Z",
+        "basedOn": [
+          "request.first-milestone#milestone-capped"
+        ]
+      }
+    }
+  ]
+}

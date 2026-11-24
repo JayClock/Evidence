@@ -1,0 +1,11 @@
+{
+  "type": "entity",
+  "id": "context.advertising-negotiation",
+  "category": "context",
+  "kind": "pre_contract",
+  "label": "广告方案磋商",
+  "parentContextRef": "context.advertising-order",
+  "rootRefs": [
+    "rfp.ads-promotion-inquiry"
+  ]
+}

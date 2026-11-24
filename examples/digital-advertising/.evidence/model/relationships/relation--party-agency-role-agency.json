@@ -1,0 +1,8 @@
+{
+  "type": "relationship",
+  "id": "relation.party.agency-role.agency",
+  "kind": "plays_role",
+  "sourceRef": "party.agency",
+  "targetRef": "role.agency",
+  "label": "扮演广告代理"
+}

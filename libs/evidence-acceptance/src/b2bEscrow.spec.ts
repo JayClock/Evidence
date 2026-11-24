@@ -14,7 +14,13 @@ import { selectAcceptanceFlows } from './runner/suiteSelection.js';
 const root = new URL('../../../examples/b2b-escrow/', import.meta.url);
 function load(name: string) {
   const result = parseModelBundleText(
-    readFileSync(new URL(`model/${name}.evidence.json`, root), 'utf8'),
+    readFileSync(
+      new URL(
+        `../../../libs/evidence-model-core/tests/fixtures/examples/${name}.evidence.json`,
+        import.meta.url,
+      ),
+      'utf8',
+    ),
   );
   expect(result.issues).toEqual([]);
   return result.document;
@@ -116,25 +122,37 @@ describe('B2B escrow phase-one contract', () => {
     });
     expect(base).toMatchObject({ flowCount: 2, stepCount: 46 });
     expect(
-      readdirSync(new URL('generated/', root), {
+      readdirSync(new URL('.evidence/acceptance/', root), {
         recursive: true,
         withFileTypes: true,
       })
         .filter((entry) => entry.isFile())
         .map((entry) =>
           relative(
-            fileURLToPath(new URL('generated/', root)),
+            fileURLToPath(new URL('.evidence/acceptance/', root)),
             join(entry.parentPath, entry.name),
           )
             .split(sep)
             .join('/'),
         )
         .sort(),
-    ).toEqual(Object.keys(head.files).sort());
+    ).toEqual(
+      Object.keys(head.files)
+        .filter((name) => name !== 'openapi.json')
+        .sort(),
+    );
     for (const [name, content] of Object.entries(head.files)) {
-      expect(readFileSync(new URL(`generated/${name}`, root), 'utf8')).toBe(
-        content,
-      );
+      expect(
+        readFileSync(
+          new URL(
+            name === 'openapi.json'
+              ? '.evidence/delivery/release/openapi.json'
+              : `.evidence/acceptance/${name}`,
+            root,
+          ),
+          'utf8',
+        ),
+      ).toBe(content);
     }
   });
 

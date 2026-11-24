@@ -1,0 +1,304 @@
+{
+  "type": "entity",
+  "id": "confirmation.release",
+  "category": "evidence",
+  "kind": "fulfillment_confirmation",
+  "contextRef": "context.settlement",
+  "label": "release",
+  "notes": "escrow's immutable answer to request.release.",
+  "responsibleRoleRef": "role.settlement-escrow",
+  "attributes": [
+    {
+      "name": "id",
+      "label": "id",
+      "meaning": "Unique immutable business evidence identifier.",
+      "valueType": "id",
+      "required": true
+    },
+    {
+      "name": "confirmed_at",
+      "timeRole": "occurrence",
+      "label": "confirmed_at",
+      "meaning": "Server-recorded UTC business time; caller may not supply this field.",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "gross_amount_minor",
+      "label": "gross_amount_minor",
+      "meaning": "Gross order value from the seller order evidence. In CNY minor units (fen), never a floating-point yuan amount.",
+      "valueType": "int",
+      "required": true,
+      "keyData": true,
+      "derivedByRuleRef": "rule.release-gross"
+    },
+    {
+      "name": "retention_minor",
+      "label": "retention_minor",
+      "meaning": "Warranty reserve; half-up rounding of gross multiplied by retention basis points. In CNY minor units (fen), never a floating-point yuan amount.",
+      "valueType": "int",
+      "required": true,
+      "keyData": true,
+      "derivedByRuleRef": "rule.release-retention"
+    },
+    {
+      "name": "late_penalty_minor",
+      "label": "late_penalty_minor",
+      "meaning": "Half-up late penalty capped to gross minus warranty reserve, so payout cannot be negative. In CNY minor units (fen), never a floating-point yuan amount.",
+      "valueType": "int",
+      "required": true,
+      "keyData": true,
+      "derivedByRuleRef": "rule.release-penalty"
+    },
+    {
+      "name": "payout_minor",
+      "label": "payout_minor",
+      "meaning": "Final immutable seller payout, gross minus reserve minus capped penalty. In CNY minor units (fen), never a floating-point yuan amount.",
+      "valueType": "int",
+      "required": true,
+      "keyData": true,
+      "derivedByRuleRef": "rule.release-payout"
+    }
+  ],
+  "examples": [
+    {
+      "label": "single-on-time-00-tamper",
+      "value": {
+        "id": "single-on-time-confirmation-release-00-tamper",
+        "confirmed_at": "2026-06-15T00:00:00Z",
+        "gross_amount_minor": 1466402,
+        "retention_minor": 73320,
+        "late_penalty_minor": 0,
+        "payout_minor": 1393082
+      },
+      "test": {
+        "flow": "single-on-time",
+        "tags": [
+          "regression",
+          "single",
+          "on-time"
+        ],
+        "actingRoleRef": "role.settlement-escrow",
+        "asOf": "2026-06-15T00:00:00Z",
+        "basedOn": [
+          "request.release#single-on-time"
+        ],
+        "expectedStatus": 422,
+        "inputs": {
+          "id": "single-on-time-forged",
+          "payout_minor": 999999
+        },
+        "expect": {
+          "$.error": "INVALID_INPUT"
+        }
+      }
+    },
+    {
+      "label": "single-on-time-01-time-tamper",
+      "value": {
+        "id": "single-on-time-confirmation-release-01-time-tamper",
+        "confirmed_at": "2026-06-15T00:00:00Z",
+        "gross_amount_minor": 1466402,
+        "retention_minor": 73320,
+        "late_penalty_minor": 0,
+        "payout_minor": 1393082
+      },
+      "test": {
+        "flow": "single-on-time",
+        "tags": [
+          "regression",
+          "single",
+          "on-time"
+        ],
+        "actingRoleRef": "role.settlement-escrow",
+        "asOf": "2026-06-15T00:00:00Z",
+        "basedOn": [
+          "request.release#single-on-time"
+        ],
+        "expectedStatus": 422,
+        "inputs": {
+          "id": "single-on-time-backdated",
+          "confirmed_at": "2000-01-01T00:00:00Z"
+        },
+        "expect": {
+          "$.error": "INVALID_INPUT"
+        }
+      }
+    },
+    {
+      "label": "single-on-time-10-confirmed",
+      "value": {
+        "id": "single-on-time-confirmation-release-10-confirmed",
+        "confirmed_at": "2026-06-15T00:00:00Z",
+        "gross_amount_minor": 1466402,
+        "retention_minor": 73320,
+        "late_penalty_minor": 0,
+        "payout_minor": 1393082
+      },
+      "test": {
+        "flow": "single-on-time",
+        "tags": [
+          "regression",
+          "single",
+          "on-time"
+        ],
+        "actingRoleRef": "role.settlement-escrow",
+        "asOf": "2026-06-15T00:00:00Z",
+        "basedOn": [
+          "request.release#single-on-time"
+        ]
+      }
+    },
+    {
+      "label": "single-on-time-20-duplicate",
+      "value": {
+        "id": "single-on-time-confirmation-release-20-duplicate",
+        "confirmed_at": "2026-06-15T00:00:00Z",
+        "gross_amount_minor": 1466402,
+        "retention_minor": 73320,
+        "late_penalty_minor": 0,
+        "payout_minor": 1393082
+      },
+      "test": {
+        "flow": "single-on-time",
+        "tags": [
+          "regression",
+          "single",
+          "on-time"
+        ],
+        "actingRoleRef": "role.settlement-escrow",
+        "asOf": "2026-06-15T00:00:00Z",
+        "basedOn": [
+          "confirmation.release#single-on-time-10-confirmed"
+        ],
+        "expectedStatus": 409,
+        "inputs": {
+          "id": "single-on-time-duplicate"
+        },
+        "expect": {
+          "$.error": "ALREADY_CONFIRMED"
+        }
+      }
+    },
+    {
+      "label": "single-late-00-tamper",
+      "value": {
+        "id": "single-late-confirmation-release-00-tamper",
+        "confirmed_at": "2026-06-30T00:00:00Z",
+        "gross_amount_minor": 1354870,
+        "retention_minor": 67744,
+        "late_penalty_minor": 203231,
+        "payout_minor": 1083895
+      },
+      "test": {
+        "flow": "single-late",
+        "tags": [
+          "regression",
+          "single",
+          "late"
+        ],
+        "actingRoleRef": "role.settlement-escrow",
+        "asOf": "2026-06-30T00:00:00Z",
+        "basedOn": [
+          "request.release#single-late"
+        ],
+        "expectedStatus": 422,
+        "inputs": {
+          "id": "single-late-forged",
+          "payout_minor": 999999
+        },
+        "expect": {
+          "$.error": "INVALID_INPUT"
+        }
+      }
+    },
+    {
+      "label": "single-late-01-time-tamper",
+      "value": {
+        "id": "single-late-confirmation-release-01-time-tamper",
+        "confirmed_at": "2026-06-30T00:00:00Z",
+        "gross_amount_minor": 1354870,
+        "retention_minor": 67744,
+        "late_penalty_minor": 203231,
+        "payout_minor": 1083895
+      },
+      "test": {
+        "flow": "single-late",
+        "tags": [
+          "regression",
+          "single",
+          "late"
+        ],
+        "actingRoleRef": "role.settlement-escrow",
+        "asOf": "2026-06-30T00:00:00Z",
+        "basedOn": [
+          "request.release#single-late"
+        ],
+        "expectedStatus": 422,
+        "inputs": {
+          "id": "single-late-backdated",
+          "confirmed_at": "2000-01-01T00:00:00Z"
+        },
+        "expect": {
+          "$.error": "INVALID_INPUT"
+        }
+      }
+    },
+    {
+      "label": "single-late-10-confirmed",
+      "value": {
+        "id": "single-late-confirmation-release-10-confirmed",
+        "confirmed_at": "2026-06-30T00:00:00Z",
+        "gross_amount_minor": 1354870,
+        "retention_minor": 67744,
+        "late_penalty_minor": 203231,
+        "payout_minor": 1083895
+      },
+      "test": {
+        "flow": "single-late",
+        "tags": [
+          "regression",
+          "single",
+          "late"
+        ],
+        "actingRoleRef": "role.settlement-escrow",
+        "asOf": "2026-06-30T00:00:00Z",
+        "basedOn": [
+          "request.release#single-late"
+        ]
+      }
+    },
+    {
+      "label": "single-late-20-duplicate",
+      "value": {
+        "id": "single-late-confirmation-release-20-duplicate",
+        "confirmed_at": "2026-06-30T00:00:00Z",
+        "gross_amount_minor": 1354870,
+        "retention_minor": 67744,
+        "late_penalty_minor": 203231,
+        "payout_minor": 1083895
+      },
+      "test": {
+        "flow": "single-late",
+        "tags": [
+          "regression",
+          "single",
+          "late"
+        ],
+        "actingRoleRef": "role.settlement-escrow",
+        "asOf": "2026-06-30T00:00:00Z",
+        "basedOn": [
+          "confirmation.release#single-late-10-confirmed"
+        ],
+        "expectedStatus": 409,
+        "inputs": {
+          "id": "single-late-duplicate"
+        },
+        "expect": {
+          "$.error": "ALREADY_CONFIRMED"
+        }
+      }
+    }
+  ]
+}

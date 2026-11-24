@@ -1,0 +1,17 @@
+{
+  "type": "relationship",
+  "id": "rel-conf-breach-pairs-req",
+  "kind": "references",
+  "flowKind": "breach_compensation",
+  "sourceRef": "conf-breach-settlement",
+  "targetRef": "req-breach-penalty",
+  "label": "违约清偿凭单完成违约责任补偿闭环",
+  "sourceCardinality": {
+    "min": 1,
+    "max": 1
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

@@ -16,7 +16,6 @@ const examples = [
 
 for (const [name, scope] of examples) {
   const root = `examples/${name}`;
-  const model = `${root}/model/${name}.evidence.json`;
-  run('check', model, '--scope', scope);
-  run('export', '--model', model, '--out', `${root}/generated`, '--verify');
+  run('check', '--workspace', root, '--scope', scope);
+  run('export', '--workspace', root, '--verify');
 }

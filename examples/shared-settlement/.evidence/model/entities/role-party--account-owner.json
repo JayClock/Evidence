@@ -1,0 +1,8 @@
+{
+  "type": "entity",
+  "id": "role.account-owner",
+  "category": "role",
+  "kind": "party",
+  "label": "业绩负责人",
+  "contextRef": "context.performance"
+}

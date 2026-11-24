@@ -1,0 +1,19 @@
+{
+  "type": "rule",
+  "id": "rule.request.quarterly-target-deadline",
+  "kind": "derivation",
+  "label": "季度收入指标窗口为 2160 小时",
+  "description": "季度收入指标窗口为 2160 小时",
+  "contextRef": "context.performance",
+  "bindings": {
+    "self": {
+      "ref": "request.quarterly-target"
+    }
+  },
+  "expression": "self.started_at + duration(\"2160h\")",
+  "resultType": "timestamp",
+  "target": {
+    "entityRef": "request.quarterly-target",
+    "attribute": "expired_at"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "type": "relationship",
+  "id": "relation.request.final-milestone-contract.fulfillment",
+  "kind": "references",
+  "sourceRef": "request.final-milestone",
+  "targetRef": "contract.fulfillment",
+  "label": "references",
+  "sourceCardinality": {
+    "min": 0,
+    "max": "many"
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

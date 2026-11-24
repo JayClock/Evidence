@@ -1,0 +1,8 @@
+{
+  "type": "relationship",
+  "id": "relation.party.account-owner-role.account-owner",
+  "kind": "plays_role",
+  "sourceRef": "party.account-owner",
+  "targetRef": "role.account-owner",
+  "label": "扮演业绩负责人"
+}

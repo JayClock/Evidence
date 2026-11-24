@@ -1,0 +1,16 @@
+{
+  "type": "rule",
+  "id": "rule-supplier-eligibility",
+  "kind": "eligibility",
+  "label": "高端装备供应商准入与技术能力认证门禁",
+  "description": "供应商参与竞标必须满足最低设备额定负载及安全合规标准[doc.supplier.proposal]",
+  "contextRef": "ctx-sourcing",
+  "bindings": {
+    "proposal": {
+      "ref": "doc-supplier-proposal",
+      "cardinality": "one"
+    }
+  },
+  "expression": "proposal.quoted_total_price.minorUnits > 0",
+  "resultType": "bool"
+}

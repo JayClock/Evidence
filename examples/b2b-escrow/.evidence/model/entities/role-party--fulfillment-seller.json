@@ -1,0 +1,8 @@
+{
+  "type": "entity",
+  "id": "role.fulfillment-seller",
+  "category": "role",
+  "kind": "party",
+  "contextRef": "context.fulfillment",
+  "label": "seller"
+}

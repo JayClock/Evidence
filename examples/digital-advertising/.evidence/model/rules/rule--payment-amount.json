@@ -1,0 +1,19 @@
+{
+  "type": "rule",
+  "id": "rule.payment-amount",
+  "kind": "derivation",
+  "label": "全额预付款按已签订单金额核对",
+  "description": "全额预付款按已签订单金额核对",
+  "contextRef": "context.advertising-order",
+  "bindings": {
+    "order": {
+      "ref": "contract.ads-promotion-order"
+    }
+  },
+  "expression": "order.agreed_amount_minor",
+  "resultType": "int",
+  "target": {
+    "entityRef": "confirmation.payment",
+    "attribute": "paid_amount_minor"
+  }
+}

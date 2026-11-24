@@ -1,0 +1,72 @@
+{
+  "type": "entity",
+  "id": "confirmation.revenue",
+  "category": "evidence",
+  "kind": "fulfillment_confirmation",
+  "label": "共享收入凭证",
+  "contextRef": "context.performance",
+  "responsibleRoleRef": "role.finance",
+  "attributes": [
+    {
+      "name": "id",
+      "label": "凭证标识",
+      "valueType": "id",
+      "required": true,
+      "meaning": "在此业务凭证类型中唯一的标识"
+    },
+    {
+      "name": "confirmed_at",
+      "timeRole": "occurrence",
+      "label": "形成时刻",
+      "valueType": "timestamp",
+      "required": true,
+      "meaning": "形成时刻",
+      "keyData": true
+    },
+    {
+      "name": "booking_ref",
+      "label": "已入账业务流水",
+      "valueType": "id",
+      "required": true,
+      "meaning": "已入账业务流水"
+    },
+    {
+      "name": "amount_minor",
+      "label": "入账收入金额",
+      "valueType": "int",
+      "required": true,
+      "meaning": "入账收入金额，单位为 CNY 分"
+    },
+    {
+      "name": "request_ids",
+      "label": "核销的指标请求 ID",
+      "valueType": "list",
+      "required": true,
+      "meaning": "精确记录本笔收入核销的季度与年度指标请求实例"
+    }
+  ],
+  "examples": [
+    {
+      "label": "post-revenue-once",
+      "value": {
+        "id": "revenue-001",
+        "booking_ref": "booking-928",
+        "amount_minor": 52000000,
+        "request_ids": [
+          "target-2026-q1",
+          "target-2026"
+        ],
+        "confirmed_at": "2026-03-27T15:00:00Z"
+      },
+      "test": {
+        "flow": "credit-quarter-and-year-once",
+        "actingRoleRef": "role.finance",
+        "asOf": "2026-03-27T15:00:00Z",
+        "basedOn": [
+          "request.quarterly-target#open-q1",
+          "request.annual-target#open-year"
+        ]
+      }
+    }
+  ]
+}

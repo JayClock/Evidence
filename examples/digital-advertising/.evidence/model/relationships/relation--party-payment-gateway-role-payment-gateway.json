@@ -1,0 +1,8 @@
+{
+  "type": "relationship",
+  "id": "relation.party.payment-gateway-role.payment-gateway",
+  "kind": "plays_role",
+  "sourceRef": "party.payment-gateway",
+  "targetRef": "role.payment-gateway",
+  "label": "扮演支付对账系统"
+}

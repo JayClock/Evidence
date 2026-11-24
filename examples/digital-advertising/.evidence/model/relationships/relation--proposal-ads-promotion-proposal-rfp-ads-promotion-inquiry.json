@@ -1,0 +1,16 @@
+{
+  "type": "relationship",
+  "id": "relation.proposal.ads-promotion-proposal-rfp.ads-promotion-inquiry",
+  "kind": "references",
+  "sourceRef": "proposal.ads-promotion-proposal",
+  "targetRef": "rfp.ads-promotion-inquiry",
+  "label": "报价回应有效征询",
+  "sourceCardinality": {
+    "min": 0,
+    "max": 1
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

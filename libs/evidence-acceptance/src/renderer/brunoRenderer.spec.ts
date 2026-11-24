@@ -145,7 +145,7 @@ it.each([
   'shared-settlement',
 ])('renders all %s acceptance requests as native Bru syntax', (example) => {
   const path = new URL(
-    `../../../../examples/${example}/model/${example}.evidence.json`,
+    `../../../../libs/evidence-model-core/tests/fixtures/examples/${example}.evidence.json`,
     import.meta.url,
   );
   const { document, issues } = parseModelBundleText(readFileSync(path, 'utf8'));

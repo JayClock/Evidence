@@ -1,0 +1,19 @@
+{
+  "type": "rule",
+  "id": "rule.rfp.ads-promotion-inquiry-deadline",
+  "kind": "derivation",
+  "label": "投放需求征询窗口为 72 小时",
+  "description": "投放需求征询窗口为 72 小时",
+  "contextRef": "context.advertising-negotiation",
+  "bindings": {
+    "self": {
+      "ref": "rfp.ads-promotion-inquiry"
+    }
+  },
+  "expression": "self.started_at + duration(\"72h\")",
+  "resultType": "timestamp",
+  "target": {
+    "entityRef": "rfp.ads-promotion-inquiry",
+    "attribute": "expired_at"
+  }
+}

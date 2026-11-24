@@ -1,0 +1,16 @@
+{
+  "type": "relationship",
+  "id": "rel-delivery-conf-plays-evidence-role",
+  "kind": "plays_role",
+  "sourceRef": "conf-equipment-delivery",
+  "targetRef": "role-collateral-voucher",
+  "label": "提单确认凭证角色化作为托管放款质押单据",
+  "sourceCardinality": {
+    "min": 1,
+    "max": 1
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

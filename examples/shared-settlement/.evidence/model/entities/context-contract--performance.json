@@ -1,0 +1,10 @@
+{
+  "type": "entity",
+  "id": "context.performance",
+  "category": "context",
+  "kind": "contract",
+  "label": "季度与年度收入核销",
+  "rootRefs": [
+    "contract.performance-agreement"
+  ]
+}

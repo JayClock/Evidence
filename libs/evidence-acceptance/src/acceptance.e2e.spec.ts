@@ -19,7 +19,7 @@ const backend = fileURLToPath(
 );
 const model = fileURLToPath(
   new URL(
-    '../../../examples/b2b-escrow/model/b2b-escrow.evidence.json',
+    '../../../libs/evidence-model-core/tests/fixtures/examples/b2b-escrow.evidence.json',
     import.meta.url,
   ),
 );
@@ -102,7 +102,10 @@ describe(
         'bru.js',
       );
       const directory = fileURLToPath(
-        new URL('../../../examples/b2b-escrow/generated', import.meta.url),
+        new URL(
+          '../../../examples/b2b-escrow/.evidence/acceptance',
+          import.meta.url,
+        ),
       );
       const report = path.join(root, 'bruno.json');
       await withBackend('none', (host) =>

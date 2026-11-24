@@ -1,0 +1,19 @@
+{
+  "type": "rule",
+  "id": "rule.quarter-close-proof",
+  "kind": "derivation",
+  "label": "季度锁账引用同一收入凭证",
+  "description": "季度锁账引用同一收入凭证",
+  "contextRef": "context.performance",
+  "bindings": {
+    "credit": {
+      "ref": "confirmation.revenue"
+    }
+  },
+  "expression": "credit.id",
+  "resultType": "id",
+  "target": {
+    "entityRef": "confirmation.quarter-close",
+    "attribute": "revenue_confirmation_id"
+  }
+}

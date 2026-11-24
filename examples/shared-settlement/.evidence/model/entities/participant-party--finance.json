@@ -1,0 +1,7 @@
+{
+  "type": "entity",
+  "id": "party.finance",
+  "category": "participant",
+  "kind": "party",
+  "label": "财务控制方"
+}

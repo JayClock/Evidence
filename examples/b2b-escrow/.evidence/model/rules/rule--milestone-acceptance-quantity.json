@@ -1,0 +1,22 @@
+{
+  "type": "rule",
+  "id": "rule.milestone-acceptance-quantity",
+  "kind": "derivation",
+  "label": "milestone-acceptance-quantity",
+  "description": "Buyer final acceptance quantity comes only from seller-formed delivery facts.",
+  "contextRef": "context.fulfillment",
+  "bindings": {
+    "first": {
+      "ref": "confirmation.first-milestone"
+    },
+    "final": {
+      "ref": "confirmation.final-milestone"
+    }
+  },
+  "expression": "first.delivered_quantity + final.delivered_quantity",
+  "resultType": "int",
+  "target": {
+    "entityRef": "confirmation.milestone-acceptance",
+    "attribute": "accepted_quantity"
+  }
+}

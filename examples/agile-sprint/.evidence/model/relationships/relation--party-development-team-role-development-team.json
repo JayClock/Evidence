@@ -1,0 +1,8 @@
+{
+  "type": "relationship",
+  "id": "relation.party.development-team-role.development-team",
+  "kind": "plays_role",
+  "sourceRef": "party.development-team",
+  "targetRef": "role.development-team",
+  "label": "扮演研发团队"
+}

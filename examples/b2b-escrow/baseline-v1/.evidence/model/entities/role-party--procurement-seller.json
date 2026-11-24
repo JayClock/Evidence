@@ -1,0 +1,8 @@
+{
+  "type": "entity",
+  "id": "role.procurement-seller",
+  "category": "role",
+  "kind": "party",
+  "contextRef": "context.procurement",
+  "label": "seller"
+}

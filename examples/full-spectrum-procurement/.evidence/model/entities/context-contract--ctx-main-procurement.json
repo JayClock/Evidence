@@ -1,0 +1,10 @@
+{
+  "type": "entity",
+  "id": "ctx-main-procurement",
+  "category": "context",
+  "kind": "contract",
+  "label": "工业机器人主采购合同上下文（Main Procurement Contract Context）",
+  "rootRefs": [
+    "doc-procurement-contract"
+  ]
+}

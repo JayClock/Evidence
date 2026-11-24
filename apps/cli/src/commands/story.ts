@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { writeWorkspaceFile } from '@evidence-poc/evidence-model-io';
 import { createFlowStoryProjector } from '@evidence-poc/evidence-agent';
 import {
   buildFmCheckReport,
@@ -14,11 +14,10 @@ import {
   type CommandContext,
   type CommandOptions,
 } from '../context.js';
-import { loadModel } from '../model.js';
+import { getWorkspace, loadModel } from '../model.js';
 import { renderStoryMarkdown, renderStoryText } from '../ui/storyReporter.js';
 
 export async function storyCommand(
-  modelInput: string | undefined,
   options: CommandOptions,
   context: CommandContext,
 ): Promise<number> {
@@ -26,11 +25,10 @@ export async function storyCommand(
   if (!['text', 'markdown', 'json'].includes(format))
     throw new Error('--format must be text, markdown or json');
   const targetFlow = stringOption(options.flow);
-  const exportPath = stringOption(options.export);
+  const workspace = getWorkspace(context, options);
+  const exportStory = options.export === true;
   const compact = options.compact === true;
-  const model = await loadModel(
-    path.resolve(context.cwd, modelInput ?? '.evidence/fm'),
-  );
+  const model = await loadModel(workspace.model);
   // Completeness gaps inform the story; a draft is not a failed test run.
   const { report } = buildFmCheckReport({ model });
   let flows = collectFlowScenarios(model, report);
@@ -58,14 +56,18 @@ export async function storyCommand(
       : format === 'text'
         ? renderStoryText(projections, {
             compact,
-            color: context.color && exportPath === undefined,
+            color: context.color && !exportStory,
           })
         : renderStoryMarkdown(projections, { compact });
-  if (exportPath !== undefined) {
-    const fullExportPath = path.resolve(context.cwd, exportPath);
-    // Render every flow successfully before creating directories or files.
-    await mkdir(path.dirname(fullExportPath), { recursive: true });
-    await writeFile(fullExportPath, `${content.trimEnd()}\n`, 'utf8');
+  if (exportStory) {
+    const extension =
+      format === 'markdown' ? 'md' : format === 'text' ? 'txt' : 'json';
+    const fullExportPath = path.join(workspace.stories, `story.${extension}`);
+    await writeWorkspaceFile(
+      workspace.root,
+      fullExportPath,
+      `${content.trimEnd()}\n`,
+    );
     context.stdout(`业务故事已成功导出至: ${fullExportPath}`);
   } else {
     context.stdout(content.trimEnd());

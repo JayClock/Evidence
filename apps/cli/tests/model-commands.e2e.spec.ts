@@ -1,142 +1,87 @@
 import { execFile } from 'node:child_process';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import {
+  cp,
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
 import { afterEach, beforeEach, expect, it } from 'vitest';
 
-const repo = fileURLToPath(new URL('../../../', import.meta.url));
-const binary = path.join(repo, 'apps/cli/dist/cli.js');
+const cli = path.resolve(import.meta.dirname, '../dist/cli.js');
+const fixture = path.resolve(
+  import.meta.dirname,
+  '../../../examples/b2b-escrow/.evidence/model',
+);
 let root: string;
 beforeEach(async () => {
   root = await mkdtemp(path.join(tmpdir(), 'evidence-model-cli-'));
-  await writeFile(
-    path.join(root, 'source.evidence.json'),
-    await readFile(
-      path.join(repo, 'examples/b2b-escrow/model/b2b-escrow.evidence.json'),
-    ),
-  );
 });
-afterEach(() => rm(root, { recursive: true, force: true }));
+afterEach(async () => {
+  await rm(root, { recursive: true, force: true });
+});
 
-function invoke(args: string[]) {
-  return new Promise<{ code: number; stdout: string; stderr: string }>(
-    (resolve) => {
-      execFile(
-        process.execPath,
-        [binary, ...args],
-        { cwd: root, timeout: 15000 },
-        (error, stdout, stderr) => {
-          resolve({
-            code: error ? Number(error.code) || 1 : 0,
-            stdout,
-            stderr,
-          });
-        },
-      );
-    },
-  );
-}
-
-it('round trips, compiles and derives lineage in the caller cwd', async () => {
-  const unpacked = await invoke([
-    'unpack',
-    'source.evidence.json',
-    '-o',
-    '.evidence/fm',
-  ]);
-  expect(unpacked.code, unpacked.stderr).toBe(0);
-  for (const args of [
-    ['pack', '.evidence/fm', '--out=packed.evidence.json', '--sort-keys'],
-    ['compile', '.evidence/fm', '-o', 'derived/compiled.json', '--compact'],
-    ['lineage', '.evidence/fm', '--out', 'derived/lineage.json'],
-  ]) {
-    const result = await invoke(args);
-    expect(result.code, `${result.stdout}\n${result.stderr}`).toBe(0);
-    expect(result.stderr).toBe('');
-  }
-  const inspect = await invoke(['inspect', 'packed.evidence.json', '--json']);
-  expect(inspect.code, inspect.stderr).toBe(0);
-  expect(JSON.parse(inspect.stdout)).toMatchObject({
-    modelId: 'b2b-escrow',
-    issues: [],
+const run = (args: string[], cwd = root) =>
+  promisify(execFile)(process.execPath, [cli, ...args], {
+    cwd,
+    timeout: 15000,
   });
+
+it('initializes an existing directory explicitly and refuses to replace it', async () => {
+  await writeFile(path.join(root, 'code'), 'owner content');
+  await expect(run(['inspect'])).rejects.toMatchObject({
+    stderr: expect.stringContaining('WORKSPACE_NOT_FOUND'),
+  });
+  await run(['init', '--name', 'Example']);
+  const { stdout } = await run(['inspect', '--json']);
+  expect(JSON.parse(stdout)).toMatchObject({
+    modelName: 'Example',
+    entities: 0,
+  });
+  await expect(run(['init'])).rejects.toMatchObject({
+    stderr: expect.stringContaining('WORKSPACE_ALREADY_EXISTS'),
+  });
+  expect(await readdir(root)).toEqual(['.evidence', 'code']);
+  expect(await readFile(path.join(root, 'code'), 'utf8')).toBe('owner content');
+});
+
+it('derives a checked snapshot and lineage inside .evidence from a nested cwd', async () => {
+  await cp(fixture, path.join(root, '.evidence/model'), { recursive: true });
+  const code = path.join(root, 'code');
+  await mkdir(code);
+  await run(['compile', '--compact'], code);
+  await run(['lineage'], code);
   const compiled = await readFile(
-    path.join(root, 'derived/compiled.json'),
+    path.join(root, '.evidence/derived/model.json'),
     'utf8',
   );
   expect(compiled.trim().split('\n')).toHaveLength(1);
-  expect(JSON.parse(compiled)).toHaveProperty('entities');
+  expect(JSON.parse(compiled).entities.length).toBeGreaterThan(0);
   expect(
-    JSON.parse(await readFile(path.join(root, 'derived/lineage.json'), 'utf8')),
-  ).toBeTruthy();
-  const check = await invoke([
-    'check',
-    'packed.evidence.json',
-    '--scope',
-    'context.procurement',
-    '--json',
-  ]);
-  expect(JSON.parse(check.stdout)).toHaveProperty('complete');
-  const defaultPack = await invoke(['pack', '.evidence/fm']);
-  expect(defaultPack.code, defaultPack.stderr).toBe(0);
-  const defaultBundle = await invoke([
-    'inspect',
-    '.evidence/fm/b2b-escrow.evidence.json',
-    '--json',
-  ]);
-  expect(defaultBundle.code, defaultBundle.stderr).toBe(0);
-  expect(JSON.parse(defaultBundle.stdout)).toMatchObject({
-    modelId: 'b2b-escrow',
-  });
-}, 20000);
+    JSON.parse(
+      await readFile(path.join(root, '.evidence/derived/lineage.json'), 'utf8'),
+    ),
+  ).toBeTypeOf('object');
+  expect(await readdir(code)).toEqual([]);
+});
 
-it('supports direct diff with a Markdown default and explicit JSON', async () => {
-  const args = ['source.evidence.json', 'source.evidence.json'];
-  const markdown = await invoke(['diff', ...args]);
-  expect(markdown.code, markdown.stderr).toBe(0);
-  expect(markdown.stdout).toContain('#');
-  const result = await invoke(['diff', '--format=json', ...args]);
-  expect(result.code, result.stderr).toBe(0);
-  expect(result.stderr).toBe('');
-  expect(JSON.parse(result.stdout)).toMatchObject({
-    hasBreakingChanges: false,
-  });
-}, 20000);
-
-it('rejects invalid and duplicate options and missing or extra arguments without writes', async () => {
+it('rejects legacy roots, files and options without migrating them', async () => {
+  await cp(fixture, path.join(root, '.evidence/fm'), { recursive: true });
+  await writeFile(path.join(root, 'old.evidence.json'), '{}');
   for (const args of [
+    ['check'],
+    ['check', '--workspace', 'old.evidence.json'],
+    ['check', 'old.evidence.json'],
+    ['compile', '--out', 'any.json'],
     ['pack'],
-    ['pack', 'missing', '--out'],
-    ['pack', 'missing', '-o', 'a', '--out', 'b'],
-    ['pack', 'missing', '--out', 'a', '-o', 'b'],
-    ['compile', '.evidence/fm'],
-    ['check', 'source.evidence.json', 'extra'],
-    ['check', 'source.evidence.json', '--scope'],
-    ['diff', 'source.evidence.json'],
-    ['diff', 'a', 'b', '--format', 'yaml'],
-    ['diff', 'a', 'b', '--out', 'not-allowed'],
-    ['test', '--tag', '--target', 'http://localhost', '--json'],
-  ]) {
-    const result = await invoke(args);
-    expect(
-      result.code,
-      `${args.join(' ')}\n${result.stdout}\n${result.stderr}`,
-    ).not.toBe(0);
-  }
-  for (const command of [
-    'pack',
-    'unpack',
-    'compile',
-    'check',
-    'test',
-    'diff',
-  ]) {
-    const help = await invoke([command, '--help']);
-    expect(help.code, help.stderr).toBe(0);
-    expect(help.stdout).toContain(`Usage: evidence ${command}`);
-  }
-  const version = await invoke(['--version']);
-  expect(version.code).toBe(0);
-  expect(version.stdout.trim()).toBe('evidence/0.0.1');
-}, 20000);
+    ['unpack', 'old.evidence.json'],
+  ])
+    await expect(run(args)).rejects.toMatchObject({ code: 1 });
+  expect(await readdir(path.join(root, '.evidence'))).toEqual(['fm']);
+  expect(await readdir(root)).toEqual(['.evidence', 'old.evidence.json']);
+});

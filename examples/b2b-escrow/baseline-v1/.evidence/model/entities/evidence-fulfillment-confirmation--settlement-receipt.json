@@ -1,0 +1,79 @@
+{
+  "type": "entity",
+  "id": "confirmation.settlement-receipt",
+  "category": "evidence",
+  "kind": "fulfillment_confirmation",
+  "contextRef": "context.settlement",
+  "label": "settlement-receipt",
+  "notes": "seller's immutable answer to request.settlement-receipt.",
+  "responsibleRoleRef": "role.settlement-seller",
+  "attributes": [
+    {
+      "name": "id",
+      "label": "id",
+      "meaning": "Unique immutable business evidence identifier.",
+      "valueType": "id",
+      "required": true
+    },
+    {
+      "name": "confirmed_at",
+      "timeRole": "occurrence",
+      "label": "confirmed_at",
+      "meaning": "Server-recorded UTC business time; caller may not supply this field.",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "acknowledged",
+      "label": "acknowledged",
+      "meaning": "Seller acknowledges the custodian settlement ledger statement.",
+      "valueType": "bool",
+      "required": true
+    }
+  ],
+  "examples": [
+    {
+      "label": "single-on-time",
+      "value": {
+        "id": "single-on-time-confirmation-settlement-receipt",
+        "confirmed_at": "2026-06-15T00:00:00Z",
+        "acknowledged": true
+      },
+      "test": {
+        "flow": "single-on-time",
+        "tags": [
+          "regression",
+          "single",
+          "on-time"
+        ],
+        "actingRoleRef": "role.settlement-seller",
+        "asOf": "2026-06-15T00:00:00Z",
+        "basedOn": [
+          "request.settlement-receipt#single-on-time"
+        ]
+      }
+    },
+    {
+      "label": "single-late",
+      "value": {
+        "id": "single-late-confirmation-settlement-receipt",
+        "confirmed_at": "2026-06-30T00:00:00Z",
+        "acknowledged": true
+      },
+      "test": {
+        "flow": "single-late",
+        "tags": [
+          "regression",
+          "single",
+          "late"
+        ],
+        "actingRoleRef": "role.settlement-seller",
+        "asOf": "2026-06-30T00:00:00Z",
+        "basedOn": [
+          "request.settlement-receipt#single-late"
+        ]
+      }
+    }
+  ]
+}

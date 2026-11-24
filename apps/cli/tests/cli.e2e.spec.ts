@@ -2,6 +2,7 @@ import { spawn, execFile } from 'node:child_process';
 import { once } from 'node:events';
 import {
   cpSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
@@ -12,7 +13,10 @@ import {
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { unpackModelBundle } from '@evidence-poc/evidence-model-io';
+import {
+  initializeWorkspace,
+  readModelDirectory,
+} from '@evidence-poc/evidence-model-io';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 const repo = fileURLToPath(new URL('../../../', import.meta.url));
@@ -21,15 +25,13 @@ const backend = path.join(
   repo,
   'examples/b2b-escrow/implementations/ts-fastify/dist/server.js',
 );
-let root: string, model: string;
+let root: string;
 beforeEach(() => {
   root = mkdtempSync(path.join(tmpdir(), 'evidence-cli-e2e-'));
-  model = path.join(root, 'procurement.evidence.json');
-  writeFileSync(
-    model,
-    readFileSync(
-      path.join(repo, 'examples/b2b-escrow/model/b2b-escrow.evidence.json'),
-    ),
+  cpSync(
+    path.join(repo, 'examples/b2b-escrow/.evidence'),
+    path.join(root, '.evidence'),
+    { recursive: true },
   );
 });
 afterEach(() => rmSync(root, { recursive: true, force: true }));
@@ -108,7 +110,8 @@ async function withBackend(
 }
 
 it('watches a saved model and repairs a partial gateway without touching blocked artifacts', async () => {
-  const source = path.join(root, 'fm');
+  const source = path.join(root, '.evidence/model');
+  rmSync(source, { recursive: true });
   cpSync(
     path.join(repo, 'libs/evidence-api/tests/fixtures/full-lifecycle/fm'),
     source,
@@ -129,16 +132,15 @@ it('watches a saved model and repairs a partial gateway without touching blocked
     writeFileSync(staging, content);
     renameSync(staging, rulePath);
   };
-  const gateway = path.join(root, 'delivery/openapi.json');
+  const gateway = path.join(root, '.evidence/delivery/openapi.json');
   const local = path.join(
     root,
-    'delivery/services/context.product-procurement/openapi.json',
+    '.evidence/delivery/services/context.product-procurement/openapi.json',
   );
-  const child = spawn(
-    process.execPath,
-    [cli, 'export', '--model', source, '--watch'],
-    { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] },
-  );
+  const child = spawn(process.execPath, [cli, 'export', '--watch'], {
+    cwd: root,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
   let output = '';
   child.stdout.on('data', (chunk) => {
     output += String(chunk);
@@ -182,11 +184,6 @@ it('watches a saved model and repairs a partial gateway without touching blocked
 
 describe('built evidence binary full lifecycle', () => {
   it('checks a source tree, exports both deliverables and passes real HTTP acceptance as JSON', async () => {
-    const unpacked = await unpackModelBundle(
-      model,
-      path.join(root, '.evidence/fm'),
-    );
-    expect(unpacked.issues).toEqual([]);
     const check = await invoke(['check', '--json']);
     expect(check.code, check.stderr).toBe(0);
     expect(JSON.parse(check.stdout).valid).toBe(true);
@@ -211,23 +208,10 @@ describe('built evidence binary full lifecycle', () => {
   it.each(['amount', 'clock', 'extra-field'])(
     'exits red for the independent %s fault',
     async (fault) => {
-      const exported = await invoke([
-        'export',
-        '--model',
-        model,
-        '--out',
-        'dist/tests',
-      ]);
+      const exported = await invoke(['export']);
       expect(exported.code, exported.stderr).toBe(0);
       await withBackend(fault, async (target) => {
-        const run = await invoke([
-          'test',
-          '--target',
-          target,
-          '--scenarios',
-          'dist/tests',
-          '--verbose',
-        ]);
+        const run = await invoke(['test', '--target', target, '--verbose']);
         expect(run.code).toBe(1);
         expect(run.stdout).toContain('FAILED (Red)');
         expect(run.stdout).not.toContain('\u001b');
@@ -242,13 +226,16 @@ describe('built evidence binary full lifecycle', () => {
   );
 
   it('compares compatible and breaking model evolution through oasdiff', async () => {
-    const same = await invoke(['diff', model, model, '--format', 'json']);
+    const same = await invoke(['diff', root, root, '--format', 'json']);
     expect(same.code, same.stderr).toBe(0);
     expect(JSON.parse(same.stdout).hasBreakingChanges).toBe(false);
-    const current = JSON.parse(readFileSync(model, 'utf8'));
+    const { document: current } = await readModelDirectory(
+      path.join(root, '.evidence/model'),
+    );
     const confirmation = current.entities.find(
       (entity: { id: string }) => entity.id === 'confirmation.order',
     );
+    if (!confirmation?.attributes) throw new Error('missing attributes');
     confirmation.attributes.push({
       name: 'note',
       label: 'Note',
@@ -256,14 +243,15 @@ describe('built evidence binary full lifecycle', () => {
       valueType: 'string',
       required: true,
     });
-    for (const example of confirmation.examples)
+    for (const example of confirmation.examples ?? [])
       example.value.note = 'required now';
-    const target = path.join(root, 'new.evidence.json');
-    writeFileSync(target, JSON.stringify(current));
-    const broken = await invoke(['diff', model, target, '--format', 'json']);
+    const target = path.join(root, 'next');
+    mkdirSync(target);
+    await initializeWorkspace(target, current);
+    const broken = await invoke(['diff', root, target, '--format', 'json']);
     expect(broken.code, `${broken.stdout}\n${broken.stderr}`).toBe(1);
     expect(JSON.parse(broken.stdout).hasBreakingChanges).toBe(true);
-    const markdown = await invoke(['diff', model, target]);
+    const markdown = await invoke(['diff', root, target]);
     expect(markdown.code).toBe(1);
     expect(markdown.stdout).toContain('note');
   }, 20000);
@@ -280,7 +268,7 @@ describe('built evidence binary full lifecycle', () => {
         'missing',
         '--json',
       ],
-      ['export', '--model', model, '--format', 'bad', '--json'],
+      ['export', '--out', 'bad', '--json'],
     ]) {
       const result = await invoke(args);
       expect(result.code).toBe(1);
@@ -308,8 +296,10 @@ describe('built evidence binary full lifecycle', () => {
 });
 
 it('migrates a legacy overlay through the executable CLI and protects existing output', async () => {
-  const input = path.join(root, 'old-overlay.json');
-  const output = path.join(root, 'new-overlay.json');
+  const dir = path.join(root, '.evidence/overlays');
+  mkdirSync(dir);
+  const input = path.join(dir, 'legacy.json');
+  const output = path.join(dir, 'api-v6.json');
   writeFileSync(
     input,
     JSON.stringify({
@@ -323,15 +313,7 @@ it('migrates a legacy overlay through the executable CLI and protects existing o
       ],
     }),
   );
-  const args = [
-    'migrate-overlay',
-    '--model',
-    model,
-    '--in',
-    input,
-    '-o',
-    output,
-  ];
+  const args = ['migrate-overlay'];
   const migrated = await invoke(args);
   expect(migrated.code, migrated.stderr).toBe(0);
   expect(JSON.parse(readFileSync(output, 'utf8'))).toMatchObject({

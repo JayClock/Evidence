@@ -1,0 +1,17 @@
+{
+  "type": "relationship",
+  "id": "rel-freeze-references-cert",
+  "kind": "references",
+  "flowKind": "escalation",
+  "sourceRef": "req-escrow-freeze",
+  "targetRef": "doc-sgs-inspection-cert",
+  "label": "质检不合格触发独立仲裁",
+  "sourceCardinality": {
+    "min": 1,
+    "max": 1
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

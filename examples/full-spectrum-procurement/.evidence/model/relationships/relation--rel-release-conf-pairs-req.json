@@ -1,0 +1,17 @@
+{
+  "type": "relationship",
+  "id": "rel-release-conf-pairs-req",
+  "kind": "references",
+  "flowKind": "primary",
+  "sourceRef": "conf-escrow-release",
+  "targetRef": "req-escrow-release",
+  "label": "托管尾款放款闭环",
+  "sourceCardinality": {
+    "min": 1,
+    "max": 1
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

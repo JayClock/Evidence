@@ -1,0 +1,71 @@
+{
+  "type": "entity",
+  "id": "proposal.ads-promotion-proposal",
+  "category": "evidence",
+  "kind": "proposal",
+  "label": "广告投放报价",
+  "contextRef": "context.advertising-negotiation",
+  "responsibleRoleRef": "role.agency",
+  "attributes": [
+    {
+      "name": "id",
+      "label": "凭证标识",
+      "valueType": "id",
+      "required": true,
+      "meaning": "在此业务凭证类型中唯一的标识"
+    },
+    {
+      "name": "started_at",
+      "timeRole": "start",
+      "label": "开启时刻",
+      "valueType": "timestamp",
+      "required": true,
+      "meaning": "开启时刻",
+      "keyData": true
+    },
+    {
+      "name": "expired_at",
+      "timeRole": "deadline",
+      "label": "截止时刻",
+      "valueType": "timestamp",
+      "required": true,
+      "meaning": "截止时刻",
+      "keyData": true,
+      "derivedByRuleRef": "rule.proposal.ads-promotion-proposal-deadline"
+    },
+    {
+      "name": "quoted_amount_minor",
+      "label": "报价",
+      "valueType": "int",
+      "required": true,
+      "meaning": "报价，单位为 CNY 分"
+    },
+    {
+      "name": "placement",
+      "label": "版位",
+      "valueType": "string",
+      "required": true,
+      "meaning": "版位"
+    }
+  ],
+  "examples": [
+    {
+      "label": "return-quote",
+      "value": {
+        "id": "quote-summer",
+        "quoted_amount_minor": 720000,
+        "placement": "首页推荐位",
+        "started_at": "2026-07-01T10:00:00Z",
+        "expired_at": "2026-07-03T10:00:00Z"
+      },
+      "test": {
+        "flow": "negotiation-to-daily-report",
+        "actingRoleRef": "role.agency",
+        "asOf": "2026-07-01T10:00:00Z",
+        "basedOn": [
+          "rfp.ads-promotion-inquiry#request-campaign-plan"
+        ]
+      }
+    }
+  ]
+}

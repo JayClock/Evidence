@@ -1,0 +1,7 @@
+{
+  "type": "entity",
+  "id": "party.product-owner",
+  "category": "participant",
+  "kind": "party",
+  "label": "产品负责人"
+}

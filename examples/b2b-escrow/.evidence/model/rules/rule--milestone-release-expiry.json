@@ -1,0 +1,19 @@
+{
+  "type": "rule",
+  "id": "rule.milestone-release-expiry",
+  "kind": "derivation",
+  "label": "milestone-release request expiry",
+  "description": "Each request is valid for 48 hours from its server-recorded start; callers cannot choose or backdate the expiration.",
+  "contextRef": "context.settlement",
+  "bindings": {
+    "request": {
+      "ref": "request.milestone-release"
+    }
+  },
+  "expression": "request.started_at + duration(\"48h\")",
+  "resultType": "timestamp",
+  "target": {
+    "entityRef": "request.milestone-release",
+    "attribute": "expired_at"
+  }
+}

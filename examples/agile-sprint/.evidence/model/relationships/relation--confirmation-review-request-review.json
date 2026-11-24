@@ -1,0 +1,16 @@
+{
+  "type": "relationship",
+  "id": "relation.confirmation.review-request.review",
+  "kind": "references",
+  "sourceRef": "confirmation.review",
+  "targetRef": "request.review",
+  "label": "评审结束后形成一份纪要",
+  "sourceCardinality": {
+    "min": 0,
+    "max": 1
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

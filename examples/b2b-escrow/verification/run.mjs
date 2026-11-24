@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { spawn } from 'node:child_process';
-import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -11,9 +11,7 @@ import { selectScenarios, verifyGateResult } from './policy.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const repo = fileURLToPath(new URL('../../../', import.meta.url));
 const cli = path.join(repo, 'apps/cli/dist/cli.js');
-const defaultBaseline = path.join(root, 'model/b2b-escrow-v1.evidence.json');
-const current = path.join(root, 'model/b2b-escrow.evidence.json');
-const generated = path.join(root, 'generated');
+const defaultBaseline = path.join(root, 'baseline-v1');
 const implementations = [
   'golang-gin',
   'java-spring',
@@ -158,13 +156,13 @@ async function main() {
       implementation: { type: 'string' },
       'report-dir': { type: 'string' },
       gate: { type: 'string' },
-      'baseline-model': { type: 'string' },
+      'baseline-workspace': { type: 'string' },
       help: { type: 'boolean' },
     },
   });
   if (values.help) {
     console.log(
-      'node examples/b2b-escrow/verification/run.mjs --implementation golang-gin|java-spring|python-fastapi|ts-fastify|all [--report-dir NEW_DIRECTORY] [--gate regression|dod --baseline-model FILE]',
+      'node examples/b2b-escrow/verification/run.mjs --implementation golang-gin|java-spring|python-fastapi|ts-fastify|all [--report-dir NEW_DIRECTORY] [--gate regression|dod --baseline-workspace DIRECTORY]',
     );
     return;
   }
@@ -175,10 +173,10 @@ async function main() {
     throw new Error('Select --implementation (or --help)');
   const scenarios = selectScenarios({
     gate: values.gate,
-    baselineModel: values['baseline-model'],
+    baselineModel: values['baseline-workspace'],
   });
-  const baseline = values['baseline-model']
-    ? path.resolve(values['baseline-model'])
+  const baseline = values['baseline-workspace']
+    ? path.resolve(values['baseline-workspace'])
     : defaultBaseline;
   // A new directory avoids erasing evidence from an earlier run or arbitrary files.
   const output = values['report-dir']
@@ -201,7 +199,7 @@ async function main() {
     const preflight = path.join(output, 'export-verify');
     await mkdir(preflight);
     const verified = await invoke(
-      ['export', '--model', current, '--out', generated, '--verify'],
+      ['export', '--workspace', root, '--verify'],
       preflight,
       active,
     );
@@ -238,28 +236,48 @@ async function main() {
         try {
           const host = await ready(server);
           if (interrupted) throw new Error('Interrupted');
-          const args = [
-            'test',
-            '--target',
-            host,
-            '--scenarios',
-            generated,
-            '--json',
-            '--report-dir',
-            directory,
-          ];
-          if (scenario.gate)
-            args.push('--baseline-model', baseline, '--gate', scenario.gate);
-          if (scenario.strict) args.push('--strict-drift');
-          if (scenario.allowPending) args.push('--allow-pending');
-          const run = await invoke(args, directory, active);
-          result.cliExitCode = run.code;
-          const report = JSON.parse(run.stdout);
-          if (values.gate) verifyGateResult(values.gate, run.code, report);
-          else verifyResult(scenario, run.code, report);
-          result.expectationMet = true;
-          result.passed = report.passed;
-          result.pending = report.pending === true;
+          const workspace = await mkdtemp(
+            path.join(tmpdir(), 'evidence-gate-workspace-'),
+          );
+          try {
+            for (const subtree of ['model', 'acceptance'])
+              await cp(
+                path.join(root, '.evidence', subtree),
+                path.join(workspace, '.evidence', subtree),
+                { recursive: true },
+              );
+            const args = [
+              'test',
+              '--workspace',
+              workspace,
+              '--target',
+              host,
+              '--json',
+              '--write-reports',
+            ];
+            if (scenario.gate)
+              args.push(
+                '--baseline-workspace',
+                baseline,
+                '--gate',
+                scenario.gate,
+              );
+            if (scenario.strict) args.push('--strict-drift');
+            if (scenario.allowPending) args.push('--allow-pending');
+            const run = await invoke(args, directory, active);
+            await cp(path.join(workspace, '.evidence/reports'), directory, {
+              recursive: true,
+            });
+            result.cliExitCode = run.code;
+            const report = JSON.parse(run.stdout);
+            if (values.gate) verifyGateResult(values.gate, run.code, report);
+            else verifyResult(scenario, run.code, report);
+            result.expectationMet = true;
+            result.passed = report.passed;
+            result.pending = report.pending === true;
+          } finally {
+            await rm(workspace, { recursive: true, force: true });
+          }
         } catch (error) {
           result.error = error.stack ?? String(error);
           await writeFile(

@@ -1,0 +1,99 @@
+{
+  "type": "entity",
+  "id": "req-advance-payment",
+  "category": "evidence",
+  "kind": "fulfillment_request",
+  "contextRef": "ctx-main-procurement",
+  "responsibleRoleRef": "role-seller",
+  "label": "首期生产预付款支付请求（Advance Down Payment Request）",
+  "examples": [
+    {
+      "label": "顺畅履约",
+      "value": {
+        "advance_amount": {
+          "minorUnits": 30000000,
+          "currency": "CNY"
+        },
+        "started_at": "2026-01-05T09:00:00Z",
+        "expired_at": "2026-01-07T18:00:00Z"
+      },
+      "test": {
+        "flow": "happy-path",
+        "actingRoleRef": "role-seller",
+        "asOf": "2026-01-05T09:00:00Z",
+        "basedOn": [
+          "doc-procurement-contract#顺畅履约",
+          "doc-escrow-agreement#顺畅履约"
+        ]
+      }
+    },
+    {
+      "label": "逾期交货",
+      "value": {
+        "advance_amount": {
+          "minorUnits": 30000000,
+          "currency": "CNY"
+        },
+        "started_at": "2026-01-05T09:00:00Z",
+        "expired_at": "2026-01-07T18:00:00Z"
+      },
+      "test": {
+        "flow": "late-delivery",
+        "actingRoleRef": "role-seller",
+        "asOf": "2026-01-05T09:00:00Z",
+        "basedOn": [
+          "doc-procurement-contract#逾期交货",
+          "doc-escrow-agreement#逾期交货"
+        ]
+      }
+    },
+    {
+      "label": "质检争议",
+      "value": {
+        "advance_amount": {
+          "minorUnits": 30000000,
+          "currency": "CNY"
+        },
+        "started_at": "2026-01-05T09:00:00Z",
+        "expired_at": "2026-01-07T18:00:00Z"
+      },
+      "test": {
+        "flow": "defect-escalation",
+        "actingRoleRef": "role-seller",
+        "asOf": "2026-01-05T09:00:00Z",
+        "basedOn": [
+          "doc-procurement-contract#质检争议",
+          "doc-escrow-agreement#质检争议"
+        ]
+      }
+    }
+  ],
+  "attributes": [
+    {
+      "name": "advance_amount",
+      "label": "应付首期金额",
+      "meaning": "卖方依照合同约定比例主张的首期排产备料款",
+      "valueType": "money",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "started_at",
+      "timeRole": "start",
+      "label": "催付开放时间",
+      "meaning": "预付款支付通知书送达买方的时限起始时刻",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "expired_at",
+      "timeRole": "deadline",
+      "label": "支付最迟截止时间",
+      "meaning": "买方必须完成首期电汇的最迟时限",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    }
+  ]
+}

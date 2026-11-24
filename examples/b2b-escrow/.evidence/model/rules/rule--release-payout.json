@@ -1,0 +1,19 @@
+{
+  "type": "rule",
+  "id": "rule.release-payout",
+  "kind": "derivation",
+  "label": "release-payout",
+  "description": "Final ledger identity: gross = reserve + penalty + seller payout.",
+  "contextRef": "context.settlement",
+  "bindings": {
+    "settlement": {
+      "ref": "confirmation.release"
+    }
+  },
+  "expression": "settlement.gross_amount_minor - settlement.retention_minor - settlement.late_penalty_minor",
+  "resultType": "int",
+  "target": {
+    "entityRef": "confirmation.release",
+    "attribute": "payout_minor"
+  }
+}

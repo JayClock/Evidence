@@ -1,0 +1,147 @@
+{
+  "type": "entity",
+  "id": "contract.escrow",
+  "category": "evidence",
+  "kind": "contract",
+  "contextRef": "context.escrow",
+  "label": "escrow",
+  "notes": "Bilateral escrow agreement. The third party participates through its own contract, not a third signatory on this contract.",
+  "roleRefs": [
+    "role.escrow-buyer",
+    "role.escrow-escrow"
+  ],
+  "attributes": [
+    {
+      "name": "id",
+      "label": "id",
+      "meaning": "Unique immutable business evidence identifier.",
+      "valueType": "id",
+      "required": true
+    },
+    {
+      "name": "signed_at",
+      "timeRole": "occurrence",
+      "label": "signed_at",
+      "meaning": "Server-recorded UTC business time; caller may not supply this field.",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "order_confirmation_id",
+      "label": "order_confirmation_id",
+      "meaning": "Existing seller order confirmation selected for this contract; backend must resolve and authorize it.",
+      "valueType": "id",
+      "required": true
+    }
+  ],
+  "examples": [
+    {
+      "label": "single-on-time",
+      "value": {
+        "id": "single-on-time-contract-escrow",
+        "signed_at": "2026-06-02T00:00:00Z",
+        "order_confirmation_id": "single-on-time-confirmation-order"
+      },
+      "test": {
+        "flow": "single-on-time",
+        "tags": [
+          "regression",
+          "single",
+          "on-time"
+        ],
+        "actingRoleRef": "role.escrow-buyer",
+        "asOf": "2026-06-02T00:00:00Z",
+        "basedOn": [
+          "confirmation.commitment#single-on-time"
+        ]
+      }
+    },
+    {
+      "label": "single-late",
+      "value": {
+        "id": "single-late-contract-escrow",
+        "signed_at": "2026-06-02T00:00:00Z",
+        "order_confirmation_id": "single-late-confirmation-order"
+      },
+      "test": {
+        "flow": "single-late",
+        "tags": [
+          "regression",
+          "single",
+          "late"
+        ],
+        "actingRoleRef": "role.escrow-buyer",
+        "asOf": "2026-06-02T00:00:00Z",
+        "basedOn": [
+          "confirmation.commitment#single-late"
+        ]
+      }
+    },
+    {
+      "label": "milestone-on-time",
+      "value": {
+        "id": "milestone-on-time-contract-escrow",
+        "signed_at": "2026-06-02T00:00:00Z",
+        "order_confirmation_id": "milestone-on-time-confirmation-order"
+      },
+      "test": {
+        "flow": "milestone-on-time",
+        "tags": [
+          "dod",
+          "milestone",
+          "on-time"
+        ],
+        "actingRoleRef": "role.escrow-buyer",
+        "asOf": "2026-06-02T00:00:00Z",
+        "basedOn": [
+          "confirmation.commitment#milestone-on-time"
+        ]
+      }
+    },
+    {
+      "label": "milestone-precision",
+      "value": {
+        "id": "milestone-precision-contract-escrow",
+        "signed_at": "2026-06-02T00:00:00Z",
+        "order_confirmation_id": "milestone-precision-confirmation-order"
+      },
+      "test": {
+        "flow": "milestone-precision",
+        "tags": [
+          "dod",
+          "milestone",
+          "precision",
+          "late"
+        ],
+        "actingRoleRef": "role.escrow-buyer",
+        "asOf": "2026-06-02T00:00:00Z",
+        "basedOn": [
+          "confirmation.commitment#milestone-precision"
+        ]
+      }
+    },
+    {
+      "label": "milestone-capped",
+      "value": {
+        "id": "milestone-capped-contract-escrow",
+        "signed_at": "2026-06-02T00:00:00Z",
+        "order_confirmation_id": "milestone-capped-confirmation-order"
+      },
+      "test": {
+        "flow": "milestone-capped",
+        "tags": [
+          "dod",
+          "milestone",
+          "capped",
+          "late"
+        ],
+        "actingRoleRef": "role.escrow-buyer",
+        "asOf": "2026-06-02T00:00:00Z",
+        "basedOn": [
+          "confirmation.commitment#milestone-capped"
+        ]
+      }
+    }
+  ]
+}

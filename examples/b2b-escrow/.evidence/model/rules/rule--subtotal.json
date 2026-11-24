@@ -1,0 +1,19 @@
+{
+  "type": "rule",
+  "id": "rule.subtotal",
+  "kind": "derivation",
+  "label": "subtotal",
+  "description": "Tier two applies to all units when the contractual threshold is met. Integer minor units only.",
+  "contextRef": "context.procurement",
+  "bindings": {
+    "agreement": {
+      "ref": "contract.agreement"
+    }
+  },
+  "expression": "agreement.quantity * (agreement.quantity >= agreement.tier_threshold ? agreement.tier2_unit_price_minor : agreement.tier1_unit_price_minor)",
+  "resultType": "int",
+  "target": {
+    "entityRef": "confirmation.order",
+    "attribute": "subtotal_minor"
+  }
+}

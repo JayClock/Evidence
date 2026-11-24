@@ -1,44 +1,11 @@
-import {
-  existsSync,
-  mkdirSync,
-  realpathSync,
-  readdirSync,
-  readFileSync,
-} from 'node:fs';
+import { mkdirSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { renderDeliverables } from '@evidence-poc/evidence-acceptance';
-import {
-  contextOutputDirectory,
-  writeOutput,
-} from '@evidence-poc/evidence-api';
+import { writeOutput } from '@evidence-poc/evidence-api';
+import { checkWorkspacePath } from '@evidence-poc/evidence-model-io';
 import { exportContexts } from './exportContexts.js';
-import {
-  stringOption,
-  type CommandContext,
-  type CommandOptions,
-} from '../context.js';
-import { loadModel } from '../model.js';
-
-function canonical(file: string): string {
-  try {
-    return realpathSync(file);
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
-    const parent = path.dirname(file);
-    return parent === file
-      ? file
-      : path.join(canonical(parent), path.basename(file));
-  }
-}
-const inside = (child: string, parent: string) => {
-  const relative = path.relative(parent, child);
-  return (
-    relative === '' ||
-    (relative !== '..' &&
-      !relative.startsWith(`..${path.sep}`) &&
-      !path.isAbsolute(relative))
-  );
-};
+import type { CommandContext, CommandOptions } from '../context.js';
+import { getWorkspace, loadModel } from '../model.js';
 
 export interface ExportVerifyResult {
   readonly synchronized: boolean;
@@ -53,7 +20,7 @@ export function verifyDeliverables(
   expected: Readonly<Record<string, string>>,
 ): ExportVerifyResult {
   const existing = new Set<string>();
-  const symlinks = new Set<string>();
+  const nonRegularFiles = new Set<string>();
   const walk = (dir: string, prefix = ''): void => {
     let entries;
     try {
@@ -67,7 +34,7 @@ export function verifyDeliverables(
       if (entry.isDirectory()) walk(path.join(dir, entry.name), `${name}/`);
       else {
         existing.add(name);
-        if (entry.isSymbolicLink()) symlinks.add(name);
+        if (!entry.isFile()) nonRegularFiles.add(name);
       }
     }
   };
@@ -77,7 +44,7 @@ export function verifyDeliverables(
   for (const [name, content] of Object.entries(expected)) {
     if (!existing.has(name)) missingFiles.push(name);
     else if (
-      symlinks.has(name) ||
+      nonRegularFiles.has(name) ||
       !readFileSync(path.join(out, name)).equals(Buffer.from(content))
     )
       staleFiles.push(name);
@@ -98,64 +65,45 @@ export async function exportCommand(
   values: CommandOptions,
   context: CommandContext,
 ): Promise<number> {
-  const modelPath = canonical(
-    path.resolve(context.cwd, stringOption(values.model)!),
-  );
+  const workspace = getWorkspace(context, values);
   const watch = values.watch === true;
-  const scoped = watch || values.onlyUnblocked === true;
-  const outputOption =
-    stringOption(values.out) ?? (scoped ? 'delivery' : 'dist');
-  const out = scoped
-    ? contextOutputDirectory(
-        canonical(context.cwd),
-        path.relative(context.cwd, path.resolve(context.cwd, outputOption)),
-      )
-    : canonical(path.resolve(context.cwd, outputOption));
-  if (
-    inside(out, modelPath) ||
-    inside(modelPath, out) ||
-    inside(canonical(context.cwd), out)
-  )
-    throw new Error(
-      'OUTPUT_INPUT_CONFLICT: output must not overlap the model or replace the working directory',
-    );
-  if (scoped) {
-    if (values.tests || (watch && values.verify))
+  const verify = values.verify === true;
+  if (watch || values.onlyUnblocked) {
+    if (values.tests || (watch && verify))
       throw new Error(
         'Context API sync cannot be combined with --tests, or --watch with --verify.',
       );
-    return exportContexts(
-      modelPath,
-      out,
-      { verify: values.verify === true, watch },
-      context,
-    );
+    checkWorkspacePath(workspace.root, workspace.delivery, 'directory');
+    return exportContexts(workspace.root, { verify, watch }, context);
   }
-  if (
-    ['delivery-status.json', '.context-sync.lock'].some((marker) =>
-      existsSync(path.join(out, marker)),
-    )
-  )
-    throw new Error(
-      'This directory is managed by context sync; use --only-unblocked or another output directory.',
-    );
-  const model = await loadModel(modelPath);
-  const all = !values.openapi && !values.tests;
-  const result = await renderDeliverables(model, {
-    openapi: all || values.openapi === true,
-    tests: all || values.tests === true,
-  });
-  if (values.verify) {
-    const verification = verifyDeliverables(out, result.files);
-    if (!verification.synchronized) {
-      context.stderr(
-        [
-          ...verification.missingFiles.map((file) => `MISSING: ${file}`),
-          ...verification.staleFiles.map((file) => `MODIFIED: ${file}`),
-          ...verification.extraFiles.map((file) => `EXTRA: ${file}`),
-          `Out-of-sync deliverables detected. Run 'evidence export --model ${JSON.stringify(modelPath)} --out ${JSON.stringify(out)}${all ? '' : values.openapi ? ' --openapi' : ' --tests'}' and commit the changes.`,
-        ].join('\n'),
-      );
+  const model = await loadModel(workspace.model);
+  const openapi = values.openapi === true || !values.tests;
+  const tests = values.tests === true || !values.openapi;
+  const { files, endpointCount, flowCount, stepCount } =
+    await renderDeliverables(model, { openapi, tests });
+  const { 'openapi.json': contract, ...acceptance } = files;
+  const outputs: [string, Record<string, string>][] = [];
+  if (openapi && contract !== undefined)
+    outputs.push([workspace.release, { 'openapi.json': contract }]);
+  if (tests) outputs.push([workspace.acceptance, acceptance]);
+  for (const [directory] of outputs)
+    checkWorkspacePath(workspace.root, directory, 'directory');
+  if (verify) {
+    const differences = outputs.flatMap(([directory, expected]) => {
+      const result = verifyDeliverables(directory, expected);
+      const prefix = path.relative(workspace.root, directory);
+      return [
+        ...result.missingFiles.map(
+          (file) => `MISSING: ${path.join(prefix, file)}`,
+        ),
+        ...result.staleFiles.map(
+          (file) => `MODIFIED: ${path.join(prefix, file)}`,
+        ),
+        ...result.extraFiles.map((file) => `EXTRA: ${path.join(prefix, file)}`),
+      ];
+    });
+    if (differences.length) {
+      context.stderr(differences.join('\n'));
       return 1;
     }
     context.stdout(
@@ -163,18 +111,14 @@ export async function exportCommand(
     );
     return 0;
   }
-  // No writes until both the contract and the acceptance suite have compiled.
-  mkdirSync(path.dirname(out), { recursive: true });
-  writeOutput(out, result.files);
+  for (const [directory, expected] of outputs) {
+    if (verifyDeliverables(directory, expected).synchronized) continue;
+    mkdirSync(path.dirname(directory), { recursive: true });
+    writeOutput(directory, expected);
+  }
   context.stdout(
-    [
-      `OpenAPI 3.1 validation: PASSED (${result.endpointCount} endpoints)`,
-      `Acceptance: ${result.flowCount} flows, ${result.stepCount} steps`,
-      ...Object.keys(result.files)
-        .sort()
-        .map((file) => `Exported: ${path.join(out, file)}`),
-      'Output directory replaced atomically; use a dedicated generated directory.',
-    ].join('\n'),
+    `OpenAPI 3.1 validation: PASSED (${endpointCount} endpoints)\nAcceptance: ${flowCount} flows, ${stepCount} steps`,
   );
+  for (const [directory] of outputs) context.stdout(directory);
   return 0;
 }

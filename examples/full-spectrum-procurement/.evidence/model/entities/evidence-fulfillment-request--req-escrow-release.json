@@ -1,0 +1,80 @@
+{
+  "type": "entity",
+  "id": "req-escrow-release",
+  "category": "evidence",
+  "kind": "fulfillment_request",
+  "contextRef": "ctx-escrow-settlement",
+  "responsibleRoleRef": "role-escrow-depositor",
+  "label": "验收合格后托管尾款放款请求（Final Escrow Release Request）",
+  "examples": [
+    {
+      "label": "顺畅履约",
+      "value": {
+        "release_amount": {
+          "minorUnits": 70000000,
+          "currency": "CNY"
+        },
+        "started_at": "2026-02-11T09:00:00Z",
+        "expired_at": "2026-02-15T18:00:00Z"
+      },
+      "test": {
+        "flow": "happy-path",
+        "actingRoleRef": "role-escrow-depositor",
+        "asOf": "2026-02-11T09:00:00Z",
+        "basedOn": [
+          "doc-sgs-inspection-cert#顺畅履约",
+          "doc-escrow-agreement#顺畅履约"
+        ]
+      }
+    },
+    {
+      "label": "逾期交货",
+      "value": {
+        "release_amount": {
+          "minorUnits": 69900000,
+          "currency": "CNY"
+        },
+        "started_at": "2026-02-14T09:00:00Z",
+        "expired_at": "2026-02-17T18:00:00Z"
+      },
+      "test": {
+        "flow": "late-delivery",
+        "actingRoleRef": "role-escrow-depositor",
+        "asOf": "2026-02-14T09:00:00Z",
+        "basedOn": [
+          "doc-sgs-inspection-cert#逾期交货",
+          "conf-breach-settlement#逾期交货",
+          "doc-escrow-agreement#逾期交货"
+        ]
+      }
+    }
+  ],
+  "attributes": [
+    {
+      "name": "release_amount",
+      "label": "尾款放款金额",
+      "meaning": "验收通过后可向供应商划付的托管尾款",
+      "valueType": "money",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "started_at",
+      "timeRole": "start",
+      "label": "放款窗口开始",
+      "meaning": "买方提交验收凭证后放款窗口的起点",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "expired_at",
+      "timeRole": "deadline",
+      "label": "放款窗口截止",
+      "meaning": "托管银行应完成尾款清算的最后时限",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    }
+  ]
+}

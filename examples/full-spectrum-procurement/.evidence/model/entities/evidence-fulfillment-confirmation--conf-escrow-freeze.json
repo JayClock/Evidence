@@ -1,0 +1,45 @@
+{
+  "type": "entity",
+  "id": "conf-escrow-freeze",
+  "category": "evidence",
+  "kind": "fulfillment_confirmation",
+  "contextRef": "ctx-escrow-settlement",
+  "responsibleRoleRef": "role-escrow-agent",
+  "label": "独立托管行冻结受理与仲裁介入确认",
+  "attributes": [
+    {
+      "name": "frozen",
+      "label": "资金冻结标志",
+      "meaning": "托管银行已停止尾款划付并移交独立争议解决程序",
+      "valueType": "bool",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "confirmed_at",
+      "timeRole": "occurrence",
+      "label": "冻结受理时刻",
+      "meaning": "托管行正式确认冻结并出具仲裁受理凭据的时刻",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    }
+  ],
+  "examples": [
+    {
+      "label": "质检争议",
+      "value": {
+        "frozen": true,
+        "confirmed_at": "2026-02-12T11:00:00Z"
+      },
+      "test": {
+        "flow": "defect-escalation",
+        "actingRoleRef": "role-escrow-agent",
+        "asOf": "2026-02-12T11:00:00Z",
+        "basedOn": [
+          "req-escrow-freeze#质检争议"
+        ]
+      }
+    }
+  ]
+}

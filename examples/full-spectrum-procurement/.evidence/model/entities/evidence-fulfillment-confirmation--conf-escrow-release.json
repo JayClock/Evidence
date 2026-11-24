@@ -1,0 +1,66 @@
+{
+  "type": "entity",
+  "id": "conf-escrow-release",
+  "category": "evidence",
+  "kind": "fulfillment_confirmation",
+  "contextRef": "ctx-escrow-settlement",
+  "responsibleRoleRef": "role-escrow-agent",
+  "label": "托管尾款清算放款确认（Final Escrow Release Confirmation）",
+  "examples": [
+    {
+      "label": "顺畅履约",
+      "value": {
+        "released_amount": {
+          "minorUnits": 70000000,
+          "currency": "CNY"
+        },
+        "confirmed_at": "2026-02-11T10:00:00Z"
+      },
+      "test": {
+        "flow": "happy-path",
+        "actingRoleRef": "role-escrow-agent",
+        "asOf": "2026-02-11T10:00:00Z",
+        "basedOn": [
+          "req-escrow-release#顺畅履约"
+        ]
+      }
+    },
+    {
+      "label": "逾期交货",
+      "value": {
+        "released_amount": {
+          "minorUnits": 69900000,
+          "currency": "CNY"
+        },
+        "confirmed_at": "2026-02-14T10:00:00Z"
+      },
+      "test": {
+        "flow": "late-delivery",
+        "actingRoleRef": "role-escrow-agent",
+        "asOf": "2026-02-14T10:00:00Z",
+        "basedOn": [
+          "req-escrow-release#逾期交货"
+        ]
+      }
+    }
+  ],
+  "attributes": [
+    {
+      "name": "released_amount",
+      "label": "实际放款金额",
+      "meaning": "托管银行清算后实际划入供应商账户的尾款",
+      "valueType": "money",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "confirmed_at",
+      "timeRole": "occurrence",
+      "label": "放款确认时刻",
+      "meaning": "银行完成最终划拨并生成回执的时刻",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    }
+  ]
+}

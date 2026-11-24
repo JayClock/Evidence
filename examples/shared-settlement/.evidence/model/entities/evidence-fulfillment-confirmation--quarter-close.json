@@ -1,0 +1,53 @@
+{
+  "type": "entity",
+  "id": "confirmation.quarter-close",
+  "category": "evidence",
+  "kind": "fulfillment_confirmation",
+  "label": "季度指标锁账确认",
+  "contextRef": "context.performance",
+  "responsibleRoleRef": "role.account-owner",
+  "attributes": [
+    {
+      "name": "id",
+      "label": "凭证标识",
+      "valueType": "id",
+      "required": true,
+      "meaning": "在此业务凭证类型中唯一的标识"
+    },
+    {
+      "name": "confirmed_at",
+      "timeRole": "occurrence",
+      "label": "形成时刻",
+      "valueType": "timestamp",
+      "required": true,
+      "meaning": "形成时刻",
+      "keyData": true
+    },
+    {
+      "name": "revenue_confirmation_id",
+      "label": "作为本例锁账依据的收入凭证",
+      "valueType": "id",
+      "required": true,
+      "meaning": "作为本例锁账依据的收入凭证",
+      "derivedByRuleRef": "rule.quarter-close-proof"
+    }
+  ],
+  "examples": [
+    {
+      "label": "lock-q1-ledger",
+      "value": {
+        "id": "quarter-close-001",
+        "revenue_confirmation_id": "revenue-001",
+        "confirmed_at": "2026-03-31T16:00:00Z"
+      },
+      "test": {
+        "flow": "credit-quarter-and-year-once",
+        "actingRoleRef": "role.account-owner",
+        "asOf": "2026-03-31T16:00:00Z",
+        "basedOn": [
+          "confirmation.revenue#post-revenue-once"
+        ]
+      }
+    }
+  ]
+}

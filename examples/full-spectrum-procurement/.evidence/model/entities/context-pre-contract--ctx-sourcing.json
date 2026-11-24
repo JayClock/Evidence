@@ -1,0 +1,8 @@
+{
+  "type": "entity",
+  "id": "ctx-sourcing",
+  "category": "context",
+  "kind": "pre_contract",
+  "parentContextRef": "ctx-main-procurement",
+  "label": "缔约前设备寻源比选上下文（Pre-Contract Sourcing Context）"
+}

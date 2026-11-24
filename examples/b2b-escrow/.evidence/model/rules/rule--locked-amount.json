@@ -1,0 +1,19 @@
+{
+  "type": "rule",
+  "id": "rule.locked-amount",
+  "kind": "derivation",
+  "label": "locked-amount",
+  "description": "Custodian locks full funds before delivery. The reference case does not simulate a real banking transfer.",
+  "contextRef": "context.escrow",
+  "bindings": {
+    "order": {
+      "ref": "confirmation.order"
+    }
+  },
+  "expression": "order.gross_amount_minor",
+  "resultType": "int",
+  "target": {
+    "entityRef": "confirmation.deposit-lock",
+    "attribute": "locked_amount_minor"
+  }
+}

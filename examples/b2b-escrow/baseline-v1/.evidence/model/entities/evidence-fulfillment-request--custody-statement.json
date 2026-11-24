@@ -1,0 +1,82 @@
+{
+  "type": "entity",
+  "id": "request.custody-statement",
+  "category": "evidence",
+  "kind": "fulfillment_request",
+  "contextRef": "context.escrow",
+  "label": "custody-statement",
+  "notes": "escrow's claim on buyer; expires 48 hours after its server-recorded start.",
+  "responsibleRoleRef": "role.escrow-escrow",
+  "attributes": [
+    {
+      "name": "id",
+      "label": "id",
+      "meaning": "Unique immutable business evidence identifier.",
+      "valueType": "id",
+      "required": true
+    },
+    {
+      "name": "started_at",
+      "timeRole": "start",
+      "label": "started_at",
+      "meaning": "Server-recorded UTC business time; caller may not supply this field.",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "expired_at",
+      "timeRole": "deadline",
+      "label": "expired_at",
+      "meaning": "Server-recorded UTC business time; caller may not supply this field.",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true,
+      "derivedByRuleRef": "rule.custody-statement-expiry"
+    }
+  ],
+  "examples": [
+    {
+      "label": "single-on-time",
+      "value": {
+        "id": "single-on-time-request-custody-statement",
+        "started_at": "2026-06-02T00:02:00Z",
+        "expired_at": "2026-06-04T00:02:00Z"
+      },
+      "test": {
+        "flow": "single-on-time",
+        "tags": [
+          "regression",
+          "single",
+          "on-time"
+        ],
+        "actingRoleRef": "role.escrow-escrow",
+        "asOf": "2026-06-02T00:02:00Z",
+        "basedOn": [
+          "confirmation.deposit-lock#single-on-time"
+        ]
+      }
+    },
+    {
+      "label": "single-late",
+      "value": {
+        "id": "single-late-request-custody-statement",
+        "started_at": "2026-06-02T00:02:00Z",
+        "expired_at": "2026-06-04T00:02:00Z"
+      },
+      "test": {
+        "flow": "single-late",
+        "tags": [
+          "regression",
+          "single",
+          "late"
+        ],
+        "actingRoleRef": "role.escrow-escrow",
+        "asOf": "2026-06-02T00:02:00Z",
+        "basedOn": [
+          "confirmation.deposit-lock#single-late"
+        ]
+      }
+    }
+  ]
+}

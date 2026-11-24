@@ -1,0 +1,19 @@
+{
+  "type": "rule",
+  "id": "rule.milestone-acceptance-expiry",
+  "kind": "derivation",
+  "label": "milestone-acceptance request expiry",
+  "description": "Each request is valid for 48 hours from its server-recorded start; callers cannot choose or backdate the expiration.",
+  "contextRef": "context.fulfillment",
+  "bindings": {
+    "request": {
+      "ref": "request.milestone-acceptance"
+    }
+  },
+  "expression": "request.started_at + duration(\"48h\")",
+  "resultType": "timestamp",
+  "target": {
+    "entityRef": "request.milestone-acceptance",
+    "attribute": "expired_at"
+  }
+}

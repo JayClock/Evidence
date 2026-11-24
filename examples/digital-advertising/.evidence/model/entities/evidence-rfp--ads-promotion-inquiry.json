@@ -1,0 +1,68 @@
+{
+  "type": "entity",
+  "id": "rfp.ads-promotion-inquiry",
+  "category": "evidence",
+  "kind": "rfp",
+  "label": "投放需求征询",
+  "contextRef": "context.advertising-negotiation",
+  "responsibleRoleRef": "role.advertiser",
+  "attributes": [
+    {
+      "name": "id",
+      "label": "凭证标识",
+      "valueType": "id",
+      "required": true,
+      "meaning": "在此业务凭证类型中唯一的标识"
+    },
+    {
+      "name": "started_at",
+      "timeRole": "start",
+      "label": "开启时刻",
+      "valueType": "timestamp",
+      "required": true,
+      "meaning": "开启时刻",
+      "keyData": true
+    },
+    {
+      "name": "expired_at",
+      "timeRole": "deadline",
+      "label": "截止时刻",
+      "valueType": "timestamp",
+      "required": true,
+      "meaning": "截止时刻",
+      "keyData": true,
+      "derivedByRuleRef": "rule.rfp.ads-promotion-inquiry-deadline"
+    },
+    {
+      "name": "objective",
+      "label": "投放目标",
+      "valueType": "string",
+      "required": true,
+      "meaning": "投放目标"
+    },
+    {
+      "name": "budget_minor",
+      "label": "预算上限",
+      "valueType": "int",
+      "required": true,
+      "meaning": "预算上限，单位为 CNY 分"
+    }
+  ],
+  "examples": [
+    {
+      "label": "request-campaign-plan",
+      "value": {
+        "id": "inquiry-summer",
+        "objective": "推广夏季新品",
+        "budget_minor": 800000,
+        "started_at": "2026-07-01T09:00:00Z",
+        "expired_at": "2026-07-04T09:00:00Z"
+      },
+      "test": {
+        "flow": "negotiation-to-daily-report",
+        "actingRoleRef": "role.advertiser",
+        "asOf": "2026-07-01T09:00:00Z"
+      }
+    }
+  ]
+}

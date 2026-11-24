@@ -1,0 +1,24 @@
+{
+  "type": "rule",
+  "id": "rule.complete-milestones",
+  "kind": "completion",
+  "label": "complete-milestones",
+  "description": "Two positive milestone deliveries must account for the entire order before buyer final acceptance.",
+  "contextRef": "context.fulfillment",
+  "bindings": {
+    "order": {
+      "ref": "confirmation.order"
+    },
+    "first": {
+      "ref": "confirmation.first-milestone"
+    },
+    "final": {
+      "ref": "confirmation.final-milestone"
+    },
+    "acceptance": {
+      "ref": "confirmation.milestone-acceptance"
+    }
+  },
+  "expression": "acceptance.accepted && first.delivered_quantity > 0 && final.delivered_quantity > 0 && first.delivered_quantity + final.delivered_quantity == order.quantity && acceptance.accepted_quantity == order.quantity",
+  "resultType": "bool"
+}

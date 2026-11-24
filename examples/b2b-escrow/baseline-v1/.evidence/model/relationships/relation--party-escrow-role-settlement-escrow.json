@@ -1,0 +1,16 @@
+{
+  "type": "relationship",
+  "id": "relation.party.escrow-role.settlement-escrow",
+  "kind": "plays_role",
+  "sourceRef": "party.escrow",
+  "targetRef": "role.settlement-escrow",
+  "label": "plays_role",
+  "sourceCardinality": {
+    "min": 0,
+    "max": "many"
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

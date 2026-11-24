@@ -1,0 +1,87 @@
+{
+  "type": "entity",
+  "id": "doc-sourcing-rfp",
+  "category": "evidence",
+  "kind": "rfp",
+  "contextRef": "ctx-sourcing",
+  "responsibleRoleRef": "role-buyer",
+  "label": "智能装备全球采购招标建议书（Global Procurement RFP）",
+  "examples": [
+    {
+      "label": "顺畅履约",
+      "value": {
+        "rfp_budget_ceiling": {
+          "minorUnits": 120000000,
+          "currency": "CNY"
+        },
+        "started_at": "2026-01-01T09:00:00Z",
+        "expired_at": "2026-01-02T18:00:00Z"
+      },
+      "test": {
+        "flow": "happy-path",
+        "actingRoleRef": "role-buyer",
+        "asOf": "2026-01-01T09:00:00Z"
+      }
+    },
+    {
+      "label": "逾期交货",
+      "value": {
+        "rfp_budget_ceiling": {
+          "minorUnits": 120000000,
+          "currency": "CNY"
+        },
+        "started_at": "2026-01-01T09:00:00Z",
+        "expired_at": "2026-01-02T18:00:00Z"
+      },
+      "test": {
+        "flow": "late-delivery",
+        "actingRoleRef": "role-buyer",
+        "asOf": "2026-01-01T09:00:00Z"
+      }
+    },
+    {
+      "label": "质检争议",
+      "value": {
+        "rfp_budget_ceiling": {
+          "minorUnits": 120000000,
+          "currency": "CNY"
+        },
+        "started_at": "2026-01-01T09:00:00Z",
+        "expired_at": "2026-01-02T18:00:00Z"
+      },
+      "test": {
+        "flow": "defect-escalation",
+        "actingRoleRef": "role-buyer",
+        "asOf": "2026-01-01T09:00:00Z"
+      }
+    }
+  ],
+  "attributes": [
+    {
+      "name": "rfp_budget_ceiling",
+      "label": "采购预算上限",
+      "meaning": "买方立项批复的最高采购限额资金预算",
+      "valueType": "money",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "started_at",
+      "timeRole": "start",
+      "label": "招标启动时间",
+      "meaning": "全球招标平台公开发布标书的起始时刻",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "expired_at",
+      "timeRole": "deadline",
+      "label": "截标时间",
+      "meaning": "供应商提交密封投标文件的最晚截止时刻",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    }
+  ]
+}

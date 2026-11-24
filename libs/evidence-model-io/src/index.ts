@@ -39,4 +39,5 @@ export {
   openWorkspace,
   findWorkspace,
   initializeWorkspace,
+  writeWorkspaceFile,
 } from './workspace.js';

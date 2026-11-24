@@ -1,0 +1,26 @@
+{
+  "type": "entity",
+  "id": "thing-compliance-checker",
+  "category": "participant",
+  "kind": "thing",
+  "domainRole": "checker",
+  "contextRef": "ctx-inspection-domain",
+  "label": "工业母机技术标准与进出口合规核验器",
+  "examples": [
+    {
+      "label": "执行标准",
+      "value": {
+        "iso_standard_code": "ISO-10218"
+      }
+    }
+  ],
+  "attributes": [
+    {
+      "name": "iso_standard_code",
+      "label": "ISO执行标准号",
+      "meaning": "国际标准化组织工业机器人安全及精度执行标准号",
+      "valueType": "string",
+      "required": true
+    }
+  ]
+}

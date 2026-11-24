@@ -1,0 +1,16 @@
+{
+  "type": "relationship",
+  "id": "relation.confirmation.payment-request.payment",
+  "kind": "references",
+  "sourceRef": "confirmation.payment",
+  "targetRef": "request.payment",
+  "label": "每份预付款申请只形成一份到账凭证",
+  "sourceCardinality": {
+    "min": 0,
+    "max": 1
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

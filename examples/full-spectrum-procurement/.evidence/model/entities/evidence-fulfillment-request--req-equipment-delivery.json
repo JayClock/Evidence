@@ -1,0 +1,87 @@
+{
+  "type": "entity",
+  "id": "req-equipment-delivery",
+  "category": "evidence",
+  "kind": "fulfillment_request",
+  "contextRef": "ctx-main-procurement",
+  "responsibleRoleRef": "role-buyer",
+  "label": "整机出厂及航运交付催告请求（Equipment Factory Dispatch Request）",
+  "examples": [
+    {
+      "label": "顺畅履约",
+      "value": {
+        "shipped_units_count": 2,
+        "started_at": "2026-01-07T09:00:00Z",
+        "expired_at": "2026-02-10T09:00:00Z"
+      },
+      "test": {
+        "flow": "happy-path",
+        "actingRoleRef": "role-buyer",
+        "asOf": "2026-01-07T09:00:00Z",
+        "basedOn": [
+          "conf-advance-payment#顺畅履约"
+        ]
+      }
+    },
+    {
+      "label": "逾期交货",
+      "value": {
+        "shipped_units_count": 2,
+        "started_at": "2026-01-07T09:00:00Z",
+        "expired_at": "2026-02-10T09:00:00Z"
+      },
+      "test": {
+        "flow": "late-delivery",
+        "actingRoleRef": "role-buyer",
+        "asOf": "2026-01-07T09:00:00Z",
+        "basedOn": [
+          "conf-advance-payment#逾期交货"
+        ]
+      }
+    },
+    {
+      "label": "质检争议",
+      "value": {
+        "shipped_units_count": 2,
+        "started_at": "2026-01-07T09:00:00Z",
+        "expired_at": "2026-02-10T09:00:00Z"
+      },
+      "test": {
+        "flow": "defect-escalation",
+        "actingRoleRef": "role-buyer",
+        "asOf": "2026-01-07T09:00:00Z",
+        "basedOn": [
+          "conf-advance-payment#质检争议"
+        ]
+      }
+    }
+  ],
+  "attributes": [
+    {
+      "name": "shipped_units_count",
+      "label": "交付机组数量",
+      "meaning": "本批次要求完成装箱出厂的整套工作站台数",
+      "valueType": "int",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "started_at",
+      "timeRole": "start",
+      "label": "提货窗口起始时间",
+      "meaning": "承运商进入工厂集港提货作业最早时间",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "expired_at",
+      "timeRole": "deadline",
+      "label": "交货合同最后时限",
+      "meaning": "合同约定的不可延误之最终交货到港截止时刻",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    }
+  ]
+}

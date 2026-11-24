@@ -1,0 +1,17 @@
+{
+  "type": "relationship",
+  "id": "rel-breach-claims-overdue",
+  "kind": "references",
+  "flowKind": "breach_compensation",
+  "sourceRef": "req-breach-penalty",
+  "targetRef": "req-equipment-delivery",
+  "label": "违约索赔指控发货交付请求逾期违约",
+  "sourceCardinality": {
+    "min": 1,
+    "max": 1
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

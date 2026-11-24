@@ -1,0 +1,142 @@
+{
+  "type": "entity",
+  "id": "contract.agreement",
+  "category": "evidence",
+  "kind": "contract",
+  "contextRef": "context.procurement",
+  "label": "agreement",
+  "notes": "Bilateral procurement agreement. The third party participates through its own contract, not a third signatory on this contract.",
+  "roleRefs": [
+    "role.procurement-buyer",
+    "role.procurement-seller"
+  ],
+  "attributes": [
+    {
+      "name": "id",
+      "label": "id",
+      "meaning": "Unique immutable business evidence identifier.",
+      "valueType": "id",
+      "required": true
+    },
+    {
+      "name": "signed_at",
+      "timeRole": "occurrence",
+      "label": "signed_at",
+      "meaning": "Server-recorded UTC business time; caller may not supply this field.",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "quantity",
+      "label": "quantity",
+      "meaning": "Buyer-agreed total quantity, positive and fully deliverable.",
+      "valueType": "int",
+      "required": true
+    },
+    {
+      "name": "tier_threshold",
+      "label": "tier_threshold",
+      "meaning": "Quantity at or above which tier two applies to the entire order.",
+      "valueType": "int",
+      "required": true
+    },
+    {
+      "name": "tier1_unit_price_minor",
+      "label": "tier1_unit_price_minor",
+      "meaning": "Seller-agreed unit price below the tier threshold. In CNY minor units (fen), never a floating-point yuan amount.",
+      "valueType": "int",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "tier2_unit_price_minor",
+      "label": "tier2_unit_price_minor",
+      "meaning": "Seller-agreed unit price at or above the tier threshold. In CNY minor units (fen), never a floating-point yuan amount.",
+      "valueType": "int",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "tax_bps",
+      "label": "tax_bps",
+      "meaning": "Contractual tax in basis points, inclusive range 0..10000.",
+      "valueType": "int",
+      "required": true
+    },
+    {
+      "name": "retention_bps",
+      "label": "retention_bps",
+      "meaning": "Contractual retained warranty share, inclusive range 0..10000.",
+      "valueType": "int",
+      "required": true
+    },
+    {
+      "name": "daily_penalty_bps",
+      "label": "daily_penalty_bps",
+      "meaning": "Penalty basis points per started 24-hour period, inclusive range 0..10000.",
+      "valueType": "int",
+      "required": true
+    },
+    {
+      "name": "delivery_deadline",
+      "label": "delivery_deadline",
+      "meaning": "Agreed delivery acceptance deadline in UTC; a contract term, not a server stamp.",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    }
+  ],
+  "examples": [
+    {
+      "label": "single-on-time",
+      "value": {
+        "id": "single-on-time-contract-agreement",
+        "signed_at": "2026-06-01T00:00:00Z",
+        "quantity": 999,
+        "tier_threshold": 1000,
+        "tier1_unit_price_minor": 1299,
+        "tier2_unit_price_minor": 1199,
+        "tax_bps": 1300,
+        "retention_bps": 500,
+        "daily_penalty_bps": 100,
+        "delivery_deadline": "2026-06-15T00:00:00Z"
+      },
+      "test": {
+        "flow": "single-on-time",
+        "tags": [
+          "regression",
+          "single",
+          "on-time"
+        ],
+        "actingRoleRef": "role.procurement-buyer",
+        "asOf": "2026-06-01T00:00:00Z"
+      }
+    },
+    {
+      "label": "single-late",
+      "value": {
+        "id": "single-late-contract-agreement",
+        "signed_at": "2026-06-01T00:00:00Z",
+        "quantity": 1000,
+        "tier_threshold": 1000,
+        "tier1_unit_price_minor": 1299,
+        "tier2_unit_price_minor": 1199,
+        "tax_bps": 1300,
+        "retention_bps": 500,
+        "daily_penalty_bps": 100,
+        "delivery_deadline": "2026-06-15T00:00:00Z"
+      },
+      "test": {
+        "flow": "single-late",
+        "tags": [
+          "regression",
+          "single",
+          "late"
+        ],
+        "actingRoleRef": "role.procurement-buyer",
+        "asOf": "2026-06-01T00:00:00Z"
+      }
+    }
+  ]
+}

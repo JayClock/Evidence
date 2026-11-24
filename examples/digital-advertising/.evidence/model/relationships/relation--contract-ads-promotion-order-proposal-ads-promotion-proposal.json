@@ -1,0 +1,16 @@
+{
+  "type": "relationship",
+  "id": "relation.contract.ads-promotion-order-proposal.ads-promotion-proposal",
+  "kind": "references",
+  "sourceRef": "contract.ads-promotion-order",
+  "targetRef": "proposal.ads-promotion-proposal",
+  "label": "通过报价签署时引用报价",
+  "sourceCardinality": {
+    "min": 0,
+    "max": 1
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

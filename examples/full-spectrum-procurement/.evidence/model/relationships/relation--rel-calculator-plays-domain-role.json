@@ -1,0 +1,16 @@
+{
+  "type": "relationship",
+  "id": "rel-calculator-plays-domain-role",
+  "kind": "plays_role",
+  "sourceRef": "thing-tariff-calculator",
+  "targetRef": "role-clearing-engine",
+  "label": "罚息测算器实体扮演清算引擎领域角色",
+  "sourceCardinality": {
+    "min": 1,
+    "max": 1
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

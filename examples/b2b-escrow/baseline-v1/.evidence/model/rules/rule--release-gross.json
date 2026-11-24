@@ -1,0 +1,19 @@
+{
+  "type": "rule",
+  "id": "rule.release-gross",
+  "kind": "derivation",
+  "label": "release-gross",
+  "description": "Settlement consumes immutable order evidence, never caller-supplied financial results.",
+  "contextRef": "context.settlement",
+  "bindings": {
+    "order": {
+      "ref": "confirmation.order"
+    }
+  },
+  "expression": "order.gross_amount_minor",
+  "resultType": "int",
+  "target": {
+    "entityRef": "confirmation.release",
+    "attribute": "gross_amount_minor"
+  }
+}

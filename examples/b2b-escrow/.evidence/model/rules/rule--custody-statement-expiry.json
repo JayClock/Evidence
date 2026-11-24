@@ -1,0 +1,19 @@
+{
+  "type": "rule",
+  "id": "rule.custody-statement-expiry",
+  "kind": "derivation",
+  "label": "custody-statement request expiry",
+  "description": "Each request is valid for 48 hours from its server-recorded start; callers cannot choose or backdate the expiration.",
+  "contextRef": "context.escrow",
+  "bindings": {
+    "request": {
+      "ref": "request.custody-statement"
+    }
+  },
+  "expression": "request.started_at + duration(\"48h\")",
+  "resultType": "timestamp",
+  "target": {
+    "entityRef": "request.custody-statement",
+    "attribute": "expired_at"
+  }
+}

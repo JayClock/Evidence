@@ -1,0 +1,16 @@
+{
+  "type": "relationship",
+  "id": "relation.request.quarterly-target-contract.performance-agreement",
+  "kind": "references",
+  "sourceRef": "request.quarterly-target",
+  "targetRef": "contract.performance-agreement",
+  "label": "在协议约定范围内发起履约",
+  "sourceCardinality": {
+    "min": 0,
+    "max": "many"
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

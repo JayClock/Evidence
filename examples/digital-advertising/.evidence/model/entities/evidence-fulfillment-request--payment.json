@@ -1,0 +1,71 @@
+{
+  "type": "entity",
+  "id": "request.payment",
+  "category": "evidence",
+  "kind": "fulfillment_request",
+  "label": "预付款申请",
+  "contextRef": "context.advertising-order",
+  "responsibleRoleRef": "role.agency",
+  "attributes": [
+    {
+      "name": "id",
+      "label": "凭证标识",
+      "valueType": "id",
+      "required": true,
+      "meaning": "在此业务凭证类型中唯一的标识"
+    },
+    {
+      "name": "started_at",
+      "timeRole": "start",
+      "label": "开启时刻",
+      "valueType": "timestamp",
+      "required": true,
+      "meaning": "开启时刻",
+      "keyData": true
+    },
+    {
+      "name": "expired_at",
+      "timeRole": "deadline",
+      "label": "截止时刻",
+      "valueType": "timestamp",
+      "required": true,
+      "meaning": "截止时刻",
+      "keyData": true,
+      "derivedByRuleRef": "rule.request.payment-deadline"
+    }
+  ],
+  "examples": [
+    {
+      "label": "payment-window",
+      "value": {
+        "id": "pay-request-one",
+        "started_at": "2026-06-01T09:15:00Z",
+        "expired_at": "2026-06-02T09:15:00Z"
+      },
+      "test": {
+        "flow": "prepayment-only",
+        "actingRoleRef": "role.agency",
+        "asOf": "2026-06-01T09:15:00Z",
+        "basedOn": [
+          "contract.ads-promotion-order#payment-order"
+        ]
+      }
+    },
+    {
+      "label": "summer-payment-window",
+      "value": {
+        "id": "pay-request-summer",
+        "started_at": "2026-07-01T11:05:00Z",
+        "expired_at": "2026-07-02T11:05:00Z"
+      },
+      "test": {
+        "flow": "negotiation-to-daily-report",
+        "actingRoleRef": "role.agency",
+        "asOf": "2026-07-01T11:05:00Z",
+        "basedOn": [
+          "contract.ads-promotion-order#sign-campaign-order"
+        ]
+      }
+    }
+  ]
+}

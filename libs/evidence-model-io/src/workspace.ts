@@ -63,8 +63,15 @@ export function checkWorkspacePath(
   }
 }
 
+function resolveDirectory(rootPath: string) {
+  const root = realpathSync(rootPath);
+  if (!entryAt(root)?.isDirectory())
+    throw new Error(`WORKSPACE_NOT_DIRECTORY: ${rootPath}`);
+  return workspacePaths(root);
+}
+
 export function openWorkspace(rootPath: string) {
-  const paths = workspacePaths(realpathSync(rootPath));
+  const paths = resolveDirectory(rootPath);
   checkWorkspacePath(paths.root, paths.manifest, 'file');
   if (!entryAt(paths.manifest))
     throw new Error(`WORKSPACE_NOT_INITIALIZED: missing ${paths.manifest}`);
@@ -89,7 +96,7 @@ export function openWorkspace(rootPath: string) {
 /** The nearest .evidence entry owns discovery, including an invalid/legacy one.
  * Never silently select a parent workspace across a repository boundary. */
 export function findWorkspace(from: string) {
-  let directory = realpathSync(from);
+  let directory = resolveDirectory(from).root;
   for (;;) {
     if (entryAt(workspacePaths(directory).evidence))
       return openWorkspace(directory);
@@ -102,13 +109,31 @@ export function findWorkspace(from: string) {
   }
 }
 
+/** Replace a single project artifact atomically, leaving equal bytes alone. */
+export async function writeWorkspaceFile(
+  root: string,
+  file: string,
+  content: string,
+) {
+  checkWorkspacePath(root, file, 'file');
+  if (entryAt(file) && readFileSync(file, 'utf8') === content) return;
+  await mkdir(path.dirname(file), { recursive: true });
+  const temp = `${file}.tmp-${randomUUID()}`;
+  try {
+    await writeFile(temp, content, { flag: 'wx' });
+    await rename(temp, file);
+  } finally {
+    await rm(temp, { force: true });
+  }
+}
+
 /** Initialize only after an explicit request. Never overwrite or migrate an
  * existing .evidence tree, even one using an unsupported layout. */
 export async function initializeWorkspace(
   rootPath: string,
   document: DomainModelDocument,
 ) {
-  const paths = workspacePaths(realpathSync(rootPath));
+  const paths = resolveDirectory(rootPath);
   if (entryAt(paths.evidence))
     throw new Error(
       `WORKSPACE_ALREADY_EXISTS: ${paths.evidence} 已存在，不会覆盖或迁移。`,
@@ -121,7 +146,7 @@ export async function initializeWorkspace(
     await writeModelDirectory(path.join(stage, 'model'), document);
     await writeFile(
       path.join(paths.evidence, '.gitignore'),
-      '/cache/\n/.init-*/\n*.tmp-*\n*.stage-*\n*.backup-*\n.context-sync.lock/\n',
+      '/cache/\n/.init-*/\n*.tmp-*\n.sync-*.tmp\n*.stage-*\n*.backup-*\n.context-sync.lock/\n',
       { flag: 'wx' },
     );
     await writeFile(paths.config, '{"version":1}\n', { flag: 'wx' });

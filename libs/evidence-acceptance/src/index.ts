@@ -29,8 +29,5 @@ export {
   type OasdiffOptions,
 } from './diff/oasdiffRunner.js';
 export { runDiff, type DiffCliOptions, type CliResult } from './commands.js';
-export {
-  exportAcceptanceTests,
-  defaultAcceptanceDirectory,
-} from './exportTests.js';
+export { exportAcceptanceTests } from './exportTests.js';
 export { runAcceptanceSuite, validateAsOf } from './runner/acceptanceRunner.js';

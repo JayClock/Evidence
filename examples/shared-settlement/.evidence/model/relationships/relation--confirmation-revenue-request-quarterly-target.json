@@ -1,0 +1,16 @@
+{
+  "type": "relationship",
+  "id": "relation.confirmation.revenue-request.quarterly-target",
+  "kind": "references",
+  "sourceRef": "confirmation.revenue",
+  "targetRef": "request.quarterly-target",
+  "label": "同一笔收入可计入所属季度，一份季度指标可关联多笔收入",
+  "sourceCardinality": {
+    "min": 0,
+    "max": "many"
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

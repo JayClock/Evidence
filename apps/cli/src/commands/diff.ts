@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { openWorkspace } from '@evidence-poc/evidence-model-io';
 import { runDiff } from '@evidence-poc/evidence-acceptance/commands';
 import {
   stringOption,
@@ -17,8 +18,8 @@ export async function diffCommand(
     throw new Error('--format must be json or markdown');
   const result = await runDiff({
     command: 'diff',
-    base: path.resolve(context.cwd, base),
-    target: path.resolve(context.cwd, target),
+    base: openWorkspace(path.resolve(context.cwd, base)).model,
+    target: openWorkspace(path.resolve(context.cwd, target)).model,
     format,
   });
   if (result.error) throw new Error(result.error);

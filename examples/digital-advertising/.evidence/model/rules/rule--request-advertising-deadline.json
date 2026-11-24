@@ -1,0 +1,19 @@
+{
+  "type": "rule",
+  "id": "rule.request.advertising-deadline",
+  "kind": "derivation",
+  "label": "广告上线申请窗口为 48 小时",
+  "description": "广告上线申请窗口为 48 小时",
+  "contextRef": "context.advertising-order",
+  "bindings": {
+    "self": {
+      "ref": "request.advertising"
+    }
+  },
+  "expression": "self.started_at + duration(\"48h\")",
+  "resultType": "timestamp",
+  "target": {
+    "entityRef": "request.advertising",
+    "attribute": "expired_at"
+  }
+}

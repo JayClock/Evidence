@@ -1,0 +1,102 @@
+{
+  "type": "entity",
+  "id": "confirmation.milestone-statement",
+  "category": "evidence",
+  "kind": "fulfillment_confirmation",
+  "contextRef": "context.settlement",
+  "label": "milestone-statement",
+  "notes": "seller's immutable answer to request.milestone-statement.",
+  "responsibleRoleRef": "role.settlement-seller",
+  "attributes": [
+    {
+      "name": "id",
+      "label": "id",
+      "meaning": "Unique immutable business evidence identifier.",
+      "valueType": "id",
+      "required": true
+    },
+    {
+      "name": "confirmed_at",
+      "timeRole": "occurrence",
+      "label": "confirmed_at",
+      "meaning": "Server-recorded UTC business time; caller may not supply this field.",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "acknowledged",
+      "label": "acknowledged",
+      "meaning": "Seller acknowledges the milestone settlement ledger statement.",
+      "valueType": "bool",
+      "required": true
+    }
+  ],
+  "examples": [
+    {
+      "label": "milestone-on-time",
+      "value": {
+        "id": "milestone-on-time-confirmation-milestone-statement",
+        "confirmed_at": "2026-06-15T00:00:00Z",
+        "acknowledged": true
+      },
+      "test": {
+        "flow": "milestone-on-time",
+        "tags": [
+          "dod",
+          "milestone",
+          "on-time"
+        ],
+        "actingRoleRef": "role.settlement-seller",
+        "asOf": "2026-06-15T00:00:00Z",
+        "basedOn": [
+          "request.milestone-statement#milestone-on-time"
+        ]
+      }
+    },
+    {
+      "label": "milestone-precision",
+      "value": {
+        "id": "milestone-precision-confirmation-milestone-statement",
+        "confirmed_at": "2026-06-15T00:00:01Z",
+        "acknowledged": true
+      },
+      "test": {
+        "flow": "milestone-precision",
+        "tags": [
+          "dod",
+          "milestone",
+          "precision",
+          "late"
+        ],
+        "actingRoleRef": "role.settlement-seller",
+        "asOf": "2026-06-15T00:00:01Z",
+        "basedOn": [
+          "request.milestone-statement#milestone-precision"
+        ]
+      }
+    },
+    {
+      "label": "milestone-capped",
+      "value": {
+        "id": "milestone-capped-confirmation-milestone-statement",
+        "confirmed_at": "2026-06-30T00:00:00Z",
+        "acknowledged": true
+      },
+      "test": {
+        "flow": "milestone-capped",
+        "tags": [
+          "dod",
+          "milestone",
+          "capped",
+          "late"
+        ],
+        "actingRoleRef": "role.settlement-seller",
+        "asOf": "2026-06-30T00:00:00Z",
+        "basedOn": [
+          "request.milestone-statement#milestone-capped"
+        ]
+      }
+    }
+  ]
+}

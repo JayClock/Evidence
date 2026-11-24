@@ -1,0 +1,10 @@
+{
+  "type": "entity",
+  "id": "ctx-escrow-settlement",
+  "category": "context",
+  "kind": "contract",
+  "label": "三方资金与物权托管清算上下文（Escrow & Settlement Context）",
+  "rootRefs": [
+    "doc-escrow-agreement"
+  ]
+}
