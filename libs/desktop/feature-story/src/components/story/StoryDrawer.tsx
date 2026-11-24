@@ -8,7 +8,7 @@ import { StoryExplanationForm } from './StoryExplanationForm';
 
 interface StoryDrawerProps {
   playback: StoryPlaybackController;
-  dirty?: boolean;
+  pendingPersistence?: boolean;
   externalConflict?: boolean;
   aiConfigured?: boolean;
   onConfigureAi?: () => void;
@@ -283,7 +283,7 @@ const TimelineDetails = ({
 
 export const StoryDrawer = ({
   playback,
-  dirty = false,
+  pendingPersistence = false,
   externalConflict = false,
   aiConfigured = true,
   onConfigureAi,
@@ -308,12 +308,14 @@ export const StoryDrawer = ({
             : (playback.projection?.businessGoal ??
               '选择一条业务流，逐步核对单据、责任与业务依据。')}
         </p>
-        {dirty ? (
-          <p className="mt-2 text-amber-800">当前展示包含未保存的画布修改。</p>
+        {pendingPersistence ? (
+          <p className="mt-2 text-amber-800">
+            当前剧情基于尚未同步到磁盘的画布版本。
+          </p>
         ) : null}
         {externalConflict ? (
           <p role="alert" className="mt-2 text-amber-800">
-            磁盘模型已变化，保留本地未保存修改；当前剧情仍基于画布版本。请先保存或手动重新加载。
+            磁盘模型已变化；当前剧情仍基于画布版本。可从状态栏重新加载。
           </p>
         ) : null}
       </header>

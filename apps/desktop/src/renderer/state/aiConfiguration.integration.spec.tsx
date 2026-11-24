@@ -82,7 +82,7 @@ describe('Pi model onboarding integration', () => {
     fireEvent.click(screen.getByRole('button', { name: /发起发散/ }));
     await waitFor(() => expect(api.calls.prompt).toHaveLength(1));
     expect(api.calls.open).toHaveLength(1);
-    expect(api.calls.save).toEqual([]);
+    expect(api.calls.persistence).toEqual([]);
   });
   it('keeps stories offline and opens settings when attempting AI narration', async () => {
     const { api } = await setup();

@@ -20,7 +20,7 @@ import type {
   CreateProjectResult,
   EvidenceProjectSummary,
   OpenProjectResult,
-  SaveProjectResult,
+  WriteProjectResult,
 } from '@evidence-poc/desktop-contracts/projects';
 import {
   createStarterDocument,
@@ -51,11 +51,11 @@ export interface ProjectStore {
   createFromDocument(
     input: CreateProjectDocumentInput,
   ): Promise<CreateProjectResult>;
-  save(
+  write(
     rootPath: string,
     document: DomainModelDocument,
     sourceDigest?: string,
-  ): Promise<SaveProjectResult>;
+  ): Promise<WriteProjectResult>;
   /** Latest mtime of the model source tree, used to detect external writes. */
   fingerprint(rootPath: string): Promise<string | null>;
 }
@@ -209,7 +209,7 @@ export const createProjectStore = ({
       }
     },
 
-    async save(rootPath, document, sourceDigest) {
+    async write(rootPath, document, sourceDigest) {
       try {
         const { model } = openWorkspace(rootPath);
         const current = await readModelDirectory(model);

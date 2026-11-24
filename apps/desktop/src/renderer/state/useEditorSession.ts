@@ -1,23 +1,25 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
-
 import {
+  createModelSession,
   type DomainGraph,
   type ModelSelection,
   type ModelSession,
-  createModelSession,
 } from '@evidence-poc/evidence-model-core';
 import {
   compactCanonicalJson,
   type DomainModelDocument,
   type ValidationResult,
 } from '@evidence-poc/evidence-schema';
-import {
-  type CanvasViewMode,
-  type DomainGraphLayout,
+import type {
+  CanvasViewMode,
+  DomainGraphLayout,
 } from '@evidence-poc/evidence-canvas-interaction';
-
+import type {
+  EvidenceProjectSummary,
+  PersistenceResult,
+  PersistenceState,
+} from '@evidence-poc/desktop-contracts/projects';
 import { useGraphLayout } from './useGraphLayout';
-import type { EvidenceProjectSummary } from '@evidence-poc/desktop-contracts/projects';
 
 export interface EditorSessionState {
   project: EvidenceProjectSummary;
@@ -31,187 +33,179 @@ export interface EditorSessionState {
   canUndo: boolean;
   canRedo: boolean;
   validation: ValidationResult;
-  dirty: boolean;
-  savedAt: string | null;
-  saveError: string | null;
-  externalChangeAt: string | null;
+  persistence: PersistenceState;
+  persistenceId: string | undefined;
+  persistenceRevision: number;
+  reloadError: string | null;
 }
 
 export interface EditorSessionController {
   state: EditorSessionState;
-  save: () => Promise<void>;
+  flush: () => Promise<void>;
   reloadFromDisk: () => Promise<void>;
-  /** Silent watcher refresh, refused if edits exist or arrive during the read. */
-  reloadFromDiskIfClean: () => Promise<void>;
-  dismissExternalChange: () => void;
 }
 
-const readState = (
-  project: EvidenceProjectSummary,
-  rootPath: string,
-  session: ModelSession,
-  extras: {
-    savedAt: string | null;
-    saveError: string | null;
-    externalChangeAt: string | null;
-    dirty: boolean;
-  },
-): Omit<EditorSessionState, 'layout' | 'layoutError'> => {
-  const document = session.getDocument();
-  const graph = session.getGraph();
+const errorMessage = (cause: unknown) =>
+  cause instanceof Error ? cause.message : String(cause);
 
-  return {
-    project,
-    rootPath,
-    session,
-    document,
-    graph,
-    selection: session.getSelection(),
-    canUndo: session.canUndo(),
-    canRedo: session.canRedo(),
-    validation: session.validate(),
-    ...extras,
-  };
-};
-
-/**
- * Owns the `ModelSession` for one editor window. The canvas and inspector
- * consume snapshots so they stay in step with patches, history and reloads.
- */
+/** The session is optimistic UI state. Main owns both the debounce and disk acknowledgement. */
 export const useEditorSession = (
   project: EvidenceProjectSummary,
   initialDocument: DomainModelDocument,
   viewMode: CanvasViewMode = 'simplified',
-  sourceDigest?: string,
+  persistenceId?: string,
 ): EditorSessionController => {
-  const sessionRef = useRef<ModelSession | null>(null);
-
-  if (sessionRef.current === null) {
-    sessionRef.current = createModelSession({ document: initialDocument });
-  }
-
-  const session = sessionRef.current;
-  const [savedAt, setSavedAt] = useState<string | null>(null);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [externalChangeAt, setExternalChangeAt] = useState<string | null>(null);
-  const [dirty, setDirty] = useState(false);
-  const dirtyRef = useRef(false);
-  const source = useRef(sourceDigest);
-  const saving = useRef(false);
+  const [session] = useState(() =>
+    createModelSession({ document: initialDocument }),
+  );
   const [version, forceRender] = useState(0);
-
-  // Subscribe during commit, before paint or an incoming agent patch can edit the session.
-  useLayoutEffect(() => {
-    const unsubscribe = session.subscribe((event) => {
-      if (event.type === 'document-changed') {
-        dirtyRef.current = true;
-        setDirty(true);
-      }
-
-      forceRender((version) => version + 1);
-    });
-    const unsubscribeChanges = window.evidenceAPI.projects.onChanged(
-      (change) => {
-        setExternalChangeAt(change.changedAt);
-      },
-    );
-
-    return () => {
-      unsubscribe();
-      unsubscribeChanges();
-    };
-  }, [session]);
-
-  const state = useMemo(() => {
-    // `version` is read so the snapshot refreshes after every session event.
-    void version;
-
-    return readState(project, project.rootPath, session, {
-      savedAt,
-      saveError,
-      externalChangeAt,
-      dirty,
-    });
-  }, [project, session, version, savedAt, saveError, externalChangeAt, dirty]);
-  const placement = useGraphLayout(state.graph, viewMode);
-
-  const save = useCallback(async () => {
-    if (saving.current) return;
-    saving.current = true;
-    try {
-      const document = session.getDocument();
-      const result = await window.evidenceAPI.projects.save({
-        rootPath: project.rootPath,
-        document,
-        ...(source.current === undefined
-          ? {}
-          : { sourceDigest: source.current }),
-      });
-      if (!result.success) {
-        setSaveError(result.error);
-        return;
-      }
-      source.current = result.sourceDigest;
-      setSaveError(null);
-      setSavedAt(result.savedAt);
-      if (session.getDocument() === document) {
-        dirtyRef.current = false;
-        setDirty(false);
-      }
-    } finally {
-      saving.current = false;
-    }
-  }, [project.rootPath, session]);
-
-  const reloadFromDisk = useCallback(async () => {
-    const result = await window.evidenceAPI.projects.open(project.rootPath);
-
-    if (!result.success) {
-      setSaveError(result.error);
-      return;
-    }
-
-    if (saving.current || session.isDocumentLocked()) return;
-    source.current = result.sourceDigest;
-    session.replaceDocument(result.document, { resetHistory: true });
-    setExternalChangeAt(null);
-    setSaveError(null);
-    dirtyRef.current = false;
-    setDirty(false);
-  }, [project.rootPath, session]);
-
-  const reloadFromDiskIfClean = useCallback(async () => {
-    if (dirtyRef.current || saving.current) return;
-    const before = session.getDocument();
-    const result = await window.evidenceAPI.projects.open(project.rootPath);
-    // The inspector may have changed the model while the filesystem was read.
+  const [status, setStatus] = useState<PersistenceState>({ kind: 'persisted' });
+  const [reloadError, setReloadError] = useState<string | null>(null);
+  const binding = useRef({ id: persistenceId, revision: 0 });
+  const submission = useRef<Promise<PersistenceResult> | undefined>(undefined);
+  const loading = useRef(false);
+  const adopting = useRef(false);
+  const lastEvent = useRef(0);
+  const refreshStatus = useCallback(async (id: string | undefined) => {
+    if (id === undefined) return;
+    const before = lastEvent.current;
+    const next = await window.evidenceAPI.projects
+      .readPersistenceStatus(id)
+      .catch(() => null);
     if (
-      dirtyRef.current ||
-      saving.current ||
-      session.isDocumentLocked() ||
-      session.getDocument() !== before
+      next &&
+      lastEvent.current === before &&
+      binding.current.id === id &&
+      binding.current.revision === next.revision
     )
-      return;
-    if (!result.success) throw new Error(result.error);
-    source.current = result.sourceDigest;
-    // A save also notifies the watcher: equal content must retain undo history.
-    if (compactCanonicalJson(result.document) !== compactCanonicalJson(before))
-      session.replaceDocument(result.document, { resetHistory: true });
-    dirtyRef.current = false;
-    setDirty(false);
-    setExternalChangeAt(null);
-    setSaveError(null);
-  }, [project.rootPath, session]);
-
-  const dismissExternalChange = useCallback(() => {
-    setExternalChangeAt(null);
+      setStatus(next);
   }, []);
 
+  useLayoutEffect(() => {
+    const api = window.evidenceAPI.projects;
+    const offStatus = api.onPersistenceStatus((next) => {
+      const { id, revision } = binding.current;
+      if (next.persistenceId === id && next.revision === revision) {
+        ++lastEvent.current;
+        setStatus(next);
+      }
+    });
+    void refreshStatus(binding.current.id);
+    const offSession = session.subscribe((event) => {
+      forceRender((value) => value + 1);
+      if (event.type !== 'document-changed' || adopting.current) return;
+      const current = binding.current;
+      const id = current.id;
+      if (id === undefined) return;
+      const revision = ++current.revision;
+      setStatus((previous) =>
+        previous.kind === 'conflict' ? previous : { kind: 'queued' },
+      );
+      const failed = (error: string): PersistenceResult => {
+        if (binding.current === current && revision === current.revision)
+          setStatus({ kind: 'failed', error });
+        return { success: false, error };
+      };
+      submission.current = api
+        .enqueuePersistence({
+          persistenceId: id,
+          revision,
+          document: session.getDocument(),
+        })
+        .then(
+          (result) => (result.success ? result : failed(result.error)),
+          (cause: unknown) => failed(errorMessage(cause)),
+        );
+    });
+    return () => {
+      offSession();
+      offStatus();
+    };
+  }, [refreshStatus, session]);
+
+  const flush = useCallback(async () => {
+    const current = binding.current;
+    if (current.id === undefined || loading.current) return;
+    if (
+      (await submission.current)?.success === false ||
+      current !== binding.current
+    )
+      return;
+    try {
+      const result = await window.evidenceAPI.projects.flushPersistence(
+        current.id,
+      );
+      if (!result.success && current === binding.current)
+        setStatus((previous) =>
+          previous.kind === 'conflict'
+            ? previous
+            : { kind: 'failed', error: result.error },
+        );
+    } catch (cause) {
+      if (current === binding.current)
+        setStatus({ kind: 'failed', error: errorMessage(cause) });
+    }
+  }, []);
+
+  const reloadFromDisk = useCallback(async () => {
+    if (loading.current || session.isDocumentLocked()) return;
+    loading.current = true;
+    const unlock = session.lockDocument();
+    try {
+      setReloadError(null);
+      const result = await window.evidenceAPI.projects.open(
+        project.rootPath,
+        'discard-pending',
+      );
+      if (!result.success) {
+        setReloadError(result.error);
+        return;
+      }
+      binding.current = { id: result.persistenceId, revision: 0 };
+      submission.current = undefined;
+      adopting.current = true;
+      unlock();
+      if (
+        compactCanonicalJson(result.document) !==
+        compactCanonicalJson(session.getDocument())
+      )
+        session.replaceDocument(result.document, { resetHistory: true });
+      setStatus({ kind: 'persisted' });
+      void refreshStatus(result.persistenceId);
+    } catch (cause) {
+      setReloadError(errorMessage(cause));
+    } finally {
+      unlock();
+      adopting.current = false;
+      loading.current = false;
+    }
+  }, [project.rootPath, refreshStatus, session]);
+
+  const snapshot = useMemo(() => {
+    void version; // Refresh only for session events, not persistence notifications.
+    return {
+      project,
+      rootPath: project.rootPath,
+      session,
+      document: session.getDocument(),
+      graph: session.getGraph(),
+      selection: session.getSelection(),
+      canUndo: session.canUndo(),
+      canRedo: session.canRedo(),
+      validation: session.validate(),
+    };
+  }, [project, session, version]);
+  const placement = useGraphLayout(snapshot.graph, viewMode);
   return {
-    state: { ...state, ...placement },
-    save,
+    state: {
+      ...snapshot,
+      ...placement,
+      persistence: status,
+      persistenceId: binding.current.id,
+      persistenceRevision: binding.current.revision,
+      reloadError,
+    },
+    flush,
     reloadFromDisk,
-    reloadFromDiskIfClean,
-    dismissExternalChange,
   };
 };

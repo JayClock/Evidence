@@ -1,3 +1,4 @@
+import { realpathSync } from 'node:fs';
 import path from 'node:path';
 
 import { BrowserWindow, type WebContents } from 'electron';
@@ -65,6 +66,12 @@ export const createDashboardWindow = (): BrowserWindow => {
  * window instead of stacking duplicates for the same tree.
  */
 export const openEditorWindow = (rootPath: string): BrowserWindow => {
+  // A symlink and its target must never open independent writers.
+  try {
+    rootPath = realpathSync(rootPath);
+  } catch {
+    rootPath = path.resolve(rootPath);
+  }
   const existing = editorWindows.get(rootPath);
 
   if (existing !== undefined && !existing.isDestroyed()) {

@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import {
   BrowserWindow,
   dialog,
@@ -11,10 +12,13 @@ import { EVIDENCE_IPC_CHANNELS } from '@evidence-poc/desktop-contracts/ipc';
 import type {
   CreateProjectDialogResult,
   CreateProjectInput,
-  SaveProjectInput,
+  LivePersistenceInput,
+  OpenProjectResult,
 } from '@evidence-poc/desktop-contracts/projects';
+import { DomainModelDocumentSyntaxSchema } from '@evidence-poc/evidence-schema';
 
 import { watchModelSource, type ModelWatcher } from './modelWatcher';
+import { createLivePersistence, type PersistedModel } from './livePersistence';
 import { modelSourceOf } from './modelSource';
 import type { ProjectStore } from './projectStore';
 import { listProjectTemplates } from './templates/starterModels';
@@ -23,6 +27,11 @@ export interface ProjectIpcOptions {
   projectStore: ProjectStore;
   openEditorWindow: (rootPath: string) => unknown;
   ownsProject?: (sender: WebContents, rootPath: string) => boolean;
+  onPersisted?: (
+    sender: WebContents,
+    model: PersistedModel,
+    isCurrent: () => boolean,
+  ) => void;
 }
 
 /**
@@ -33,37 +42,49 @@ export const registerProjectIpc = ({
   projectStore,
   openEditorWindow,
   ownsProject = () => false,
-}: ProjectIpcOptions): void => {
-  const watchers = new Map<number, ModelWatcher>();
-
-  const stopWatching = (webContentsId: number): void => {
-    void watchers
-      .get(webContentsId)
-      ?.close()
-      .catch((error) => console.warn('[modelWatcher] Close failed:', error));
-    watchers.delete(webContentsId);
+  onPersisted,
+}: ProjectIpcOptions) => {
+  type Editor = {
+    lane: ReturnType<typeof createLivePersistence>;
+    watcher: ModelWatcher;
   };
-
-  const startWatching = (sender: WebContents, rootPath: string): void => {
-    stopWatching(sender.id);
-
-    const watcher = watchModelSource(modelSourceOf(rootPath), (paths) => {
-      if (sender.isDestroyed()) {
-        stopWatching(sender.id);
-        return;
-      }
-
-      sender.send(STORY_IPC_CHANNELS.INVALIDATED, { rootPath });
-      sender.send(EVIDENCE_IPC_CHANNELS.changed, {
-        rootPath,
-        changedAt: new Date().toISOString(),
-        paths,
+  const editors = new Map<number, Editor>();
+  const opening = new Map<
+    number,
+    { rootPath: string; result: Promise<OpenProjectResult> }
+  >();
+  const stop = (id: number) => {
+    const editor = editors.get(id);
+    if (!editor) return;
+    editor.lane.dispose();
+    editors.delete(id);
+    void editor.watcher
+      .close()
+      .catch((error) => console.warn('[modelWatcher] Close failed:', error));
+  };
+  const attachCloseGuard = (sender: WebContents) => {
+    const id = sender.id;
+    const window = BrowserWindow.fromWebContents(sender);
+    let closing = false;
+    window?.on('close', (event) => {
+      const editor = editors.get(id);
+      if (!editor?.lane.hasPending()) return;
+      event.preventDefault();
+      if (closing) return;
+      closing = true;
+      void editor.lane.flush().then((result) => {
+        closing = false;
+        if (!result.success || window.isDestroyed()) return;
+        window.close();
       });
     });
-
-    watchers.set(sender.id, watcher);
-    sender.once('destroyed', () => stopWatching(sender.id));
+    sender.once('destroyed', () => stop(id));
   };
+
+  const unavailable = {
+    success: false,
+    error: '当前窗口没有已加载的工作区版本。',
+  } as const;
 
   ipcMain.handle(EVIDENCE_IPC_CHANNELS.showOpenDialog, async (event) => {
     const parent = BrowserWindow.fromWebContents(event.sender);
@@ -108,15 +129,7 @@ export const registerProjectIpc = ({
 
   ipcMain.handle(
     EVIDENCE_IPC_CHANNELS.create,
-    async (event, input: CreateProjectInput) => {
-      const result = await projectStore.create(input);
-
-      if (result.success) {
-        startWatching(event.sender, result.project.rootPath);
-      }
-
-      return result;
-    },
+    async (_event, input: CreateProjectInput) => projectStore.create(input),
   );
 
   ipcMain.handle(EVIDENCE_IPC_CHANNELS.templates, async () => {
@@ -132,34 +145,125 @@ export const registerProjectIpc = ({
 
   ipcMain.handle(
     EVIDENCE_IPC_CHANNELS.open,
-    async (event, rootPath: string) => {
-      const result = await projectStore.open(rootPath);
-
-      if (result.success) {
-        startWatching(event.sender, result.project.rootPath);
-      }
-
+    async ({ sender }, rootPath: string, reload?: 'discard-pending') => {
+      if (typeof rootPath !== 'string') return unavailable;
+      if (!ownsProject(sender, rootPath)) return projectStore.open(rootPath);
+      const senderId = sender.id;
+      const previous = editors.get(senderId);
+      const active = opening.get(senderId);
+      if (active?.rootPath === rootPath && reload === undefined)
+        return active.result;
+      if (
+        active ||
+        (previous?.lane.hasPending() && reload !== 'discard-pending')
+      )
+        return { success: false, error: '还有尚未写入磁盘的修改。' } as const;
+      const load = async (): Promise<OpenProjectResult> => {
+        try {
+          await previous?.lane.pause();
+          const result = await projectStore.open(rootPath);
+          if (!result.success || sender.isDestroyed()) return result;
+          if (!result.sourceDigest) return unavailable;
+          const root = result.project.rootPath;
+          const persistenceId = randomUUID();
+          let generation = 0;
+          const committed = (model: PersistedModel) => {
+            const current = ++generation;
+            onPersisted?.(
+              sender,
+              model,
+              () =>
+                editors.get(senderId)?.lane === lane &&
+                generation === current &&
+                !sender.isDestroyed(),
+            );
+          };
+          const send = (channel: string, payload: object) => {
+            if (!sender.isDestroyed()) sender.send(channel, payload);
+          };
+          const lane = createLivePersistence({
+            id: persistenceId,
+            rootPath: root,
+            sourceDigest: result.sourceDigest,
+            write: (document, digest) =>
+              projectStore.write(root, document, digest),
+            publish: (status) =>
+              send(EVIDENCE_IPC_CHANNELS.persistenceStatus, status),
+            committed,
+          });
+          const check = async () => {
+            if (await lane.matchesDisk(() => projectStore.fingerprint(root)))
+              return;
+            if (editors.get(senderId)?.lane !== lane || sender.isDestroyed())
+              return;
+            ++generation;
+            lane.markExternalChange();
+            send(STORY_IPC_CHANNELS.INVALIDATED, { rootPath: root });
+          };
+          const watcher = watchModelSource(
+            modelSourceOf(root),
+            () => void check(),
+          );
+          if (previous) stop(senderId);
+          else attachCloseGuard(sender);
+          editors.set(senderId, { lane, watcher });
+          void watcher.ready.then(check);
+          committed({
+            persistenceId,
+            revision: 0,
+            rootPath: root,
+            sourceDigest: result.sourceDigest,
+            document: result.document,
+          });
+          return { ...result, persistenceId };
+        } finally {
+          if (editors.get(senderId) === previous) previous?.lane.resume();
+          opening.delete(senderId);
+        }
+      };
+      const result = load();
+      opening.set(senderId, { rootPath, result });
       return result;
     },
   );
 
   ipcMain.handle(
-    EVIDENCE_IPC_CHANNELS.save,
-    async ({ sender }, input: SaveProjectInput) => {
+    EVIDENCE_IPC_CHANNELS.enqueuePersistence,
+    ({ sender }, input: LivePersistenceInput) => {
+      const lane = editors.get(sender.id)?.lane;
       if (
-        typeof input?.rootPath !== 'string' ||
-        !ownsProject(sender, input.rootPath) ||
-        typeof input.sourceDigest !== 'string'
+        !lane ||
+        !ownsProject(sender, lane.rootPath) ||
+        lane.id !== input?.persistenceId ||
+        !Number.isSafeInteger(input.revision) ||
+        input.revision < 1
       )
+        return unavailable;
+      const document = DomainModelDocumentSyntaxSchema.safeParse(
+        input.document,
+      );
+      if (!document.success)
         return {
           success: false,
-          error: '当前窗口没有已加载的工作区版本。',
+          error: `模型文件结构无效：${document.error.issues[0]?.message}`,
         } as const;
-      return projectStore.save(
-        input.rootPath,
-        input.document,
-        input.sourceDigest,
-      );
+      return lane.enqueue({ ...input, document: document.data });
+    },
+  );
+  ipcMain.handle(
+    EVIDENCE_IPC_CHANNELS.readPersistenceStatus,
+    ({ sender }, id: string) => {
+      const lane = editors.get(sender.id)?.lane;
+      return lane?.id === id ? lane.status() : null;
+    },
+  );
+  ipcMain.handle(
+    EVIDENCE_IPC_CHANNELS.flushPersistence,
+    ({ sender }, id: string) => {
+      const lane = editors.get(sender.id)?.lane;
+      return lane && lane.id === id && ownsProject(sender, lane.rootPath)
+        ? lane.flush()
+        : unavailable;
     },
   );
 
@@ -183,4 +287,15 @@ export const registerProjectIpc = ({
       } as const;
     }
   });
+
+  return {
+    hasPending: () =>
+      [...editors.values()].some(({ lane }) => lane.hasPending()),
+    async drain() {
+      const results = await Promise.all(
+        [...editors.values()].map(({ lane }) => lane.flush()),
+      );
+      return results.every(({ success }) => success);
+    },
+  };
 };

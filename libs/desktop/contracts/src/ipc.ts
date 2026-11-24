@@ -20,13 +20,13 @@ import type {
   EvidenceProjectSummary,
   OpenProjectDialogResult,
   OpenProjectResult,
-  ProjectChangedEvent,
   ProjectTemplateId,
   ProjectTemplateMeta,
   ProjectTemplatesResult,
   RecentProjectsResult,
-  SaveProjectInput,
-  SaveProjectResult,
+  LivePersistenceInput,
+  PersistenceResult,
+  PersistenceStatus,
 } from './projects.js';
 
 /** IPC channels shared by the main process and the preload bridge. */
@@ -36,10 +36,12 @@ export const EVIDENCE_IPC_CHANNELS = {
   create: 'evidence:project:create',
   showCreateDialog: 'evidence:project:show-create-dialog',
   templates: 'evidence:project:templates',
-  save: 'evidence:project:save',
+  enqueuePersistence: 'evidence:project:enqueue-persistence',
+  flushPersistence: 'evidence:project:flush-persistence',
+  persistenceStatus: 'evidence:project:persistence-status',
+  readPersistenceStatus: 'evidence:project:read-persistence-status',
   recent: 'evidence:project:recent',
   openEditorWindow: 'evidence:project:open-editor-window',
-  changed: 'evidence:project:changed',
   deliveryLivePreview: 'evidence:project:delivery-live-preview',
   deliveryStatus: 'evidence:project:delivery-status',
 } as const;
@@ -67,13 +69,23 @@ export interface EvidenceDesktopApi {
     create: (input: CreateProjectInput) => Promise<CreateProjectResult>;
     /** Starter templates the dashboard offers, with their real counts. */
     listTemplates: () => Promise<ProjectTemplatesResult>;
-    open: (rootPath: string) => Promise<OpenProjectResult>;
-    save: (input: SaveProjectInput) => Promise<SaveProjectResult>;
+    open: (
+      rootPath: string,
+      reload?: 'discard-pending',
+    ) => Promise<OpenProjectResult>;
+    enqueuePersistence: (
+      input: LivePersistenceInput,
+    ) => Promise<PersistenceResult>;
+    flushPersistence: (persistenceId: string) => Promise<PersistenceResult>;
+    readPersistenceStatus: (
+      persistenceId: string,
+    ) => Promise<PersistenceStatus | null>;
+    onPersistenceStatus: (
+      listener: (status: PersistenceStatus) => void,
+    ) => () => void;
     listRecent: () => Promise<RecentProjectsResult>;
     /** Opens (or focuses) the model workspace window for a project root. */
     openEditorWindow: (rootPath: string) => Promise<void>;
-    /** Subscribes to external `.evidence/model` changes; returns an unsubscribe. */
-    onChanged: (listener: (event: ProjectChangedEvent) => void) => () => void;
     /** Read-only authoring preview; it never triggers disk sync. */
     deliveryLivePreview: (
       input: LiveDeliveryInput,
@@ -130,11 +142,11 @@ export type {
   EvidenceProjectSummary,
   OpenProjectDialogResult,
   OpenProjectResult,
-  ProjectChangedEvent,
   ProjectTemplateId,
   ProjectTemplateMeta,
   ProjectTemplatesResult,
   RecentProjectsResult,
-  SaveProjectInput,
-  SaveProjectResult,
+  LivePersistenceInput,
+  PersistenceResult,
+  PersistenceStatus,
 };

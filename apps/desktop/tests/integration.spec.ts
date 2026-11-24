@@ -112,11 +112,11 @@ describe('product-procurement end to end', () => {
         return;
       }
 
-      const first = await store.save(projectRoot, opened.document);
+      const first = await store.write(projectRoot, opened.document);
 
       expect(first.success).toBe(true);
 
-      const second = await store.save(projectRoot, opened.document);
+      const second = await store.write(projectRoot, opened.document);
 
       expect(second.success).toBe(true);
 

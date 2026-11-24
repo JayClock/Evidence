@@ -132,7 +132,7 @@ describe('projectStore', () => {
   it('writes only changed files and stays idempotent', async () => {
     const projectStore = store();
     const document = domainModel();
-    const first = await projectStore.save(projectRoot, document);
+    const first = await projectStore.write(projectRoot, document);
 
     expect(first.success).toBe(true);
 
@@ -142,7 +142,7 @@ describe('projectStore', () => {
 
     expect(first.written).toEqual([]);
 
-    const second = await projectStore.save(projectRoot, document);
+    const second = await projectStore.write(projectRoot, document);
 
     expect(second.success).toBe(true);
 
@@ -162,7 +162,7 @@ describe('projectStore', () => {
           : entity,
       ),
     };
-    const third = await projectStore.save(projectRoot, renamed);
+    const third = await projectStore.write(projectRoot, renamed);
 
     expect(third.success).toBe(true);
 
@@ -202,7 +202,7 @@ describe('projectStore', () => {
       'outside edit',
     );
     await writeFile(file, edited);
-    const result = await projectStore.save(
+    const result = await projectStore.write(
       projectRoot,
       opened.document,
       opened.sourceDigest,
@@ -350,7 +350,7 @@ describe('projectStore.create', () => {
     await writeFile(file, 'owner content');
     const original = await readFile(file);
     expect((await store().open(file)).success).toBe(false);
-    expect((await store().save(file, domainModel())).success).toBe(false);
+    expect((await store().write(file, domainModel())).success).toBe(false);
     expect(await readFile(file)).toEqual(original);
   });
 

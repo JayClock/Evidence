@@ -118,8 +118,11 @@ export const useLiveModelBridge = (
     publish();
     connection.current = {
       async prompt(input, isCancelled) {
-        if (running || fault)
-          return { success: false, error: fault ?? '本轮访谈尚未结束。' };
+        if (running || fault || session.isDocumentLocked())
+          return {
+            success: false,
+            error: fault ?? '当前模型正在编辑或重新加载。',
+          };
         running = true;
         const unlock = session.lockDocument();
         try {

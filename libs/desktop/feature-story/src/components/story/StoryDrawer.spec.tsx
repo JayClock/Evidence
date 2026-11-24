@@ -77,7 +77,7 @@ const setup = async ({
           playback={playback}
           aiConfigured={aiConfigured}
           onRevealOnCanvas={onRevealOnCanvas}
-          dirty
+          pendingPersistence
           externalConflict
         />
       </>
@@ -105,8 +105,8 @@ describe('StoryDrawer', () => {
     expect(screen.getByRole('article', { name: '剧情旁白' })).toHaveTextContent(
       '采购方办理采购协议。',
     );
-    expect(screen.getByText(/包含未保存的画布修改/)).toBeInTheDocument();
-    expect(screen.getByText(/保留本地未保存修改/)).toBeInTheDocument();
+    expect(screen.getByText(/尚未同步到磁盘的画布版本/)).toBeInTheDocument();
+    expect(screen.getByText(/可从状态栏重新加载/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
     expect(screen.getByLabelText('业务缺口')).toHaveTextContent(
       '请问谁负责确认？',

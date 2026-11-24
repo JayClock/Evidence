@@ -101,10 +101,21 @@ const startApplication = async (): Promise<void> => {
       delivery.cancel(sender.id, rootPath),
   });
 
-  registerProjectIpc({
+  const persistence = registerProjectIpc({
     projectStore,
     openEditorWindow,
     ownsProject: ownsEditorProject,
+  });
+  let draining = false;
+  app.on('before-quit', (event) => {
+    if (!persistence.hasPending() && !draining) return;
+    event.preventDefault();
+    if (draining) return;
+    draining = true;
+    void persistence.drain().then((success) => {
+      draining = false;
+      if (success) app.quit();
+    });
   });
   registerIngestionIpc({
     projectStore,
@@ -119,10 +130,10 @@ const startApplication = async (): Promise<void> => {
     storyIpc.resetModels();
     await agentIpc.resetModels();
   });
-  app.once('before-quit', () => aiConfigIpc.dispose());
-  app.once('before-quit', () => storyIpc.dispose());
+  app.once('will-quit', () => aiConfigIpc.dispose());
+  app.once('will-quit', () => storyIpc.dispose());
   registerDeliveryIpc();
-  app.once('before-quit', () => agentIpc.dispose());
+  app.once('will-quit', () => agentIpc.dispose());
 
   const endpoint = getEvidenceMcpBridgeEndpoint({
     platform: process.platform,
@@ -168,7 +179,7 @@ const startApplication = async (): Promise<void> => {
   if (runtime !== null) {
     const ipc = registerMcpIpc({ runtime });
 
-    app.once('before-quit', () => {
+    app.once('will-quit', () => {
       ipc.dispose();
       void runtime.dispose();
     });

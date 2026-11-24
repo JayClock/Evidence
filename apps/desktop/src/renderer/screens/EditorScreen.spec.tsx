@@ -88,7 +88,7 @@ describe('EditorScreen', () => {
       container.querySelector('[data-canvas-mode="expanded"]'),
     ).not.toBeNull();
     expect(screen.queryByRole('region', { name: '上下文地图' })).toBeNull();
-    expect(api.calls.save).toEqual([]);
+    expect(api.calls.persistence).toHaveLength(0);
   });
 
   it('uses deliberate zoom to enter the overview without changing the initial fit mode', async () => {
@@ -144,7 +144,7 @@ describe('EditorScreen', () => {
       ).not.toBeNull(),
     );
     expect(screen.queryByRole('dialog', { name: '业务模式模板' })).toBeNull();
-    expect(api.calls.save).toEqual([]);
+    expect(api.calls.persistence.length).toBeGreaterThan(0);
     fireEvent.keyDown(window, { key: 'z', metaKey: true });
     await waitFor(() =>
       expect(
@@ -197,12 +197,11 @@ describe('EditorScreen', () => {
     expect(
       container.querySelector('[data-node-id="evidence.request"]'),
     ).toHaveClass('ring-2');
-    expect(api.calls.save).toEqual([]);
+    expect(api.calls.persistence).toHaveLength(0);
   });
 
   it('opens swimlanes and saves a scenario into the story pipeline', async () => {
     const api = readyProject();
-    api.projects.save = vi.fn(api.projects.save);
     api.story.load = vi.fn(async ({ document, preferredFlowId }) =>
       storySnapshot(collectFlowScenarios(document!), preferredFlowId),
     );
@@ -240,7 +239,7 @@ describe('EditorScreen', () => {
     );
     expect(screen.queryByRole('dialog', { name: '业务场景推演' })).toBeNull();
     expect(screen.getByLabelText('选择业务流')).toHaveValue('正常签约案例');
-    expect(api.projects.save).not.toHaveBeenCalled();
+    expect(api.calls.persistence).toHaveLength(1);
   });
   it('opens canvas storming from the directory without submitting an empty business example', async () => {
     const api = readyProject();
@@ -254,7 +253,7 @@ describe('EditorScreen', () => {
     );
     expect(await screen.findByLabelText('业务场景')).toHaveValue('');
     expect(api.calls.prompt).toEqual([]);
-    expect(api.calls.save).toEqual([]);
+    expect(api.calls.persistence).toHaveLength(0);
   });
 
   it('opens storming from the ledger with Cmd+K and restores canvas focus on Escape', async () => {
@@ -331,7 +330,7 @@ describe('EditorScreen', () => {
     );
     fireEvent.keyDown(dialog, { key: 'Escape' });
     await waitFor(() => expect(dialog).not.toBeInTheDocument());
-    expect(api.calls.save).toEqual([]);
+    expect(api.calls.persistence).toHaveLength(0);
   });
 
   it('locates a radar finding and starts a focused read-only clarification only on request', async () => {
@@ -432,7 +431,7 @@ describe('EditorScreen', () => {
     expect(trigger.textContent).not.toBe(initialSummary);
     fireEvent.click(undo);
     await waitFor(() => expect(trigger.textContent).toBe(initialSummary));
-    expect(api.calls.save).toEqual([]);
+    expect(api.calls.persistence.length).toBeGreaterThan(0);
   });
 
   it('opens What-If from an unpaired card and pins the follow-up to that evidence', async () => {
@@ -474,7 +473,7 @@ describe('EditorScreen', () => {
         inquiry: 'what-if',
       }),
     );
-    expect(api.calls.save).toEqual([]);
+    expect(api.calls.persistence).toHaveLength(0);
   });
 
   it('reverts an already committed inquiry patch in place without closing the dialog', async () => {
@@ -535,7 +534,7 @@ describe('EditorScreen', () => {
         screen.queryByRole('button', { name: '澄清权责：复核通知' }),
       ).toBeNull(),
     );
-    expect(api.calls.save).toEqual([]);
+    expect(api.calls.persistence.length).toBeGreaterThan(0);
   });
 
   it('grows a saved-model canvas from stormed evidence through a real pair and a compensation branch', async () => {
@@ -687,7 +686,7 @@ describe('EditorScreen', () => {
       screen.getByRole('button', { name: '推演异常：付款凭证' }),
     ).toBeInTheDocument();
     expect(api.calls.prompt).toHaveLength(1);
-    expect(api.calls.save).toEqual([]);
+    expect(api.calls.persistence.length).toBeGreaterThan(0);
     await waitFor(() => expect(screen.queryByLabelText('业务场景')).toBeNull());
     fireEvent.click(screen.getByRole('button', { name: '保留' }));
     expect(
@@ -787,7 +786,7 @@ describe('EditorScreen', () => {
       { nodeId: 'evidence.payment', inquiry: 'what-if' },
       { nodeId: 'evidence.payment', inquiry: 'what-if' },
     ]);
-    expect(api.calls.save).toEqual([]);
+    expect(api.calls.persistence).toHaveLength(3);
     expect(within(whatIf).getByLabelText('AI 补丁复核')).toHaveTextContent(
       '挂载违约补偿',
     );
@@ -797,9 +796,8 @@ describe('EditorScreen', () => {
       '挂载违约补偿',
     );
     fireEvent.click(screen.getByRole('button', { name: '保留' }));
-    fireEvent.click(screen.getByRole('button', { name: '保存模型' }));
-    await waitFor(() =>
-      expect(api.calls.save).toEqual(['/models/procurement']),
+    expect(api.calls.persistence.at(-1)?.document.relationships).toEqual(
+      document.relationships,
     );
   });
 
@@ -865,7 +863,7 @@ describe('EditorScreen', () => {
     expect(screen.getByText('上下文 2')).toBeInTheDocument();
   });
 
-  it('plays the walkthrough on the same canvas and silently refreshes clean models', async () => {
+  it('plays on the same canvas and adopts external edits after a reload', async () => {
     const api = readyProject(createDesktopStoryFixture());
     api.story.load = vi.fn(async () => storySnapshot());
     let invalidate: (event: StoryInvalidatedEvent) => void = () => undefined;
@@ -911,7 +909,19 @@ describe('EditorScreen', () => {
       document,
       issues: [],
     }));
-    act(() => invalidate({ rootPath: '/models/procurement' }));
+    act(() => {
+      api.emitPersistenceStatus({
+        persistenceId: 'editor',
+        revision: 0,
+        kind: 'conflict',
+        error: '外部源文件已更新',
+      });
+      invalidate({ rootPath: '/models/procurement' });
+    });
+    expect(
+      container.querySelector('[data-node-id="evidence.contract"]'),
+    ).not.toHaveTextContent('外部更新采购协议');
+    fireEvent.click(screen.getByRole('button', { name: '从磁盘重载' }));
     await waitFor(() =>
       expect(
         container.querySelector('[data-node-id="evidence.contract"]'),
@@ -957,8 +967,6 @@ describe('EditorScreen', () => {
   it('reviews AI prose, writes only the selected example and reads it after saving and reopening', async () => {
     const original = createDesktopStoryFixture();
     const api = readyProject(original);
-    const save = vi.fn(api.projects.save);
-    api.projects.save = save;
     api.story.load = vi.fn(async ({ document }) =>
       storySnapshot(collectFlowScenarios(document!)),
     );
@@ -1008,16 +1016,15 @@ describe('EditorScreen', () => {
     const explanation = '双方依据采购协议确认本案例的订购安排。';
     expect(await screen.findByText(explanation)).toBeVisible();
     expect(screen.getByText('模型业务解释')).toBeVisible();
-    expect(save).not.toHaveBeenCalled();
+    expect(api.calls.persistence).toHaveLength(1);
     fireEvent.keyDown(window, { key: 'z', metaKey: true });
     expect(
       await screen.findByRole('button', { name: '采纳为业务解释' }),
     ).toBeEnabled();
     fireEvent.keyDown(window, { key: 'z', metaKey: true, shiftKey: true });
     expect(await screen.findByText(explanation)).toBeVisible();
-    fireEvent.click(screen.getByRole('button', { name: '保存模型' }));
-    await waitFor(() => expect(save).toHaveBeenCalledOnce());
-    const saved = save.mock.calls[0]![0].document;
+    expect(api.calls.persistence).toHaveLength(3);
+    const saved = api.calls.persistence.at(-1)!.document;
     const expected = structuredClone(original);
     expected.entities.find(
       ({ id }) => id === 'evidence.contract',
@@ -1059,13 +1066,8 @@ describe('EditorScreen', () => {
     ).toHaveAttribute('aria-pressed', 'true');
   });
 
-  it('reads pending disk changes before starting a walkthrough', async () => {
+  it('loads the adopted disk version for a new walkthrough', async () => {
     const api = readyProject();
-    let changed: Parameters<typeof api.projects.onChanged>[0] = () => undefined;
-    api.projects.onChanged = (listener) => {
-      changed = listener;
-      return () => undefined;
-    };
     api.story.load = vi.fn(async () => storySnapshot());
     render(<EditorScreen rootPath="/models/procurement" />);
     await readyCanvas();
@@ -1079,11 +1081,16 @@ describe('EditorScreen', () => {
       issues: [],
     }));
     act(() =>
-      changed({
-        rootPath: '/models/procurement',
-        paths: ['entities/contract.json'],
-        changedAt: '2026-11-11T09:00:00Z',
+      api.emitPersistenceStatus({
+        persistenceId: 'editor',
+        revision: 0,
+        kind: 'conflict',
+        error: '外部源文件已更新',
       }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: '从磁盘重载' }));
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: '放映业务流' })).toBeEnabled(),
     );
     fireEvent.click(screen.getByRole('button', { name: '放映业务流' }));
     await waitFor(() => expect(api.story.load).toHaveBeenCalledOnce());
@@ -1152,7 +1159,7 @@ describe('EditorScreen', () => {
       container.querySelector('[data-node-id="evidence.request"]'),
     ).not.toHaveAttribute('data-story-step');
     expect(api.story.startNarration).not.toHaveBeenCalled();
-    expect(api.calls.save).toEqual([]);
+    expect(api.calls.persistence).toHaveLength(0);
   });
 
   it('starts from the command palette and exits with Escape without clearing selection', async () => {
@@ -1171,7 +1178,7 @@ describe('EditorScreen', () => {
     expect(screen.queryByLabelText('业务流放映控制')).toBeNull();
     expect(node).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: '放映业务流' })).toHaveFocus();
-    expect(api.calls.save).toEqual([]);
+    expect(api.calls.persistence).toHaveLength(0);
   });
 
   it('stops automatic playback when entering the ledger and does not resume on return', async () => {
@@ -1266,7 +1273,7 @@ describe('EditorScreen', () => {
     await waitFor(() => expect(node).toHaveFocus());
     expect(node).toHaveAttribute('aria-pressed', 'true');
     expect(screen.queryByTitle('有未保存修改')).toBeNull();
-    expect(api.calls.save).toHaveLength(0);
+    expect(api.calls.persistence).toHaveLength(0);
   });
 
   it('returns keyboard focus to the selected node without clearing selection', async () => {
@@ -1351,7 +1358,7 @@ describe('EditorScreen', () => {
         /交付请求.*凭证/,
       ),
     ).toBeVisible();
-    expect(api.calls.save).toEqual([]);
+    expect(api.calls.persistence).toHaveLength(0);
   });
 
   it('keeps scope and view mode out of the document and undo history', async () => {
@@ -1390,10 +1397,8 @@ describe('EditorScreen', () => {
     await waitFor(() =>
       expect(screen.queryByRole('dialog', { name: '快速命令' })).toBeNull(),
     );
-    expect(screen.queryByTitle('有未保存修改')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: '保存模型' }));
-    await waitFor(() => expect(api.calls.save).toHaveLength(1));
-    expect(screen.queryByTitle('有未保存修改')).toBeNull();
+    expect(api.calls.persistence).toHaveLength(0);
+    expect(screen.getByText('模型已写入')).toBeInTheDocument();
   });
 
   it('resets scope when quick search selects an out-of-scope object', async () => {
@@ -1422,18 +1427,14 @@ describe('EditorScreen', () => {
     ).toBeInTheDocument();
   });
 
-  it('saves the edited document to disk from the header', async () => {
+  it('has no save button and offers a keyboard flush without rewriting a clean model', async () => {
     const api = readyProject();
-
     render(<EditorScreen rootPath="/models/procurement" />);
-
     await readyCanvas();
-    fireEvent.click(screen.getByRole('button', { name: '保存模型' }));
-
-    await waitFor(() => {
-      expect(api.calls.save).toEqual(['/models/procurement']);
-    });
-    expect(await screen.findByText(/已保存/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '保存模型' })).toBeNull();
+    fireEvent.keyDown(window, { key: 's', metaKey: true });
+    await waitFor(() => expect(api.calls.flushPersistence).toEqual(['editor']));
+    expect(api.calls.persistence).toHaveLength(0);
   });
 
   it('opens command navigation from the header', async () => {
@@ -1520,9 +1521,7 @@ describe('EditorScreen', () => {
     ).toBeNull();
     fireEvent.keyDown(hub, { key: 'Escape' });
     expect(screen.queryByRole('dialog', { name: '交付与导出中枢' })).toBeNull();
-    expect(
-      screen.getByRole('button', { name: '保存模型' }),
-    ).toBeInTheDocument();
+    expect(screen.getByText('模型已写入')).toBeInTheDocument();
     fireEvent.keyDown(window, { key: 'K', ctrlKey: true, shiftKey: true });
     const palette = await screen.findByRole('dialog', { name: '快速命令' });
     fireEvent.change(within(palette).getByRole('combobox'), {
@@ -1541,23 +1540,22 @@ describe('EditorScreen', () => {
     expect(screen.getByText('业务旅程画布')).toBeInTheDocument();
   });
 
-  it('shows a save failure without claiming success', async () => {
-    installDesktopApi({
-      openResult: {
-        success: true,
-        project: projectSummary({ name: '桌面端夹具（Desktop Fixture）' }),
-        document: createDesktopFixture(),
-        issues: [],
-      },
-      saveResult: { success: false, error: '磁盘不可写。' },
-    });
-
+  it('shows a write failure and offers a retry without claiming success', async () => {
+    const api = readyProject();
     render(<EditorScreen rootPath="/models/procurement" />);
-
     await readyCanvas();
-    fireEvent.click(screen.getByRole('button', { name: '保存模型' }));
-
-    expect(await screen.findByText('磁盘不可写。')).toBeInTheDocument();
+    act(() =>
+      api.emitPersistenceStatus({
+        persistenceId: 'editor',
+        revision: 0,
+        kind: 'failed',
+        error: '磁盘不可写。',
+      }),
+    );
+    expect(screen.getByText('磁盘不可写。')).toBeInTheDocument();
+    expect(screen.queryByText('模型已写入')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: '重试同步' }));
+    await waitFor(() => expect(api.calls.flushPersistence).toEqual(['editor']));
   });
 
   it('surfaces an unreadable model tree', async () => {
@@ -1626,25 +1624,6 @@ describe('EditorScreen sensors', () => {
         .getByText('签署时间', { selector: 'p' })
         .closest('tr'),
     ).toHaveAttribute('aria-current', 'true');
-  });
-
-  it('tells the main process when the model changes', async () => {
-    const api = installDesktopApi({
-      openResult: {
-        success: true,
-        project: projectSummary(),
-        document: createDesktopFixture(),
-        issues: [],
-      },
-    });
-
-    render(<EditorScreen rootPath="/models/procurement" />);
-    await screen.findByText('商品采购（Product Procurement）');
-
-    fireEvent.click(screen.getByRole('button', { name: '保存模型' }));
-
-    expect(await screen.findByText(/已保存/)).toBeInTheDocument();
-    expect(api.calls.save).toEqual(['/models/procurement']);
   });
 
   it('shows what an agent patch changed and reverts it on Escape', async () => {
@@ -1828,7 +1807,7 @@ describe('EditorScreen stage navigation', () => {
     expect(ledger).toHaveAttribute('aria-pressed', 'false');
     expect(screen.queryByLabelText('领域模型总台账')).toBeNull();
     expect(screen.getByLabelText('密度')).toHaveValue('simplified');
-    expect(api.calls.save).toEqual([]);
+    expect(api.calls.persistence).toHaveLength(0);
   });
 
   it('resets the zoom with Cmd+0 and fits the model with Shift+1', async () => {

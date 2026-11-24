@@ -37,7 +37,7 @@ const show = (
       hub={hub}
       sync={sync}
       projectName="商品采购"
-      dirty={dirty}
+      pendingPersistence={dirty}
       externalChange={externalChange}
       onClose={onClose}
       onRestoreFocus={() => undefined}
@@ -94,7 +94,7 @@ describe('DeliveryHub', () => {
         },
       ],
     });
-    expect(screen.getByText('基于未保存的模型草稿')).toBeVisible();
+    expect(screen.getByText('画布预览 · 模型尚未写入磁盘')).toBeVisible();
     expect(
       screen.getByText('API 草稿自动同步：1 已同步，1 阻塞'),
     ).toBeVisible();

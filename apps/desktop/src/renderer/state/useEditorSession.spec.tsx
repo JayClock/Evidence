@@ -2,7 +2,6 @@ import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { createDesktopFixture } from '@evidence-poc/desktop-testing';
 import { updateEntityMutator } from '@evidence-poc/evidence-model-core';
-import type { OpenProjectResult } from '@evidence-poc/desktop-contracts/projects';
 import {
   installDesktopApi,
   projectSummary,
@@ -10,129 +9,114 @@ import {
 import { useEditorSession } from './useEditorSession';
 
 vi.mock('./useGraphLayout', () => ({
-  useGraphLayout: () => ({
-    layout: {},
-    layoutError: null,
-  }),
+  useGraphLayout: () => ({ layout: {}, layoutError: null }),
 }));
 
 const setup = () => {
   const api = installDesktopApi();
   const document = createDesktopFixture();
   const project = projectSummary();
-  const hook = renderHook(() => useEditorSession(project, document));
-  const edit = () =>
-    act(() => {
+  const hook = renderHook(() =>
+    useEditorSession(project, document, 'simplified', 'editor'),
+  );
+  const edit = (label: string) =>
+    act(() =>
       hook.result.current.state.session.mutate(
-        (draft) =>
-          updateEntityMutator(draft, 'evidence.contract', {
-            label: '未保存修改',
-          }),
+        (draft) => updateEntityMutator(draft, 'evidence.contract', { label }),
         'update-entity',
-      );
-    });
+      ),
+    );
   return { api, document, project, hook, edit };
 };
 
-describe('safe walkthrough reload', () => {
-  it('silently refreshes a clean canvas', async () => {
-    const { api, hook, document, project } = setup();
-    const updated = {
+describe('editor live persistence', () => {
+  it('submits edits and undo/redo without a save action, not selection changes', () => {
+    const { api, edit, hook } = setup();
+    const { session } = hook.result.current.state;
+    act(() => session.select('evidence.contract'));
+    expect(api.calls.persistence).toHaveLength(0);
+    edit('同步修改');
+    act(() => session.undo());
+    act(() => session.redo());
+    expect(api.calls.persistence.map(({ revision }) => revision)).toEqual([
+      1, 2, 3,
+    ]);
+    expect(api.calls.persistence.at(-1)?.document).toBe(session.getDocument());
+    expect(hook.result.current.state.persistence.kind).toBe('persisted');
+  });
+
+  it('does not let an older acknowledgement clear a newer pending edit', () => {
+    const { api, edit, hook } = setup();
+    api.projects.enqueuePersistence = async () => ({ success: true });
+    edit('第一版');
+    edit('第二版');
+    act(() =>
+      api.emitPersistenceStatus({
+        persistenceId: 'editor',
+        revision: 1,
+        kind: 'persisted',
+      }),
+    );
+    expect(hook.result.current.state.persistence.kind).toBe('queued');
+    act(() =>
+      api.emitPersistenceStatus({
+        persistenceId: 'editor',
+        revision: 2,
+        kind: 'persisted',
+      }),
+    );
+    expect(hook.result.current.state.persistence.kind).toBe('persisted');
+  });
+
+  it('reloads only on request and never submits the reloaded disk document as an edit', async () => {
+    const { api, document, project, edit, hook } = setup();
+    edit('本地修改');
+    const external = {
       ...document,
       manifest: { ...document.manifest, name: '外部修改' },
     };
     api.projects.open = vi.fn(
-      async (): Promise<OpenProjectResult> => ({
-        success: true,
-        project,
-        document: updated,
-        issues: [],
+      async () =>
+        ({
+          success: true,
+          project,
+          document: external,
+          issues: [],
+          persistenceId: 'reloaded',
+        }) as const,
+    );
+    act(() =>
+      api.emitPersistenceStatus({
+        persistenceId: 'editor',
+        revision: 1,
+        kind: 'conflict',
+        error: '磁盘变更',
       }),
     );
-    await act(async () => hook.result.current.reloadFromDiskIfClean());
-    expect(hook.result.current.state.document.manifest.name).toBe('外部修改');
-    expect(hook.result.current.state.dirty).toBe(false);
-  });
-
-  it('never reads over an already dirty canvas or overwrites edits arriving during a disk read', async () => {
-    const { api, hook, edit, document, project } = setup();
-    let resolve: (result: OpenProjectResult) => void = () => undefined;
-    const open = vi.fn(
-      () =>
-        new Promise<OpenProjectResult>((done) => {
-          resolve = done;
-        }),
+    expect(api.projects.open).not.toHaveBeenCalled();
+    expect(hook.result.current.state.persistence.kind).toBe('conflict');
+    await act(async () => hook.result.current.reloadFromDisk());
+    expect(api.projects.open).toHaveBeenCalledWith(
+      project.rootPath,
+      'discard-pending',
     );
-    api.projects.open = open;
-    let reload: Promise<void>;
-    act(() => {
-      reload = hook.result.current.reloadFromDiskIfClean();
+    expect(hook.result.current.state.document).toBe(external);
+    expect(hook.result.current.state.canUndo).toBe(false);
+    expect(api.calls.persistence).toHaveLength(1);
+    edit('新会话编辑');
+    expect(api.calls.persistence.at(-1)).toMatchObject({
+      persistenceId: 'reloaded',
+      revision: 1,
     });
-    edit();
-    await act(async () => {
-      resolve({ success: true, project, document, issues: [] });
-      await reload;
-    });
-    expect(
-      hook.result.current.state.document.entities.find(
-        ({ id }) => id === 'evidence.contract',
-      )?.label,
-    ).toBe('未保存修改');
-    expect(hook.result.current.state.dirty).toBe(true);
-    await act(async () => hook.result.current.reloadFromDiskIfClean());
-    expect(open).toHaveBeenCalledOnce();
   });
 
-  it('preserves undo history for the watcher notification caused by its own save', async () => {
-    const { api, hook, edit, project } = setup();
-    edit();
-    await act(async () => hook.result.current.save());
-    const document = structuredClone(hook.result.current.state.document);
-    api.projects.open = vi.fn(
-      async (): Promise<OpenProjectResult> => ({
-        success: true,
-        project,
-        document,
-        issues: [],
-      }),
-    );
-    expect(hook.result.current.state.canUndo).toBe(true);
-    await act(async () => hook.result.current.reloadFromDiskIfClean());
-    expect(hook.result.current.state.canUndo).toBe(true);
-    act(() => {
-      hook.result.current.state.session.undo();
-    });
-    expect(
-      hook.result.current.state.document.entities.find(
-        ({ id }) => id === 'evidence.contract',
-      )?.label,
-    ).not.toBe('未保存修改');
-  });
-
-  it('keeps edits made while saving dirty', async () => {
-    const { api, hook, edit } = setup();
-    let resolve: (
-      value: Awaited<ReturnType<typeof api.projects.save>>,
-    ) => void = () => undefined;
-    api.projects.save = () =>
-      new Promise((done) => {
-        resolve = done;
-      });
-    let save: Promise<void>;
-    act(() => {
-      save = hook.result.current.save();
-    });
-    edit();
-    await act(async () => {
-      resolve({
-        success: true,
-        written: [],
-        unchanged: [],
-        removed: [],
-        savedAt: 'now',
-      });
-      await save;
-    });
-    expect(hook.result.current.state.dirty).toBe(true);
+  it('keeps the current canvas when disk reload fails', async () => {
+    const { api, edit, hook } = setup();
+    edit('本地修改');
+    const before = hook.result.current.state.document;
+    api.projects.open = async () => ({ success: false, error: 'Git 冲突标记' });
+    await act(async () => hook.result.current.reloadFromDisk());
+    expect(hook.result.current.state.document).toBe(before);
+    expect(hook.result.current.state.reloadError).toBe('Git 冲突标记');
   });
 });

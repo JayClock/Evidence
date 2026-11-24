@@ -95,7 +95,7 @@ type LoadState =
       name: 'ready';
       project: EvidenceProjectSummary;
       document: DomainModelDocument;
-      sourceDigest?: string;
+      persistenceId?: string;
     }
   | { name: 'error'; message: string };
 
@@ -125,7 +125,7 @@ export const EditorScreen = ({ rootPath }: { rootPath: string }) => {
               name: 'ready',
               project: result.project,
               document: result.document,
-              sourceDigest: result.sourceDigest,
+              persistenceId: result.persistenceId,
             }
           : { name: 'error', message: result.error },
       );
@@ -159,7 +159,7 @@ export const EditorScreen = ({ rootPath }: { rootPath: string }) => {
       key={rootPath}
       project={state.project}
       initialDocument={state.document}
-      sourceDigest={state.sourceDigest}
+      persistenceId={state.persistenceId}
     />
   );
 };
@@ -167,13 +167,13 @@ export const EditorScreen = ({ rootPath }: { rootPath: string }) => {
 interface EditorWorkspaceProps {
   project: EvidenceProjectSummary;
   initialDocument: DomainModelDocument;
-  sourceDigest?: string;
+  persistenceId?: string;
 }
 
 const EditorWorkspace = ({
   project,
   initialDocument,
-  sourceDigest,
+  persistenceId,
 }: EditorWorkspaceProps) => {
   const ai = useAiConfiguration();
   const [scenarioOpen, setScenarioOpen] = useState(false);
@@ -220,13 +220,15 @@ const EditorWorkspace = ({
     active: ledgerActive,
     returnToGraph: workspaceView.returnToGraph,
   });
-  const {
-    state,
-    save,
-    reloadFromDisk,
-    reloadFromDiskIfClean,
-    dismissExternalChange,
-  } = useEditorSession(project, initialDocument, viewMode, sourceDigest);
+  const { state, flush, reloadFromDisk } = useEditorSession(
+    project,
+    initialDocument,
+    viewMode,
+    persistenceId,
+  );
+  const { persistence } = state;
+  const pendingPersistence = persistence.kind !== 'persisted';
+  const externalConflict = persistence.kind === 'conflict';
   const hasPlaybackInput = useMemo(
     () =>
       state.document.entities.some(
@@ -236,9 +238,7 @@ const EditorWorkspace = ({
       ),
     [state.document],
   );
-  // A pending clean reload may bring in the first flow from disk.
-  const canPlayStory =
-    hasPlaybackInput || (!state.dirty && state.externalChangeAt !== null);
+  const canPlayStory = hasPlaybackInput;
   const openStory = useCallback(() => {
     if (!ledgerActive && canPlayStory) setStoryOpen(true);
   }, [ledgerActive, canPlayStory]);
@@ -248,8 +248,6 @@ const EditorWorkspace = ({
     document: state.document,
     enabled: storyActive,
     aiConfigured: ai?.aiConfigured,
-    refreshSavedSources: state.externalChangeAt !== null,
-    onInvalidated: reloadFromDiskIfClean,
   });
   const sensors = useSensorsState(project.rootPath);
   const delivery = useDeliveryHub(
@@ -350,9 +348,6 @@ const EditorWorkspace = ({
     diagnosticsStale ? null : diagnostics,
     ledgerActive,
   );
-  useEffect(() => {
-    if (state.savedAt !== null) void sensors.refresh();
-  }, [state.savedAt, sensors.refresh]);
 
   // Monotonic document revision so an external agent can tell whether the model
   // it read is still the model on screen.
@@ -632,7 +627,7 @@ const EditorWorkspace = ({
 
   const commandHandlers = useMemo<CommandHandlers>(
     () => ({
-      save: () => void save(),
+      flush: () => void flush(),
       undo: () => {
         state.session.undo();
       },
@@ -657,7 +652,7 @@ const EditorWorkspace = ({
       layout.openProblemsPanel,
       layout.toggleProblemsPanel,
       requestZoom,
-      save,
+      flush,
       sensors.refresh,
       state.session,
       workspaceView.returnToGraph,
@@ -696,7 +691,7 @@ const EditorWorkspace = ({
       redo: () => {
         state.session.redo();
       },
-      save: () => void save(),
+      flush: () => void flush(),
       openCommandPalette: () => setPaletteOpen(true),
       startStorming,
       ...(stormingOpen ? { closeStorming } : {}),
@@ -726,7 +721,7 @@ const EditorWorkspace = ({
       revertPatch,
       layout.openDelivery,
       layout.toggleProblemsPanel,
-      save,
+      flush,
       sensors.refresh,
       state.session,
       storyActive,
@@ -1038,10 +1033,9 @@ const EditorWorkspace = ({
       >
         <TopHeader
           projectName={state.project.name}
-          dirty={state.dirty}
+          persistence={persistence}
           graph={state.graph}
           selection={state.selection}
-          onSave={() => void save()}
           onOpenCommandPalette={() => setPaletteOpen(true)}
           healthControl={
             !storyActive && !ledgerActive ? (
@@ -1143,10 +1137,8 @@ const EditorWorkspace = ({
                             }}
                             playback={story}
                             onSaveExplanation={saveStoryExplanation}
-                            dirty={state.dirty}
-                            externalConflict={
-                              state.dirty && state.externalChangeAt !== null
-                            }
+                            pendingPersistence={pendingPersistence}
+                            externalConflict={externalConflict}
                           />
                         </PopoverContent>
                       </Popover>
@@ -1288,8 +1280,8 @@ const EditorWorkspace = ({
             hub={delivery}
             sync={syncStatus}
             projectName={state.project.name}
-            dirty={state.dirty}
-            externalChange={state.externalChangeAt !== null}
+            pendingPersistence={pendingPersistence}
+            externalChange={externalConflict}
             onClose={layout.closeDelivery}
             onRestoreFocus={() =>
               workspaceRef.current?.focus({ preventScroll: true })
@@ -1302,9 +1294,7 @@ const EditorWorkspace = ({
           />
         ) : null}
 
-        {!ledgerActive ||
-        state.externalChangeAt !== null ||
-        state.saveError !== null ? (
+        {!ledgerActive || pendingPersistence || state.reloadError !== null ? (
           <BottomStatusBar
             layout={state.layout}
             validation={state.validation}
@@ -1317,12 +1307,10 @@ const EditorWorkspace = ({
             onRerunSensors={() => void sensors.refresh()}
             deliverySync={syncStatus}
             onOpenDelivery={layout.openDelivery}
-            dirty={state.dirty}
-            savedAt={state.savedAt}
-            saveError={state.saveError}
-            externalChangeAt={state.externalChangeAt}
+            persistence={persistence}
+            reloadError={state.reloadError}
             onReload={() => void reloadFromDisk()}
-            onDismissExternalChange={dismissExternalChange}
+            onRetryPersistence={() => void flush()}
           />
         ) : null}
 

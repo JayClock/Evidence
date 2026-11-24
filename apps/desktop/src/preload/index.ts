@@ -55,9 +55,23 @@ const api: EvidenceDesktopApi = {
       ipcRenderer.invoke(EVIDENCE_IPC_CHANNELS.showCreateDialog),
     create: (input) => ipcRenderer.invoke(EVIDENCE_IPC_CHANNELS.create, input),
     listTemplates: () => ipcRenderer.invoke(EVIDENCE_IPC_CHANNELS.templates),
-    open: (rootPath) =>
-      ipcRenderer.invoke(EVIDENCE_IPC_CHANNELS.open, rootPath),
-    save: (input) => ipcRenderer.invoke(EVIDENCE_IPC_CHANNELS.save, input),
+    open: (rootPath, reload) =>
+      ipcRenderer.invoke(EVIDENCE_IPC_CHANNELS.open, rootPath, reload),
+    enqueuePersistence: (input) =>
+      ipcRenderer.invoke(EVIDENCE_IPC_CHANNELS.enqueuePersistence, input),
+    flushPersistence: (id) =>
+      ipcRenderer.invoke(EVIDENCE_IPC_CHANNELS.flushPersistence, id),
+    readPersistenceStatus: (id) =>
+      ipcRenderer.invoke(EVIDENCE_IPC_CHANNELS.readPersistenceStatus, id),
+    onPersistenceStatus: (listener) => {
+      const channel = EVIDENCE_IPC_CHANNELS.persistenceStatus;
+      const handler = (
+        _event: Electron.IpcRendererEvent,
+        status: Parameters<typeof listener>[0],
+      ) => listener(status);
+      ipcRenderer.on(channel, handler);
+      return () => ipcRenderer.removeListener(channel, handler);
+    },
     listRecent: () => ipcRenderer.invoke(EVIDENCE_IPC_CHANNELS.recent),
     openEditorWindow: (rootPath) =>
       ipcRenderer.invoke(EVIDENCE_IPC_CHANNELS.openEditorWindow, rootPath),
@@ -71,18 +85,6 @@ const api: EvidenceDesktopApi = {
       ) => listener(payload);
       ipcRenderer.on(channel, handler);
       return () => ipcRenderer.removeListener(channel, handler);
-    },
-    onChanged: (listener) => {
-      const handler = (
-        _event: Electron.IpcRendererEvent,
-        payload: Parameters<typeof listener>[0],
-      ) => listener(payload);
-
-      ipcRenderer.on(EVIDENCE_IPC_CHANNELS.changed, handler);
-
-      return () => {
-        ipcRenderer.removeListener(EVIDENCE_IPC_CHANNELS.changed, handler);
-      };
     },
   },
   story: {

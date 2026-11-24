@@ -22,7 +22,7 @@ const capabilities = (
 });
 
 const handlers = (): CommandHandlers => ({
-  save: vi.fn(),
+  flush: vi.fn(),
   undo: vi.fn(),
   redo: vi.fn(),
   returnToGraph: vi.fn(),
@@ -54,7 +54,7 @@ describe('buildCommands', () => {
   });
 
   it('prints the chord the shortcut map actually binds', () => {
-    expect(find('model.save')?.shortcut).toBe(CHORDS.save);
+    expect(find('model.flush')?.shortcut).toBe(CHORDS.flush);
     expect(find('view.journey')?.shortcut).toBe(CHORDS.journey);
     expect(find('delivery.contract')?.shortcut).toBe(CHORDS.delivery);
     expect(find('model.storming')?.shortcut).toBe(CHORDS.storming);
@@ -98,12 +98,12 @@ describe('buildCommands', () => {
   it('runs the handler rather than reimplementing the action', () => {
     const spy = handlers();
     const save = buildCommands(capabilities(), spy).find(
-      (command) => command.id === 'model.save',
+      (command) => command.id === 'model.flush',
     );
 
     save?.perform();
 
-    expect(spy.save).toHaveBeenCalledTimes(1);
+    expect(spy.flush).toHaveBeenCalledTimes(1);
   });
 
   it('keeps disabled rows in the list so the feature reads as present', () => {

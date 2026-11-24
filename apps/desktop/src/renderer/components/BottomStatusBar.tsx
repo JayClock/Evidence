@@ -16,12 +16,10 @@ interface BottomStatusBarProps {
   onRerunSensors: () => void;
   deliverySync: ContextDeliveryStatusEvent['result'] | null;
   onOpenDelivery: () => void;
-  dirty: boolean;
-  savedAt: string | null;
-  saveError: string | null;
-  externalChangeAt: string | null;
+  persistence: import('@evidence-poc/desktop-contracts/projects').PersistenceState;
+  reloadError: string | null;
   onReload: () => void;
-  onDismissExternalChange: () => void;
+  onRetryPersistence: () => void;
 }
 
 const issueSummary = (validation: ValidationResult): string => {
@@ -159,12 +157,10 @@ export const BottomStatusBar = ({
   onRerunSensors,
   deliverySync,
   onOpenDelivery,
-  dirty,
-  savedAt,
-  saveError,
-  externalChangeAt,
+  persistence,
+  reloadError,
   onReload,
-  onDismissExternalChange,
+  onRetryPersistence,
 }: BottomStatusBarProps) => (
   <footer className="col-span-2 flex h-8 shrink-0 items-center justify-between gap-3 border-t border-evidence-line bg-white/85 px-3 text-[10px] text-evidence-muted">
     <div className="flex min-w-0 items-center gap-3">
@@ -208,35 +204,31 @@ export const BottomStatusBar = ({
     </div>
 
     <div className="flex items-center gap-3">
-      {saveError !== null ? (
-        <span className="text-[#b42318]">{saveError}</span>
+      <span role="status" className="text-[#8d6200]">
+        {reloadError ??
+          (persistence.kind === 'failed' || persistence.kind === 'conflict'
+            ? persistence.error
+            : '')}
+      </span>
+      {persistence.kind === 'failed' ? (
+        <button
+          type="button"
+          className="underline"
+          onClick={onRetryPersistence}
+        >
+          重试同步
+        </button>
       ) : null}
-      {externalChangeAt !== null ? (
-        <span className="flex items-center gap-2 text-[#8d6200]">
-          <span>磁盘上的源树已被外部修改</span>
-          <button
-            type="button"
-            onClick={onReload}
-            className="rounded border border-[#8d6200]/40 px-1.5 py-0.5 text-[10px] hover:bg-[#8d6200]/10"
-          >
-            重新加载
-          </button>
-          <button
-            type="button"
-            onClick={onDismissExternalChange}
-            className="text-[10px] underline decoration-dotted"
-          >
-            忽略
-          </button>
-        </span>
+      {persistence.kind === 'conflict' || persistence.kind === 'failed' ? (
+        <button
+          type="button"
+          onClick={onReload}
+          title="采用当前磁盘模型并放弃尚未写入的编辑"
+          className="rounded border border-[#8d6200]/40 px-1.5 py-0.5 text-[10px] hover:bg-[#8d6200]/10"
+        >
+          从磁盘重载
+        </button>
       ) : null}
-      {dirty ? (
-        <span className="text-[#b42318]">有未保存修改</span>
-      ) : savedAt === null ? (
-        <span>尚未写入磁盘</span>
-      ) : (
-        <span>已保存 {new Date(savedAt).toLocaleTimeString('zh-CN')}</span>
-      )}
     </div>
   </footer>
 );

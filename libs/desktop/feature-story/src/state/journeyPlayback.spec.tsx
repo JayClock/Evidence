@@ -77,5 +77,5 @@ it('walks across responsibility lanes, resets branch focus when switching scenar
   expect(screen.getByLabelText('当前旅程分支')).toHaveTextContent('正常履约');
   expect(hook.result.current.canvasFocus?.triggeredRuleIds).toEqual([]);
   expect(JSON.stringify(document)).toBe(before);
-  expect(api.calls.save).toEqual([]);
+  expect(api.calls.persistence).toEqual([]);
 });

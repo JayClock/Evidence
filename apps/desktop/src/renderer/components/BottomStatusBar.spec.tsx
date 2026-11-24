@@ -33,12 +33,10 @@ const renderBar = (
       onRerunSensors={onRerunSensors}
       deliverySync={null}
       onOpenDelivery={() => undefined}
-      dirty={false}
-      savedAt={null}
-      saveError={null}
-      externalChangeAt={null}
+      persistence={{ kind: 'persisted' }}
+      reloadError={null}
       onReload={() => undefined}
-      onDismissExternalChange={() => undefined}
+      onRetryPersistence={() => undefined}
       {...props}
     />,
   );

@@ -3,7 +3,7 @@ import {
   Clapperboard,
   Network,
   Redo2,
-  Save,
+  RefreshCw,
   Search,
   ShieldCheck,
   Sparkles,
@@ -66,7 +66,7 @@ export const COMMAND_GROUPS: readonly {
  * UI describes wrongly is worse than one written for a single platform.
  */
 export const CHORDS = {
-  save: '⌘+S',
+  flush: '⌘+S',
   undo: '⌘+Z',
   redo: '⌘+Shift+Z',
   palette: '⌘+Shift+K',
@@ -89,7 +89,7 @@ export interface CommandCapabilities {
 }
 
 export interface CommandHandlers {
-  save: () => void;
+  flush: () => void;
   undo: () => void;
   redo: () => void;
   returnToGraph: () => void;
@@ -116,14 +116,14 @@ export const buildCommands = (
 ): readonly CommandItem[] => {
   return [
     {
-      id: 'model.save',
-      title: '保存模型',
-      subtitle: '写回 .evidence/model 源树',
+      id: 'model.flush',
+      title: '立即同步模型',
+      subtitle: '不等待自动同步的防抖时间',
       category: 'model',
-      shortcut: CHORDS.save,
-      icon: Save,
-      keywords: ['save', 'write', 'disk'],
-      perform: handlers.save,
+      shortcut: CHORDS.flush,
+      icon: RefreshCw,
+      keywords: ['sync', 'write', 'disk'],
+      perform: handlers.flush,
     },
     {
       id: 'model.undo',

@@ -50,7 +50,7 @@ export type PersistenceStatus = PersistenceState & {
   revision: number;
 };
 
-export type SaveProjectResult =
+export type WriteProjectResult =
   | {
       success: true;
       written: readonly string[];
@@ -69,19 +69,6 @@ export type OpenProjectDialogResult =
   | { success: true; rootPath: string }
   | { success: false; canceled: true }
   | { success: false; canceled?: false; error: string };
-
-/** Emitted when `.evidence/model` changes outside the app (git, scripts, agent). */
-export interface ProjectChangedEvent {
-  rootPath: string;
-  changedAt: string;
-  paths: readonly string[];
-}
-
-export interface SaveProjectInput {
-  rootPath: string;
-  sourceDigest?: string;
-  document: DomainModelDocument;
-}
 
 /** One route the delivery contract declares. */
 export interface DeliveryPreviewRoute {

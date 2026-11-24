@@ -30,7 +30,9 @@ import type {
   CreateProjectResult,
   DeliveryPreview,
   EvidenceProjectSummary,
+  LivePersistenceInput,
   OpenProjectResult,
+  PersistenceStatus,
   ProjectTemplateMeta,
 } from '@evidence-poc/desktop-contracts/projects';
 
@@ -127,7 +129,8 @@ export interface McpMockController {
 export interface DesktopApiMock extends EvidenceDesktopApi {
   calls: {
     open: string[];
-    save: string[];
+    persistence: LivePersistenceInput[];
+    flushPersistence: string[];
     openEditorWindow: string[];
     showOpenDialog: number;
     showCreateDialog: number;
@@ -142,6 +145,7 @@ export interface DesktopApiMock extends EvidenceDesktopApi {
     compileDraft: CompileDraftInput[];
   };
   emitDeliveryStatus: (event: ContextDeliveryStatusEvent) => void;
+  emitPersistenceStatus: (event: PersistenceStatus) => void;
   agentMock: AgentMockController;
   mcpMock: McpMockController;
 }
@@ -157,13 +161,6 @@ export const installDesktopApi = ({
     project: projectSummary(),
     document: { manifest: {} } as never,
     issues: [],
-  },
-  saveResult = {
-    success: true,
-    written: [],
-    unchanged: [],
-    removed: [],
-    savedAt: '2026-11-11T08:00:00.000Z',
   },
   dialogResult = { success: false, canceled: true } as const,
   createDialogResult = { success: false, canceled: true } as const,
@@ -191,7 +188,6 @@ export const installDesktopApi = ({
 }: {
   projects?: readonly EvidenceProjectSummary[];
   openResult?: OpenProjectResult;
-  saveResult?: Awaited<ReturnType<EvidenceDesktopApi['projects']['save']>>;
   dialogResult?: Awaited<
     ReturnType<EvidenceDesktopApi['projects']['showOpenDialog']>
   >;
@@ -207,7 +203,8 @@ export const installDesktopApi = ({
 } = {}): DesktopApiMock => {
   const calls: DesktopApiMock['calls'] = {
     open: [],
-    save: [],
+    persistence: [],
+    flushPersistence: [],
     openEditorWindow: [],
     showOpenDialog: 0,
     showCreateDialog: 0,
@@ -232,6 +229,10 @@ export const installDesktopApi = ({
   const deliveryListeners = new Set<
     (event: ContextDeliveryStatusEvent) => void
   >();
+  const persistenceListeners = new Set<(status: PersistenceStatus) => void>();
+  const emitPersistenceStatus = (status: PersistenceStatus) => {
+    for (const listener of persistenceListeners) listener(status);
+  };
   const patchListeners = new Set<(payload: PatchCommittedPayload) => void>();
   let live: LiveModelInput | undefined;
   let nextPatchId = 0;
@@ -329,6 +330,7 @@ export const installDesktopApi = ({
     calls,
     agentMock,
     mcpMock,
+    emitPersistenceStatus,
     emitDeliveryStatus: (event) => {
       for (const listener of deliveryListeners) listener(event);
     },
@@ -367,13 +369,29 @@ export const installDesktopApi = ({
       listTemplates: async () => ({ success: true, templates }),
       open: async (rootPath) => {
         calls.open.push(rootPath);
-
-        return openResult;
+        return openResult.success
+          ? { persistenceId: 'editor', ...openResult }
+          : openResult;
       },
-      save: async (input) => {
-        calls.save.push(input.rootPath);
-
-        return saveResult;
+      enqueuePersistence: async (input) => {
+        calls.persistence.push(input);
+        emitPersistenceStatus({
+          persistenceId: input.persistenceId,
+          revision: input.revision,
+          kind: 'persisted',
+        });
+        return { success: true };
+      },
+      flushPersistence: async (id) => {
+        calls.flushPersistence.push(id);
+        return { success: true };
+      },
+      readPersistenceStatus: async () => null,
+      onPersistenceStatus: (listener) => {
+        persistenceListeners.add(listener);
+        return () => {
+          persistenceListeners.delete(listener);
+        };
       },
       listRecent: async () => ({ success: true, projects }),
       openEditorWindow: async (rootPath) => {
@@ -401,7 +419,6 @@ export const installDesktopApi = ({
           deliveryListeners.delete(listener);
         };
       },
-      onChanged: () => () => undefined,
     },
     agent: {
       prompt: async (input) => {

@@ -3,7 +3,7 @@ import type {
   PersistenceResult,
   PersistenceState,
   PersistenceStatus,
-  SaveProjectResult,
+  WriteProjectResult,
 } from '@evidence-poc/desktop-contracts/projects';
 import type { DomainModelDocument } from '@evidence-poc/evidence-schema';
 
@@ -24,7 +24,7 @@ type Options = {
   write: (
     document: DomainModelDocument,
     sourceDigest: string,
-  ) => Promise<SaveProjectResult>;
+  ) => Promise<WriteProjectResult>;
   publish: (status: PersistenceStatus) => void;
   committed: (model: PersistedModel) => void;
 };
@@ -48,9 +48,17 @@ export function createLivePersistence({
   let conflict: string | undefined;
   let paused = false;
   let disposed = false;
+  let latest: PersistenceStatus = {
+    persistenceId: id,
+    revision: 0,
+    kind: 'persisted',
+  };
 
   const emit = (status: PersistenceState & { revision: number }) => {
-    if (!disposed) publish({ persistenceId: id, ...status });
+    if (disposed) return;
+    const event = { persistenceId: id, ...status };
+    if (event.revision >= latest.revision) latest = event;
+    publish(event);
   };
   const clearTimer = () => {
     clearTimeout(timer);
@@ -72,7 +80,7 @@ export function createLivePersistence({
     ++writes;
     const run = async () => {
       emit({ kind: 'writing', revision: input.revision });
-      let result: SaveProjectResult;
+      let result: WriteProjectResult;
       try {
         result = await write(input.document, sourceDigest);
       } catch (error) {
@@ -117,7 +125,7 @@ export function createLivePersistence({
   return {
     id,
     rootPath,
-    digest: () => sourceDigest,
+    status: () => latest,
     hasPending: () => !!(pending || running),
     async matchesDisk(fingerprint: () => Promise<string | null>) {
       while (!disposed) {

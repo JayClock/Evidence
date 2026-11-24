@@ -9,7 +9,7 @@ const setup = (
   const handlers = {
     undo: vi.fn(),
     redo: vi.fn(),
-    save: vi.fn(),
+    flush: vi.fn(),
     openCommandPalette: vi.fn(),
     startStorming: vi.fn(),
     clearSelection: vi.fn(),

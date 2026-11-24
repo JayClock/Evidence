@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 interface ShortcutHandlers {
   undo: () => void;
   redo: () => void;
-  save: () => void;
+  flush: () => void;
   /** Opens commands and business-object search (Mod+Shift+K). */
   openCommandPalette?: () => void;
   startStorming?: () => void;
@@ -66,7 +66,7 @@ export const useEditorShortcuts = (handlers: ShortcutHandlers): void => {
       const typing = isEditable(event.target);
       if (mod && event.key.toLowerCase() === 's') {
         event.preventDefault();
-        handlers.save();
+        handlers.flush();
         return;
       }
 

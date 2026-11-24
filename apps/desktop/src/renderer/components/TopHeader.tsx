@@ -21,10 +21,9 @@ import { McpStatusPill } from './McpStatusPill';
 
 interface TopHeaderProps {
   projectName: string;
-  dirty: boolean;
+  persistence: import('@evidence-poc/desktop-contracts/projects').PersistenceState;
   graph: DomainGraph;
   selection: ModelSelection;
-  onSave: () => void;
   /** Opens the command hub for editor actions and navigation. */
   onOpenCommandPalette: () => void;
   ledgerExport?: { enabled: boolean; onExport: () => void } | undefined;
@@ -34,16 +33,15 @@ interface TopHeaderProps {
 /**
  * The window's title row.
  *
- * Shows the project, selection breadcrumb and document state alongside save,
+ * Shows the project, selection breadcrumb and local file sync state alongside
  * MCP status and the command hub. Search, history, delivery and other editor
  * actions are available through the command hub rather than separate buttons.
  */
 export const TopHeader = ({
   projectName,
-  dirty,
+  persistence,
   graph,
   selection,
-  onSave,
   onOpenCommandPalette,
   ledgerExport,
   healthControl,
@@ -87,14 +85,6 @@ export const TopHeader = ({
         >
           {projectName}
         </span>
-        {dirty ? (
-          <span
-            className="shrink-0 text-evidence-evidence"
-            title="有未保存修改"
-          >
-            *
-          </span>
-        ) : null}
         {breadcrumb !== null ? (
           <span
             className="flex min-w-0 items-center gap-1 text-workbench-muted"
@@ -154,14 +144,15 @@ export const TopHeader = ({
         <AiModelStatusPill />
         <McpStatusPill />
 
-        <Button
-          variant="default"
-          className="rounded-md px-3 text-xs font-medium"
-          onClick={onSave}
-          title="保存到磁盘（Cmd/Ctrl+S）"
-        >
-          保存模型
-        </Button>
+        <span className="shrink-0 rounded-md border border-evidence-line px-2 py-1 text-xs text-evidence-muted">
+          {persistence.kind === 'persisted'
+            ? '模型已写入'
+            : persistence.kind === 'conflict'
+              ? '磁盘模型有变更'
+              : persistence.kind === 'failed'
+                ? '模型写入失败'
+                : '模型正在同步…'}
+        </span>
       </div>
     </header>
   );

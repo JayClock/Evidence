@@ -27,7 +27,7 @@ const artifactTitles = new Map([
 export interface DeliveryHubProps {
   hub: DeliveryHubController;
   projectName: string;
-  dirty: boolean;
+  pendingPersistence: boolean;
   externalChange: boolean;
   sync?: ContextDeliveryStatusEvent['result'] | null;
   onFocusEntity?: (entityRef: string) => void;
@@ -38,7 +38,7 @@ export interface DeliveryHubProps {
 export const DeliveryHub = ({
   hub,
   projectName,
-  dirty,
+  pendingPersistence,
   externalChange,
   sync,
   onClose,
@@ -59,9 +59,9 @@ export const DeliveryHub = ({
       ? '正在投影当前模型…'
       : externalChange
         ? '检测到磁盘变更 · 仍基于编辑会话'
-        : dirty
-          ? '基于未保存的模型草稿'
-          : '基于当前编辑会话';
+        : pendingPersistence
+          ? '画布预览 · 模型尚未写入磁盘'
+          : '当前模型预览';
   const blocked = current
     ? analysis.issues.filter((issue) => issue.severity === 'block').length
     : 0;
