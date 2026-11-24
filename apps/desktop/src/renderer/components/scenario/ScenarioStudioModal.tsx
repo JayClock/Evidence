@@ -1,5 +1,5 @@
 import { projectAcceptanceTests } from '@evidence-poc/evidence-acceptance/projection';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, useSyncExternalStore } from 'react';
 import {
   allowedCallerRoleRefs,
   buildDeliveryRoutes,
@@ -46,7 +46,7 @@ const parseField = (value: string, type: string): unknown => {
   return value;
 };
 
-/** The only persisted suite remains entity examples[].test. A modal edits a snapshot. */
+/** Structurally valid edits go straight into the model. Invalid input remains local to the form. */
 export const ScenarioStudioModal = ({
   session,
   onClose,
@@ -56,7 +56,14 @@ export const ScenarioStudioModal = ({
   onClose: () => void;
   onPlay: (flow: string) => void;
 }) => {
-  const [base, setBase] = useState(() => session.getDocument());
+  const subscribe = useCallback(
+    (notify: () => void) =>
+      session.subscribe((event) => {
+        if (event.type === 'document-changed') notify();
+      }),
+    [session],
+  );
+  const base = useSyncExternalStore(subscribe, session.getDocument);
   const flows = useMemo(
     () =>
       [
@@ -69,15 +76,23 @@ export const ScenarioStudioModal = ({
     [base],
   );
   const [flow, setFlow] = useState(flows[0] ?? '');
-  const [items, setItems] = useState<ScenarioExample[]>(() =>
-    scenarioExamples(base, flows[0] ?? ''),
+  const [input, setInput] = useState<{
+    base: typeof base;
+    flow: string;
+    items: ScenarioExample[];
+    error: string;
+  }>();
+  const incomplete =
+    input?.base === base && input?.flow === flow ? input : undefined;
+  const items = useMemo(
+    () => incomplete?.items ?? scenarioExamples(base, flow),
+    [base, flow, incomplete],
   );
   const [newName, setNewName] = useState('');
   const [selected, setSelected] = useState(0);
   const [entityRef, setEntityRef] = useState('');
   const [notice, setNotice] = useState('');
-  const [dirty, setDirty] = useState(false);
-  const stale = base !== session.getDocument();
+
   const routes = useMemo(() => {
     try {
       return {
@@ -89,13 +104,12 @@ export const ScenarioStudioModal = ({
   }, [base]);
   const candidate = useMemo(() => {
     try {
-      const model = structuredClone(base);
-      if (flow) replaceScenarioExamples(model, flow, items);
-      return { model, results: flow ? evaluateScenario(model, flow) : [] };
+      if (incomplete) return { error: incomplete.error, results: [] };
+      return { model: base, results: flow ? evaluateScenario(base, flow) : [] };
     } catch (error) {
       return { error: message(error), results: [] };
     }
-  }, [base, flow, items]);
+  }, [base, flow, incomplete]);
   const item = items[selected];
   const entity = base.entities.find((e) => e.id === item?.entityRef);
   const route = routes.values.find((r) => r.entityRef === item?.entityRef);
@@ -119,17 +133,29 @@ export const ScenarioStudioModal = ({
         type,
       ) as ModelExampleAST['value'][string];
   };
+  const apply = (targetFlow: string, next: ScenarioExample[]) => {
+    if (base !== session.getDocument()) return;
+    setNotice('');
+    try {
+      session.mutate(
+        (draft) => replaceScenarioExamples(draft, targetFlow, next),
+        '更新业务场景',
+      );
+      setInput(undefined);
+    } catch (error) {
+      setInput({ base, flow: targetFlow, items: next, error: message(error) });
+    }
+  };
   const patch = (change: (example: ModelExampleAST) => void) => {
-    setItems((current) =>
-      current.map((entry, i) => {
+    apply(
+      flow,
+      items.map((entry, i) => {
         if (i !== selected) return entry;
         const next = structuredClone(entry);
         change(next.example);
         return next;
       }),
     );
-    setNotice('');
-    setDirty(true);
   };
   const create = (clone: boolean) => {
     const name = newName.trim();
@@ -137,39 +163,19 @@ export const ScenarioStudioModal = ({
       setNotice('请填写未使用的场景名称。');
       return;
     }
-    setItems(clone ? cloneScenarioExamples(base, flow, name) : []);
+    setInput(undefined);
     setFlow(name);
     setSelected(0);
     setNewName('');
-    setDirty(true);
     setNotice('');
-  };
-  const save = (play: boolean) => {
-    if (stale || !candidate.model || !items.length) return;
-    try {
-      session.mutate(
-        (draft) => replaceScenarioExamples(draft, flow, items),
-        '保存业务场景',
-      );
-      setBase(session.getDocument());
-      setDirty(false);
-      setNotice('场景已写入模型编辑会话；请保存项目落盘。未执行后端验收。');
-      if (play) onPlay(flow);
-    } catch (error) {
-      setNotice(message(error));
-    }
-  };
-  const requestClose = () => {
-    if (dirty)
-      setNotice('还有未保存的场景编辑。请先保存，或点击“丢弃场景编辑”后关闭。');
-    else onClose();
+    if (clone) apply(name, cloneScenarioExamples(base, flow, name));
   };
   const allFlows = flows.includes(flow) || !flow ? flows : [...flows, flow];
   return (
     <Dialog
       open
       onOpenChange={(open) => {
-        if (!open) requestClose();
+        if (!open) onClose();
       }}
     >
       <DialogContent
@@ -179,8 +185,8 @@ export const ScenarioStudioModal = ({
         <header className="space-y-2 border-b p-4">
           <DialogTitle>业务场景推演</DialogTitle>
           <DialogDescription>
-            填表声明多个例子，在本地核对规则，再交给现有 HTTP
-            验收链路。推演不是后端执行。
+            可写入的场景修改会自动同步到本地。无效输入仅留在当前表单，关闭或切换场景后不保留。推演不是
+            HTTP 验收。
           </DialogDescription>
         </header>
         <div className="space-y-2 border-b p-3">
@@ -190,10 +196,9 @@ export const ScenarioStudioModal = ({
               aria-label="当前推演场景"
               className={fieldClass}
               value={flow}
-              disabled={dirty}
               onChange={(e) => {
                 setFlow(e.target.value);
-                setItems(scenarioExamples(base, e.target.value));
+                setInput(undefined);
                 setSelected(0);
                 setNotice('');
               }}
@@ -218,7 +223,6 @@ export const ScenarioStudioModal = ({
           <button
             type="button"
             className={`${fieldClass} ml-2`}
-            disabled={dirty}
             onClick={() => create(false)}
           >
             创建空白场景
@@ -226,7 +230,7 @@ export const ScenarioStudioModal = ({
           <button
             type="button"
             className={`${fieldClass} ml-2`}
-            disabled={!flow || dirty}
+            disabled={!flows.includes(flow)}
             onClick={() => create(true)}
           >
             复制当前场景
@@ -248,7 +252,8 @@ export const ScenarioStudioModal = ({
                 ) ?? 'custom'
               }
               onChange={(e) => {
-                setItems(
+                apply(
+                  flow,
                   items.map((entry) => {
                     const next = structuredClone(entry);
                     next.example.test!.tags = [
@@ -266,7 +271,6 @@ export const ScenarioStudioModal = ({
                     return next;
                   }),
                 );
-                setDirty(true);
               }}
             >
               <option value="custom">自定义</option>
@@ -275,19 +279,6 @@ export const ScenarioStudioModal = ({
               <option value="breach_compensation">补偿场景</option>
             </select>
           </label>
-          {dirty ? (
-            <button
-              type="button"
-              className={`${fieldClass} ml-2`}
-              onClick={() => {
-                setItems(scenarioExamples(base, flow));
-                setDirty(false);
-                setNotice('已丢弃未保存的场景编辑。');
-              }}
-            >
-              丢弃场景编辑
-            </button>
-          ) : null}
         </div>
         <div className="grid min-h-0 flex-1 grid-cols-[200px_1fr_280px] overflow-auto text-[12px]">
           <aside className="space-y-2 border-r p-3">
@@ -330,7 +321,7 @@ export const ScenarioStudioModal = ({
                 );
                 if (!chosen) return;
                 const label = `${flow} · ${base.entities.find((e) => e.id === entityRef)?.label ?? entityRef} · ${items.length + 1}`;
-                setItems([
+                apply(flow, [
                   ...items,
                   {
                     entityRef,
@@ -346,8 +337,6 @@ export const ScenarioStudioModal = ({
                   },
                 ]);
                 setSelected(items.length);
-                setDirty(true);
-                setNotice('');
               }}
             >
               添加步骤
@@ -373,7 +362,8 @@ export const ScenarioStudioModal = ({
                       // Labels are canonical dependency identities: changing a referenced label would orphan later steps.
                       const previous = `${item.entityRef}#${item.example.label}`;
                       const next = `${item.entityRef}#${e.target.value}`;
-                      setItems(
+                      apply(
+                        flow,
                         items.map((entry, i) => {
                           const copy = structuredClone(entry);
                           if (i === selected)
@@ -392,7 +382,6 @@ export const ScenarioStudioModal = ({
                           return copy;
                         }),
                       );
-                      setDirty(true);
                     }}
                   />
                 </label>
@@ -586,9 +575,11 @@ export const ScenarioStudioModal = ({
                   type="button"
                   className={fieldClass}
                   onClick={() => {
-                    setItems(items.filter((_, i) => i !== selected));
+                    apply(
+                      flow,
+                      items.filter((_, i) => i !== selected),
+                    );
                     setSelected(0);
-                    setDirty(true);
                   }}
                 >
                   删除当前步骤
@@ -630,32 +621,19 @@ export const ScenarioStudioModal = ({
           </aside>
         </div>
         <footer className="space-y-2 border-t p-3 text-[12px]">
-          {stale ? (
-            <p role="alert">
-              模型已改变（含撤销／外部修改）；请关闭并重新打开，避免覆盖新版本。
-            </p>
-          ) : null}
           <div className="flex gap-2">
             <button
               type="button"
               className={fieldClass}
-              disabled={stale || !candidate.model || !items.length}
-              onClick={() => save(false)}
+              disabled={!!incomplete || !candidate.model || !items.length}
+              onClick={() => onPlay(flow)}
             >
-              保存场景到模型
+              放映当前场景
             </button>
             <button
               type="button"
               className={fieldClass}
-              disabled={stale || !candidate.model || !items.length}
-              onClick={() => save(true)}
-            >
-              保存并放映
-            </button>
-            <button
-              type="button"
-              className={fieldClass}
-              disabled={stale || !candidate.model || !items.length}
+              disabled={!!incomplete || !candidate.model || !items.length}
               onClick={() => {
                 try {
                   const scoped = structuredClone(candidate.model!);
@@ -666,7 +644,7 @@ export const ScenarioStudioModal = ({
                       );
                   const result = projectAcceptanceTests(scoped);
                   setNotice(
-                    `可生成 ${result.flows.reduce((n, f) => n + f.steps.length, 0)} 步 HTTP 验收；保存后可用 evidence export --tests 导出 Bruno 集合。尚未运行后端。`,
+                    `可生成 ${result.flows.reduce((n, f) => n + f.steps.length, 0)} 步 HTTP 验收；模型同步后自动生成 Bruno 集合。尚未运行后端。`,
                   );
                 } catch (error) {
                   setNotice(`验收投影尚未就绪：${message(error)}`);
@@ -675,7 +653,7 @@ export const ScenarioStudioModal = ({
             >
               检查 HTTP 验收投影
             </button>
-            <button type="button" className={fieldClass} onClick={requestClose}>
+            <button type="button" className={fieldClass} onClick={onClose}>
               关闭场景工作台
             </button>
           </div>

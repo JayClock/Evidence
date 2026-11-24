@@ -3,8 +3,8 @@
 Nx project: `desktop-feature-delivery`; package: `@evidence-poc/desktop-feature-delivery`.
 
 Owns the delivery hub, incremental diff panel and read-only preview hook.
-Preview revision guards, the opening baseline and the automatic delivery status
-subscription live for the editor lifetime, not the dialog lifetime.
+Preview revision guards and the opening baseline live for the editor lifetime,
+not the dialog lifetime. The application supplies persisted artifact status.
 
 ```tsx
 const delivery = useDeliveryHub(desktopApi.projects, rootPath, session, baseDocument);
@@ -12,10 +12,10 @@ const delivery = useDeliveryHub(desktopApi.projects, rootPath, session, baseDocu
 return <DeliveryHub hub={delivery} sync={currentSyncResult} {...presentationProps} />;
 ```
 
-The hook uses `deliveryLivePreview` and `onDeliveryStatus` from the typed project
-IPC API. It does not write files or invoke a directory picker. Main listens to
-accepted editor revisions independently of the hub and syncs the validated
-context artifacts. The full authoring preview can differ from the synced subset.
+The hook uses only the read-only `deliveryLivePreview` IPC. Main syncs validated
+context artifacts and acceptance cases from confirmed disk revisions, regardless
+of whether the hub is open. The full authoring preview can differ from the
+synced API subset.
 
 ```bash
 pnpm exec nx run-many -t test,typecheck,lint -p desktop-feature-delivery

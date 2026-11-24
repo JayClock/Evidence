@@ -200,7 +200,7 @@ describe('EditorScreen', () => {
     expect(api.calls.persistence).toHaveLength(0);
   });
 
-  it('opens swimlanes and saves a scenario into the story pipeline', async () => {
+  it('syncs scenario edits without a save button and can play the same scenario', async () => {
     const api = readyProject();
     api.story.load = vi.fn(async ({ document, preferredFlowId }) =>
       storySnapshot(collectFlowScenarios(document!), preferredFlowId),
@@ -231,7 +231,17 @@ describe('EditorScreen', () => {
     fireEvent.change(screen.getByLabelText('签署时间'), {
       target: { value: '2026-01-01T00:00:00Z' },
     });
-    fireEvent.click(screen.getByRole('button', { name: '保存并放映' }));
+    const submitted = api.calls.persistence.length;
+    expect(
+      api.calls.persistence
+        .at(-1)
+        ?.document.entities.find(({ id }) => id === 'evidence.contract')
+        ?.examples?.[0],
+    ).toMatchObject({
+      value: { signed_at: '2026-01-01T00:00:00Z' },
+      test: { flow: '正常签约案例' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '放映当前场景' }));
     await waitFor(() =>
       expect(api.story.load).toHaveBeenCalledWith(
         expect.objectContaining({ preferredFlowId: '正常签约案例' }),
@@ -239,7 +249,7 @@ describe('EditorScreen', () => {
     );
     expect(screen.queryByRole('dialog', { name: '业务场景推演' })).toBeNull();
     expect(screen.getByLabelText('选择业务流')).toHaveValue('正常签约案例');
-    expect(api.calls.persistence).toHaveLength(1);
+    expect(api.calls.persistence).toHaveLength(submitted);
   });
   it('opens canvas storming from the directory without submitting an empty business example', async () => {
     const api = readyProject();

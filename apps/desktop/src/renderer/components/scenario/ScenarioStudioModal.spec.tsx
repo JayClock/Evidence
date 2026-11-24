@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import {
   createModelSession,
   scenarioExamples,
@@ -28,7 +28,7 @@ const setup = () => {
 };
 
 describe('ScenarioStudioModal', () => {
-  it('clones, edits and saves inline examples for the existing story player', () => {
+  it('clones and edits inline examples immediately for the story player', () => {
     const props = setup();
     render(<ScenarioStudioModal {...props} />);
     fireEvent.change(screen.getByLabelText('新场景名称'), {
@@ -41,30 +41,35 @@ describe('ScenarioStudioModal', () => {
     fireEvent.change(screen.getByLabelText('业务时刻'), {
       target: { value: '2026-01-02T00:00:00Z' },
     });
-    fireEvent.click(screen.getByRole('button', { name: '保存并放映' }));
-    expect(props.onPlay).toHaveBeenCalledWith('合同变更案例');
     const cases = scenarioExamples(props.session.getDocument(), '合同变更案例');
     expect(cases[0].example.value.signed_at).toBe('2026-01-02T00:00:00Z');
     expect(
       scenarioExamples(props.session.getDocument(), '正常购买')[0].example.value
         .signed_at,
     ).toBe('2026-01-01T00:00:00Z');
-    expect(props.session.undo()).toBe(true);
-    expect(
-      scenarioExamples(props.session.getDocument(), '合同变更案例'),
-    ).toHaveLength(0);
+    fireEvent.click(screen.getByRole('button', { name: '放映当前场景' }));
+    expect(props.onPlay).toHaveBeenCalledWith('合同变更案例');
+    act(() => {
+      expect(props.session.undo()).toBe(true);
+    });
+    expect(screen.getByLabelText('业务时刻')).toHaveValue(
+      '2026-01-01T00:00:00Z',
+    );
   });
-  it('does not overwrite a newer session revision or fabricate old-model scenarios', () => {
+  it('drops invalid buffer input on a newer revision and never fabricates scenarios', () => {
     const props = setup();
     const view = render(<ScenarioStudioModal {...props} />);
-    props.session.mutate((d) => {
-      d.manifest.name = 'new revision';
+    fireEvent.change(screen.getByLabelText('业务时刻'), {
+      target: { value: 'invalid' },
     });
-    view.rerender(<ScenarioStudioModal {...props} />);
-    expect(
-      screen.getByRole('button', { name: '保存场景到模型' }),
-    ).toBeDisabled();
-    expect(screen.getByRole('alert')).toHaveTextContent('模型已改变');
+    act(() =>
+      props.session.mutate((d) => {
+        d.manifest.name = 'new revision';
+      }),
+    );
+    expect(screen.getByLabelText('业务时刻')).toHaveValue(
+      '2026-01-01T00:00:00Z',
+    );
     view.unmount();
     render(
       <ScenarioStudioModal
@@ -73,9 +78,7 @@ describe('ScenarioStudioModal', () => {
       />,
     );
     expect(screen.getByText(/没有自动生成的业务事实/)).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: '保存场景到模型' }),
-    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: '放映当前场景' })).toBeDisabled();
   });
   it('keeps incomplete clocks in the form and refuses serialization until fixed', () => {
     const props = setup();
@@ -83,15 +86,23 @@ describe('ScenarioStudioModal', () => {
     fireEvent.change(screen.getByLabelText('业务时刻'), {
       target: { value: 'tomorrow' },
     });
-    expect(
-      screen.getByRole('button', { name: '保存场景到模型' }),
-    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: '放映当前场景' })).toBeDisabled();
     expect(screen.getByLabelText('业务时刻')).toHaveValue('tomorrow');
+    expect(
+      scenarioExamples(props.session.getDocument(), '正常购买')[0]?.example.test
+        ?.asOf,
+    ).toBe('2026-01-01T00:00:00Z');
+    fireEvent.click(screen.getByRole('button', { name: '关闭场景工作台' }));
+    expect(props.onClose).toHaveBeenCalledOnce();
     fireEvent.change(screen.getByLabelText('业务时刻'), {
       target: { value: '2026-01-03T00:00:00Z' },
     });
     expect(
-      screen.getByRole('button', { name: '保存场景到模型' }),
+      screen.getByRole('button', { name: '放映当前场景' }),
     ).not.toBeDisabled();
+    expect(
+      scenarioExamples(props.session.getDocument(), '正常购买')[0]?.example.test
+        ?.asOf,
+    ).toBe('2026-01-03T00:00:00Z');
   });
 });

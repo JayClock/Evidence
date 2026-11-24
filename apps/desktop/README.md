@@ -39,9 +39,8 @@ nx make desktop         # installers in apps/desktop/out/make
   grid and scenario actions.
 - Use **实体属性检查** in the right pane to edit the selected object. **返回画布**
   returns keyboard focus without dropping the selection. **Alt+L** opens the
-  selected entity’s field ledger. Applying an edited CEL invariant updates the
-  current model and can be undone; passing the inline syntax/reference check
-  does not imply the model passed the gate. **Cmd/Ctrl+Shift+R** reruns checks.
+  selected entity’s field ledger. **Cmd/Ctrl+Shift+R** checks the current canvas;
+  automatic checks run after its edits reach disk.
 
 ## AI configuration
 
@@ -144,24 +143,33 @@ a library's `/browser` entry whenever a Node-only adapter exists.
 ## Data flow
 
 ```text
-.evidence/model  ──readModelDirectory──▶  ProjectStore.main
-      ▲                                     │ IPC: project:open
-      │ writeModelDirectory                 ▼
-      └──────── project:save ──────  ModelSession (renderer)
-                                            │ dispatch(command)
-                                            ▼
-                                    DomainGraph → computeSwimlaneLayout → canvas
+.evidence/model ── project open ──▶ ModelSession (renderer)
+                                           │ document changes, undo/redo, AI patches
+                                           ▼
+                      main-process queue (fixed 400 ms debounce)
+                                           │ recorded source revision and disk digest
+                                           ▼
+.evidence/model ◀── serialized writes ── verified disk revision
+                                           ├─ context API drafts (.evidence/delivery)
+                                           ├─ in-process diagnostics
+                                           └─ Bruno collection (.evidence/acceptance)
 ```
 
-- Every edit is a command with an inverse, so `Cmd/Ctrl+Z` and the canvas never
-  disagree.
-- `project:save` rewrites only changed files through a temp file plus atomic
-  rename; unchanged files stay byte-identical, which keeps `git diff` quiet.
-- A debounced watcher on `.evidence/model` reports external writes (Git checkout,
-  agent, script) and the status bar offers a reload instead of silently
-  overwriting.
-- The renderer sees only `window.evidenceAPI` (open, save, recent, dialog,
-  changed); there is no `ipcRenderer`, `fs` or Node access.
+- There is no Save button. `Cmd/Ctrl+S` flushes queued edits immediately or
+  regenerates artifacts for an already persisted model. Normal close and quit
+  drain writes; an actual failure keeps the editor open for retry or reload.
+- Writes use temporary files and per-file atomic replacement, not a transaction
+  over the whole model tree. Unchanged file bytes stay unchanged. Disk digests
+  distinguish self-writes from external changes. The status bar reports
+  conflicts without interrupting typing; writes pause until **从磁盘重载** adopts
+  the external version and discards queued local edits.
+- Unfinished CEL in a structurally valid model can be written. Failed diagnostics
+  or blocked API/acceptance projections do not roll back that model. Blocked
+  context files and the previous Bruno collection are not marked current.
+  Only draft APIs and generated acceptance files are updated; no API release
+  or HTTP tests run automatically.
+- The renderer sees only the typed `window.evidenceAPI`; it has no `fs`, Node,
+  or raw Electron IPC access.
 
 ## Interaction contract
 
@@ -206,8 +214,8 @@ Canvas storming / node inquiry ──▶ agentRuntime (main) via agent:prompt
                                     │
                                     ▼
                 agent:patch-committed ──▶ ModelSession (renderer undo history)
-                sensor:model-changed  ──▶ debounced sensors (human edits)
-                sensor:report         ──▶ status bar + diagnostics
+                document-changed    ──▶ main persistence queue (all edits)
+                persisted revision  ──▶ diagnostics and derived files
 ```
 
 - The renderer never receives stored model credentials. During a turn, local
@@ -223,8 +231,8 @@ Canvas storming / node inquiry ──▶ agentRuntime (main) via agent:prompt
   shut.
 - Modeling turns run one at a time. A node inquiry shows reasoning, tool activity
   and its patch review on the card. Storming patches and reviews whose inquiry
-  closed are shown in a canvas banner. Applying the review keeps the committed
-  edits; undo takes the latest edit back. Saving remains explicit.
+  closed are shown in a canvas banner. Keeping a patch leaves its edits in
+  place; reverting or undoing it produces another automatically synced edit.
 
 ## Key data, CEL and fulfillment editing (phase 4)
 
@@ -235,10 +243,11 @@ Canvas storming / node inquiry ──▶ agentRuntime (main) via agent:prompt
   term, domain source, negotiation source, result fact, request formation input,
   derived rule — or "decision owed". Nothing is stored for it; the badge is derived
   from the model, so it cannot drift from the ledger.
-- The inline CEL editor completes aliases and attributes from the graph and
-  pre-checks unbalanced brackets, undeclared identifiers and unknown attributes
-  while typing. The sensor engine stays the authority; the editor only prevents
-  obviously broken rules from being saved.
+- CEL invariants are displayed in the inspector. The sensor engine reports
+  syntax and reference problems independently of model persistence.
+- **业务场景推演** applies structurally valid edits directly to the model. Invalid
+  form input (such as an incomplete timestamp) is kept in the form only, and
+  does not prevent closing or switching scenarios.
 - A `fulfillment_request` exposes its completion condition, the confirmation that
   decides it and the breach condition. Pairing only offers confirmations in the
   same Contract Context, and a rejected guard is shown in the panel instead of
