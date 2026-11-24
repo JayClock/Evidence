@@ -17,7 +17,6 @@ export async function diffCommand(
   if (format !== 'json' && format !== 'markdown')
     throw new Error('--format must be json or markdown');
   const result = await runDiff({
-    command: 'diff',
     base: openWorkspace(path.resolve(context.cwd, base)).model,
     target: openWorkspace(path.resolve(context.cwd, target)).model,
     format,

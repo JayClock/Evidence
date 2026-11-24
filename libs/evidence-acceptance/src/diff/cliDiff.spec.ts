@@ -19,7 +19,6 @@ it('compares model directories as JSON or Markdown without touching inputs', asy
     const manifest = path.join(target, 'model.json');
     const original = readFileSync(manifest, 'utf8');
     const options = {
-      command: 'diff',
       base: root,
       target,
       format: 'json',
@@ -33,20 +32,6 @@ it('compares model directories as JSON or Markdown without touching inputs', asy
     });
     const summary = await runDiff({ ...options, format: 'markdown' });
     expect(typeof summary.output).toBe('string');
-    const overlay = path.join(directory, 'overlay.json');
-    writeFileSync(
-      overlay,
-      JSON.stringify({
-        routes: [
-          { id: 'route.sign.contract.product-procurement', path: '/contracts' },
-        ],
-      }),
-    );
-    const broken = await runDiff({ ...options, api: overlay });
-    expect(broken.exitCode).toBe(1);
-    expect(broken.output).toMatchObject({
-      hasBreakingChanges: true,
-    });
     expect(readFileSync(manifest, 'utf8')).toBe(original);
     document.manifest.id = 'other';
     await writeModelDirectory(target, document);
@@ -63,7 +48,6 @@ it('returns a tool failure distinct from a breaking change', async () => {
   try {
     const root = `${API_FIXTURES}full-lifecycle/fm`;
     const result = await runDiff({
-      command: 'diff',
       base: root,
       target: root,
       format: 'json',
@@ -76,18 +60,13 @@ it('returns a tool failure distinct from a breaking change', async () => {
   }
 });
 
-it('refuses relative diff paths', async () => {
+it.each([
+  ['', 'API_DIFF_INPUT_REQUIRED: base'],
+  ['relative', 'PATH_NOT_ABSOLUTE: base must be an absolute path'],
+])('refuses an invalid diff base %j', async (base, error) => {
   expect(
-    await runDiff({
-      command: 'diff',
-      base: 'relative',
-      target: path.resolve('target'),
-      format: 'json',
-    }),
-  ).toMatchObject({
-    exitCode: 2,
-    error: expect.stringContaining('PATH_NOT_ABSOLUTE'),
-  });
+    await runDiff({ base, target: path.resolve('target'), format: 'json' }),
+  ).toEqual({ exitCode: 2, error, output: null });
 });
 
 it('compares exported service contracts without re-projecting them', async () => {
@@ -103,7 +82,13 @@ it('compares exported service contracts without re-projecting them', async () =>
       base,
       outputs['services/service.product-procurement/openapi.json']!,
     );
-    const options = { command: 'diff', base, target, format: 'json' } as const;
+    const options = { base, target, format: 'json' } as const;
+    expect(
+      await runDiff({ ...options, target: `${API_FIXTURES}full-lifecycle/fm` }),
+    ).toMatchObject({
+      exitCode: 2,
+      error: expect.stringContaining('API_DIFF_INPUT_MISMATCH'),
+    });
     expect(await runDiff({ ...options, target: base })).toMatchObject({
       exitCode: 0,
       output: { hasBreakingChanges: false },

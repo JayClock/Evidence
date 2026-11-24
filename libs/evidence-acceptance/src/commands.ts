@@ -3,8 +3,6 @@ import path from 'node:path';
 import {
   buildProjection,
   diagnosticToJson,
-  hasErrors,
-  loadDesign,
   loadModel,
 } from '@evidence-poc/evidence-api';
 import {
@@ -14,12 +12,9 @@ import {
 import { OasdiffError } from './diff/oasdiffRunner.js';
 
 export interface DiffCliOptions {
-  command: 'diff';
   base: string;
   target: string;
   format: 'json' | 'markdown';
-  baseApi?: string;
-  api?: string;
 }
 
 export interface CliResult {
@@ -47,21 +42,17 @@ const readOpenApiArtifact = (
 };
 
 export const runDiff = async (options: DiffCliOptions): Promise<CliResult> => {
-  for (const [value, name, required] of [
-    [options.base, 'base', true],
-    [options.target, 'target', true],
-    [options.baseApi, 'base-api', false],
-    [options.api, 'api', false],
-  ] as const) {
-    if (value === undefined) {
-      if (required)
-        return { output: null, error: `--${name} 是必需的`, exitCode: 2 };
-    } else if (value === '')
-      return { output: null, error: `--${name} 是必需的`, exitCode: 2 };
-    else if (!path.isAbsolute(value))
+  for (const name of ['base', 'target'] as const) {
+    if (!options[name])
       return {
         output: null,
-        error: `PATH_NOT_ABSOLUTE: --${name} 必须使用绝对路径`,
+        error: `API_DIFF_INPUT_REQUIRED: ${name}`,
+        exitCode: 2,
+      };
+    if (!path.isAbsolute(options[name]))
+      return {
+        output: null,
+        error: `PATH_NOT_ABSOLUTE: ${name} must be an absolute path`,
         exitCode: 2,
       };
   }
@@ -72,10 +63,6 @@ export const runDiff = async (options: DiffCliOptions): Promise<CliResult> => {
       if (baseArtifact === undefined || targetArtifact === undefined)
         throw new Error(
           'API_DIFF_INPUT_MISMATCH: 基线和目标必须同为模型或 OpenAPI JSON',
-        );
-      if (options.baseApi !== undefined || options.api !== undefined)
-        throw new Error(
-          'API_DIFF_OVERLAY_INVALID: 已导出的契约不能再应用覆盖文件',
         );
       const diff = await compareOpenApiContracts(baseArtifact, targetArtifact);
       return {
@@ -95,23 +82,8 @@ export const runDiff = async (options: DiffCliOptions): Promise<CliResult> => {
         },
         exitCode: 2,
       };
-    const overlays = [options.baseApi, options.api].map((file) =>
-      file === undefined ? undefined : loadDesign(file),
-    );
-    const invalid = overlays.flatMap((overlay) => overlay?.diagnostics ?? []);
-    if (hasErrors(invalid))
-      return {
-        output: { valid: false, diagnostics: invalid.map(diagnosticToJson) },
-        exitCode: 2,
-      };
-    const before = buildProjection({
-      index: base.index,
-      ...(overlays[0]?.design == null ? {} : { design: overlays[0].design }),
-    }).projection;
-    const after = buildProjection({
-      index: target.index,
-      ...(overlays[1]?.design == null ? {} : { design: overlays[1].design }),
-    }).projection;
+    const before = buildProjection({ index: base.index }).projection;
+    const after = buildProjection({ index: target.index }).projection;
     const diff = await compareContracts(before, after);
     return {
       output: options.format === 'json' ? diff : diff.changelog,

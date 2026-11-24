@@ -76,12 +76,13 @@ command targets that build the unified CLI first. `evidence-api:export-openapi`
 exports only the aggregate contract. The root shortcuts are `pnpm evidence:diff`
 and `pnpm evidence:export`.
 
-`evidence diff` defaults to Markdown; use `--format json` for automation. WARN/ERR
-findings block the compatibility gate. For model comparisons with overlays, use
-`runDiff({ command: 'diff', base, target, baseApi, api, format })` with absolute
-paths. `runDiff` returns `0` (compatible), `1` (breaking) or `2` (invalid input or
-tool failure). The CLI exits nonzero for both types of failure; check its output
-for the verdict and diagnostics.
+`evidence diff` compares two workspace roots and defaults to Markdown; use
+`--format json` for automation. WARN/ERR findings block the compatibility gate.
+`runDiff({ base, target, format })` takes absolute paths to two model directories
+or two OpenAPI JSON files of the same scope. To compare contracts generated with
+overlays, pass the resulting OpenAPI files. `runDiff` returns `0` (compatible),
+`1` (breaking) or `2` (invalid input or tool failure). The CLI exits nonzero
+for both types of failure; check its output for the verdict and diagnostics.
 
 Static checks and compatibility only describe the declared surface: they do not
 prove that a backend implements CEL semantics, role authorization or fulfillment
