@@ -5,16 +5,24 @@ description: Zod 定义的 FM v6 AST、跨对象语义约束和稳定诊断，�
 tags: [fm, dsl, schema, entities, rules, validation, vocabulary, zod]
 verified:
   - by: openwiki/0.9.0
-    at: 2026-11-20T12:30:09.424Z
+    at: 2026-11-24T13:07:09.861Z
 sources:
-  - id: openwiki-source-848e24844e664baadc8329eb
-    resource: repo://libs/evidence-canvas-interaction/src/engine/layoutEngine.ts
+  - id: openwiki-source-64a2b18876b184e07c424672
+    resource: repo://apps/cli/src/commands/model.ts
+  - id: openwiki-source-7bb156d03ddba2cff4399f8b
+    resource: repo://apps/desktop/src/main/projectIpc.ts
+  - id: openwiki-source-7048814eb39f8b8ebff8b02b
+    resource: repo://libs/evidence-canvas-interaction/src/engine/journeyStages.ts
   - id: openwiki-source-b4abb2821db0f045818014a1
     resource: repo://libs/evidence-model-core/src/session/createModelSession.ts
+  - id: openwiki-source-9008514a60858ff717f539ab
+    resource: repo://libs/evidence-model-core/src/validation/fmCheck.ts
   - id: openwiki-source-bb6561cac02f8a21961ea926
     resource: repo://libs/evidence-model-core/src/validation/scope.ts
-  - id: openwiki-source-88a3cc6d22f70a1b93ada22f
-    resource: repo://libs/evidence-model-io/src/commands.ts
+  - id: openwiki-source-4fa503355d9f3a8084bea718
+    resource: repo://libs/evidence-model-io/src/adapters/modelRoot.ts
+  - id: openwiki-source-e399a918ad3d695b7f506627
+    resource: repo://libs/evidence-model-io/src/workspace.ts
   - id: openwiki-source-dd948eb74e58734da3b37ea9
     resource: repo://libs/evidence-schema/package.json
   - id: openwiki-source-75b4a800cf064015957f9321
@@ -43,20 +51,20 @@ sources:
     resource: repo://libs/evidence-schema/src/validation/strictValidate.ts
   - id: openwiki-source-976e28bc7b01588161a1f7bd
     resource: repo://libs/evidence-schema/src/vocabulary.ts
-generated: { by: "pi", at: "2026-11-20T12:30:09.424Z" }
+generated: { by: "pi", at: "2026-11-24T13:07:09.861Z" }
 ---
 
 # FM v6 语言与严格契约
 
-FM 以权责、请求/确认、事实与边界建模，不是 CRUD 表清单。`libs/evidence-schema` 是语言入口：AST 的 **Zod schemas 是运行时权威，类型由 z.infer 推导**；随包 JSON Schemas 是外部合同，不再以手写 validator 维护另一套字段集合。
+FM 以权责、请求/确认、事实与边界建模，不是 CRUD 表清单。`libs/evidence-schema` 是语言入口：AST 的 **Zod schemas 是运行时权威，类型由 z.infer 推导**；随包 JSON Schemas 是外部合同。
 
 ## 文档与标识符
 
-DomainModelDocument 是 manifest + entities/relationships/rules 三平集合，可携 portable envelope 的 type=fm_bundle/schemaVersion=6.0/readme。manifest strict：type=fm_model、schemaVersion=6.0、ruleLanguage=CEL、非空 name、semver、非空且唯一 entryContextRefs，每项必须是 Context；可选 description 与私有 sourceDocument（协议全文及条款字符范围）。旧 validation/scenario/instance 顶层不是兼容扩展，拒绝。
+DomainModelDocument 是 manifest + entities/relationships/rules 三平集合，和可选 `readme`，磁盘形态为 `.evidence/model/` 下的文件树。manifest strict：type=fm_model、schemaVersion=6.0、ruleLanguage=CEL、非空 name、semver、非空且唯一 entryContextRefs，每项必须是 Context；可选 description 与私有 sourceDocument（协议全文及条款字符范围）。未知字段由严格语法拒绝。
 
 ID 为小写字母开头的点/横线分段；属性 lower_snake_case；CEL alias为字母/下划线开头；version按semver grammar。ID跨实体/关系/规则全局唯一，重复对象报id.duplicate且不替换首次索引。VALUE_TYPES 包含CEL scalar和decimal/date/money/enum/id/list/map/dynamic等业务便利类型。
 
-closed vocab按落盘字符串只声明一次，vocabularyIds/Labels/Field/guard派生顺序与展示标签；声明顺序是阅读顺序，不是当前ELK画布的硬编码泳道。
+closed vocab按落盘字符串只声明一次，vocabularyIds/Labels/Field/guard派生顺序与展示标签；声明顺序是阅读顺序，不等于画布布局算法。
 
 ## 四类实体与业务时间
 
@@ -99,15 +107,15 @@ derivation可产生任意合法resultType且必须target；precondition/invarian
 
 `strictValidateDomainModel` safeParse → mapZodIssues → dedupeIssues；成功不归一化/修改调用者输入。映射器把Zod union/unrecognized_keys/refinement转为既有closed ValidationCode、pointer-like path、message、可选objectId，去重code/path/message。assertValidDomainModel抛携同issues的DomainModelValidationError。
 
-旧ENTITY_KEYS/validateNonContextEntity大函数已移除，category-specific结构键限制直接在Zod branch表达，再由documentSemantics补跨引用检查。语法错误时不保证继续遍历所有不安全图对象；不要要求旧手写validator的执行顺序作为公开契约。
+分类字段约束在 Zod branch 中表达，跨引用由 documentSemantics 校验。语法错误时不保证遍历不安全的图对象。
 
-静态gate被FM check、compile/lineage、API projection、可选validateOnDispatch复用。渐进会话默认不强制静态全有效，projectStore.save也不等同门禁；用户可以保存半建模型，但正式交付拒绝。scope完整性、key-data provider、CEL、HTTP实现为独立问题。
+静态gate被FM check、compile/lineage、API projection、可选validateOnDispatch复用。渐进会话默认不强制静态全有效，落盘也不等同门禁；用户可以保存半建模型，但正式交付拒绝。scope完整性、key-data provider、CEL、HTTP实现为独立问题。
 
 ## 阅读词汇不是新实体
 
-lifecycle stages=rfp/proposal/contract/fulfillment，schema helpers按kind/Context内容推导；角色/参与者无自己的stage，other_evidence继承Context。topology 使用 ELK，另有独立四阶段业务泳道模式；布局不改变实体语义。clause分business→evidence、domain→domain-thing、boilerplate→none；annotation保留原句/理由，计算可另标computesValue。
+lifecycle stages=rfp/proposal/contract/fulfillment，schema helpers按kind/Context内容推导；角色/参与者无自己的stage，other_evidence继承Context。画布使用四阶段业务泳道；布局不改变实体语义。clause分business→evidence、domain→domain-thing、boilerplate→none；annotation保留原句/理由，计算可另标computesValue。
 
-业务阶段词表定义画布的阅读顺序；凭证可声明 `stage`，固定凭证类型的显式阶段须与 kind 一致。旧七步工作坊词表已移除。
+业务阶段词表定义画布的阅读顺序；凭证可声明 `stage`，固定凭证类型的显式阶段须与 kind 一致。
 
 sourceSnippet 可选保存 text/locator/source(contract/prd/interview/blueprint/unknown)、clauseIndex 与成对 charStart/charEnd；范围必须与 UTF-16 snippet 长度一致。manifest.sourceDocument 的条款须顺序连续且精确匹配原文切片。它们是建模来源记录，不是运行时授权或 key-data provider 证据，也不进入公开 API/故事模型投影。
 

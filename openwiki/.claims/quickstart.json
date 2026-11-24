@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:2cf4ece994a3a5573071483a60096866209b24adb092c06b61b5ebabb7c46114",
+  "pageVersion": "sha256:8416d2be32f9f399572c40845219052cbfe95ff9b8ddaaae7439bae5e222b8ae",
   "claims": [
     {
       "id": "claim_df5076f9176f4575a1cdc338083b09af",
@@ -8,7 +8,7 @@
       "evidence": [
         {
           "resource": "repo://libs/evidence-schema/src/ast/document.ts",
-          "version": "repo-file-v1:sha256:803725e8b11f40c9f87e727283a1226fe1c8ca14dfd81fe0de1fa6595e0a2043"
+          "version": "repo-file-v1:sha256:83ad812514f0b60c00cf089890de7e9c00669a462d412835afdcba5fd12e9ee7"
         },
         {
           "resource": "repo://libs/evidence-schema/src/ast/entity.ts",
@@ -26,7 +26,7 @@
       "evidence": [
         {
           "resource": "repo://ENVIRONMENT.md",
-          "version": "repo-file-v1:sha256:a8c1769c6a0b51335454dda7b9979dc1974de07457780adada955c01a74d074f"
+          "version": "repo-file-v1:sha256:958191ae932f93cd455a2eb06391dad16f42e2273b8408e51aba7f845c6acf07"
         },
         {
           "resource": "repo://tsconfig.json",
@@ -36,43 +36,47 @@
     },
     {
       "id": "claim_7c9ffac9c63e4f818c486866b5d9b699",
-      "statement": "build/test/lint根脚本是Nx wrappers，evidence/model/api根入口现在走apps/cli/dist。",
+      "statement": "根 build/test/lint 经 Nx 分发，统一 evidence CLI 由 apps/cli/dist 提供，根脚本也可快捷调用 inspect/export/diff。",
       "evidence": [
         {
+          "resource": "repo://apps/cli/package.json",
+          "version": "repo-file-v1:sha256:d2ca0caf923736c9567219fb3ade2e92c22afe1983df6b171b147a8e3646f20e"
+        },
+        {
           "resource": "repo://package.json",
-          "version": "repo-file-v1:sha256:dede372592c0b80c3094dc143616b53ebdaa0cb7ed395730fca230ae6813845d"
+          "version": "repo-file-v1:sha256:f84a2c22acac2b3f6be85de2e51aaf810ba83e49054580ba9a457767a4994085"
         }
       ]
     },
     {
       "id": "claim_5459532c7dd14872b01db4dc7c3a7338",
-      "statement": "项目用树/Bundle携同一FM模型与内联examples，指令/schema/assets随库安装，不从working copy发现；legacy validation不再支持。",
+      "statement": "工作区以 .evidence/model 目录树承载模型与内联示例；桌面使用随应用发布的建模提示和 schema。",
       "evidence": [
         {
-          "resource": "repo://AGENTS.md",
-          "version": "repo-file-v1:sha256:285207093780af1f6bd8b1971f24af26774959c5097cc48d0c4654b9da4450c2"
+          "resource": "repo://ENVIRONMENT.md",
+          "version": "repo-file-v1:sha256:958191ae932f93cd455a2eb06391dad16f42e2273b8408e51aba7f845c6acf07"
         },
         {
-          "resource": "repo://libs/evidence-model-core/src/adapters/modelBundle.ts",
-          "version": "repo-file-v1:sha256:c2250d3e9d6cfb8cf4791e843421111b43c426c966fced6c1e3eae51b95b5227"
+          "resource": "repo://libs/evidence-model-core/src/adapters/modelSourceFiles.ts",
+          "version": "repo-file-v1:sha256:f6da45308e69b717104067aaad0f0a36a43e05cd15e832cc729a0a618a8823dd"
+        },
+        {
+          "resource": "repo://libs/evidence-model-io/src/workspace.ts",
+          "version": "repo-file-v1:sha256:038a55dd5a2af71ac32eed5f2c5bfaa445ba6a4ff6eb5d6a9dbb79f1843d0939"
         }
       ]
     },
     {
       "id": "claim_40a52e6231ba417781694bf15cae60b7",
-      "statement": "统一 evidence 提供模型、故事、导出、验收、比较和兼容 API 入口；验收导出只有 Bruno 且无 format 参数，test 接收生成目录；旧 review 与内存回放不再支持。",
+      "statement": "统一 evidence CLI 提供工作区、模型、故事、导出、验收与比较；HTTP 验收读取工作区的 Bruno 集合。",
       "evidence": [
         {
           "resource": "repo://apps/cli/src/commands/test.ts",
-          "version": "repo-file-v1:sha256:072ca01efd658a6d448bf13eed92710e28c49d4176399f057877cb54748570f2"
+          "version": "repo-file-v1:sha256:80620bbe61a4450b690f2ead91d85764b387a2d65e1a69c95ed8a51b5c8dd792"
         },
         {
           "resource": "repo://apps/cli/src/router.ts",
-          "version": "repo-file-v1:sha256:12df98860edbedbda118b33e8783bf746f9a70c5580641369b27d28c75ad2302"
-        },
-        {
-          "resource": "repo://libs/evidence-model-io/src/legacyRemoval.spec.ts",
-          "version": "repo-file-v1:sha256:de46689fbfa0c37fd81f1b5e76489ccbbddd991765cab677d3725a99daeaf89f"
+          "version": "repo-file-v1:sha256:3ba75dcdd18e4b4bf904a3db79841c21fdf4bb5378f894a18d404bc82436069a"
         }
       ]
     },
@@ -82,7 +86,7 @@
       "evidence": [
         {
           "resource": "repo://apps/cli/src/commands/check.ts",
-          "version": "repo-file-v1:sha256:b27f4a63b2f27fa40ca0c8436a95a153d9f9e816ac6b5305e1617ac758a5849c"
+          "version": "repo-file-v1:sha256:2db338ded3d58254e8ffbb1bdd6cad82c75919427ac73376cfe2cc6c31517c6a"
         },
         {
           "resource": "repo://libs/evidence-model-core/src/validation/fmCheck.ts#L9-L27",
@@ -91,54 +95,58 @@
       ]
     },
     {
-      "id": "claim_4e4a2918120641138156a094c9fafaf8",
-      "statement": "兼容API workflow error退出1不写，只有gaps退出3仍写draft；complete与writable不同。",
-      "evidence": [
-        {
-          "resource": "repo://libs/evidence-acceptance/src/commands.ts",
-          "version": "repo-file-v1:sha256:aa56e72bc6408bcb4a54d2fa88a1c2275f2ed3c7e46944af5f6be9e49613ee9d"
-        }
-      ]
-    },
-    {
       "id": "claim_954923a1673640c797f59bff06f86403",
-      "statement": "MCP 经本地 socket 和桌面程序的 stdio 代理提供 17 个工具，其中八项写工具由共享 registry 提供并写入 renderer 会话的撤销历史。",
+      "statement": "桌面 MCP 经本地 socket 与同一可执行文件的 stdio 代理提供工具，写操作使用共享 registry 和 renderer 稳定事务边界。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/main/main.ts#L35-L58",
-          "version": "repo-lines-v1:sha256:a08f885f0f9133f273ebfc5a9241384c989b542987a75a3db24caaba2f761c6c:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiOGY4NTU1YWNhZWRlZWIxMDk4NDc4ZWI2NjBmYjNmNGIyZDc0YzdmMzYyMWZlZGI0MWU1MGY1OGQ0ZjEzYTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY4NGEwZDYyZjQ0Y2RhZjIxOGM4M2QxOTMyYzBjMTk1MjAzNDNhNGE0M2IzZGRjZDUyYTIyOGJhOTUyYjEzZDkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY1M2YxNTUwMzQ1ZGNhMGM1YjY2ZDE0NWFkNTk0NDBlNjJjNWJmYzg5NGIwMDY3YTZhYjc2YzMyNjFiZGFjODQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcyMTI5YzI3MzUyYjQ5NTU0OGIwNzFhZTM0YWI5MDgxMTcyODczNDI4ZjZmODdmNTRiNTgwZTUxNTNjOWFhMDIifQ"
+          "resource": "repo://apps/desktop/src/main/main.ts",
+          "version": "repo-file-v1:sha256:d170366a26f53a383031af51e9f3e9d427af7a32b16ad468d2fbdaee4f300f13"
         },
         {
-          "resource": "repo://apps/desktop/src/renderer/state/useMcpBridge.ts#L308-L347",
-          "version": "repo-lines-v1:sha256:cbd1fc8911dca240865ebfce2659a5dc9e1e82526bf53c859aa335730c4a773f:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5YzEzNTkwNjY1NjMyM2QxYzVlYTQxNjU0ZWU2NmFmYjU4NWFjZGNmYWVhY2ExMjFkNWUzMGJmMTkzZWVkZDciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk5MTUzZWRhOTM2MDk4M2Q4YWM1Y2Q4MTVjOGYxODE1YThlZGE5MjNlMjE1Yzg4YTZiNGUwNjAzYjQ1MzY2NTkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc3ZTk3ZTkzM2MxNjRhMzk2MGUyZWIxNzVkZmZhZjA3NTY1YmI0OThhMjcxZDUyYzYxYjNhOWI0Y2Q0MWY2MGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRjMDUxOTdiMDE5YjBlNTgyMjY3NjE1ZWQ2MTQxOTc5YmI3ZmMxZTA3ZDM3NGVhNjllMjAxOTQwOTlkNDY2YTgifQ"
+          "resource": "repo://apps/desktop/src/renderer/state/useMcpBridge.ts",
+          "version": "repo-file-v1:sha256:bedf2da29b47006fbb7d2777762526ba7745711bb02d3a06df193773d626d6c3"
         },
         {
-          "resource": "repo://libs/evidence-mcp/src/server/toolset.spec.ts#L273-L314",
-          "version": "repo-lines-v1:sha256:1c99d9eb0ae89cb3792315515456cb625cf458cff7de71da0685ad492a6b67a6:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM0ODU4NGE3ZWNiYjcwYzAxMWY3NDU1ZjI1NjMzZjU1YmJiNjgzNGZlZjk2YjRjYzYzNTY5YWM0NTYyNGY3NzYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNhM2U0NmY5NDI3NmI2ZjZmNGVkMWYwMmFmNzhiZWY2YTJlZTFjNDM5ZGQ1NTg0Yjk3Mzk0ODMxMzIxNGQyYjciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUzZDhmOTE0MmEyMDQyZjc4M2YzYWExMmIwYjVlY2M3YWQzNjM1YjFmZWZmMGQyMmE0ZmZkYjQ2ZTRjNjdlZTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRjMGVjOTBlOWVhODMwODNhZGYzNjBmZGEwNjNiZjExN2U2MjQ2MGUzYzBhZmE4NDQ5ODU4NWM4Mjc1MDg5OTMifQ"
+          "resource": "repo://libs/evidence-mcp/src/server/toolset.ts",
+          "version": "repo-file-v1:sha256:45dad420f47600bbcedee94491579274596de2d5962c7c73621c45eb8dc08fda"
         }
       ]
     },
     {
       "id": "claim_146414af0bed4a528c19b9be8f6f10bf",
-      "statement": "API v6 用业务聚合根 URI，创建有对称主 GET、HAL self/集合 _embedded，服务 routePrefixes/routes 与公开路径解耦，overlay 可用模型感知命令迁移。",
+      "statement": "公共 API 从业务聚合根生成并用 HAL/Location 指明主资源地址；服务由逻辑 Context 和精确路由表决定。",
       "evidence": [
         {
-          "resource": "repo://apps/cli/src/commands/api.ts",
-          "version": "repo-file-v1:sha256:d81d502bf89178b4c4b1e09e56df1408f18dc95ca46133991d0fec7a45e74ab4"
-        },
-        {
           "resource": "repo://docs/api-projection-v6.md",
-          "version": "repo-file-v1:sha256:5ce492b5a070ff3aac4be9788ef62435da6dda44cc5cf21191dcc6c1acc157f0"
+          "version": "repo-file-v1:sha256:36f80360098ae62fcd624bb1692dbd272956263b3c205566144e419080604cfc"
         },
         {
           "resource": "repo://libs/evidence-api/src/delivery/routes.ts",
-          "version": "repo-file-v1:sha256:e0f8536e076c000f85fa1391ecd34390137f5074c0e5d7aa8d08a7bb45f6b810"
+          "version": "repo-file-v1:sha256:a22d24bdc3d56a2bfe4dd83fd915be9f7d3ef1c31122ba4268a1910763f4280c"
+        },
+        {
+          "resource": "repo://libs/evidence-api/src/delivery/topology.ts",
+          "version": "repo-file-v1:sha256:3b01bcc3d0fe3cb0b132299df5bd219138039d74e41d874e33a5af1085cdad33"
+        }
+      ]
+    },
+    {
+      "id": "claim_0c27d113d0d44528a7dd933ea0804310",
+      "statement": "桌面主进程自动落盘编辑修订，并只从验证过的磁盘模型生成产物。",
+      "evidence": [
+        {
+          "resource": "repo://apps/desktop/src/main/artifactPipeline.ts",
+          "version": "repo-file-v1:sha256:d1cbdb5f289ec9f96c3a3501650a0f467d5a232075c97dc7b202403184ba992f"
+        },
+        {
+          "resource": "repo://apps/desktop/src/main/livePersistence.ts",
+          "version": "repo-file-v1:sha256:52145d10a52b5745a2bfabcb79ab083582ebceb57c20361ca8f60f0134fed468"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.9.0",
-    "at": "2026-11-20T12:30:09.424Z"
+    "at": "2026-11-24T13:18:19.740Z"
   }
 }

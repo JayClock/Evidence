@@ -1,26 +1,24 @@
 ---
 type: contract
-title: API v6 聚合根契约与 HAL 投影
+title: API 聚合根契约与 HAL 投影
 description: 模型与可选 overlay 如何投影 draft API snapshot、OpenAPI 3.1、服务与超媒体，以及内联 examples 如何编译成标准 HTTP 验收。
 tags: [api, projection, openapi, overlay, diagnostics, cli, contract]
 verified:
   - by: openwiki/0.9.0
-    at: 2026-11-20T12:30:09.424Z
+    at: 2026-11-24T13:18:19.740Z
 sources:
-  - id: openwiki-source-4c0b31aad45d3c1bd1d286ce
-    resource: repo://apps/cli/src/commands/api.ts
+  - id: openwiki-source-0665c978968bd863d445c79a
+    resource: repo://apps/cli/src/commands/export.ts
   - id: openwiki-source-eb64da3d440064cfd8e29c7a
     resource: repo://docs/api-projection-v6.md
-  - id: openwiki-source-00036286abae2d8c898e2cef
-    resource: repo://libs/evidence-acceptance/src/commands.ts
   - id: openwiki-source-4f4956186309f29a9271894d
     resource: repo://libs/evidence-acceptance/src/renderDeliverables.ts
   - id: openwiki-source-cfb863e81258afec257b30c8
     resource: repo://libs/evidence-acceptance/src/runner/acceptanceRunner.ts
   - id: openwiki-source-feaf4e64c269397a25f93a3d
     resource: repo://libs/evidence-agent/src/sensors/native/nativeApiSensor.ts
-  - id: openwiki-source-d411e4580a06325c2c5fcf75
-    resource: repo://libs/evidence-api/src/adapter/fmAdapter.ts
+  - id: openwiki-source-21f4015324deb45fb05f6870
+    resource: repo://libs/evidence-api/src/adapter/modelAdapter.ts
   - id: openwiki-source-5ada2ea19d2cb99c0b704bb8
     resource: repo://libs/evidence-api/src/apiLoader.spec.ts
   - id: openwiki-source-e945d84c4f7201722caecdad
@@ -39,16 +37,14 @@ sources:
     resource: repo://libs/evidence-api/src/delivery/topology.ts
   - id: openwiki-source-e7b8e25706f35341e5dd6899
     resource: repo://libs/evidence-api/src/diagnostics.ts
-  - id: openwiki-source-6f06bbf6d9d8a380c42129bc
-    resource: repo://libs/evidence-api/src/http/hateoasWeaver.spec.ts
   - id: openwiki-source-a0e07a861eaab8e52f8f4245
     resource: repo://libs/evidence-api/src/http/hateoasWeaver.ts
   - id: openwiki-source-57fd648ccc0d7f08ee97d2b8
     resource: repo://libs/evidence-api/src/inspect.ts
   - id: openwiki-source-adefb9cc5fd30bc9ad8a24df
     resource: repo://libs/evidence-api/src/loader/apiLoader.ts
-  - id: openwiki-source-a8ee2373695bb6cdbd087639
-    resource: repo://libs/evidence-api/src/loader/migrateOverlay.ts
+  - id: openwiki-source-979d85a5444e9aad27c18779
+    resource: repo://libs/evidence-api/src/modelAdapter.spec.ts
   - id: openwiki-source-561a740200649f731d1630c1
     resource: repo://libs/evidence-api/src/openapi/openapi.spec.ts
   - id: openwiki-source-dda93af372b2aced5e221a86
@@ -65,20 +61,20 @@ sources:
     resource: repo://libs/evidence-api/src/schemas/apiSchema.ts
   - id: openwiki-source-b6b6c0e38c718ba7eef29b0f
     resource: repo://libs/evidence-api/src/testing/openapi.ts
-generated: { by: "pi", at: "2026-11-20T12:30:09.424Z" }
+generated: { by: "pi", at: "2026-11-24T13:18:19.740Z" }
 ---
 
-# API v6 聚合根契约与 HAL 投影
+# API 聚合根契约与 HAL 投影
 
-`evidence-api` 读取 FM 文档或树/Bundle，加可选 JSON overlay，产生 `EvidenceApiSnapshot`：routes、hypermedia、journeys、services、deployment、limitations、诊断及 OpenAPI。snapshot 固定 schemaVersion=6.0、mode=draft；投影是可审查的设计产物，不宣称发布就绪。
+`evidence-api` 读取内存 FM 文档或模型目录，加可选 JSON overlay，产生 `EvidenceApiSnapshot`：routes、hypermedia、journeys、services、links、limitations、诊断及 OpenAPI。snapshot 固定 schemaVersion=7.0、mode=draft；投影是可审查的设计产物，不宣称发布就绪。
 
 ## 输入、索引与证据
 
-`loadFm` 在读取前后比较源字节摘要，变化返回 SOURCE_CHANGED、index=null；解析/源问题也明确失败。`loadFmFromDocument` 拒绝旧 validation envelope，structuredClone 固定输入，建立实体/关系/规则和上下文索引。无 check report 表示没提供，不是通过。
+`loadModel` 在读取前后比较源字节摘要，变化返回 SOURCE_CHANGED、index=null；解析/源问题也明确失败。`loadModelFromDocument` 通过 structuredClone 固定输入，建立实体/关系/规则和上下文索引。无 check report 表示没提供，不是通过。
 
-可选报告需 checkVersion=6、consistent/complete/valid/modelValidated=true、inputChanged=false、errors 为空及字符串 modelDigest。失效报告保留为 FM_CHECK_INVALID gap，摘要不符为 FM_CHECK_STALE gap；这仍允许草稿预览，不是正式门禁通过。磁盘摘要是带 sha256: 前缀的源字节 digest；内存摘要来自 canonical compiled document，不再包含旧 validation suite。overlay/check 摘要是 canonical JSON 的裸 hex。
+可选报告需 checkVersion=6、consistent/complete/valid/modelValidated=true、inputChanged=false、errors 为空及字符串 modelDigest。失效报告保留为 FM_CHECK_INVALID gap，摘要不符为 FM_CHECK_STALE gap；这仍允许草稿预览，不是正式门禁通过。磁盘摘要是带 sha256: 前缀的源字节 digest；内存摘要来自 canonical compiled document。overlay/check 摘要是 canonical JSON 的裸 hex。
 
-`inspect` 是只读库存：模型、roles、真实 participant.party 扮演的 Party Roles、未扮演角色、evidence/participant resource clues、contexts、文件摘要；不会发明路由，也不再列旧 scenarios。
+`inspect` 是只读库存：模型、roles、真实 participant.party 扮演的 Party Roles、未扮演角色、evidence/participant resource clues、contexts、文件摘要；不会发明路由。
 
 ## 业务 URI 与部署边界
 
@@ -86,11 +82,11 @@ generated: { by: "pi", at: "2026-11-20T12:30:09.424Z" }
 
 references 无论箭头方向均读取 child endpoint 基数；普通子资源全部明确 max=1 才采用单例路径。履约确认的动作入口由拓扑决定：单份、可追加或共享确认的 POST 可以不同，但主 GET 都使用全局确认资源 URI。领域 thing 根以及具备可寻址标识和上下文的独立 other_evidence 有只读集合/主 GET；未归属上下文的凭证不生成公共路由。根名在全局分配，子段在兄弟资源间分配，真实冲突用稳定身份后缀消歧，不受无关角色和 Context 重命名影响。
 
-服务仍由 Context 划分，但用 routePrefixes 和精确 route IDs 表达所有权；proposal 下的签约入口由合同服务处理。最终 overlay routes 重新生成 topology、OpenAPI 与 Compose。Traefik 逐操作按 Method 与锚定路径正则路由，后端获得 EVIDENCE_ROUTE_PREFIXES/EVIDENCE_ROUTES；镜像和端口仍是部署草图占位。
+服务仍由 Context 划分，但用 routePrefixes 和精确 route IDs 表达所有权；proposal 下的签约入口由合同服务处理。最终路由用于生成 topology、聚合 OpenAPI 和各服务的独立视图。拓扑只描述逻辑归属，不生成运行时部署配置。
 
 ## Overlay 与投影顺序
 
-Overlay 是严格 JSON：schemaVersion=5.0 或 6.0、id、routes(id/path/summary)、journeys(id/roleRef/routeId/nextPossibleSteps)。不接受 YAML、重复键（含嵌套/转义）、非 JSON 数值、非对象、重复 section ID 或旧 resources/bindings/capabilities。缺省值只在校验后补齐；programmatic overlay 走同一 loader。嵌入 schema 文本须与随包文件字节一致，manifest 记录 schema digest。
+Overlay 是严格 JSON：schemaVersion=6.0、id、routes(id/path/summary)、journeys(id/roleRef/routeId/nextPossibleSteps)。不接受 YAML、重复键（含嵌套/转义）、非 JSON 数值、非对象、重复 section ID 或未知字段。缺省值只在校验后补齐；programmatic overlay 走同一 loader。嵌入 schema 文本须与随包文件字节一致，manifest 记录 schema digest。
 
 `buildProjection` 顺序固定：
 
@@ -99,15 +95,15 @@ Overlay 是严格 JSON：schemaVersion=5.0 或 6.0、id、routes(id/path/summary
 3. 按 route id 覆盖现有 path/summary；未知 ID、改变参数名、空段/坏括号、method/path pattern 碰撞各有明确 error，不能凭 overlay 新增业务接口。
 4. 校验 journey 的调用方在路由允许的当事人或回调角色中，nextPossibleSteps 必须解析到既有 step。
 5. 将所有创建的 itemPath 同步到最终主 GET，重新计算 service ownership；编织 hypermedia，缺自定义 journeys 时从可达关系推导，最后才从最终 routes 建 OpenAPI，保证路径不分叉。
-6. 归一化诊断并按 severity/code/target/message/identity 排序；最终 snapshot 在命令层再用 api-projection.schema.json 校验，错误为 PROJECTION_INVALID。
+6. 归一化诊断并按 severity/code/target/message/identity 排序；库另提供 `validateProjection` 校验 snapshot schema。
 
 ## 超媒体不是虚构执行顺序
 
-POST 的 self 与 201 Location 指向实体主 GET；实体 GET 的 self 是自身，集合 GET 的 self 是集合路径。集合用 `_embedded.<业务复数名>` 返回摘要，每项有自己的主 self，并返回非负 total。实体、摘要和集合是分离的 schema。Evidence 间 references 让先决对象 route 指向依赖者 POST，形成 next:<entityRef>；去重排序，模板链接保留 templated。默认 journey 为每个 POST 与获准调用者组合生成可能步骤，http-journeys.json 明确 runtimeValidated=false，不把静态导航当验收已执行。
+POST 的 self 与 Location 指向资源主 GET（同步创建为 201，异步请求受理为 202）；实体 GET 的 self 是自身，集合 GET 的 self 是集合路径。集合用 `_embedded.<业务复数名>` 返回摘要，每项有自己的主 self，并返回非负 total。实体、摘要和集合是分离的 schema。Evidence 间 references 让先决对象 route 指向依赖者 POST，形成 next:<entityRef>；去重排序，模板链接保留 templated。默认 journey 为每个 POST 与获准调用者组合生成可能步骤，http-journeys.json 明确 runtimeValidated=false，不把静态导航当验收已执行。
 
 ## OpenAPI 与字段纪律
 
-`buildDeliveryContract` 产生 OpenAPI 3.1.0，info.version 固定 6.0.0，模型版本保留在 x-evidence-model-version，manifest → info，route → operation，读写对象 → component schemas，services 与部署拓扑一致。operation 的 x-evidence-* 追溯 entity、context、service、contract、请求/确认、允许角色、exposure、derived/stamped。
+`buildDeliveryContract` 产生 OpenAPI 3.1.0，info.version 与 x-evidence-model-version 均来自模型版本，manifest → info，route → operation，读写对象 → component schemas，services 与部署拓扑一致。operation 的 x-evidence-* 追溯 entity、context、service、contract、请求/确认、允许角色、exposure、derived/stamped。
 
 - POST 请求体只有 caller 字段，additionalProperties=false；派生字段和 stamped 业务时间不作为客户端输入。
 - 响应中 derived/stamped 标 readOnly，派生字段携带 rule 引用；对象 component 要求 HAL `_links`。
@@ -124,26 +120,18 @@ POST 的 self 与 201 Location 指向实体主 GET；实体 GET 的 self 是自�
 
 路径参数从上游响应捕获，正向结果携带响应 Schema。导出生成 Bruno 集合及 Evidence 验收元数据；`evidence test` 调用 Bruno 对真实后端执行请求和断言，再根据实际响应校验 Schema。CEL int/uint 在 JSON 边界将安全整数转为 number，较宽的合法 int64/uint64 转为精确十进制 string；输入 unsafe number 或超出 CEL 类型范围的值拒绝，不能静默舍入。
 
-## Overlay 迁移
+## 命令与写出
 
-`evidence api migrate-overlay --in old.json --out new.json [--model model.evidence.json]` 读取实际模型，把 v5 默认路径、旧 singleton ledger ID 和 journey 引用迁移到 v6；保留仍合法的自定义路径与 summary。未知路由和有歧义的参数变更拒绝，输出使用新文件且声明 6.0，不覆盖旧文件。独立改创建入口不改主 URI；改主 GET 会同步相关创建响应身份。
+`evidence export --openapi` 将聚合契约写到 `.evidence/delivery/release/openapi.json`。完整投影用库的 `renderOutputs`，包含聚合与分服务 OpenAPI、拓扑、路由、projection、HTTP journeys、可选 limitations 以及 manifest。manifest 记录工具、schema、Node、AJV、输入摘要和文件字节摘要。`writeOutput` 使用同级暂存目录和 rename 替换生成树，拒绝不安全的相对路径。
 
-## 命令、写出与错误
-
-推荐 `evidence export` 和 `evidence api <command>`；旧 evidence-api shim 警告只到 stderr。`evidence-acceptance/src/commands.ts` 共享 inspect/check/project/deliver/diff/export-tests 逻辑。
-
-兼容 api workflow 的 resolved 路径必须 absolute：report/overlay 在 FM root 外，out 在 project 内且与所有输入无包含重叠，使用 realpath 解析已有祖先防 symlink 绕过。统一 app 负责相对 cwd 参数适配，不应把旧 resolved API 约束套成“所有用户命令只收绝对路径”。
-
-project/deliver 同一投影与 writer：0=无 errors/gaps；1=错误/拒绝，不写；3=只有 gaps，仍写可审查草稿。complete 比 writable 更严格，要求零 findings 且 schema clean。
-
-输出 openapi.json、topology.json、routes.json、deployment.compose.json、projection.json、http-journeys.json、可选 limitations.md、manifest.json。manifest 记录工具/schema/Node/AJV 和输入/output byte hashes。默认 `.evidence/api/generated`；writer 仅接受安全相对路径，支持生成 Bruno 时所需的子目录。先 sibling temp staging，再 rename/backup，失败恢复旧树，避免半新半旧。
+Overlay 是投影库的输入，不是 `evidence export` 或 `evidence diff` 的参数。若已通过库应用 overlay，可比较输出的成品 OpenAPI 文件。
 
 ## 验证与消费者
 
-projection specs 保护 overlay/路径/角色、FM_INVALID、stale gap 仍写及 source 变化拒绝；OpenAPI specs 校验 3.1 元模型、refs/operationId/path 参数/GET body 并编译严格消费者类型。outputRenderer specs 保护稳定排序、重排等价、Bundle roundtrip 字节和 manifest；apiLoader specs 保护 schema 字节与重复键；acceptance/projector specs 保护 CEL oracle、依赖/角色、负向与整数边界。
+projection specs 保护 overlay/路径/角色、FM_INVALID、无效报告与证据缺口；OpenAPI specs 校验 3.1 元模型、refs/operationId/path 参数/GET body 并编译严格消费者类型。outputRenderer specs 保护稳定排序、重排等价、文件字节和 manifest；apiLoader specs 保护 schema 字节与重复键；acceptance/projector specs 保护 CEL oracle、依赖/角色、负向与整数边界。
 
-桌面和 sensors 使用同步 buildDelivery(document)，renderer 使用 browser-safe field-contract 入口避免 fs。旧 evidence-visualization 与离线 workbench 已移除；统一 CLI 不再提供 review。
+桌面和 sensors 使用同步 buildDelivery(document)，renderer 使用 browser-safe field-contract 入口避免 fs。
 
-详见仓库文档 [v6 契约与迁移](../../docs/api-projection-v6.md)。
+详见仓库文档 [API 交付规则](../../docs/api-projection-v6.md)。
 
-相关：[路由与差异](./delivery-routes-and-diff.md) · [CLI 双门禁](../workflows/cli-governance.md) · [离线审查](./offline-workbench.md)
+相关：[路由与差异](./delivery-routes-and-diff.md) · [CLI 双门禁](../workflows/cli-governance.md)

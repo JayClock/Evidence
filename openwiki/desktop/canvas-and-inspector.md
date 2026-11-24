@@ -1,14 +1,12 @@
 ---
 type: frontend
-title: ELK 画布与属性检查器
-description: headless ELK 的 compound 图与正交线路如何异步投影到 React Flow，以及声明式 Inspector、来源台账与原生 CEL 诊断如何通过同一模型事务编辑。
-tags: [canvas, layout, elk, react-flow, inspector, cel, renderer]
+title: 业务泳道画布与属性检查器
+description: 业务泳道布局与折线如何映射到 React Flow，以及模型检查器、来源台账与原生 CEL 诊断的职责。
+tags: [canvas, layout, swimlane, react-flow, inspector, cel, renderer]
 verified:
   - by: openwiki/0.9.0
-    at: 2026-11-20T12:30:09.424Z
+    at: 2026-11-24T13:18:19.740Z
 sources:
-  - id: openwiki-source-2ff5ad29deef1166ab3731d6
-    resource: repo://apps/desktop/src/renderer/components/canvas/CanvasFloatingHud.tsx
   - id: openwiki-source-9459ee1a8fc917f2d94619ce
     resource: repo://apps/desktop/src/renderer/screens/EditorScreen.tsx
   - id: openwiki-source-f0f06a0981a7ca97c510b44d
@@ -17,48 +15,40 @@ sources:
     resource: repo://apps/desktop/src/renderer/state/useGraphLayout.ts
   - id: openwiki-source-0e9598c3f82a767e6ca10632
     resource: repo://libs/desktop/feature-canvas/src/CanvasViewport.tsx
-  - id: openwiki-source-f061fbcec05a0bf931e07581
-    resource: repo://libs/desktop/feature-canvas/src/colors.ts
   - id: openwiki-source-f172557f5294fb7b6d40b660
     resource: repo://libs/desktop/feature-canvas/src/diagnosticIndex.ts
   - id: openwiki-source-6e68c0c1e5717ade71a301bb
     resource: repo://libs/desktop/feature-canvas/src/DiagnosticMarkers.tsx
-  - id: openwiki-source-77f399164de91035c6ccef6e
-    resource: repo://libs/desktop/feature-canvas/src/EntityNode.tsx
   - id: openwiki-source-4627c03fe3c69aaf82172492
     resource: repo://libs/desktop/feature-canvas/src/FulfillmentEdge.tsx
   - id: openwiki-source-7a1228eb46af6c602fefd762
     resource: repo://libs/desktop/feature-canvas/src/NodeCard.tsx
-  - id: openwiki-source-244606812e456b871be3ae42
-    resource: repo://libs/desktop/feature-canvas/src/useReactFlowAdapter.spec.ts
   - id: openwiki-source-6d874554d1c41740fadb809b
     resource: repo://libs/desktop/feature-canvas/src/useReactFlowAdapter.ts
-  - id: openwiki-source-082c14eef6df0c4c3ab791f2
-    resource: repo://libs/desktop/feature-inspector/src/inspector/ApiFieldBadge.tsx
   - id: openwiki-source-000b39f31699cab4b8d68ff9
     resource: repo://libs/desktop/feature-inspector/src/inspector/AttributeDataGrid.tsx
-  - id: openwiki-source-20d2555563b1abcb73788ed3
-    resource: repo://libs/desktop/feature-inspector/src/inspector/cel/CelCodeMirrorEditor.tsx
-  - id: openwiki-source-dee623b77a0e08e0c4e4a734
-    resource: repo://libs/desktop/feature-inspector/src/inspector/cel/celCompletion.ts
-  - id: openwiki-source-2dc78a0ad51effda9e61ea16
-    resource: repo://libs/desktop/feature-inspector/src/inspector/DerivedRuleSection.tsx
+  - id: openwiki-source-124f96739a75992558c391b8
+    resource: repo://libs/desktop/feature-inspector/src/inspector/cel/CelCodeMirrorViewer.tsx
+  - id: openwiki-source-273fd33d16f085d84b7c9c4c
+    resource: repo://libs/desktop/feature-inspector/src/inspector/cel/CelFormulaBar.tsx
   - id: openwiki-source-2705304ded6d7ebcd7c41094
     resource: repo://libs/desktop/feature-inspector/src/inspector/FulfillmentPairSection.tsx
   - id: openwiki-source-294ae639434a4e29c9572cbc
     resource: repo://libs/desktop/feature-inspector/src/inspector/KeyDataLedgerSheet.tsx
-  - id: openwiki-source-3046611767bc0c00a44d0bdb
-    resource: repo://libs/desktop/feature-inspector/src/inspector/KeyDataProvenancePicker.tsx
+  - id: openwiki-source-907db0a62784e18d1d287ccf
+    resource: repo://libs/desktop/feature-inspector/src/inspector/KeyDataProvenanceView.tsx
   - id: openwiki-source-329e2fdd1b963b693d975c9a
     resource: repo://libs/desktop/feature-inspector/src/RightInspector.tsx
-  - id: openwiki-source-fccb570e109bfa43112e2a49
-    resource: repo://libs/evidence-canvas-interaction/src/adapter/domainToElk.ts
-  - id: openwiki-source-a9f2ab41a3c0d7cc61e3fa58
-    resource: repo://libs/evidence-canvas-interaction/src/adapter/elkToLayout.spec.ts
-  - id: openwiki-source-a89ce242205c67a68caf95d4
-    resource: repo://libs/evidence-canvas-interaction/src/adapter/elkToLayout.ts
-  - id: openwiki-source-fc3115a3d9d8f16505989d87
-    resource: repo://libs/evidence-canvas-interaction/src/engine/layoutEngine.spec.ts
+  - id: openwiki-source-53303a19d90a404248f1d663
+    resource: repo://libs/evidence-api/src/delivery/fieldOrigin.ts
+  - id: openwiki-source-9ee70d5240554c9ba831c12f
+    resource: repo://libs/evidence-canvas-interaction/src/adapter/domainToLayoutTree.ts
+  - id: openwiki-source-d84c8b850a9cea851ace93a0
+    resource: repo://libs/evidence-canvas-interaction/src/adapter/layoutTreeToGraph.spec.ts
+  - id: openwiki-source-83718bb983fce0c284abb003
+    resource: repo://libs/evidence-canvas-interaction/src/adapter/layoutTreeToGraph.ts
+  - id: openwiki-source-8519befa14872dae2b942568
+    resource: repo://libs/evidence-canvas-interaction/src/engine/swimlaneLayout.spec.ts
   - id: openwiki-source-abc633034c7c8d642614f964
     resource: repo://libs/evidence-canvas-interaction/src/engine/swimlaneLayout.ts
   - id: openwiki-source-0ae760ad3a5c96a106b90cc0
@@ -69,38 +59,28 @@ sources:
     resource: repo://libs/evidence-canvas-interaction/src/selection/contextScope.ts
   - id: openwiki-source-40ed2cf21089af3de30a0699
     resource: repo://libs/evidence-canvas-interaction/src/selection/hoverHighlight.ts
-  - id: openwiki-source-33794ec4dbf0b0b8815e5e81
-    resource: repo://libs/evidence-schema/src/ast/lifecycle.ts
   - id: openwiki-source-765a818dd2c076288d6080cc
     resource: repo://libs/evidence-schema/src/inspector/groups.ts
-  - id: openwiki-source-f7425e64fedf4f34deb929e7
-    resource: repo://libs/evidence-schema/src/inspector/registry.ts
-generated: { by: "pi", at: "2026-11-20T12:30:09.424Z" }
+generated: { by: "pi", at: "2026-11-24T13:07:09.861Z" }
 ---
 
-# ELK 画布与属性检查器
+# 业务泳道画布与属性检查器
 
-职责分四层：canvas-interaction 负责无 DOM/React 的 ELK 适配和几何；desktop feature-canvas 渲染 React Flow；feature-inspector 负责模型编辑；schema/inspector 注册字段与参考约束。app 组合它们，不直接进口 React Flow/CodeMirror。
+职责分四层：canvas-interaction 负责无 DOM/React 的 业务泳道布局与几何；desktop feature-canvas 渲染 React Flow；feature-inspector 负责模型编辑；schema/inspector 注册字段与参考约束。app 组合它们，不直接进口 React Flow/CodeMirror。
 
-## 拓扑与业务泳道布局
+## 业务泳道布局
 
-`computeGraphLayout(graph,{viewMode,layoutMode})` 返回 Promise；默认 topology 模式：domainToElk 构 compound tree → bundled headless elk.layout → elkToLayout。layered/RIGHT、INCLUDE_CHILDREN、ORTHOGONAL、NETWORK_SIMPLEX、LAYER_SWEEP、固定 randomSeed=1；输入只读，不需 DOM/text measurement。
+`computeSwimlaneLayout` 构造 Context 层级树，沿邀请投标、投标、合同签约、履约履行四阶段布置。Context 随其中凭证跨越相应阶段；因果引用影响排序。布局不依赖 DOM，`useGraphLayout` 按图和卡片密度计算，选择和回放变动不要求重排。
 
-卡片固定密度：simplified220×82、standard220×156、expanded240×200。Context children 按 contextRef/parentContextRef 嵌套，未知父引用留 root；**空 Context 仍有260×84边界**。父层次循环显式抛 Cyclic Context hierarchy，不再静默停止/省略。内部 root/edge ID 避免和业务 ID 冲突。
+卡片按 simplified 220×82、standard 220×156、expanded 240×200 固定。适配器按 contextRef/parentContextRef 嵌套，保留空 Context 并拒绝父级循环。布局对象保留本地坐标和世界坐标，折线在展平时累加容器偏移；布局边缺路线会报错。
 
-topology 模式把所有有效 relationship，以及每 fulfillment request→confirmation/proof 成对边交给 ELK；无端点引用交由 schema 报错，布局跳过它让有效草稿仍可见。已移除旧 fulfillment row/frame、reserved lifecycle lanes、shared band 与 sharedResultIds 算法；同一实体只建一个 compound node。
-
-独立 swimlane 模式按邀请投标、投标、合同签约、履约履行四阶段布置；Context 依其所含凭证跨阶段取范围，阶段内按引用保留因果次序，环用稳定排序保持可见。与 topology 共享 layout DTO。useGraphLayout 同时按 graph/viewMode/layoutMode 丢弃过期结果。
-
-elkToLayout 保留 local box 和累积 worldBox，把 edge.container（或所在 node）的坐标加到 ELK sections 上，按 incoming/outgoing 链连接、去重相接点；缺 route、未知 container、断开的 section 显式拒绝，不用手写 midpoint 猜线。返回节点/Context 的索引、关系正交 routes、独立 fulfillmentPairs、显式 roleRefs/responsibleRoleRef 的责任 links、bounds。
-
-跨 Context 或 plays_role 虚线，plays_role 才有箭头；旧 moment_trace/role_inversion/shared_thing 私有跨界分类已撤除。toSerializableLayout 只复制命名几何/ID/路由，不携实体和 Map，供需要纯几何的消费者使用。
+跨 Context 或 plays_role 用虚线，plays_role 有箭头。责任线来自显式 roleRefs 和 responsibleRoleRef。`toSerializableLayout` 提供不携领域对象与 Map 的几何表示。
 
 ## React Flow 只管理视口
 
-adapter 父 Context 先列，使用 **local box + parentId/extent=parent**，free node 是 root 坐标；另存 worldBox 供范围/诊断。显式 initialWidth/Height 与 invisible source/target handles 让首次测量前边就能渲染。关系保留世界坐标 polyline；pairLink 直接使用 ELK fulfillmentPairs，不再从旧 frame 合成线。
+adapter 父 Context 先列，使用 **local box + parentId/extent=parent**，free node 是 root 坐标；另存 worldBox 供范围/诊断。显式 initialWidth/Height 与 invisible source/target handles 让首次测量前边就能渲染。关系保留世界坐标 polyline；pairLink 直接使用布局的 fulfillmentPairs。
 
-CanvasViewport 经 ReactFlowProvider 管理 pan、pinch、marquee/fit animation，非业务模型拖拽编辑器：不可 draggable/connectable，wheel zoom 关闭，pane click 清选区。范围 0.1–2 由 CanvasViewport 配置，旧 viewport math/fit/boxSelection 模块不再是库 API。partial marquee 只回报首个 entity，Context 是不可交互底纸。
+CanvasViewport 经 ReactFlowProvider 管理 pan、pinch、marquee/fit animation，非业务模型拖拽编辑器：不可 draggable/connectable，wheel zoom 关闭，pane click 清选区。范围 0.1–2 由 CanvasViewport 配置。partial marquee 只回报首个 entity，Context 是不可交互底纸。
 
 fit/scope/density/focus/zoom 由 token 驱动，避免重渲染重放快捷键，bounds 至少1×1；scope 变化清理 hover 并重框；同 scope 布局更新保留视口语境，新建凭证可另行请求聚焦。HUD render prop 暴露 zoom/fit/reset/grid/minimap，app 叠加密度和清选区等工作区动作。controls 带 capture-hide，层级低于 activity drawer；三种背景 dots/lines/none、折叠 radar 与业务 legend 不修改模型。
 
@@ -118,20 +98,18 @@ DiagnosticIndex 只用已知 target（#前实体/关系）或真实 Context fall
 
 schema registry 声明 general/责任/attributes，fulfillment/rules 是专用 section；每字段给 editor/options/reference/helper。reference 约束 category/kind/sameContext，责任 picker 只供同合同 party role，单引用允许“未声明”。ID 只读，text/select/boolean/reference/attribute-table 等控件由注册信息驱动。
 
-字段编辑现在 `session.mutate(draft=>...Mutator)`，不再 dispatch Command。文本 local draft 在 blur/Enter 且值改变才提交，Escape 恢复，按 entity ID key 重挂避免草稿串对象。CEL/provenance 在属性行或检查器的字段台账中编辑，不在通用 rail 乱造文本提供方；此字段台账不是工作区的只读实体表。
+字段提交通过 `session.mutate(draft=>...Mutator)`。文本 local draft 在 blur/Enter 且值改变才提交，Escape 恢复，按 entity ID key 重挂避免草稿串对象。CEL/provenance 在属性行或检查器的字段台账中编辑，不在通用 rail 乱造文本提供方；此字段台账不是工作区的只读实体表。
 
 FulfillmentPairSection 从 graph.fulfillmentPair 显示 completion/confirmation/breach，pair/breach 调 guarded mutator，拒绝在面板显示原因。AttributeDataGrid 添加/更新/cascade删除属性、来源 picker、DerivedRuleSection 都同一会话事务；派生绑定可一次创建/更新规则并连接目标，一次撤销。
 
-ApiFieldBadge 复用 browser-safe fieldFor：Input、CEL Derived、Service Timestamp。KeyDataProvenancePicker 由模型分类，只提供绑定派生/取消 keyData 等真实决议，无自由文本“供应方”。宽 KeyDataLedgerSheet 和 formula bar 编辑同 session，显示待决/闭合计数；Alt+L/按钮打开，Escape stopPropagation 避免连带清选区。
+ApiFieldBadge 复用 browser-safe fieldFor：Input、CEL Derived、Service Timestamp。KeyDataProvenanceView 由模型分类，显示模型推导的字段来源。宽 KeyDataLedgerSheet 和 formula bar 编辑同 session，显示待决/闭合计数；Alt+L/按钮打开，Escape stopPropagation 避免连带清选区。
 
-## CEL 是原生分析，不是 tokenizer 裁判
+## CEL 公式与诊断
 
-feature-inspector 的 CelCodeMirrorEditor 管 model-aware completion/lint/history/commit；交付产物使用独立只读预览。tokenizer 仅着色；真正语法、作用域和未知标识符来自 model-core 的 cel-js native scoped AST。many bindings 的宏作用域变量不能被误报为模型 alias，源码 offset 诊断定位 gutter。200ms lint 提供输入反馈，不替代全局门禁。
-
-completion 从 rule aliases/实体属性/many 宏上下文生成；blur/Mod+Enter 去重提交，外部 undo/patch 在 prop 真变化时同步 draft。不能靠给着色器加关键词“修好”原生语法错误。
+公式栏通过 `CelCodeMirrorViewer` 展示当前表达式；诊断来自 model-core 对 CEL 表达式和模型候选项的分析，不由着色规则决定，也不代表整个模型通过门禁。
 
 ## 测试地图
 
-engine/layoutEngine 与 adapter/elkToLayout specs 覆盖密度、嵌套/空 Context、cycle 拒绝、cross-boundary sections、容器坐标、pair edges、序列化和不改源。feature-canvas adapter/CanvasViewport specs 覆盖父前子、local/world 对齐、早期 handles、scope/diagnostic/token/overlay。Inspector/registry/CEL specs 覆盖字段约束、单次事务撤销、来源与 native 作用域诊断；故事与泳道测试保护阶段、责任与镜头定位。
+swimlaneLayout 与 layoutTreeToGraph specs 覆盖阶段、嵌套 Context、循环、容器坐标与履约配对。feature-canvas adapter/CanvasViewport specs 覆盖父前子、local/world 对齐、早期 handles、scope/diagnostic/token/overlay。Inspector/registry/CEL specs 覆盖字段约束、单次事务撤销、来源与 native 作用域诊断；故事与泳道测试保护阶段、责任与镜头定位。
 
 相关：[模型事务](../model/commands-and-session.md) · [关键数据](../language/key-data-and-provenance.md) · [补丁审查](./ingestion-and-patch-review.md)

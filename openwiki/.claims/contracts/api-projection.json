@@ -1,14 +1,18 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:f22e7413cad4983ef89b367300395e28e34a6ddfebef878ef274311815583539",
+  "pageVersion": "sha256:66c4d7e2c1146d7351e1e7e4b377a25964479280d7edf6e237e9283db7b2e1b3",
   "claims": [
     {
       "id": "claim_1ccbd29e511e46929319ccbea00159be",
       "statement": "投影可不提供 check；提供时要求 v6 等证据条件，失效或摘要过期为 gap 而保留草稿，源字节并发变化则无 index。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-api/src/adapter/fmAdapter.ts",
-          "version": "repo-file-v1:sha256:1df7c862d398000c72f24be5e0138acf74e9016bfbcd5f715a4712f0151a1bfe"
+          "resource": "repo://libs/evidence-api/src/adapter/modelAdapter.ts",
+          "version": "repo-file-v1:sha256:cd507d383c7987b0e76f31a4e8e3ab2d4c8eeeb35c7f050f8f9a4e0826d17828"
+        },
+        {
+          "resource": "repo://libs/evidence-api/src/modelAdapter.spec.ts",
+          "version": "repo-file-v1:sha256:06b20ee842ad0ba6bb20312755d162ebb1f2f97acd8bd2cd2dc0cd2a8f21d17b"
         }
       ]
     },
@@ -18,25 +22,15 @@
       "evidence": [
         {
           "resource": "repo://libs/evidence-api/src/apiLoader.spec.ts",
-          "version": "repo-file-v1:sha256:8886e1a45c6fb42769647c07565e5a5f916ce89c01160e7961e8ab333c037e80"
+          "version": "repo-file-v1:sha256:93bcd844b9b22393acd350dfc90ed0406d5fbf4067b84562735154fab7ebb1bb"
         },
         {
           "resource": "repo://libs/evidence-api/src/loader/apiLoader.ts",
-          "version": "repo-file-v1:sha256:ac2f7d158f02cb3900b081cd896bb18c2c83fd933d0c9629583e875d7f03144a"
+          "version": "repo-file-v1:sha256:5e123aa366b88513c67ff955fb981d8a26e5f3b8aae0b6ae9412c9347041262b"
         },
         {
           "resource": "repo://libs/evidence-api/src/schemas/apiSchema.ts",
-          "version": "repo-file-v1:sha256:23ebdfd99ae1300fdc204454a179ce55c5f222b78aee08eff227872978b2532c"
-        }
-      ]
-    },
-    {
-      "id": "claim_295d8b5512ca4cd1a7bd0032533fa49e",
-      "statement": "共享 API command 以 0/1/3 区分 clean/error/gaps，project/deliver 仅 error 阻止写出，gaps 仍写草稿。",
-      "evidence": [
-        {
-          "resource": "repo://libs/evidence-acceptance/src/commands.ts",
-          "version": "repo-file-v1:sha256:aa56e72bc6408bcb4a54d2fa88a1c2275f2ed3c7e46944af5f6be9e49613ee9d"
+          "version": "repo-file-v1:sha256:5a06947fc635a0ce33b703f9c629f44122a8679c8111c6de8e5639b312efd77d"
         }
       ]
     },
@@ -46,15 +40,15 @@
       "evidence": [
         {
           "resource": "repo://libs/evidence-api/src/openapi/openapi.spec.ts",
-          "version": "repo-file-v1:sha256:7c2e9eeed7b5fa1e77a021c1278ce56b2f9d2d8b9272e6bf79bc11486253f3fc"
+          "version": "repo-file-v1:sha256:0456f4324b16363568520f746375bfa90ac978f0ccfe0935d2418dc2dcddb78c"
         },
         {
           "resource": "repo://libs/evidence-api/src/projection.spec.ts",
-          "version": "repo-file-v1:sha256:830125e1d1284403690066bff4cae968212b0d877f982b7bfc3bbd80a29f8abc"
+          "version": "repo-file-v1:sha256:15cce544a484ff62662fa23adc9b1cab509d49e2da5a11fe90e54a83fd79dc84"
         },
         {
           "resource": "repo://libs/evidence-api/src/renderer/outputRenderer.spec.ts",
-          "version": "repo-file-v1:sha256:3a78e60cccf4d0274cda709c6fbc4c0480eb8b926a7bfcdab75d46b292c8ac5c"
+          "version": "repo-file-v1:sha256:184a209570c59c5506bca768ac81692c86edd78b08a0aa6e988ef4e7d4e834d3"
         }
       ]
     },
@@ -64,7 +58,7 @@
       "evidence": [
         {
           "resource": "repo://libs/evidence-api/src/projector.ts",
-          "version": "repo-file-v1:sha256:4b78953df8d8d4850b35941cdcca57eb9586a47066498d2ab43a9e833cdf14fe"
+          "version": "repo-file-v1:sha256:1bef1b68f4d75d6fa9a0d55812c4b9d58a5392bc061f127c4ee8ec6fcb353511"
         }
       ]
     },
@@ -84,29 +78,29 @@
     },
     {
       "id": "claim_e55e9428a74d4b5887bd1e250779ae79",
-      "statement": "snapshot 固定 schemaVersion 6.0 和 mode draft，并记录 model/design/check digests，不宣称发布就绪。",
+      "statement": "snapshot 使用 schemaVersion 7.0 和 mode draft，并记录 model 及可用的 overlay/check 摘要。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-api/src/projector.ts",
-          "version": "repo-file-v1:sha256:4b78953df8d8d4850b35941cdcca57eb9586a47066498d2ab43a9e833cdf14fe"
+          "resource": "repo://libs/evidence-api/src/projector.ts#L179-L205",
+          "version": "repo-lines-v1:sha256:9290a1a7512dcac4dd2d93339686fcf019ed400bdc39f23fb38fd7d42b5ee79c:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlmYjYyZTc1NjdhZTdjZjg2M2JjMjc4OTEwM2FjN2VhNWQ2MWQ4NzUxZjgyYzY5ZWNkZGQwODEwZDgxNDBjZWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE5N2E4YjRkZWJlMzliMDM0NmMxOTM1YjIzM2UzZTg3NGQ2NDJkNjQ4ZTM4NmViYTM5YTNkOWZlYTMzYjgzYTciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQwMzU4ZmMzNjVlMTYwNjNlMzA2YmRiNjVmZjVlOTI5MTE5YjQxNWIyMzE5ZDg3YTRjYWE0MGMxOTFjN2Y5YzUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhkNWI1ZTNjN2ExM2NjOWRiZTIyOTIwYTkyNTQ3MzdkMWQyOWYzNTM3ZDk2NWM5YWUzYTYxNWYwMTU2ZWVlNTMifQ"
         }
       ]
     },
     {
       "id": "claim_7a17d6130e5c4fc89603eef1ac8a531f",
-      "statement": "The overlay contract allows only schemaVersion, id, routes and journeys with additionalProperties false; an obsolete full design carrying resources, bindings or capabilities is refused with DESIGN_INVALID, and a route override must name an existing route id, keep the original path parameter names without empty segments or unbalanced braces, and not collide with another method plus path.",
+      "statement": "Overlay 只允许 schemaVersion、id、routes 和 journeys；覆盖只能替换现有操作的路径或摘要，不能改路径参数名或制造路由冲突。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-api/src/apiLoader.spec.ts",
-          "version": "repo-file-v1:sha256:8886e1a45c6fb42769647c07565e5a5f916ce89c01160e7961e8ab333c037e80"
+          "resource": "repo://libs/evidence-api/src/projection.spec.ts",
+          "version": "repo-file-v1:sha256:15cce544a484ff62662fa23adc9b1cab509d49e2da5a11fe90e54a83fd79dc84"
         },
         {
           "resource": "repo://libs/evidence-api/src/projector.ts",
-          "version": "repo-file-v1:sha256:4b78953df8d8d4850b35941cdcca57eb9586a47066498d2ab43a9e833cdf14fe"
+          "version": "repo-file-v1:sha256:1bef1b68f4d75d6fa9a0d55812c4b9d58a5392bc061f127c4ee8ec6fcb353511"
         },
         {
           "resource": "repo://libs/evidence-api/src/schemas/apiSchema.ts",
-          "version": "repo-file-v1:sha256:23ebdfd99ae1300fdc204454a179ce55c5f222b78aee08eff227872978b2532c"
+          "version": "repo-file-v1:sha256:5a06947fc635a0ce33b703f9c629f44122a8679c8111c6de8e5639b312efd77d"
         }
       ]
     },
@@ -116,7 +110,7 @@
       "evidence": [
         {
           "resource": "repo://libs/evidence-api/src/projector.ts",
-          "version": "repo-file-v1:sha256:4b78953df8d8d4850b35941cdcca57eb9586a47066498d2ab43a9e833cdf14fe"
+          "version": "repo-file-v1:sha256:1bef1b68f4d75d6fa9a0d55812c4b9d58a5392bc061f127c4ee8ec6fcb353511"
         }
       ]
     },
@@ -125,40 +119,44 @@
       "statement": "Overlay journey 必须引用存在的路由和该路由获准的当事人或回调角色，nextPossibleSteps 必须存在；无自定义时由 POST 与获准调用者组合并经超媒体连接。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-api/src/delivery/addressing.ts#L129-L131",
+          "resource": "repo://libs/evidence-api/src/delivery/addressing.ts#L132-L134",
           "version": "repo-lines-v1:sha256:d6af743c5acc7e9dae29cd71195e33b068f71f4e156adde7019395997cb2614a:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiM2ZhZjBiNDNkMmFlMDE4MTIyNWVlNjhhYjFlYTgyZTg0NDUzYWUyZDE1YmUxMzNhODRkNzUxMmEyOWU5ZjExOSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZDAxNGFmYWY5ZTA1OGU4NjkzM2JlYzYzZWE5OTlkODVhYjdhZmVjYzNiOTNlNTUxNmNiYjVmYzYwYmQzZjk5MCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYWMwMWU0YjQzZWVmMTU0NmM5YTU1M2M2OTZiMzViYjY2MDA4ZWVkYzdlZDIyNDhjYmU3ZDUyYzJkM2Y5ZmY4NiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOWMwYmFjMWJhNzBkZGQ5ZTI0MjU3YzMyODhiMTQ4OWNhOTE3MjA3YWM5ZWIwNGIzMjE5ODZhNmEwNmRjY2U3OSJ9"
         },
         {
           "resource": "repo://libs/evidence-api/src/http/hateoasWeaver.ts",
-          "version": "repo-file-v1:sha256:72f1e670ca48147087e970e8dc7e712b6260e740ba18f6aef5b36ad81b7b9048"
+          "version": "repo-file-v1:sha256:01cbd879dbabeb735a50774821b5900289270cf1ebcf90aac7601b017c39c049"
         },
         {
           "resource": "repo://libs/evidence-api/src/projector.ts",
-          "version": "repo-file-v1:sha256:4b78953df8d8d4850b35941cdcca57eb9586a47066498d2ab43a9e833cdf14fe"
+          "version": "repo-file-v1:sha256:1bef1b68f4d75d6fa9a0d55812c4b9d58a5392bc061f127c4ee8ec6fcb353511"
         }
       ]
     },
     {
       "id": "claim_aa192d36317a4853a68372e33135f0a7",
-      "statement": "POST self 与 Location 指向最终主 GET；集合 self 指向集合，HAL _embedded 摘要有自身 self 和 total；references 编织 templated next 导航而非运行时可用性承诺。",
+      "statement": "创建或异步受理响应的 self/Location 指向资源的主 GET；集合是独立 HAL 视图，模板导航不承诺运行时可用性。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-api/src/http/hateoasWeaver.spec.ts",
-          "version": "repo-file-v1:sha256:e199cf1b3169ab4bceaebed5ecb76382764b6b9e476aa161a2a3f79ad1fe5a97"
+          "resource": "repo://docs/api-projection-v6.md",
+          "version": "repo-file-v1:sha256:36f80360098ae62fcd624bb1692dbd272956263b3c205566144e419080604cfc"
+        },
+        {
+          "resource": "repo://libs/evidence-api/src/delivery/modelDelivery.ts",
+          "version": "repo-file-v1:sha256:2ef96820a22aa5df033694ae7ca707cd8b2df8e9d230b8a79e8fd92ca3620da6"
         },
         {
           "resource": "repo://libs/evidence-api/src/http/hateoasWeaver.ts",
-          "version": "repo-file-v1:sha256:72f1e670ca48147087e970e8dc7e712b6260e740ba18f6aef5b36ad81b7b9048"
+          "version": "repo-file-v1:sha256:01cbd879dbabeb735a50774821b5900289270cf1ebcf90aac7601b017c39c049"
         }
       ]
     },
     {
       "id": "claim_c899d4f828004c5ebeec4b5db560c2e9",
-      "statement": "OpenAPI 3.1.0 每 operation 追溯 entity/context/service、角色与履约关系，并为读写对象生成 component schemas。 info.version 为 6.0.0，模型版本保留 x-evidence-model-version。",
+      "statement": "OpenAPI 3.1.0 的操作保留 entity/context/service、角色和履约来源；info.version 与 x-evidence-model-version 来自模型版本。",
       "evidence": [
         {
           "resource": "repo://libs/evidence-api/src/delivery/modelDelivery.ts",
-          "version": "repo-file-v1:sha256:94bbc77cf1fec0be91f0252c9f3119f53bcc75816db9c3d44de67ac82a85bd01"
+          "version": "repo-file-v1:sha256:2ef96820a22aa5df033694ae7ca707cd8b2df8e9d230b8a79e8fd92ca3620da6"
         }
       ]
     },
@@ -168,11 +166,11 @@
       "evidence": [
         {
           "resource": "repo://libs/evidence-api/src/delivery/fieldContract.spec.ts",
-          "version": "repo-file-v1:sha256:92fe1f0c94cded2511bf061cde470da7d0966dd96dd68ca390978d49eeded5c2"
+          "version": "repo-file-v1:sha256:71749f123cf8dfc9f362a3194ada1daefdcc1a108f40830d5a6335315faca429"
         },
         {
           "resource": "repo://libs/evidence-api/src/delivery/modelDelivery.ts",
-          "version": "repo-file-v1:sha256:94bbc77cf1fec0be91f0252c9f3119f53bcc75816db9c3d44de67ac82a85bd01"
+          "version": "repo-file-v1:sha256:2ef96820a22aa5df033694ae7ca707cd8b2df8e9d230b8a79e8fd92ca3620da6"
         }
       ]
     },
@@ -182,7 +180,7 @@
       "evidence": [
         {
           "resource": "repo://libs/evidence-api/src/openapi/openapi.spec.ts",
-          "version": "repo-file-v1:sha256:7c2e9eeed7b5fa1e77a021c1278ce56b2f9d2d8b9272e6bf79bc11486253f3fc"
+          "version": "repo-file-v1:sha256:0456f4324b16363568520f746375bfa90ac978f0ccfe0935d2418dc2dcddb78c"
         },
         {
           "resource": "repo://libs/evidence-api/src/testing/openapi.ts",
@@ -196,11 +194,11 @@
       "evidence": [
         {
           "resource": "repo://libs/evidence-api/src/delivery/files.ts",
-          "version": "repo-file-v1:sha256:af583f667154c30605e34a3b3a1b5cfc03e077c7fe16321da06ade0c9456588c"
+          "version": "repo-file-v1:sha256:03038177b1aed3ea1126d138883226eede9040b81662cb9a411bb51730180469"
         },
         {
           "resource": "repo://libs/evidence-api/src/delivery/modelDelivery.ts",
-          "version": "repo-file-v1:sha256:94bbc77cf1fec0be91f0252c9f3119f53bcc75816db9c3d44de67ac82a85bd01"
+          "version": "repo-file-v1:sha256:2ef96820a22aa5df033694ae7ca707cd8b2df8e9d230b8a79e8fd92ca3620da6"
         }
       ]
     },
@@ -210,7 +208,7 @@
       "evidence": [
         {
           "resource": "repo://libs/evidence-agent/src/sensors/native/nativeApiSensor.ts",
-          "version": "repo-file-v1:sha256:35659c2c2dfb779e3dbff84d3fa62ba4c5009de8717a05fc975ef79b27c36f46"
+          "version": "repo-file-v1:sha256:ff7d0e15ed3c38c2d2c5879afff0fd2b2c3d24d8437ae45caf48bdf8a7a3d0a6"
         }
       ]
     },
@@ -220,25 +218,25 @@
       "evidence": [
         {
           "resource": "repo://libs/evidence-api/src/delivery/modelDelivery.ts",
-          "version": "repo-file-v1:sha256:94bbc77cf1fec0be91f0252c9f3119f53bcc75816db9c3d44de67ac82a85bd01"
+          "version": "repo-file-v1:sha256:2ef96820a22aa5df033694ae7ca707cd8b2df8e9d230b8a79e8fd92ca3620da6"
         },
         {
           "resource": "repo://libs/evidence-api/src/projector.ts",
-          "version": "repo-file-v1:sha256:4b78953df8d8d4850b35941cdcca57eb9586a47066498d2ab43a9e833cdf14fe"
+          "version": "repo-file-v1:sha256:1bef1b68f4d75d6fa9a0d55812c4b9d58a5392bc061f127c4ee8ec6fcb353511"
         }
       ]
     },
     {
       "id": "claim_9fecc80621324ad996a993242be3bda1",
-      "statement": "renderOutputs serializes one snapshot into openapi.json, topology.json, routes.json, deployment.compose.json, projection.json, http-journeys.json, an optional limitations.md and manifest.json, where the manifest records the tool name and version, digests of both schemas, Node and ajv versions, the snapshot's input digests and a sha256/bytes entry per output.",
+      "statement": "renderOutputs 序列化聚合及服务 OpenAPI、拓扑、路由、projection、journeys 与可选 limitations；manifest 记录工具和输入摘要及输出字节摘要。",
       "evidence": [
         {
           "resource": "repo://libs/evidence-api/src/delivery/files.ts",
-          "version": "repo-file-v1:sha256:af583f667154c30605e34a3b3a1b5cfc03e077c7fe16321da06ade0c9456588c"
+          "version": "repo-file-v1:sha256:03038177b1aed3ea1126d138883226eede9040b81662cb9a411bb51730180469"
         },
         {
           "resource": "repo://libs/evidence-api/src/renderer/outputRenderer.ts",
-          "version": "repo-file-v1:sha256:1a91d7a7c3802a74d34335cf66f6c93642de477ad96fc97c5643ea83b92fd905"
+          "version": "repo-file-v1:sha256:da946802900fd17432c76d83b8553bc92e3d5da069937f2dc54e93aa8dd7fa54"
         }
       ]
     },
@@ -248,7 +246,7 @@
       "evidence": [
         {
           "resource": "repo://libs/evidence-api/src/renderer/outputRenderer.ts",
-          "version": "repo-file-v1:sha256:1a91d7a7c3802a74d34335cf66f6c93642de477ad96fc97c5643ea83b92fd905"
+          "version": "repo-file-v1:sha256:da946802900fd17432c76d83b8553bc92e3d5da069937f2dc54e93aa8dd7fa54"
         },
         {
           "resource": "repo://libs/evidence-api/src/renderer/outputWriter.spec.ts",
@@ -257,26 +255,12 @@
       ]
     },
     {
-      "id": "claim_17bd19c287794c24ac1335d3397f1ecc",
-      "statement": "兼容 API resolved commands 要求绝对路径、out 在项目内且不与输入重叠，realpath 祖先解析防 symlink 绕过。",
-      "evidence": [
-        {
-          "resource": "repo://libs/evidence-acceptance/src/commands.ts",
-          "version": "repo-file-v1:sha256:aa56e72bc6408bcb4a54d2fa88a1c2275f2ed3c7e46944af5f6be9e49613ee9d"
-        }
-      ]
-    },
-    {
       "id": "claim_6d2399f8707a43cb8f9feb9236d0dd4a",
-      "statement": "command 校验最终 projection schema 并将错误影响退出码；嵌入 schema 文本与随包文件字节相同。",
+      "statement": "投影与 overlay 各自有嵌入的 JSON Schema，测试确认与库随包发布的 schema 字节一致。",
       "evidence": [
-        {
-          "resource": "repo://libs/evidence-acceptance/src/commands.ts",
-          "version": "repo-file-v1:sha256:aa56e72bc6408bcb4a54d2fa88a1c2275f2ed3c7e46944af5f6be9e49613ee9d"
-        },
         {
           "resource": "repo://libs/evidence-api/src/apiLoader.spec.ts",
-          "version": "repo-file-v1:sha256:8886e1a45c6fb42769647c07565e5a5f916ce89c01160e7961e8ab333c037e80"
+          "version": "repo-file-v1:sha256:93bcd844b9b22393acd350dfc90ed0406d5fbf4067b84562735154fab7ebb1bb"
         }
       ]
     },
@@ -296,7 +280,7 @@
       "evidence": [
         {
           "resource": "repo://libs/evidence-api/src/inspect.ts",
-          "version": "repo-file-v1:sha256:755d95c2a570df2cd108593afb94b59080d348b667e26f44d0befde29277aab5"
+          "version": "repo-file-v1:sha256:bce746d611f0fbd8973b8c56d01d73cb139c7c3bd799b361a91c4ea284fcaa2b"
         }
       ]
     },
@@ -305,44 +289,30 @@
       "statement": "业务 URI 按聚合根、子基数与履约拓扑生成；确认动作有不同入口，同一确认资源的主 GET 使用全局确认 URI，根与局部子段稳定消歧。",
       "evidence": [
         {
-          "resource": "repo://docs/api-projection-v6.md#L24-L40",
-          "version": "repo-lines-v1:sha256:eedaf39b19c661524756a12fcccd5393a72d4035bcf7bd0158f0d1e843d8a337:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE1ODQ2ZDljYzUzOTQxZTg3YzY0MDY3MjM4NjlhYmFkNGNjOWFiNjIzYzY1OGYwMTkxZjk1MjEyNGQ5ZmY0NjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJmOGE0NDliMmYyMTZkODM2NGZmZDQxODFjYjA0ZTlkMWM3NDIzYmQxYmJiNmI5YjRiYjNlMWNlMDI0OWU3N2MiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImMwM2FhOGY5NzU5OTJkOGVmNGI2MjkyNmNmOWYzMDIxZTY5Y2Y0NjUyYTkwYzAwMWE5ZjVlZTg4Y2ViMDY5Y2YiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgzYzg3OWFhMGViZDQ5NWI0MmEzZjkyYWMwNGI4ZWQzZTE4MTVjNTg5NzI0ZjA4NWU4MDMxMGMxZjdlYWFhZTkifQ"
+          "resource": "repo://docs/api-projection-v6.md#L24-L42",
+          "version": "repo-lines-v1:sha256:7a91d474f8833e7e4c14e8f552fde25e91ab05c41ff77c5a6cf1a8b0269495ea:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE1ODQ2ZDljYzUzOTQxZTg3YzY0MDY3MjM4NjlhYmFkNGNjOWFiNjIzYzY1OGYwMTkxZjk1MjEyNGQ5ZmY0NjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJmOGE0NDliMmYyMTZkODM2NGZmZDQxODFjYjA0ZTlkMWM3NDIzYmQxYmJiNmI5YjRiYjNlMWNlMDI0OWU3N2MiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImMwM2FhOGY5NzU5OTJkOGVmNGI2MjkyNmNmOWYzMDIxZTY5Y2Y0NjUyYTkwYzAwMWE5ZjVlZTg4Y2ViMDY5Y2YiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgzYzg3OWFhMGViZDQ5NWI0MmEzZjkyYWMwNGI4ZWQzZTE4MTVjNTg5NzI0ZjA4NWU4MDMxMGMxZjdlYWFhZTkifQ"
         },
         {
           "resource": "repo://libs/evidence-api/src/delivery/routes.ts",
-          "version": "repo-file-v1:sha256:e0f8536e076c000f85fa1391ecd34390137f5074c0e5d7aa8d08a7bb45f6b810"
+          "version": "repo-file-v1:sha256:a22d24bdc3d56a2bfe4dd83fd915be9f7d3ef1c31122ba4268a1910763f4280c"
         },
         {
           "resource": "repo://libs/evidence-api/src/delivery/segments.ts",
-          "version": "repo-file-v1:sha256:17f3f0104f9e1a173190e539b0bc203a6b58e3c927a41149f16cb48adc351342"
+          "version": "repo-file-v1:sha256:e808f502adfbb6925a43bafa29a6f2d82f704605aa43ffeeff09cf6ff1548e90"
         }
       ]
     },
     {
       "id": "claim_e2951082c6764215b9e6aae03baa8fe3",
-      "statement": "Context 服务通过最终 routePrefixes/routes 表达所有权；Traefik 逐操作匹配 method 与完整路径正则，公开 URI 不含 lane。",
+      "statement": "Context 服务用 routePrefixes 和精确 routes 表达逻辑所有权；公共 URI 不带部署前缀，拓扑不规定运行时部署。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-api/src/delivery/modelDelivery.ts",
-          "version": "repo-file-v1:sha256:94bbc77cf1fec0be91f0252c9f3119f53bcc75816db9c3d44de67ac82a85bd01"
+          "resource": "repo://docs/api-projection-v6.md",
+          "version": "repo-file-v1:sha256:36f80360098ae62fcd624bb1692dbd272956263b3c205566144e419080604cfc"
         },
         {
           "resource": "repo://libs/evidence-api/src/delivery/topology.ts",
-          "version": "repo-file-v1:sha256:ac784609e4674bf5d84c378b6c4ec058da7a14a9b0cf596cea34a5a5cb835968"
-        }
-      ]
-    },
-    {
-      "id": "claim_df5f11d1a92c46cea3f53b6cb8d3669f",
-      "statement": "模型感知 overlay 迁移升级路径、ledger 与 journey 引用，拒绝未知或歧义，不覆盖旧文件。",
-      "evidence": [
-        {
-          "resource": "repo://apps/cli/src/commands/api.ts",
-          "version": "repo-file-v1:sha256:d81d502bf89178b4c4b1e09e56df1408f18dc95ca46133991d0fec7a45e74ab4"
-        },
-        {
-          "resource": "repo://libs/evidence-api/src/loader/migrateOverlay.ts",
-          "version": "repo-file-v1:sha256:96797d5e3eb1442b1c66c40e7be370ce22da0df8ff91ccae37295f9e2f439099"
+          "version": "repo-file-v1:sha256:3b01bcc3d0fe3cb0b132299df5bd219138039d74e41d874e33a5af1085cdad33"
         }
       ]
     },
@@ -351,18 +321,32 @@
       "statement": "API 路由只从已归属上下文的业务凭证生成；未定归属的凭证允许保留在草稿画布，不推断公共路径。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-api/src/delivery/routes.ts#L575-L614",
-          "version": "repo-lines-v1:sha256:19064eaee6b5e7f72430d68615020237901d65021193a5fbfd955b6f18393b6d:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgyNTc1YjYzZWI4NDM3MTA0ZWM2YjRhOWI4Y2RhYWViYjYyNzIwOGRmY2ZhOWVkNWU1ZThkMWJjNmY1NWE5MDkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhkMzc3YWMzMGNhNjIyNWRmMzI1YWNmMjU0OWE2NTBhMGY0ZWRjZTM2NDgyNmJhNjY1NzEyYWIzZmI0OGI4YjQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI5NWZjZWI4MjhhNWI2OGIzZDA2MmQ3MDFjNTg2NjM1MmE3ZmRjZjMxYmQwYWQ0Zjk5NTVhNjAzOGExNTAzNmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUzZjQ5OGI2ZDllMDQ1MjVlMmVlMDRjMTgzYzAwZDhhOTIxZjlmMDc3NWE3YTUxMTVkOWMxOGYzMTAyZGQxOGYifQ"
+          "resource": "repo://docs/api-projection-v6.md",
+          "version": "repo-file-v1:sha256:36f80360098ae62fcd624bb1692dbd272956263b3c205566144e419080604cfc"
         },
         {
-          "resource": "repo://libs/evidence-api/src/delivery/routes.ts#L682-L703",
-          "version": "repo-lines-v1:sha256:96c710aab64a9a2641c007d0e2c076337374a92c18c476c3fc647364dd19de56:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZjNmUxM2RkMTI5N2E3NTg2YzAwN2MzNWFkNmZiODZiZGI4YmY1MWU5NjljOTFjMTc2NDljMDRlNjk5ZWVkNzgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVlYmZhYWU1OWEwZTJkNmYwZmMwMGEzZmIzYjYxY2ZhOWIzMjU3ZDA1ODU5MmQ2NGY3NDkwNGQyYzQ1ZDVjODQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAyNjJhODM0ZDNkNDg0OWE2YTNlNTQ2MDc4MjI5NjUyMzgyMTUwMzZhMjkyZWE4NzU2NzQ3YmQwYmMxMzY5ZWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ3MGJiZGZkYzU5ZjJmNDJhMTA1NjY1OTcyNjc5M2Q2MTdiMDQ4ZWFkNTY0MTBiMDUxMzZlMGU4NmNjNmY4NGYifQ"
+          "resource": "repo://libs/evidence-api/src/delivery/routes.ts",
+          "version": "repo-file-v1:sha256:a22d24bdc3d56a2bfe4dd83fd915be9f7d3ef1c31122ba4268a1910763f4280c"
+        }
+      ]
+    },
+    {
+      "id": "claim_b4d1978d328d4916bc49536f16d7bb48",
+      "statement": "统一 CLI 导出聚合 OpenAPI 到工作区 release 目录；完整投影和 overlay 由库 API 提供。",
+      "evidence": [
+        {
+          "resource": "repo://apps/cli/src/commands/export.ts",
+          "version": "repo-file-v1:sha256:32df4e8247099e505690be374c35fb5aed1fcf88427d886361323cc1d4e5d4f4"
+        },
+        {
+          "resource": "repo://docs/api-projection-v6.md",
+          "version": "repo-file-v1:sha256:36f80360098ae62fcd624bb1692dbd272956263b3c205566144e419080604cfc"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.9.0",
-    "at": "2026-11-20T12:30:09.424Z"
+    "at": "2026-11-24T13:18:19.740Z"
   }
 }

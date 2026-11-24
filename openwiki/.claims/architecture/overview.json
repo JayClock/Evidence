@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:f7d91c2f7e77f41712d152c4572e2227f5e2451952500eb62429b52bda65b21a",
+  "pageVersion": "sha256:e467e0ac0e83591c7a7e6f8faa7a8ae0d6449d1fa8c2d2e2a907432e01da35cc",
   "claims": [
     {
       "id": "claim_164af37c15bd455a9db772d5a23f1eed",
@@ -8,7 +8,7 @@
       "evidence": [
         {
           "resource": "repo://docs/workspace-layout.md",
-          "version": "repo-file-v1:sha256:4c0d0b7ed766f0caa991b996ec19e0a05c761859a700c6e090d7e56540255245"
+          "version": "repo-file-v1:sha256:3dceacc63fbf9300a2bc9ff8650e61ad082fa2119435a718a200594d96484d21"
         },
         {
           "resource": "repo://tsconfig.json",
@@ -18,15 +18,15 @@
     },
     {
       "id": "claim_c552dd1e7d5d4dd7bc923d8dc22b8a96",
-      "statement": "schema 使用 Zod 定义 FM v5 语法和语义 refinement，依赖稳定 JSON 序列化库，不是只有 tslib。",
+      "statement": "schema 使用 Zod 定义 FM v6 语法和语义检查，严格验证类型及跨对象引用。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-schema/package.json#L27-L32",
-          "version": "repo-lines-v1:sha256:356a0fe5e8f4c7209c895d6acbcaf244bdc93eb91c7c684532f3959b7b4ade1c:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYmEzYjQ2OWQ5ZTA5NzU3MjI0NjY2NzM0YzllZjdiMjU0ZDg4NTM0ZjVkNWJiNzA5ODk2MDgwNWM1NTNkYzMwNyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiODZiOWQ0NTJhMGNjMjhiNmZkYWE2Y2RlZmNkNGJjZDRhMzdhOTFlNTFhNzAwM2NmYWVjNzdlOGQzOTcwMjA4NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjAsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSJ9"
+          "resource": "repo://libs/evidence-schema/src/ast/document.ts",
+          "version": "repo-file-v1:sha256:83ad812514f0b60c00cf089890de7e9c00669a462d412835afdcba5fd12e9ee7"
         },
         {
-          "resource": "repo://libs/evidence-schema/src/ast/document.ts#L29-L54",
-          "version": "repo-lines-v1:sha256:7bf573c1ec2d4b1c56c77577f9b40ed2fa1c953f0a5ce24ff43a66c4511d4d55:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYxNjQzZjQ0ZGYxYWY2ZDU3ODUyZDBiMWZlMGUyOTlhYjY4ODY3MjMzNmI3YjA2NjA5MmQyOWIyY2Q3ZDk2ODMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhkMTIxZWYxMGVhNWJkZjk1ZjBhYTU5NzhkYTU4YTljYzNiZTYzZjBmOTYxOGNjMjQ5ZjVmZGRiOWFlYWQ0YjMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZkMzRjZWYxOTg0NDJhMzViZjM5NDU2ZTdlNTA3NTFiOGE5YjlhZDU2ZjQ0ZTRhY2VmMjcxYzdlYzIwNjdjOWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI0MGEzODIxN2Q5NzljZDEyOTA0ZTBmYTU2NDcyZmU4ZjM3MjY3ZjNlNjdmZGJkNWJjNmRlZGJhNTk1N2EwNTkifQ"
+          "resource": "repo://libs/evidence-schema/src/validation/strictValidate.ts",
+          "version": "repo-file-v1:sha256:3a0f696dca90c6a0579c1b452103f19616357bb1e4f7b7653bf116a8bed77364"
         }
       ]
     },
@@ -40,25 +40,21 @@
         },
         {
           "resource": "repo://libs/evidence-model-io/package.json",
-          "version": "repo-file-v1:sha256:39e9a6713d2cd56358abb6c4570aa7f493c4efbc551868875eb416645201d17c"
+          "version": "repo-file-v1:sha256:6dea97a8217c03b62cbda0428b828bdfa9a5a42e847ef49dcc5c6acbd2aa34ac"
         }
       ]
     },
     {
       "id": "claim_dc7d5d240e3e463a9fb5828e53267277",
-      "statement": "evidence-api projects a model document plus an optional design overlay into one draft delivery snapshot carrying routes, hypermedia, services, OpenAPI, deployment, limitations, model/design/check-report digests and normalized sorted diagnostics; a supplied FM check report that fails validation or predates the current model digest becomes a gap diagnostic instead of stopping the projection.",
+      "statement": "API 投影将模型和可选 overlay 转为草稿契约；不合格或过期的固定检查报告会产生明确 gap 诊断。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-api/src/adapter/fmAdapter.ts",
-          "version": "repo-file-v1:sha256:1df7c862d398000c72f24be5e0138acf74e9016bfbcd5f715a4712f0151a1bfe"
+          "resource": "repo://libs/evidence-api/src/adapter/modelAdapter.ts",
+          "version": "repo-file-v1:sha256:cd507d383c7987b0e76f31a4e8e3ab2d4c8eeeb35c7f050f8f9a4e0826d17828"
         },
         {
           "resource": "repo://libs/evidence-api/src/projector.ts",
-          "version": "repo-file-v1:sha256:4b78953df8d8d4850b35941cdcca57eb9586a47066498d2ab43a9e833cdf14fe"
-        },
-        {
-          "resource": "repo://libs/evidence-api/src/types.ts",
-          "version": "repo-file-v1:sha256:20dff52ee6f022e7b12826236982f266f5c69350a417c7a3f99c8cf4852faa8b"
+          "version": "repo-file-v1:sha256:1bef1b68f4d75d6fa9a0d55812c4b9d58a5392bc061f127c4ee8ec6fcb353511"
         }
       ]
     },
@@ -68,11 +64,11 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/main/main.ts",
-          "version": "repo-file-v1:sha256:320808a8bc54cc3627aabc4e61d24d08e900c58ce2b64340063fe9b12f14c4eb"
+          "version": "repo-file-v1:sha256:d170366a26f53a383031af51e9f3e9d427af7a32b16ad468d2fbdaee4f300f13"
         },
         {
           "resource": "repo://apps/desktop/src/renderer/state/useEditorSession.ts",
-          "version": "repo-file-v1:sha256:411827498bf8931b4411cd7b1e690fc87c37dc79b10044d9e137b548eea47f2c"
+          "version": "repo-file-v1:sha256:d7c29147764ee409a89a91c044ba4ab13a0dfdb207f22370253cb88197178e28"
         }
       ]
     },
@@ -81,34 +77,12 @@
       "statement": "Node/pnpm 是开发工具链；pnpm 安装固定 Bruno CLI 执行 HTTP 验收，API 比较另需显式准备固定原生 oasdiff，无需 Go/Docker。",
       "evidence": [
         {
-          "resource": "repo://ENVIRONMENT.md#L1-L7",
-          "version": "repo-lines-v1:sha256:6c0c9dcf98de146dc254862c33eca0702ec9532c635ad4ee039027901a53f755:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiODRhMzRiNDgyNTA4MjUwOGMzZjNiZGE3MzUyZmMxMGNhMGI3NGYyOTdlYTcyODM1ZTJhZTliMjZlNjQ0OTBiNyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjAsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZjc5MDZkNzQ3NzhmYjliZTM1ZGUyNmVmZjE5ZWZkOTI4MDc5ODU2NTMzYmM4MWIzNzVhNzAyMGRiZjM2Y2UyZSJ9"
+          "resource": "repo://ENVIRONMENT.md",
+          "version": "repo-file-v1:sha256:958191ae932f93cd455a2eb06391dad16f42e2273b8408e51aba7f845c6acf07"
         },
         {
-          "resource": "repo://libs/evidence-acceptance/package.json#L92-L101",
-          "version": "repo-lines-v1:sha256:b3f6886e8f359017ed1f2ab0294bff44ad71dd18d182889f48dc0fbf168ac4a7:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRiNGU1YTFjZWMzMWRhZDIwN2U0NjNmYWIxM2Q0YmEzMjY4YzlkNDM3NWVkN2FlMTViYTA0MzdiY2JhZjhmNzkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY2YzE0NzU3YjhlMWU5ZDZhN2RlZTk5MDJlOTA0MDdhZDhjZjY3M2IzZThkNzYzZTI3OTUwZDE5ZDA2NzhkNjkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM5ZjM4MDczYzFiYzUzY2Q3MjNkYTFhNDk2OGFiMDBjZWIzM2Y0MDljYTY5YzQyODM4YWI2MmIzNDc2NjlmODUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY2YWUwOWM0MGFjYzBiZDIxOWVjOGU3ZDRlYzg5YmY0ZjQ5NDI5ZmY0MWE0NDIyODAzOTJmMzY0MTUyZGYyZTIifQ"
-        },
-        {
-          "resource": "repo://tools/oasdiff/setup.mjs",
-          "version": "repo-file-v1:sha256:5f10a2323e653b1660b8018657e7e3680d0b382a27160df2b979fa794f96d96b"
-        }
-      ]
-    },
-    {
-      "id": "claim_ca2fb1b7d7db48d6b9413a3910009e44",
-      "statement": "evidence bin 来自 apps/cli；旧 model/API bin 保留为弃用 shim，API shim 由 evidence-acceptance 拥有。",
-      "evidence": [
-        {
-          "resource": "repo://apps/cli/package.json",
-          "version": "repo-file-v1:sha256:d2ca0caf923736c9567219fb3ade2e92c22afe1983df6b171b147a8e3646f20e"
-        },
-        {
-          "resource": "repo://pnpm-workspace.yaml",
-          "version": "repo-file-v1:sha256:4d013ba818fcaeddb3c991f66061ba5c4c1ee198dd792444ea120dc1e4ae5bc3"
-        },
-        {
-          "resource": "repo://tsconfig.json",
-          "version": "repo-file-v1:sha256:3257d896fda47807b116943d63128d511195c8fc7030e2270e731b8fc799bb3b"
+          "resource": "repo://libs/evidence-acceptance/package.json",
+          "version": "repo-file-v1:sha256:d0302309652bebf606c7656d7e2d113247dc77bb77398a8079b6ad3cd8377ba1"
         }
       ]
     },
@@ -164,15 +138,19 @@
     },
     {
       "id": "claim_afcd65a6f6764d1bbe6864277b2dd504",
-      "statement": "Node model-io 负责源发现、摘要、树/Bundle I/O 和共享命令，不再使用 validation 场景文件。",
+      "statement": "Node model-io 负责识别目录工作区并读取、写回和计算模型源文件的摘要。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-model-io/package.json",
-          "version": "repo-file-v1:sha256:39e9a6713d2cd56358abb6c4570aa7f493c4efbc551868875eb416645201d17c"
+          "resource": "repo://libs/evidence-model-io/src/adapters/diskAdapter.ts",
+          "version": "repo-file-v1:sha256:832c5dea99b9e511e2398b777a7f2744817d273c5b33094e45307bc8376b5b64"
         },
         {
           "resource": "repo://libs/evidence-model-io/src/adapters/modelRoot.ts",
-          "version": "repo-file-v1:sha256:5a271892de68ee0f2375a518bf385a4e48b89ca454dc0aa3fd21aa7c97fc0b80"
+          "version": "repo-file-v1:sha256:4359bcc56b904e373e69d7eb925b259f6049af3b2ea0fc27dbdce6716ac79b28"
+        },
+        {
+          "resource": "repo://libs/evidence-model-io/src/workspace.ts",
+          "version": "repo-file-v1:sha256:038a55dd5a2af71ac32eed5f2c5bfaa445ba6a4ff6eb5d6a9dbb79f1843d0939"
         }
       ]
     },
@@ -186,7 +164,7 @@
         },
         {
           "resource": "repo://libs/evidence-agent/src/index.ts",
-          "version": "repo-file-v1:sha256:5ecc30066292092a2fa6fc3bb6f5af193d413855f1991cbc084d468b368fc988"
+          "version": "repo-file-v1:sha256:8d39bb73443ee03de15d3f9fc5f50993a77b300e135c2ee9a626cd96577b891a"
         }
       ]
     },
@@ -195,20 +173,16 @@
       "statement": "MCP 补丁直接写入 renderer 会话，Pi 补丁由主进程原子提交并由 renderer 重放，共用编辑历史；MCP 传感器、交付与截图由主进程处理。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/main/agentRuntime.ts#L131-L182",
-          "version": "repo-lines-v1:sha256:960736a1c215ef42ae5b71373133133a280aebce63df027effa461bd62c0a681:eyJzZWxlY3RlZExpbmVDb3VudCI6NTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk4ZjRkMzUxOTU0Y2FlMDAyYzU4NjRjYzlhMWQzNDUyZDFiMGE0MGNhZWNjNzcyYzIyYjVlZTk0YWQyYWFkMDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJmOTcxNGFkYjU1Y2Q3YjQ0MGUxNzQ2YTg3MDNhODAwY2UxNTNlNzM3OTg5NDA4ZWMxZTQ1NTc4OTVjNjM5NmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE4NzVkMmQ3NWVmNGQwYTZmM2Q4MTJlZGRhZjU3YTg0ODkzOTgyOGRlZDI4ZTM5NTFmOTIzNTM4ZDVlZjc4M2MiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZkMWI4YjY1ODA0ZDQ4OWVkMDNiYzVlZGE2M2Y2ZDBlNThiN2RkYTNjODY1NDJkOGQ1YzZiMmE3NjJmNWUzODYifQ"
+          "resource": "repo://apps/desktop/src/main/agentRuntime.ts",
+          "version": "repo-file-v1:sha256:e173b42a06c3c38a7b8c48e0a5e344fb9818d9e07b6330fcd1cb2403b6844c2f"
         },
         {
           "resource": "repo://apps/desktop/src/main/mcpRequestHandler.ts",
-          "version": "repo-file-v1:sha256:4f6a810a7875ff0da571576dd47da37d33093123bdc5f7cce7180c1efbdd2739"
+          "version": "repo-file-v1:sha256:ecc2f247f50f826bb1f902441b46089d47aa4384e9def330e37fa8a9602a35e4"
         },
         {
           "resource": "repo://apps/desktop/src/renderer/state/useLiveModelBridge.ts",
-          "version": "repo-file-v1:sha256:f6091dfd73647df1569262179e4e9bea1779baa8a7a02acc5a94586fe09de2e5"
-        },
-        {
-          "resource": "repo://apps/desktop/src/renderer/state/useMcpBridge.ts#L308-L347",
-          "version": "repo-lines-v1:sha256:cbd1fc8911dca240865ebfce2659a5dc9e1e82526bf53c859aa335730c4a773f:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5YzEzNTkwNjY1NjMyM2QxYzVlYTQxNjU0ZWU2NmFmYjU4NWFjZGNmYWVhY2ExMjFkNWUzMGJmMTkzZWVkZDciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk5MTUzZWRhOTM2MDk4M2Q4YWM1Y2Q4MTVjOGYxODE1YThlZGE5MjNlMjE1Yzg4YTZiNGUwNjAzYjQ1MzY2NTkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc3ZTk3ZTkzM2MxNjRhMzk2MGUyZWIxNzVkZmZhZjA3NTY1YmI0OThhMjcxZDUyYzYxYjNhOWI0Y2Q0MWY2MGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRjMDUxOTdiMDE5YjBlNTgyMjY3NjE1ZWQ2MTQxOTc5YmI3ZmMxZTA3ZDM3NGVhNjllMjAxOTQwOTlkNDY2YTgifQ"
+          "version": "repo-file-v1:sha256:eb3397acf8f3508aeea5928a1479cbe43c5be57d0069dccb01b246f6e5268dc0"
         }
       ]
     },
@@ -218,7 +192,7 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/main/main.ts",
-          "version": "repo-file-v1:sha256:320808a8bc54cc3627aabc4e61d24d08e900c58ce2b64340063fe9b12f14c4eb"
+          "version": "repo-file-v1:sha256:d170366a26f53a383031af51e9f3e9d427af7a32b16ad468d2fbdaee4f300f13"
         }
       ]
     },
@@ -232,7 +206,7 @@
         },
         {
           "resource": "repo://libs/evidence-agent/src/sensors/sensorsEngine.ts",
-          "version": "repo-file-v1:sha256:a43494acff6090d2538627042b6e8e384136cb6db3f6862d05df27dc8e5c62e4"
+          "version": "repo-file-v1:sha256:125e51caa2d7c21c1c118453849ed9104953b0d6f4cd24e5087a4b11b333cc51"
         }
       ]
     },
@@ -256,21 +230,63 @@
       "evidence": [
         {
           "resource": "repo://docs/workspace-layout.md",
-          "version": "repo-file-v1:sha256:4c0d0b7ed766f0caa991b996ec19e0a05c761859a700c6e090d7e56540255245"
+          "version": "repo-file-v1:sha256:3dceacc63fbf9300a2bc9ff8650e61ad082fa2119435a718a200594d96484d21"
         },
         {
           "resource": "repo://libs/evidence-acceptance/package.json",
-          "version": "repo-file-v1:sha256:77ed1cbfc70718bfe9d7d24367fdf6fdaaa6be574ce125cbc4c098498ad6bffa"
+          "version": "repo-file-v1:sha256:d0302309652bebf606c7656d7e2d113247dc77bb77398a8079b6ad3cd8377ba1"
         },
         {
           "resource": "repo://libs/evidence-tools/package.json",
           "version": "repo-file-v1:sha256:1de44ef1f095246c6d2570306b5bcfea3b5962b28a92598d839f3000e8012341"
         }
       ]
+    },
+    {
+      "id": "claim_9bf8e2dd23d64ddea878f266919594af",
+      "statement": "evidence 是统一 CLI；diff 使用两个工作区位置参数，其余项目命令通常从当前目录或 --workspace 定位工作区。",
+      "evidence": [
+        {
+          "resource": "repo://apps/cli/src/commands/diff.ts",
+          "version": "repo-file-v1:sha256:130c9058626016c4a88fb3b74b1fca43ccf75ef12e09ce8d0354e7eb7dd967f8"
+        },
+        {
+          "resource": "repo://apps/cli/src/model.ts",
+          "version": "repo-file-v1:sha256:77f8a055a8085cd5c5d6e653bfb65c135fa05a074417a35ef534ed46a36e28fb"
+        },
+        {
+          "resource": "repo://apps/cli/src/router.ts",
+          "version": "repo-file-v1:sha256:3ba75dcdd18e4b4bf904a3db79841c21fdf4bb5378f894a18d404bc82436069a"
+        }
+      ]
+    },
+    {
+      "id": "claim_ea1300750d47470ca89710503002a148",
+      "statement": "桌面自动生成交付产物以验证过的磁盘修订为输入，区别于以编辑器修订为输入的预览。",
+      "evidence": [
+        {
+          "resource": "repo://apps/desktop/src/main/artifactPipeline.ts",
+          "version": "repo-file-v1:sha256:d1cbdb5f289ec9f96c3a3501650a0f467d5a232075c97dc7b202403184ba992f"
+        },
+        {
+          "resource": "repo://apps/desktop/src/main/deliveryProjection.ts",
+          "version": "repo-file-v1:sha256:cc1627123f087fa7ba2511abc25f0a40b15b01b08062c4fe99ad50721633bf7e"
+        }
+      ]
+    },
+    {
+      "id": "claim_b790c81102d44887b92fa158a3d24508",
+      "statement": "canvas-interaction 根据领域图计算业务泳道几何，不依赖 DOM 或 React Flow。",
+      "evidence": [
+        {
+          "resource": "repo://libs/evidence-canvas-interaction/src/engine/swimlaneLayout.ts",
+          "version": "repo-file-v1:sha256:e19942a874330d3bae3ff867683b311c1519152178ee64fc3b39dedd9927d8a3"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.9.0",
-    "at": "2026-11-20T12:30:09.424Z"
+    "at": "2026-11-24T13:18:19.740Z"
   }
 }

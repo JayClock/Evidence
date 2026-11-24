@@ -1,20 +1,28 @@
 ---
 type: architecture
 title: 系统架构与依赖边界
-description: 两个应用宿主与十七个共享库如何围绕 FM 文档协作，以及 Zod、原生 CEL、Immer、ELK 和 Node I/O 的职责与依赖方向。
+description: 两个应用宿主与十七个共享库如何围绕 FM 文档协作，以及 Zod、原生 CEL、Immer、业务泳道和 Node I/O 的职责与依赖方向。
 tags: [architecture, workspace, dependencies, nx, data-flow, monorepo]
 verified:
   - by: openwiki/0.9.0
-    at: 2026-11-20T12:30:09.424Z
+    at: 2026-11-24T13:18:19.740Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
-  - id: openwiki-source-5466111549d3bdae4dce66a7
-    resource: repo://apps/cli/package.json
+  - id: openwiki-source-19442573d926816973f7a35a
+    resource: repo://apps/cli/src/commands/diff.ts
+  - id: openwiki-source-e294dea08271a01c5abf94b7
+    resource: repo://apps/cli/src/model.ts
+  - id: openwiki-source-69d58f985d20203ea0c2f899
+    resource: repo://apps/cli/src/router.ts
   - id: openwiki-source-de5c5760d707be19e09eb7e3
     resource: repo://apps/desktop/project.json
   - id: openwiki-source-55138c775f581f8c989ca7dc
     resource: repo://apps/desktop/src/main/agentRuntime.ts
+  - id: openwiki-source-8a985fe113b4313884662500
+    resource: repo://apps/desktop/src/main/artifactPipeline.ts
+  - id: openwiki-source-fc371e1f84c3b5d478075b07
+    resource: repo://apps/desktop/src/main/deliveryProjection.ts
   - id: openwiki-source-5d33672c45ec58cd29dce507
     resource: repo://apps/desktop/src/main/main.ts
   - id: openwiki-source-f278221a7db6307920fce03f
@@ -23,8 +31,6 @@ sources:
     resource: repo://apps/desktop/src/renderer/state/useEditorSession.ts
   - id: openwiki-source-87e5669496e1e215691f3e0c
     resource: repo://apps/desktop/src/renderer/state/useLiveModelBridge.ts
-  - id: openwiki-source-034a304691f6c1f77f682d25
-    resource: repo://apps/desktop/src/renderer/state/useMcpBridge.ts
   - id: openwiki-source-b5ea8c8713a5b04ee1c21d2d
     resource: repo://apps/desktop/vite.main.config.mjs
   - id: openwiki-source-15aba07b973e26bd886a7db3
@@ -45,40 +51,42 @@ sources:
     resource: repo://libs/evidence-agent/src/sensors/native/nativeStageGate.ts
   - id: openwiki-source-ebeef9d445379fe3773732df
     resource: repo://libs/evidence-agent/src/sensors/sensorsEngine.ts
-  - id: openwiki-source-d411e4580a06325c2c5fcf75
-    resource: repo://libs/evidence-api/src/adapter/fmAdapter.ts
+  - id: openwiki-source-21f4015324deb45fb05f6870
+    resource: repo://libs/evidence-api/src/adapter/modelAdapter.ts
   - id: openwiki-source-7dad3c227e7d6e118c34b56a
     resource: repo://libs/evidence-api/src/projector.ts
-  - id: openwiki-source-d3aaf211f80d2af88a870c87
-    resource: repo://libs/evidence-api/src/types.ts
+  - id: openwiki-source-abc633034c7c8d642614f964
+    resource: repo://libs/evidence-canvas-interaction/src/engine/swimlaneLayout.ts
   - id: openwiki-source-7c4f607b2d42287b8ffedc0c
     resource: repo://libs/evidence-model-core/package.json
   - id: openwiki-source-bcadd1e63a7d140ce717e9ea
     resource: repo://libs/evidence-model-io/package.json
+  - id: openwiki-source-2c4cbeffd18cdc1b75d15ef4
+    resource: repo://libs/evidence-model-io/src/adapters/diskAdapter.ts
   - id: openwiki-source-4fa503355d9f3a8084bea718
     resource: repo://libs/evidence-model-io/src/adapters/modelRoot.ts
+  - id: openwiki-source-e399a918ad3d695b7f506627
+    resource: repo://libs/evidence-model-io/src/workspace.ts
   - id: openwiki-source-dd948eb74e58734da3b37ea9
     resource: repo://libs/evidence-schema/package.json
   - id: openwiki-source-52858d6130375e8776a048e7
     resource: repo://libs/evidence-schema/src/ast/document.ts
+  - id: openwiki-source-3a801269d4e9a920c1e0021d
+    resource: repo://libs/evidence-schema/src/validation/strictValidate.ts
   - id: openwiki-source-2d798afa87a0b2d7dccd51cb
     resource: repo://libs/evidence-tools/package.json
-  - id: openwiki-source-40275cb92c3610938f16ade3
-    resource: repo://pnpm-workspace.yaml
-  - id: openwiki-source-ad6afd03545cc41ebdb6326a
-    resource: repo://tools/oasdiff/setup.mjs
   - id: openwiki-source-d8dbf281c85f8a886745ac24
     resource: repo://tools/workspace-rules/boundary-drill.mjs
   - id: openwiki-source-df1e4d0dc0a35c64fd0e652b
     resource: repo://tsconfig.base.json
   - id: openwiki-source-98d5ddb014a0fd4d678f6f2a
     resource: repo://tsconfig.json
-generated: { by: "pi", at: "2026-11-20T12:30:09.424Z" }
+generated: { by: "pi", at: "2026-11-24T13:18:19.740Z" }
 ---
 
 # 系统架构与依赖边界
 
-Evidence 的真相源是 `DomainModelDocument`：manifest、entities、relationships、rules。桌面实时编辑与磁盘模型是同一契约的不同时间快照，而不是两套领域语言。当前 workspace 有 **apps/desktop 和 apps/cli 两个应用**，九个 evidence 库和八个 desktop 库；旧说明中的“只有一个应用”已过时。
+Evidence 的真相源是 `DomainModelDocument`：manifest、entities、relationships、rules。桌面实时编辑与磁盘模型是同一契约的不同时间快照，而不是两套领域语言。当前 workspace 有 **apps/desktop 和 apps/cli 两个应用**，九个 evidence 库和八个 desktop 库。
 
 ## 责任与依赖方向
 
@@ -86,9 +94,9 @@ Evidence 的真相源是 `DomainModelDocument`：manifest、entities、relations
 | --- | --- |
 | schema/universal | evidence-schema：Zod FM v6 AST、语法与跨对象 refinement、稳定 FM 诊断、工具输入、canonical JSON；依赖 zod、fast-json-stable-stringify、tslib，不依赖工作区上层 |
 | domain/universal | model-core：图、guarded draft mutations、Immer 会话/历史、RFC 6902、原生 cel-js、追溯和静态 FM 检查；同步 SHA-256 使用 noble/hashes |
-| domain/universal | canvas-interaction：headless async ELK 布局、模型/ELK 适配、可序列化布局和作用域，不持有 DOM/React Flow 视口 |
-| io/node | model-io：源树/Bundle 发现、字节摘要、读写、pack/unpack 及共享模型命令 |
-| projection | evidence-api：模型与可选 overlay → v6 路由、HAL、服务、OpenAPI、部署；不依赖 acceptance |
+| domain/universal | canvas-interaction：无 DOM 的业务泳道布局、模型适配、可序列化几何和作用域，不持有 DOM/React Flow 视口 |
+| io/node | model-io：目录工作区发现、源文件读写与字节摘要 |
+| projection | evidence-api：模型与可选 overlay → 业务路由、HAL、服务、OpenAPI、部署；不依赖 acceptance |
 | projection/node | acceptance：消费 API，编译内联样例、导出 Bruno 集合、运行 HTTP 验收、drift 和原生 oasdiff |
 | domain/universal | evidence-tools：Pi/MCP 共用的 guarded patch/recipe registry |
 | orchestration/node | agent：Pi session、提示词、Zod 工具、传感器与阶段门禁；browser 子入口提供纯数据合同 |
@@ -96,7 +104,7 @@ Evidence 的真相源是 `DomainModelDocument`：manifest、entities、relations
 | ui/feature/browser | desktop-contracts 与 ui-kit、canvas/inspector/story/delivery/agent features；testing 为独立支持库 |
 | app | desktop 组合 Electron/React 工作台；cli 组合共享库命令，使用 cac 注册参数，不复制领域规则 |
 
-旧 evidence-agent-core/modeling-orchestrator 已合并。库不能反向依赖 app；acceptance 可消费 api，api 不可依赖 acceptance；共享工具不依赖 SDK 适配器。
+库不能反向依赖 app；acceptance 可消费 api，api 不可依赖 acceptance；共享工具不依赖 SDK 适配器。
 
 ## 构建与依赖合同
 
@@ -104,24 +112,24 @@ Evidence 的真相源是 `DomainModelDocument`：manifest、entities、relations
 
 ESLint 同时约束 type、layer、platform、scope：universal 只能引用 universal；browser 只允许 browser/universal 或明确 browser-safe 表面，禁直接引用 Electron、MCP SDK、Pi SDK。schema 不得依赖投影，evidence 不得依赖 desktop/testing。
 
-库 export 的 `@evidence-poc/source` 条件指向 src，tsconfig customConditions、Vite/Vitest resolve.conditions 必须一致；遗漏会退到 dist，出现未构建模块错误。agent/api 的 browser 子入口、model-core/testing、各命令入口延续此合同。根 tsconfig 引用十七库及 cli；desktop 继续由自己的 Forge/typecheck target 检查。
+库 export 的 `@evidence-poc/source` 条件指向 src，tsconfig customConditions、Vite/Vitest resolve.conditions 必须一致；遗漏会退到 dist，出现未构建模块错误。agent 的 `/browser` 和 API 的 `/delivery` 子入口、model-core/testing、各命令入口延续此合同。根 tsconfig 引用十七库及 cli；desktop 继续由自己的 Forge/typecheck target 检查。
 
 ## 从建模到交付
 
-1. `.evidence/fm/` 源树或 `*.evidence.json` Bundle 经 model-io 加载，core 规范化为同一文档。generated/cache/dot 内容不作为源；旧 validation Scenario/Instance 已撤除。
+1. model-io 加载工作区的 `.evidence/model/`，core 将源文件解析为领域文档。只有约定的文件参与源读取。
 2. renderer ModelSession 用 `mutate(recipe)` 或 `applyPatchBatch` 原子变更，维护选择、撤销/重做与惰性图；MCP 补丁直接作用于 renderer 会话；Pi Agent 补丁由主进程原子提交给唯一 editor owner，renderer 重放并并入同一撤销历史。
 3. 静态检查以 Zod strict + semantics、CEL 和 scoped completeness 给出 FM check v6；内联 examples 提供 CEL 编译期 oracle，不代表真实 HTTP 成功。
 4. API 投影生成 draft snapshot，携带 model/design/check-report digest、排序诊断和 limitations。固定 check 报告失效或摘要过期成为显式 gap，不抹掉草稿可见性；正式交付再要求门禁。
 5. Stage gate 消费 v6 报告，要求一致、完整、有效、输入未变化、无 errors/gaps 且覆盖非空 scope；API 目标还重新投影检查和比摘要。
-6. CLI 导出 OpenAPI + Bruno 集合，再由 `evidence test` 驱动 Bruno 对真实后端执行 HTTP 验收；旧 evidence-visualization 与离线 workbench 已撤除。
+6. CLI 导出 OpenAPI + Bruno 集合，再由 `evidence test` 驱动 Bruno 对真实后端执行 HTTP 验收。
 
 ## 两个宿主与进程边界
 
 桌面 main 注册项目、摄取、AI、story、delivery、Agent IPC，创建 Agent runtime 与 MCP bridge。`--mcp-stdio` 是同一可执行文件的无窗口代理模式，转发到已运行桌面，不读取项目存储。preload 暴露 typed EvidenceDesktopApi，renderer 不拿 fs/ipcRenderer。
 
-renderer 拥有实时会话、异步布局与 UI；main 执行 Node 文件操作、传感器与交付。saved 导出描述磁盘来源；live delivery export 冻结预览快照并校验摘要，不能混淆。
+renderer 拥有实时会话、业务泳道与 UI；main 执行 Node 文件操作、传感器与交付。自动交付流水线以验证过的磁盘修订为输入，显式实时预览则使用编辑器修订。
 
-cli 是唯一推荐终端入口：check、pack/unpack/compile/inspect/lineage、export/test/diff 和兼容 api 子命令。旧 evidence-model/api bin 暂留为 stderr 弃用 shim，执行库内共享逻辑，不反向依赖 cli app。
+`evidence` 是终端入口：`init`、`check`、`compile`、`inspect`、`lineage`、`story`、`export`、`test` 和 `diff`。大多数命令从当前目录发现工作区，也接受 `--workspace`；`diff` 用两个工作区位置参数。
 
 ## 一套工具链，不是一切都在 JS 内
 

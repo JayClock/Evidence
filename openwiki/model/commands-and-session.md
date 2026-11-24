@@ -5,10 +5,12 @@ description: Immer recipes、guarded mutators与标准RFC6902如何构成原子�
 tags: [mutations, session, undo, subscriptions, patches, diff, graph, purity]
 verified:
   - by: openwiki/0.9.0
-    at: 2026-11-20T12:30:09.424Z
+    at: 2026-11-24T13:07:09.861Z
 sources:
   - id: openwiki-source-55138c775f581f8c989ca7dc
     resource: repo://apps/desktop/src/main/agentRuntime.ts
+  - id: openwiki-source-8a985fe113b4313884662500
+    resource: repo://apps/desktop/src/main/artifactPipeline.ts
   - id: openwiki-source-71f7c0262d5ba642c71843ea
     resource: repo://apps/desktop/src/main/ingestionIpc.ts
   - id: openwiki-source-f0f06a0981a7ca97c510b44d
@@ -21,8 +23,6 @@ sources:
     resource: repo://libs/desktop/feature-agent/src/state/usePatchReview.ts
   - id: openwiki-source-bab9cd022cd0c06c4edacf32
     resource: repo://libs/evidence-model-core/src/diff/modelDiff.ts
-  - id: openwiki-source-f02b234edea2573a78a178f1
-    resource: repo://libs/evidence-model-core/src/ingestion/compileDraft.ts
   - id: openwiki-source-c6f998270d30fac839dc0715
     resource: repo://libs/evidence-model-core/src/model/graph.ts
   - id: openwiki-source-5f7aa18271519108d52c8b0d
@@ -53,12 +53,12 @@ sources:
     resource: repo://libs/evidence-schema/src/ast/jsonPatch.ts
   - id: openwiki-source-f3dd6cff8734842de5630223
     resource: repo://libs/evidence-tools/src/index.ts
-generated: { by: "pi", at: "2026-11-20T12:30:09.424Z" }
+generated: { by: "pi", at: "2026-11-24T13:07:09.861Z" }
 ---
 
 # 受控模型变更、会话与历史
 
-旧ModelCommand/CommandSequence/dispatch/dispatchAll/17类typed patch已删除。`createModelSession` 现在以 **Immer draft recipe + forward/inverse patches** 管编辑；协议只传RFC6902和RFC6901字符串pointer，不泄漏Immer array paths。
+`createModelSession` 以 **Immer draft recipe + forward/inverse patches** 管编辑；协议只传RFC6902和RFC6901字符串pointer，不泄漏Immer array paths。
 
 ## 会话所有权与提交
 
@@ -78,9 +78,9 @@ mutations/下的函数接受draft并原地更新draft，不能拿普通共享源
 
 entity identity的id/type/category不可随update改，rule的id/type/kind/context/target保持；派生目标存在时attribute rename拒绝，不能可靠重写expression。entity删除先枚举所有引用，不cascade则entity.referenced，cascade仅删可安全移除引用；derived attribute移除先处理rule，不能留悬空target。relationship拒绝self与错误plays_role方向。
 
-复合mutators一次写成完整业务结构：createContract连接rootRefs、bindDerivedRule连接rule与attribute、createFulfillmentPair写请求/确认/引用/完成rule并要求mandatory business time。caller在单个session.mutate中组合多个mutator即一批，失败全不提交，不再手算inverse Command。
+复合mutators一次写成完整业务结构：createContract连接rootRefs、bindDerivedRule连接rule与attribute、createFulfillmentPair写请求/确认/引用/完成rule并要求mandatory business time。caller在单个session.mutate中组合多个mutator即一批，失败全不提交。
 
-证据生长算子先铺可独立保存的凭证，再按事实配对、绑定来源、为同一履约组确定归属，或记录已确认的补偿。`createModelPatch(document,recipe)` 从 guarded recipe 取标准补丁和结果。共享 registry 向 Pi/MCP 提供八项写工具与只读 What-If；算子没有特权写通道，宿主拥有事务和门禁。
+证据生长算子先铺可独立保存的凭证，再按事实配对、绑定来源、为同一履约组确定归属，或记录已确认的补偿。`createModelPatch(document,recipe)` 从 guarded recipe 取标准补丁和结果。共享 registry 向 Pi/MCP 提供通用补丁、领域写算子与只读 What-If；算子没有特权写通道，宿主拥有事务和门禁。
 
 ## RFC6902边界与安全
 
@@ -100,9 +100,9 @@ applyJsonPatchMutator先parse+structuredClone，避免freeze或alias调用者val
 
 MCP 在 renderer 校验并 `applyPatchBatch`，返回 op/revision/undoable 与事后诊断；Pi 在主进程校验并准备 forward/inverse patches，只有真实变更提交并发布，renderer `applyCommittedPatch` 重放并保留 before/after 审阅。usePatchReview以当前===after才undo，后续编辑后只关闭，accept不写。
 
-useLiveModelBridge 在 mount 及本地文档更改（含 undo/redo）发布 root/editorId/revision/document/base；选区和提交事务的重放不回发。Prompt 等发布完成后用锁保护活跃编辑轮次。Main 接收递增 revision，保留最初基线并调度传感器。baseline不随save自动变；报告按revision判stale。
+useLiveModelBridge 在 mount 及本地文档更改（含 undo/redo）发布 root/editorId/revision/document/base；选区和提交事务的重放不回发。Prompt 等发布完成后用锁保护活跃编辑轮次。Main 接收递增 revision，保留最初基线并使上一份手动诊断失效。自动传感器由已落盘产物流水线调度；两个版本来源不可混用。
 
-diffDomainModels是只读说明，分Context/业务实体/关系/规则及key-data drift，不是写入口，也不再给旧API自制breaking classifier供电。DomainGraph的indexed lookup/contextPath/rules/fulfillmentPairs是派生read model；pair由显式引用+完成/违约规则定义，canvas和Inspector共用，已无simulator消费者。
+diffDomainModels是只读说明，分Context/业务实体/关系/规则及key-data drift，不是写入口。DomainGraph的indexed lookup/contextPath/rules/fulfillmentPairs是派生read model；pair由显式引用+完成/违约规则定义，canvas和Inspector共用。
 
 ## 测试与纯度
 

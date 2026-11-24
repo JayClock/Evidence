@@ -1,22 +1,24 @@
 ---
 type: storage
-title: 源模型、Bundle 与持久化
-description: .evidence/fm树与单文件Bundle的纯格式/Node I/O分界、非抛出解析、旧validation拒绝、幂等写出、摘要和外部编辑冲突语义。
-tags: [adapters, files, bundle, serialization, digest, churn, model-io, cli]
+title: 模型工作区与源文件
+description: 目录工作区发现、模型源树语法、读写与字节摘要，以及外部变更冲突边界。
+tags: [workspace, files, serialization, digest, model-io, cli]
 verified:
   - by: openwiki/0.9.0
-    at: 2026-11-20T12:30:09.424Z
+    at: 2026-11-24T13:07:09.861Z
 sources:
+  - id: openwiki-source-52a825b501b0001cef1b2ecc
+    resource: repo://apps/cli/src/commands/check.ts
+  - id: openwiki-source-64a2b18876b184e07c424672
+    resource: repo://apps/cli/src/commands/model.ts
   - id: openwiki-source-934367cee5dc2ef07c9fb835
     resource: repo://apps/desktop/src/main/modelWatcher.ts
-  - id: openwiki-source-5b34bee2ec1dee5c3ad249ac
-    resource: repo://apps/desktop/src/main/projectStore.spec.ts
+  - id: openwiki-source-7bb156d03ddba2cff4399f8b
+    resource: repo://apps/desktop/src/main/projectIpc.ts
   - id: openwiki-source-7d6301f8bedb09df7ce20329
     resource: repo://apps/desktop/src/main/projectStore.ts
   - id: openwiki-source-eb29c98cfa71901c2675a7e4
     resource: repo://libs/evidence-agent/src/sensors/native/modelSources.ts
-  - id: openwiki-source-83f9ee9177192af59a8fc434
-    resource: repo://libs/evidence-model-core/src/adapters/modelBundle.ts
   - id: openwiki-source-38e18c58a2be3089edddbc1a
     resource: repo://libs/evidence-model-core/src/adapters/modelSourceFiles.ts
   - id: openwiki-source-36b616eafb8331e3eddb8d31
@@ -29,71 +31,39 @@ sources:
     resource: repo://libs/evidence-model-io/package.json
   - id: openwiki-source-2c4cbeffd18cdc1b75d15ef4
     resource: repo://libs/evidence-model-io/src/adapters/diskAdapter.ts
-  - id: openwiki-source-0b71e61f611dfb29028134aa
-    resource: repo://libs/evidence-model-io/src/adapters/modelFileAdapter.ts
   - id: openwiki-source-4fa503355d9f3a8084bea718
     resource: repo://libs/evidence-model-io/src/adapters/modelRoot.ts
-  - id: openwiki-source-88a3cc6d22f70a1b93ada22f
-    resource: repo://libs/evidence-model-io/src/commands.ts
-  - id: openwiki-source-5827654ee488871fab61b1a1
-    resource: repo://libs/evidence-model-io/src/legacyRemoval.spec.ts
-  - id: openwiki-source-7e8a4154b74359d73d641f4c
-    resource: repo://libs/evidence-model-io/src/modelCli.ts
+  - id: openwiki-source-dedfc22fcf8046b31159c04e
+    resource: repo://libs/evidence-model-io/src/workspace.spec.ts
+  - id: openwiki-source-e399a918ad3d695b7f506627
+    resource: repo://libs/evidence-model-io/src/workspace.ts
   - id: openwiki-source-52858d6130375e8776a048e7
     resource: repo://libs/evidence-schema/src/ast/document.ts
-  - id: openwiki-source-5b54a58d1b51cd490b0e7162
-    resource: repo://package.json
-generated: { by: "pi", at: "2026-11-20T12:30:09.424Z" }
+generated: { by: "pi", at: "2026-11-24T13:07:09.861Z" }
 ---
 
-# 源模型、Bundle 与持久化
+# 模型工作区与源文件
 
-一份DomainModelDocument有两种载体：Git友好的`.evidence/fm/`（model.json + entities/relationships/rules），便携`*.evidence.json`（fm_bundle envelope+manifest+三数组+可选readme）。内联 examples、实体 sourceSnippet、属性 source/timeRole 与 manifest.sourceDocument 随树/Bundle 往返；旧validation/scenarios/instances**拒绝而非兼容读取**。
+领域模型以工作区内的 `.evidence/model/` 为源：`model.json` 加上 `entities/`、`relationships/`、`rules/` 三类 JSON 文件。实体样例、来源与业务时间随对应对象保存；Bruno 与交付文件是派生产物。`model-core` 负责纯解析、文件命名和序列化，`model-io` 负责 Node 磁盘操作。core 的纯度测试验证浏览器构建无需 Node builtins，测试有自己的文件读取适配。
 
-## 格式代码不碰磁盘
+## 定位与初始化
 
-model-core/adapters的modelSourceFiles/modelBundle负责命名、parse/stringify、pack/unpack投影，browser-safe；model-io/adapters的diskAdapter/modelRoot/modelFileAdapter负责node:fs。main/sensors/API/acceptance/cli可引用io，renderer只引用core。purity.spec通过浏览器bundle禁止core解析Node builtins；测试reader不成为production runtime。
+CLI 默认从当前目录向上寻找最近的 `.evidence`，不跨 Git 边界。即使最近入口缺模型清单，也不会跳过它选用父工作区。`--workspace` 显式指定目录。启动时检查目录和清单；受管路径不允许通过符号链接穿出工作区。`evidence init` 在已有的目标目录初始化，不覆盖任何已有 `.evidence` 入口。
 
-## 树与Bundle契约
+## 解析、命名与写入
 
-实体文件category-kind--slug，关系relation--slug、规则rule--slug，slug来自ID尾段，碰撞稳定加-2/-3；manifest先、其余按路径排序。stringifyModelJson两空格+末尾newline，可选deep sortKeys；Bundle默认三集合按ID排序，可关闭sortItems。source tree writer仅拥有model.json与三source trees，README/generated/dot不重写。
+实体文件名采用 category-kind--slug，关系与规则分别采用 relation--slug 和 rule--slug，冲突由稳定后缀消歧。先输出 manifest，再按类和路径排序；JSON 两空格缩进，末尾换行，可选按键排序。解析器以路径诊断报告坏 JSON、无效类型、重复 ID、缺 manifest 和空模型；manifest 版本必须为 6.0，不匹配标记 `model.schema-version`。开启 validate 可追加 strict 语义检查。
 
-parseModelSourceFiles对畸形JSON、非对象、unsupported type、重复ID、缺manifest给path issue而非throw；无实体model.empty区别可接受blank start。validate:true追加strict findings。现在遇validation路径明确legacy issue，不能当无关文件悄悄丢弃。
+`writeModelDirectory` 只管理清单和三类源树。相同字节不重写，改变的文件用同目录临时文件和 rename 逐个替换；不再属于文档的受管 JSON 会删除，其他目录不受影响。写入报告 written/unchanged/removed。`expectedFiles` 可为当前内容提供乐观并发检查；这不是多文件事务。
 
-parseModelBundleText要求对象、正确type；如有 envelope schemaVersion 必须为 6.0，缺失仍可读；内部 manifest 必须显式为 6.0。树 manifest 版本不符同样报告 `model.schema-version`。错误item type/重复ID/非string readme/未知字段给issue，可读部分保留。validation是明确legacy source issue；serialize/投影旧validation文档直接拒绝，防pack后丢测试。Bundle serialize始终发type=fm_bundle/schemaVersion=6.0，保留readme与实体内examples，不再带validation数组。
+## 读取范围与摘要
 
-## 保存、打包、解包
+`readModelDirectory` 读取清单及三类模型源树。`readModelRoot` 读取检查使用的受管源文件，也包含根 README；忽略其它目录和生成物，缺目录返回空输入，由 parser 报告。`modelDigestOf` 按路径排序，把 path → sha256(bytes) 映射再计算 SHA-256；路径或字节变化会改变摘要，搬动工作区不会。
 
-writeModelDirectory逐文件比**字节**，相同记unchanged，不同temp+rename；最后删三source trees内document不再命名的JSON，返回written/unchanged/removed，外部README/generated不删。writeModelBundle也按序列化文本比，变化时原子替换并报告bytes；保留原语义不保证保留任意手工格式。
+磁盘检查可复查来源摘要；API 的 `loadModel` 在读取前后确认来源没有变化。桌面以目录读取结果的摘要校验写入，并用 watcher 区分自身提交和外部编辑。外部更改暂停待写，显式从磁盘重载才替换当前模型，不自动合并。
 
-packModelDirectory走传入模型目录（不是自动再拼.evidence/fm），收JSON和root README，忽略generated/dot/cache；retired validation扫描用于拒绝，不打进新Bundle。packModelSourceFiles复用树parser并把README放readme。
+## 命令与验证
 
-unpackModelBundle按modelBundleSourceFiles输出：JSON比canonical对象、其他比bytes，所以等义手工格式不重写。未命名文件留在原地，不像save清stale；它是迁移不是破坏性reset。旧validation filename重建算法已删除，无所谓继续保证其roundtrip。
+构建 CLI 后使用 `evidence inspect --json` 查看模型统计，`evidence check --scope <context>` 检查模型和交付范围。`compile` / `lineage` 校验后写到 `.evidence/derived/`。`workspace.spec.ts` 保护初始化与发现边界，modelRoot 和磁盘适配测试保护源文件选择、幂等写入和外部文件；桌面 projectStore/projectIpc 测试保护冲突检查。
 
-## Reader范围与摘要
-
-readModelDirectory读manifest+三模型树。readModelRootFiles为checks读同源，并扫描validation树（包括非JSON）以拒绝遗留资料；缺root返回空集供parser解释。readModelRootBytes走整个root的常规文件，排generated、__pycache__、dot path，README/stray file也算输入。
-
-modelDigestOf为排序path→sha256(bytes) map再sha256并加sha256:前缀，位置无关、路径/字节敏感。不能声称Bundle字节摘要一定等于解包源树摘要：载体/路径/format不同就不同。pack若默认把Bundle放模型目录内，新文件加入bytes摘要但不成为三树模型，建议显式-o放源树外。
-
-FM check currentDigest与sensor rereadDigest能在检查期间识别源变化，报告inputChanged/error/consistent=false。API loadFm前后比源snapshot；旧 review generator 已删除。
-
-ProjectStore fingerprint是另一个sha1（树仅模型源paths/content或Bundle字节），不是artifact digest，空/缺失null；renderer不轮询它，外部变化依Chokidar通知。
-
-## 外部编辑不自动合并
-
-create拒绝已有Bundle/manifest；**save无baseline compare/lock/merge**，renderer document最后写入获胜，外部新加三树JSON可能被stale scan删除。幂等少churn不是冲突保护；watcher banner只是提示，用户必须reload或自行解决。
-
-Chokidar从存在祖先监目标，初始静默、150ms稳定后200ms合批，树支持nested JSON与根重建，Bundle只关注目标文件且支持atomic rename；无关/validation/generated不触发，close取消pending。显式 reload 重新 open 并 resetHistory；story 来源 invalidation 仅在读前后均 clean 时自动刷新，相等内容保留历史，不能丢未保存编辑。
-
-## 推荐命令与兼容入口
-
-先build cli，使用`evidence pack/unpack/inspect/check/compile/lineage`；model:pack/unpack/inspect根脚本已转apps/cli。旧evidence-model bin为stderr弃用shim，调用共享modelCli/commands而不import app。保留六模型verbs，timeline/simulate/role-play明确removed，不能空成功。
-
-pack默认模型目录内manifest ID命名Bundle，unpack默认./.evidence/fm；compile/lineage需out并先checkable；inspect可JSON，pack/unpack会报告issues而非悄修。共享legacy workflow约定0成功、1findings/拒绝、2usage，统一check/tree或Bundle参数行为由app router适配；静态check不再打印执行scenario数。
-
-## 验证入口
-
-modelSourceFiles/modelBundle specs保护命名/碰撞、非throw issues、empty code、readme/examples、legacy拒绝与稳定序列化。diskAdapter/modelFileAdapter specs保护idempotent、canonical解包、不删非owned、temp清理；legacyRemoval保护旧格式/命令不复活。projectStore/modelWatcher tests保护两源、覆盖拒绝、摘要/通知与reload契约。
-
-相关：[语言](../language/fm-dsl.md) · [桌面存储](../desktop/app-shell.md) · [会话](./commands-and-session.md) · [CLI工作流](../workflows/cli-governance.md)
+相关：[语言](../language/fm-dsl.md) · [桌面存储](../desktop/app-shell.md) · [会话](./commands-and-session.md) · [CLI 工作流](../workflows/cli-governance.md)

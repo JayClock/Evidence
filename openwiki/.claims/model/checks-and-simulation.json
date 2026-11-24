@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:773116f1f02e2f3feb3487480d8f6f54e5aea1b44318d6d2bc95fac339d7fd90",
+  "pageVersion": "sha256:1c31b76ebdf4b9ed070ba5ef9b244ebc0457710ef20e2cddc22145f12455c179",
   "claims": [
     {
       "id": "claim_4260686904514941808ef785c7ef5562",
-      "statement": "v6 check只聚合源/strict/lineage、scope completeness、digest和advisories，统计声明testExampleCount，不执行旧suite/replay。",
+      "statement": "v6 check 聚合源问题、strict/lineage、scope 完整性、摘要和 advisories；testExampleCount 是声明数量而非执行结果。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-model-core/src/validation/fmCheck.ts#L45-L105",
-          "version": "repo-lines-v1:sha256:d6b1cbb14aab0849e487355e9a642678a8c9e73082ddc6a60cef033c193172fa:eyJzZWxlY3RlZExpbmVDb3VudCI6NjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAwYThhYmM4YzRlZjk1ODRjY2Q1ZDJiZGZlOTY4NjJlMjkwZGNmZThlYzY1YjA2ZWIzNjhjMGQ1MTMyYjczY2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFhMWQxYTYzMzkwMjI5Yzc5ODM0N2U4M2EwNDA1NDQxYzk0MDAwMzUyODRhZDE2OGMxYmY2Y2RmMWQ3MGEzNzAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI0OTk2NTMwYmU3Y2U4NTQ5OTZkMTMzZjE2NDkwZjgyOTY5MjAxNTBkZGZkM2Q1MzRmMWNjOWQxZGI4OGJjOTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+          "resource": "repo://libs/evidence-model-core/src/validation/fmCheck.ts",
+          "version": "repo-file-v1:sha256:506b801fdb331f194490609c91fbfd4ade4fbe0756b9037d24064ef7a1550791"
         }
       ]
     },
@@ -17,7 +17,7 @@
       "statement": "consistent须静态无错且摘要未变，inputChanged附错误。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-model-core/src/validation/fmCheck.ts#L65-L80",
+          "resource": "repo://libs/evidence-model-core/src/validation/fmCheck.ts#L66-L81",
           "version": "repo-lines-v1:sha256:1a27ac3a17880e98cf2960d425204aea196202d97a067bbd006b2df1f7ff9e48:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxZjk1NjQzMDJjNDYzNDQxMTRmYzk5ZjkxYjQ4YTRmZTZiNDEyNGYzMzlhYjQyMWJhMjQ3MmExMDlmNGIyOGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIyMDkwZjAxMDU1ODRkNzc0MjYyNmYxZTI4YTExMjNkYmYzNjM3NzM2YjM2OTJjNWE4NzBjNTA2NWE2ZGZjZmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJlYTMyYTE5YjdmOTFkMDc2Y2Q3MjZkMjZhMzdhYzEzMzk5ZTRmZjliZjZhZjliYTNhMzYyMzk2MGI2YTdjMDciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ5NGUyZWRiY2JiZDIwYWZmNmVkYWViZGJjYzY0ZTUzYTdhZGQyM2FlYzNiNzA3MWNmMzMwMDY0NGY3NWJmZDQifQ"
         }
       ]
@@ -27,7 +27,7 @@
       "statement": "complete无scope为null，有scope须无gap且consistent；valid无error且complete非false，机器不批准业务。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-model-core/src/validation/fmCheck.ts#L73-L89",
+          "resource": "repo://libs/evidence-model-core/src/validation/fmCheck.ts#L74-L90",
           "version": "repo-lines-v1:sha256:1fdc370522081589b1816c67cd643b7aae2924ef1725e33908405cb0cc22b4d6:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU3YzZkMDRjZWJkYjU3Y2FlYTg2MGUwZGUyZTViMjhmY2EyNWJmZjJiMTUwYTg4ZTU0ZTk3NDQ1MDRiN2FmMGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdiZDg3YjgxMWUyMGRlYWIwMDhkOTYxYjcxNGJiNDJiMjVhY2NhMDYxZThhNjVlYTg4ZGNmYjA5MTBiZWYwYzkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk2MmRjNTgyZTdiM2ZmOWE4ZWMxZDg0YzM0YjY3NTNlMDY4NWMyNjYwMzBjN2NmZDcxYzg4YzA5OGJkMmI3OWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM0ODk5YmM2YmQ5MmI2ODllYWJhNDQwMjA1OTcxYjcyZmIwNGUwZDM1YzA4YjdiZWY0MDM3YWEyY2ZkNDJmMmYifQ"
         }
       ]
@@ -44,11 +44,11 @@
     },
     {
       "id": "claim_fd060eff30ab4f45ab2690f19bacb6e4",
-      "statement": "完整性检查字段/业务时间/请求确认/primary双方责任，不再要求内存scenario覆盖。",
+      "statement": "完整性检查覆盖字段、业务时标、履约确认及双方责任。",
       "evidence": [
         {
           "resource": "repo://libs/evidence-model-core/src/validation/scope.ts",
-          "version": "repo-file-v1:sha256:e1c17513499d42b14422b9a1c88a7f5a3845ee7cfe8f3d873049e31ecac8bc99"
+          "version": "repo-file-v1:sha256:3d5028b40d543657d79de4e0942189b9da7b551a1296efea91f3c65eb9288b53"
         }
       ]
     },
@@ -64,25 +64,25 @@
     },
     {
       "id": "claim_be8c673062904534a49db3ffdac53083",
-      "statement": "readyScope要求v6有效完整未变及scope/context匹配，不检查已删除的simulation字段。",
+      "statement": "readyScope 核对 v6 报告的一致性、完整性和有效性，以及摘要和 scope/Context 边界。",
       "evidence": [
         {
           "resource": "repo://libs/evidence-model-core/src/validation/scope.ts",
-          "version": "repo-file-v1:sha256:e1c17513499d42b14422b9a1c88a7f5a3845ee7cfe8f3d873049e31ecac8bc99"
+          "version": "repo-file-v1:sha256:3d5028b40d543657d79de4e0942189b9da7b551a1296efea91f3c65eb9288b53"
         }
       ]
     },
     {
       "id": "claim_0a0b129fc4aa43909ac992044409146c",
-      "statement": "统一check支持scope/JSON与树/Bundle，复用静态报告；compile/lineage要求checkable。",
+      "statement": "evidence check 从目录工作区读取模型，可重复传入 Context scope 并输出共享的 JSON 静态报告。",
       "evidence": [
         {
           "resource": "repo://apps/cli/src/commands/check.ts",
-          "version": "repo-file-v1:sha256:b27f4a63b2f27fa40ca0c8436a95a153d9f9e816ac6b5305e1617ac758a5849c"
+          "version": "repo-file-v1:sha256:2db338ded3d58254e8ffbb1bdd6cad82c75919427ac73376cfe2cc6c31517c6a"
         },
         {
-          "resource": "repo://libs/evidence-model-io/src/commands.ts",
-          "version": "repo-file-v1:sha256:55e44306dae7830743c0c013b7034f2ecbc7afcbaddbd95dd5df4e56d5dc7cb4"
+          "resource": "repo://apps/cli/src/router.ts",
+          "version": "repo-file-v1:sha256:3ba75dcdd18e4b4bf904a3db79841c21fdf4bb5378f894a18d404bc82436069a"
         }
       ]
     },
@@ -91,16 +91,12 @@
       "statement": "Lint rules only advise: auditDomainComponentNaming reports a domain component whose label states the work instead of the actor as a ROLE_DOMAIN_NAME_NOT_ANTHROPOMORPHIC advisory with a suggested rename, carried in the report's separate advisories field for the submitted model and never affecting consistent, valid or complete.",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-model-core/src/validation/fmCheck.spec.ts#L69-L93",
-          "version": "repo-lines-v1:sha256:95b90c63bac01c3a639f14142ca09627a7a470f92e7dd1f2a622ddc78293f231:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJjZmNhNzVkZmRiYWMwY2U2OTUzMDQyYTQ1ODYwNTU2NjRmZGNkNDZjNDk0ZjNkY2M0ZGRjYjI4ZTk2N2ZlNzYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNhM2U0NmY5NDI3NmI2ZjZmNGVkMWYwMmFmNzhiZWY2YTJlZTFjNDM5ZGQ1NTg0Yjk3Mzk0ODMxMzIxNGQyYjciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNiMTdkNjQwZGM2ZTExN2ViNDk5YjA4ZWVlMjc5MTAyNjgxYWZiNDc4ZDVjZGM4NDY2ZTZmZWYyZmEyZDlkYTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIxZGI5M2U3NWE5ODBjOTAzY2I3MjdmMjUzZGQyYmZiYTI2ZTg2YTU1NTk1OGI4OTBlODBmN2ZhNjQ5NGMxNmMifQ"
+          "resource": "repo://libs/evidence-model-core/src/validation/fmCheck.ts",
+          "version": "repo-file-v1:sha256:506b801fdb331f194490609c91fbfd4ade4fbe0756b9037d24064ef7a1550791"
         },
         {
-          "resource": "repo://libs/evidence-model-core/src/validation/lintRules.ts#L1-L19",
-          "version": "repo-lines-v1:sha256:75bd28eb9cef657b31917231a5be5a146c0e5a320550a60fd1e826fde745d13f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU4MjAwOTY0YTk3ODYzNTUyMmIyYWIwOTBjNjUwNjVkOGVmOGU4NWM0NzMwYmIyZWIwNDYwZDM0YzY3N2RkYmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJiYTgxZTY1MjI2ODFjNWZhOGM2ZDdmOTdjMzBhNjE3N2EwMTU1M2ZjY2UyN2ZhM2YxNjNiNDNlNjAxMzAyYzYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjlhOTNiYzkwYzk2OTA0OTcwZGNkZjU4NDYzYzIzMTNiOWQ0MTg0NTIyYTUyYjIyNzAzOWU5NWIzMzE1YmUzMzQifQ"
-        },
-        {
-          "resource": "repo://libs/evidence-model-core/src/validation/lintRules.ts#L117-L141",
-          "version": "repo-lines-v1:sha256:05fc0a1766ed492451b4a8b59f6eb2f5ee79bcad06999ed86c3f536340ef30b2:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFlYzE4OTJkNGEzYWVhOGZkNWIyMzYyNDUxNzEwNjkwMThiNTg1ZDQ5OTNiZmU5Zjg4MzBlZTk0MjM4YTE4ZjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI5NTkyODBmNjE1NmMxZjY1MWI1MjJiMWIxODYxNjNiNjZkYjQ1YWRiZmE5YmM2NzFiZWQwNzM1MjllZWMxZDMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJiMWYyNjljOWU5MmY4ZTRlZmY0MGZlNzliM2E3YjFkMGQ1ODFkMDBmMzU5OTdkZGE2YWNlMDgyYmY3ZWFmOWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNhM2U0NmY5NDI3NmI2ZjZmNGVkMWYwMmFmNzhiZWY2YTJlZTFjNDM5ZGQ1NTg0Yjk3Mzk0ODMxMzIxNGQyYjcifQ"
+          "resource": "repo://libs/evidence-model-core/src/validation/lintRules.ts",
+          "version": "repo-file-v1:sha256:4be58aef1f73be0e15f11d601f4a3163c2c7f44cbcf42cb67f649d07e94b99d0"
         }
       ]
     },
@@ -116,15 +112,11 @@
     },
     {
       "id": "claim_c9ec0c65c3954f72842c4a7e2b0c41e8",
-      "statement": "compile/lineage以静态check拒绝；timeline/simulate/role-play旧流程移除。",
+      "statement": "compile 和 lineage 先检查有效性，再写入固定的 .evidence/derived 产物。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-model-io/src/commands.ts",
-          "version": "repo-file-v1:sha256:55e44306dae7830743c0c013b7034f2ecbc7afcbaddbd95dd5df4e56d5dc7cb4"
-        },
-        {
-          "resource": "repo://libs/evidence-model-io/src/legacyRemoval.spec.ts",
-          "version": "repo-file-v1:sha256:de46689fbfa0c37fd81f1b5e76489ccbbddd991765cab677d3725a99daeaf89f"
+          "resource": "repo://apps/cli/src/commands/model.ts",
+          "version": "repo-file-v1:sha256:127b1f85abbfa18dd9d327998bcacce32ed9f4870d3bd347a1d67b6ec78ed8b5"
         }
       ]
     },
@@ -142,7 +134,7 @@
         },
         {
           "resource": "repo://libs/evidence-model-core/src/trace/flowAggregator.ts",
-          "version": "repo-file-v1:sha256:c60435cc5c04049e507f93aa8b828cae22db379e5b7a132af3276f6a0a326489"
+          "version": "repo-file-v1:sha256:2df335a09f2c5d56e58dfcc6a8535fc14b8db9926b7db40d8e67e01478775e8a"
         }
       ]
     },
@@ -155,11 +147,11 @@
           "version": "repo-file-v1:sha256:12e9e6e7439a714085754a60b7d647c095a8f13e32023b60996e94b29d90b824"
         },
         {
-          "resource": "repo://libs/evidence-model-core/src/validation/scope.ts#L510-L537",
+          "resource": "repo://libs/evidence-model-core/src/validation/scope.ts#L520-L547",
           "version": "repo-lines-v1:sha256:0cea5978f304ad1d04e85011375cabb6fd75fce6fdb915a732b6daf1c7dc0de4:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVmZGYzNGM5ZjU0ZDNlODNiOWI2N2JjYmFjOGIyMjg0MmRlNzc1OGY0M2FiOTM5YzcyOTdkMjFkYmM0N2ZkMGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVjNDY0YzU1NGE0MjJiMTcwYmNlOThiZmU1NjJiMjA4NTg0NDA2NTAyMDI4NjM1OWZlYWJmZTYyMmU5NDBmMDAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIyOTA3NDk4ZGJkZTg2MzBlZmNmZWVlNTZjODcwMDVkZmYyNWRkZTExNzU3NmEzYjUxY2M2ZWFmYjNiOTBlN2QiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkzOThlNzRiNTY0OGU5M2U0M2YxODJhYzcyMTdkYWQwY2M1ZTRmMjk1ODk0ZGU0OTk2YjRmYjZmNWZiYzEzYjgifQ"
         },
         {
-          "resource": "repo://libs/evidence-schema/src/ast/documentSemantics.ts#L750-L764",
+          "resource": "repo://libs/evidence-schema/src/ast/documentSemantics.ts#L743-L757",
           "version": "repo-lines-v1:sha256:464e119ce912e51809c482b630f30d917a4d77aa1d6d8731c14324f17295bf9c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRhYTZiNDk5MTc1Njk2ZTJkYzkwYTNiY2JhZTY0N2RhODQ5MTkzZjU5ZmVkOGY5NjRkZjkxMmI3YmFjYTBlNTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM4OTZhMDJmZTMxN2ZkNGFiODU0MDQ3NGE5MzRiMGFiNWJhZGI3ZWI0Y2IyZDNhZWNjMmY4Y2Y1MzczZGYxYTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ4NDE2NmQ0OTgwZjFhNjUzZmFhYWE2NDE2MjMxNzFkOWI1MzRjNGRmY2U0NGNjZTc5MjA3MDk3MmNkYmFmZjMifQ"
         }
       ]
@@ -169,14 +161,28 @@
       "statement": "What-If 模拟读取现有履约事实、评估假设而不写补丁；实际补偿另用写工具。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-tools/src/index.ts#L205-L268",
-          "version": "repo-lines-v1:sha256:7e2e63c86bc237419fc4e23407c5cc0bffcd679e9539abbd22418fd40cdbf927:eyJzZWxlY3RlZExpbmVDb3VudCI6NjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVkMGQwNDJmM2RhYWM2NzBlZTllNzc3NmQ2MDZiNDFlMDc2OTJjZWZlMmZlMTEyZGM2MjVjOGNjMmU2YTA5NDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVkMGQwNDJmM2RhYWM2NzBlZTllNzc3NmQ2MDZiNDFlMDc2OTJjZWZlMmZlMTEyZGM2MjVjOGNjMmU2YTA5NDgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNmYmVlMzhmOWEwODQyYmU3NDU1NjBlZmI3ZTU1ZTg3YzU4ZDhkMTRmNmMzNzVmYzY5Y2RhOTE1MzA5ODgzOTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE0Y2ViODkyMzA3OGFmMTcxNWEwMjMwMjkxMmVjNDQ3MDQ2ZWFiMDM1ZDUzNzFmZDYxM2E5YTQ1YmY5OGNjNmIifQ"
+          "resource": "repo://libs/evidence-tools/src/index.ts#L304-L382",
+          "version": "repo-lines-v1:sha256:e253a5d7bfc3a114f144e4d615cebc02de6a21dab5b9838e0465a63caba294b2:eyJzZWxlY3RlZExpbmVDb3VudCI6NzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVkMGQwNDJmM2RhYWM2NzBlZTllNzc3NmQ2MDZiNDFlMDc2OTJjZWZlMmZlMTEyZGM2MjVjOGNjMmU2YTA5NDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVkMGQwNDJmM2RhYWM2NzBlZTllNzc3NmQ2MDZiNDFlMDc2OTJjZWZlMmZlMTEyZGM2MjVjOGNjMmU2YTA5NDgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNmYmVlMzhmOWEwODQyYmU3NDU1NjBlZmI3ZTU1ZTg3YzU4ZDhkMTRmNmMzNzVmYzY5Y2RhOTE1MzA5ODgzOTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE0Y2ViODkyMzA3OGFmMTcxNWEwMjMwMjkxMmVjNDQ3MDQ2ZWFiMDM1ZDUzNzFmZDYxM2E5YTQ1YmY5OGNjNmIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_7273158da38c4c2e8769a6a0eaf46f43",
+      "statement": "桌面自动传感器从磁盘修订生成诊断，显式刷新可以检查当前画布。",
+      "evidence": [
+        {
+          "resource": "repo://apps/desktop/src/main/artifactPipeline.ts",
+          "version": "repo-file-v1:sha256:d1cbdb5f289ec9f96c3a3501650a0f467d5a232075c97dc7b202403184ba992f"
+        },
+        {
+          "resource": "repo://apps/desktop/src/renderer/state/useSensorsState.ts",
+          "version": "repo-file-v1:sha256:7a2766c72207100dea330d0dc8297f52aba321d601c65ae91c9d40987becbf24"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.9.0",
-    "at": "2026-11-20T12:30:09.424Z"
+    "at": "2026-11-24T13:07:09.861Z"
   }
 }

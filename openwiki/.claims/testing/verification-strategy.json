@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:64093bd59357acc92bdca329f19217b5561e4c0cb6737618486e244273e11bf0",
+  "pageVersion": "sha256:493b9cbeb024d23014e351f8bc2ba0494556366c827750d64efc7a70e94b44d9",
   "claims": [
     {
       "id": "claim_43d00c9569fe434d960f89fac57a8acd",
@@ -26,23 +26,19 @@
     },
     {
       "id": "claim_3b74ee517c6c4d9c9f81fbdee3d87f17",
-      "statement": "会话测试 mock Pi SDK；桌面注入 sessionFactory、sensors、transport、delivery/dialog，renderer 用 scripted desktop-testing 夹具，无真实模型或 OS 窗口。",
+      "statement": "会话与桌面测试通过假 Pi 和注入的主进程依赖隔离模型服务与窗口；renderer 用 scripted desktop API 夹具。",
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/main/agentRuntime.spec.ts",
-          "version": "repo-file-v1:sha256:319addedc24499d60379d1aeb28572e12ff21c226bf33dc8382168db4995d25b"
-        },
-        {
-          "resource": "repo://apps/desktop/src/main/deliveryIpc.ts",
-          "version": "repo-file-v1:sha256:533a9c130eaa737df00e5e6ad6825bcdd460de78f7a57c1e3b1d13ef8b2c11f5"
+          "version": "repo-file-v1:sha256:a385ba886bb5e7717beaaaaf88e75f4c9ff765d5c17d14fbfc4430c9cdb2c9bf"
         },
         {
           "resource": "repo://libs/desktop/testing/src/desktopApi.ts",
-          "version": "repo-file-v1:sha256:99265629370f1c7e393e05068a40f7b0da279d6689ef21102a7796783abc8dd6"
+          "version": "repo-file-v1:sha256:21db99c237324b424513e4a305aa4fcf794db2e29b212b3b12f6fb28462203ca"
         },
         {
           "resource": "repo://libs/evidence-agent/src/session/evidenceAgentSession.spec.ts",
-          "version": "repo-file-v1:sha256:21fdfb1e5bd79d42bb1b74548ba06eb1bf6cf5c84f40ae2b0d24886a906a6838"
+          "version": "repo-file-v1:sha256:a2afe2f314be078f4daefb2142fe0f56a72bc5ae7a2288cd4d99ba4f9ae951ea"
         }
       ]
     },
@@ -52,7 +48,7 @@
       "evidence": [
         {
           "resource": "repo://libs/evidence-model-core/tests/fixtures/README.md",
-          "version": "repo-file-v1:sha256:debc4e916584ec40933119df6aa2a8685304961ca99a4692788829e3e1c56fcf"
+          "version": "repo-file-v1:sha256:33ec982be19f29b488a8a3f43066cdb09f12c7b149383edc1e51f5ed91c0fe2e"
         }
       ]
     },
@@ -62,17 +58,17 @@
       "evidence": [
         {
           "resource": "repo://libs/evidence-model-core/tests/fixtures/README.md",
-          "version": "repo-file-v1:sha256:debc4e916584ec40933119df6aa2a8685304961ca99a4692788829e3e1c56fcf"
+          "version": "repo-file-v1:sha256:33ec982be19f29b488a8a3f43066cdb09f12c7b149383edc1e51f5ed91c0fe2e"
         }
       ]
     },
     {
       "id": "claim_15fa5fbe2f75469f830c84ad87eee423",
-      "statement": "integration验证parse/strict、await ELK几何与一跳highlight，非旧手工frame/marquee。",
+      "statement": "桌面组合测试验证采购源树解析、严格校验、泳道几何与一跳高亮。",
       "evidence": [
         {
           "resource": "repo://apps/desktop/tests/integration.spec.ts#L46-L100",
-          "version": "repo-lines-v1:sha256:b757574a9b5638aede358dcf01af96e30ed8d030bbe5eab6ff7ca2857fbdc54a:eyJzZWxlY3RlZExpbmVDb3VudCI6NTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE4N2ZkNjE5M2NkYzMzNTkxNGUzMjM3ZTE4ZmI2ZjNlYzk1NjgzOTA0YTFmOGFiNjc3YWI2YTk1MGM4YjRmNzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNhM2U0NmY5NDI3NmI2ZjZmNGVkMWYwMmFmNzhiZWY2YTJlZTFjNDM5ZGQ1NTg0Yjk3Mzk0ODMxMzIxNGQyYjciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjYwM2JlNjlhNTJjNDNhMmJmNDkyODIwYzI4Nzc2ZDZiNjcyODBiNDg1ZmY2NjVkMjM3YTE4ZThlMDQ4YzA5NDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU1NzE5ZDA1ZDU2ZThjMTlmZjlhMTUzZjAwZjMyZjhiYTBjNWNhOTI3YTE2ODk0MjNhZWFlZjM1Y2RiZGQ3NTUifQ"
+          "version": "repo-lines-v1:sha256:1591a22d5aa8bd03ee1e2e293ffdc0c5a5ec5b7c3f4e18b7ea75aa400ae14af4:eyJzZWxlY3RlZExpbmVDb3VudCI6NTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE4N2ZkNjE5M2NkYzMzNTkxNGUzMjM3ZTE4ZmI2ZjNlYzk1NjgzOTA0YTFmOGFiNjc3YWI2YTk1MGM4YjRmNzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNhM2U0NmY5NDI3NmI2ZjZmNGVkMWYwMmFmNzhiZWY2YTJlZTFjNDM5ZGQ1NTg0Yjk3Mzk0ODMxMzIxNGQyYjciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjYwM2JlNjlhNTJjNDNhMmJmNDkyODIwYzI4Nzc2ZDZiNjcyODBiNDg1ZmY2NjVkMjM3YTE4ZThlMDQ4YzA5NDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU1NzE5ZDA1ZDU2ZThjMTlmZjlhMTUzZjAwZjMyZjhiYTBjNWNhOTI3YTE2ODk0MjNhZWFlZjM1Y2RiZGQ3NTUifQ"
         }
       ]
     },
@@ -82,31 +78,31 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/tests/integration.spec.ts#L102-L203",
-          "version": "repo-lines-v1:sha256:c7a2e04a60ea3acb108b475b80ed298a8387b86f5d59cab30124ee26df3f246e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAyLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJkZWQyNDJiMDNmNzI0OTk2Y2NhYTg4YTJkMGY0OGYyZmUwOWQ3MTMzNWNjYjM0OGVlNjBjZmRkN2JkMDI4ODBmIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJmNmY1YjQwYjE1ODQ1N2QxNzg2NGYyMTc5MDc4NmRkNWEyZWNkYjY0YjY2YTY1MWY3ODhkNGUyNWNkMzMwM2QyIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJkNWZjOWZlMDhhYzE2MjU2MTJkNDU3ZjAwMzJkMGVkM2RhNjY3OTFmMjkwOGI1OWE3MWQ3MzcxZTVjZDdmZGUzIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MCwiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1In0"
+          "version": "repo-lines-v1:sha256:a6fa068846357241a73dcc0e358464ae7061874693de516528f57b437a9041b9:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAyLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJkZWQyNDJiMDNmNzI0OTk2Y2NhYTg4YTJkMGY0OGYyZmUwOWQ3MTMzNWNjYjM0OGVlNjBjZmRkN2JkMDI4ODBmIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJmNmY1YjQwYjE1ODQ1N2QxNzg2NGYyMTc5MDc4NmRkNWEyZWNkYjY0YjY2YTY1MWY3ODhkNGUyNWNkMzMwM2QyIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJkNWZjOWZlMDhhYzE2MjU2MTJkNDU3ZjAwMzJkMGVkM2RhNjY3OTFmMjkwOGI1OWE3MWQ3MzcxZTVjZDdmZGUzIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MCwiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1In0"
         }
       ]
     },
     {
       "id": "claim_6ee9f065dd9f48d78f5e88f9d40dc0c5",
-      "statement": "phase-3-loop 用实际 runtime、假 Pi 和实际 ModelSession 验证 15 项工具、先在主进程提交、重放事务后一步撤销。",
+      "statement": "桌面组合回路验证真实 runtime 加假 Pi：主进程提交补丁后由真实 Renderer ModelSession 重放并可撤销。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/tests/phase-3-loop.spec.ts#L91-L199",
-          "version": "repo-lines-v1:sha256:994f7ab526d50bcb32492cbf50eb0fcb3da5b309f82b28c9dc81e39fb6816d27:eyJzZWxlY3RlZExpbmVDb3VudCI6MTA5LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJkMzYxYzMyMjg2MTgzNzc5ZTk5MDE4MTI1MDU4YmIzNzllZTY4OTg0NmQ0NzQ0MWE1ZmNhNjUxZTQxMTgxNmFkIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIwZWU1ZmNjYjZkMGY2OGVkNGY5MzA2NWE1MjBkNzAyZTExZTFmZTNhMGZkM2JkZjdjYmM3NmNjZTlmN2Y2OGQ3IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIyN2Y2M2QzMGMzYTcyNDc4NWRmYjRiYmNmYTRiMTJmNWY1ZGJmOGE2NzZhYmI3OTMzZmNjY2FiNDE5YjM2NWM2IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI0YWQxYTRhZDA3MTY4MjM4MjZlODBkMDljMGI1ZGM4ZGQyOGRlNDRiNTAzZjY3MjE3YjAwNGU3MzNjMzg2MmUwIn0"
+          "resource": "repo://apps/desktop/tests/phase-3-loop.spec.ts",
+          "version": "repo-file-v1:sha256:b48af64e6a98cb4d5aa7a0d9c3e119b54ac67307e899aa6cd808b7d02daa7794"
         }
       ]
     },
     {
       "id": "claim_2116fbaf41cd494ba8dea82f3a19b295",
-      "statement": "phase3保护in-process full sensors，renderer用scripted API不需Electron，旧frontier移除。",
+      "statement": "phase-3-loop 覆盖进程内静态传感器；renderer 测试通过 scripted desktop API 隔离 Electron。",
       "evidence": [
         {
           "resource": "repo://apps/desktop/tests/phase-3-loop.spec.ts",
-          "version": "repo-file-v1:sha256:31921b8ce48ce34aaa3e07e1bdeb43e2d90555ffdd6d090f61786391b0a81e90"
+          "version": "repo-file-v1:sha256:b48af64e6a98cb4d5aa7a0d9c3e119b54ac67307e899aa6cd808b7d02daa7794"
         },
         {
           "resource": "repo://libs/desktop/testing/src/desktopApi.ts",
-          "version": "repo-file-v1:sha256:99265629370f1c7e393e05068a40f7b0da279d6689ef21102a7796783abc8dd6"
+          "version": "repo-file-v1:sha256:21db99c237324b424513e4a305aa4fcf794db2e29b212b3b12f6fb28462203ca"
         }
       ]
     },
@@ -116,25 +112,25 @@
       "evidence": [
         {
           "resource": "repo://libs/evidence-api/package.json",
-          "version": "repo-file-v1:sha256:32b3b8a5230e3efd33023a7c408f657e1e1d2ad697b804680099cddc25073500"
+          "version": "repo-file-v1:sha256:d56c843b66787b079a0273a80088f34aa0d3d25afc556fcf0a7c695f3456d421"
         },
         {
           "resource": "repo://libs/evidence-api/src/testing/fixtures.ts",
-          "version": "repo-file-v1:sha256:886a3d575dd0fe00bf9f73098b97bb643aabc0a817ce6ff8940863c1026a1175"
+          "version": "repo-file-v1:sha256:2f4dd5b292ae4719d1f81999c0840cda98bbba35c3bf9daa7737970be29a70d1"
         }
       ]
     },
     {
       "id": "claim_27758567f1ba41178e90a35daa3e3137",
-      "statement": "v6无timeline pin，model digest格式/字节路径变化受测试保护，canonical/hash仍是合同。",
+      "statement": "测试用固定向量保护 canonical 模型摘要；目录来源摘要对路径和字节敏感。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-model-core/src/validation/fmCheck.spec.ts#L156-L174",
-          "version": "repo-lines-v1:sha256:8f064df0a4ffd9966414eb6892cda07c3217591c276712127cb429def1f57330:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA0NDBkMDA5MWVlNGRkMjZhNzJiMjBlNDlmNDc5Njc0YTgyOTU1YmE4NmFmNWM4Njk2MWQ5NTJkOTczYjZlNWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI3NzlkMTE4ZDZlM2NiZjQ1MDUzOTc0OGRlZTdhNDMwN2FjYmU2NDQ2Y2JhMjk3ZjI3NjBmYTVkMGJiYTFiYzIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJkYjkyOTczYTEyNzhkNTVmZmZiMWJlMThhZjgyMDAwODA5NWIwNWZlOTE2MWI3MTYxNThlMmQzZGViNjVlZmUifQ"
+          "resource": "repo://libs/evidence-model-core/src/validation/fmCheck.spec.ts",
+          "version": "repo-file-v1:sha256:c9114fe0173505ea22f1d9fbaa28324b458f214615fc16c5f28b7ddcabe3a788"
         },
         {
-          "resource": "repo://libs/evidence-model-core/src/validation/fmCheck.spec.ts#L49-L75",
-          "version": "repo-lines-v1:sha256:3f68e85f1e0e7c2183848dfdb5a0cadb82ffd321723b64c0d425d728bd49c84b:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM4MjdjZGZkZmMyNDkwY2YyODliN2NmYmRiMDNhZmIzMTRjNWZhNmIxMTgzYjI1NmViMzM0YzFhMjg0ZTIxYjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMxNzlhYzRjZjMwMjAyZGQ5YzIwMmVjZWE4NmFjNWI5ZWY5MmU4ZmVkYTE5M2FhNjUyMjdiZTM5OWI4MDcxMzgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVkMDZhNGQ5M2Y4MjgzNjM2ZjY2ZTUyYThhNzY3Mjg3NGU1ZTkxZTZmMDIzNzRiMjU3MzBhNzY0ZjMwYTNiZmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc1YTA1N2I2ZDQ5MjkzZjI1YmJiZGY0MDA0M2EwOTlmY2E4YWNmYzljMDVkZDNmNzgyODg5NjI3MTViZTAyYmIifQ"
+          "resource": "repo://libs/evidence-model-core/src/validation/modelDigest.spec.ts",
+          "version": "repo-file-v1:sha256:091f25768ecc617d67038172e105e4c0234ef16261c77d4e9ce99b5c59e5fa85"
         }
       ]
     },
@@ -144,15 +140,15 @@
       "evidence": [
         {
           "resource": "repo://libs/evidence-acceptance/README.md",
-          "version": "repo-file-v1:sha256:a58ee894fa12d620133af8d5e3e3c1c9d5c318514d0adcf4d022336d1b55b66c"
+          "version": "repo-file-v1:sha256:0ecd2de6539efc7d249dd573168a03b7684f67972fab5d5e83b3158a5cdea861"
         },
         {
           "resource": "repo://libs/evidence-api/src/delivery/routes.spec.ts",
-          "version": "repo-file-v1:sha256:a2e835910aca178af8ed1a3fd643f3a8fe1bedcacc1098007a839c5a8ec84208"
+          "version": "repo-file-v1:sha256:730528d06b4f87ec0cbde9d00b0b315ec8cea4b563c3c0c04008406ff049ea73"
         },
         {
           "resource": "repo://libs/evidence-api/src/openapi/openapi.spec.ts",
-          "version": "repo-file-v1:sha256:7c2e9eeed7b5fa1e77a021c1278ce56b2f9d2d8b9272e6bf79bc11486253f3fc"
+          "version": "repo-file-v1:sha256:0456f4324b16363568520f746375bfa90ac978f0ccfe0935d2418dc2dcddb78c"
         },
         {
           "resource": "repo://tools/workspace-rules/boundary-drill.mjs",
@@ -170,17 +166,31 @@
         },
         {
           "resource": "repo://examples/b2b-escrow/implementations/ts-fastify/test/app.test.mjs",
-          "version": "repo-file-v1:sha256:2cb12d9033f0ed4c7d54d08cfc8f411c8836bc2561c944a63ed92d11d9590911"
+          "version": "repo-file-v1:sha256:2616dcc283939fbc9c8737cdd114a1e8d1a4228eb1ffe5a419a7e0e8589c9d65"
         },
         {
           "resource": "repo://libs/evidence-acceptance/src/acceptance.e2e.spec.ts",
-          "version": "repo-file-v1:sha256:6e6e5c7928e5f2f669f7cc29e778d5b65381b2793cd684c77877a4ab1f7ca0ee"
+          "version": "repo-file-v1:sha256:21ba76ff654eb023d103eb8be9d053bff2662bfd231201f3271f3f88c3c31a20"
+        }
+      ]
+    },
+    {
+      "id": "claim_55b9dd1ae23b4745964ac7a1c10041fe",
+      "statement": "工作区和桌面存储测试覆盖不接管不完整子工作区、不覆盖现有内容及外部编辑冲突。",
+      "evidence": [
+        {
+          "resource": "repo://apps/desktop/src/main/projectIpc.spec.ts",
+          "version": "repo-file-v1:sha256:0c7ba6a263eedabd956c84791dcafcb110d32be715633c2aa3051f503d3d98cf"
+        },
+        {
+          "resource": "repo://libs/evidence-model-io/src/workspace.spec.ts",
+          "version": "repo-file-v1:sha256:b7d84693c629565e914c178e57686d12aa1a8f97238978e6ac8282ecfad56bb5"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.9.0",
-    "at": "2026-11-20T12:30:09.424Z"
+    "at": "2026-11-24T13:18:19.740Z"
   }
 }

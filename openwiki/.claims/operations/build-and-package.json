@@ -1,22 +1,18 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:3e9e750ea4d1b9857fb5feb5c46be429e61cbec065e42cce7ea3e213d2c44e70",
+  "pageVersion": "sha256:d2d53ea2767d5cb151284a4c8469772a5fee54ad78856d0cbcc296076b71a56a",
   "claims": [
     {
       "id": "claim_567a05d269c14d5e97a102d43a9b3bcf",
       "statement": "工作区工具链为 Node/pnpm；pnpm install 安装固定 Bruno CLI，API 比较及测试另需显式 api:setup 安装原生 oasdiff。",
       "evidence": [
         {
-          "resource": "repo://ENVIRONMENT.md#L1-L6",
-          "version": "repo-lines-v1:sha256:a06db9b7757ab72ea52d1de12743c42ed21705e5f35d680ca0dc74957d16a6f6:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiODRhMzRiNDgyNTA4MjUwOGMzZjNiZGE3MzUyZmMxMGNhMGI3NGYyOTdlYTcyODM1ZTJhZTliMjZlNjQ0OTBiNyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNmY2MGJiNjAwZTc2ZjZhMTFkM2I3OWM5OGI4YzY4ZjU1YmE2MDhhN2JlY2RjMzY4YzU4YTUzMzBlOTE5MDExNiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjAsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNWY3NGM0M2I4ZWUzOGExNTZhZTQ1ZTgyZjFkM2Y4M2Q4MjAxMGVkOWZiNTRhMjlhZDk0NzFjNmE3ZjZkZWEwYSJ9"
+          "resource": "repo://ENVIRONMENT.md",
+          "version": "repo-file-v1:sha256:958191ae932f93cd455a2eb06391dad16f42e2273b8408e51aba7f845c6acf07"
         },
         {
-          "resource": "repo://libs/evidence-acceptance/package.json#L92-L101",
-          "version": "repo-lines-v1:sha256:b3f6886e8f359017ed1f2ab0294bff44ad71dd18d182889f48dc0fbf168ac4a7:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRiNGU1YTFjZWMzMWRhZDIwN2U0NjNmYWIxM2Q0YmEzMjY4YzlkNDM3NWVkN2FlMTViYTA0MzdiY2JhZjhmNzkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY2YzE0NzU3YjhlMWU5ZDZhN2RlZTk5MDJlOTA0MDdhZDhjZjY3M2IzZThkNzYzZTI3OTUwZDE5ZDA2NzhkNjkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM5ZjM4MDczYzFiYzUzY2Q3MjNkYTFhNDk2OGFiMDBjZWIzM2Y0MDljYTY5YzQyODM4YWI2MmIzNDc2NjlmODUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY2YWUwOWM0MGFjYzBiZDIxOWVjOGU3ZDRlYzg5YmY0ZjQ5NDI5ZmY0MWE0NDIyODAzOTJmMzY0MTUyZGYyZTIifQ"
-        },
-        {
-          "resource": "repo://tools/oasdiff/setup.mjs",
-          "version": "repo-file-v1:sha256:5f10a2323e653b1660b8018657e7e3680d0b382a27160df2b979fa794f96d96b"
+          "resource": "repo://libs/evidence-acceptance/package.json",
+          "version": "repo-file-v1:sha256:d0302309652bebf606c7656d7e2d113247dc77bb77398a8079b6ad3cd8377ba1"
         }
       ]
     },
@@ -128,11 +124,11 @@
     },
     {
       "id": "claim_33a144fa53d04b519982f70694598700",
-      "statement": "pnpm globs 为 apps/*、libs/*、libs/desktop/*，覆盖两应用与十八库；根 packageManager 固定 pnpm12.16.1 与单 workspace lockfile。",
+      "statement": "pnpm 工作区包含应用、领域库和嵌套桌面库，使用根 lockfile 与固定版本工具链。",
       "evidence": [
         {
           "resource": "repo://package.json",
-          "version": "repo-file-v1:sha256:dede372592c0b80c3094dc143616b53ebdaa0cb7ed395730fca230ae6813845d"
+          "version": "repo-file-v1:sha256:f84a2c22acac2b3f6be85de2e51aaf810ba83e49054580ba9a457767a4994085"
         },
         {
           "resource": "repo://pnpm-workspace.yaml",
@@ -142,7 +138,7 @@
     },
     {
       "id": "claim_23734e02d4c44c2db069d75a2ad103bb",
-      "statement": "workspace-layout 记录当前 app/feature/contracts/tools/acceptance 提取边界；apps/cli 是 type:app/scope:cli，旧 Agent 包已合并。",
+      "statement": "workspace-layout 记录应用、桌面功能、共享工具与验收运行时的依赖边界，CLI 作为独立应用组合库。",
       "evidence": [
         {
           "resource": "repo://apps/cli/package.json",
@@ -150,11 +146,7 @@
         },
         {
           "resource": "repo://docs/workspace-layout.md",
-          "version": "repo-file-v1:sha256:4c0d0b7ed766f0caa991b996ec19e0a05c761859a700c6e090d7e56540255245"
-        },
-        {
-          "resource": "repo://libs/evidence-agent/package.json",
-          "version": "repo-file-v1:sha256:0d4c144c9da8c389f1b3c3f9f998ae722c30a43006a98c6cda21d62891171872"
+          "version": "repo-file-v1:sha256:3dceacc63fbf9300a2bc9ff8650e61ad082fa2119435a718a200594d96484d21"
         }
       ]
     },
@@ -181,7 +173,7 @@
       "statement": "Because the hoisted linker lets an undeclared import resolve, the @nx/dependency-checks rule configured in each project's eslint.config.mjs (together with the workspace:* protocol) is the guard against missing or unused dependency declarations.",
       "evidence": [
         {
-          "resource": "repo://docs/workspace-layout.md#L53-L54",
+          "resource": "repo://docs/workspace-layout.md#L67-L68",
           "version": "repo-lines-v1:sha256:db6553e035f6e2127a0f1a15ef6a56f6557df41bce8a4e5e77e04debfc0d5586:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTQ0YmM3Njg0MGRlMjk1YmFjZWI0ZWYwMzE1YWQzNmU4NmJkZDNkZWY4YTRkZjY2NDRiZWMxNzExMDBjNDY0ZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNGZiN2IxZmQ1NjBmZWRjNTIwMjExNDkxZDNhOGFlZGRiMmM2ZGQ0YmQ4MTY0ODNhNTU1NzRiMDljNDEwNTQ3NCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDY1M2Y1ZjE4NGYwOGQ3NzVkMDljM2FiNmNjYzg1YWYwNmEwOTAyOGY1OWJiZmEzYzg0ZTNiMDVmYWNjZTJhZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzE5MGY4OGJlZThkYWRjZjVlODZhZDUwNWIyN2MxYmFjYzg3NzI4YjdjZWQ5YTAzMzk2ODBjYWI3MmU4MzMxNSJ9"
         },
         {
@@ -236,7 +228,7 @@
     },
     {
       "id": "claim_0a64e80973344e2d91fa09eaffeb4e32",
-      "statement": "根evidence/model/api脚本走apps/cli/dist，需先build cli；Nx wrappers与drill仍保留，无根typecheck脚本。",
+      "statement": "构建 CLI 后，根 evidence 与 inspect/export/diff 快捷脚本均运行 apps/cli/dist/cli.js；typecheck 通过 Nx target 执行。",
       "evidence": [
         {
           "resource": "repo://apps/cli/package.json",
@@ -244,25 +236,7 @@
         },
         {
           "resource": "repo://package.json",
-          "version": "repo-file-v1:sha256:dede372592c0b80c3094dc143616b53ebdaa0cb7ed395730fca230ae6813845d"
-        }
-      ]
-    },
-    {
-      "id": "claim_99ef7c09bc414c7688e06dc94ca30858",
-      "statement": "model-io旧bin是弃用shim，共用库commands/modelCli，统一app才推荐入口，库不反依app。",
-      "evidence": [
-        {
-          "resource": "repo://libs/evidence-model-io/package.json",
-          "version": "repo-file-v1:sha256:39e9a6713d2cd56358abb6c4570aa7f493c4efbc551868875eb416645201d17c"
-        },
-        {
-          "resource": "repo://libs/evidence-model-io/src/cli.ts",
-          "version": "repo-file-v1:sha256:f4231f0c27e4ca3719bcb3ff054559a5bd0bfa73e0266e3727b9062e6d79117a"
-        },
-        {
-          "resource": "repo://libs/evidence-model-io/src/modelCli.ts",
-          "version": "repo-file-v1:sha256:1b4901e48faee154df09effd03f8f0ad6c99414891daf446dd129e568c108e20"
+          "version": "repo-file-v1:sha256:f84a2c22acac2b3f6be85de2e51aaf810ba83e49054580ba9a457767a4994085"
         }
       ]
     },
@@ -337,6 +311,6 @@
   ],
   "verification": {
     "by": "openwiki/0.9.0",
-    "at": "2026-11-20T12:30:09.424Z"
+    "at": "2026-11-24T13:07:09.861Z"
   }
 }

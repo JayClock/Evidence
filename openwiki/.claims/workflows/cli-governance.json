@@ -1,46 +1,46 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:6ab49c0bdbb41a48ba687d0d2371900b888904308fb79f1b9c5c05998421df2a",
+  "pageVersion": "sha256:02e6f12993d8509274414c3e3b0536806a43a4e842ccb660405c64fe3abe874b",
   "claims": [
     {
       "id": "claim_2e23d63c615949bcbde260388194c88b",
-      "statement": "统一 evidence app 用 cac 注册模型/check/story/test/export/diff/api 命令，严格校验参数并注入 cwd/stdout/stderr；review 已删除。",
+      "statement": "统一 evidence CLI 用 cac 注册 init/check/compile/inspect/lineage/story/export/test/diff，注入调用者工作目录和输出函数，并校验参数。",
       "evidence": [
         {
+          "resource": "repo://apps/cli/src/model.ts",
+          "version": "repo-file-v1:sha256:77f8a055a8085cd5c5d6e653bfb65c135fa05a074417a35ef534ed46a36e28fb"
+        },
+        {
           "resource": "repo://apps/cli/src/router.ts",
-          "version": "repo-file-v1:sha256:12df98860edbedbda118b33e8783bf746f9a70c5580641369b27d28c75ad2302"
+          "version": "repo-file-v1:sha256:3ba75dcdd18e4b4bf904a3db79841c21fdf4bb5378f894a18d404bc82436069a"
         }
       ]
     },
     {
       "id": "claim_f581e7088738492b8dafbdd5585db989",
-      "statement": "export完整编译契约/验收后才原子替换专用out并拒绝输入/cwd重叠；verify精确比missing/stale/extra且不写，symlink视stale。",
+      "statement": "全量 export 完成编译后分别替换固定发布契约目录及验收目录；verify 精确比较缺失、改动和额外文件，不写入也不跟随输出中的符号链接。",
       "evidence": [
         {
-          "resource": "repo://apps/cli/src/commands/export.ts",
-          "version": "repo-file-v1:sha256:a44432f962c26fa8c7064a10be8899a5a0537d1a01e3b5fe64358a4886466017"
+          "resource": "repo://apps/cli/src/commands/export.spec.ts",
+          "version": "repo-file-v1:sha256:65e994f65b1f607085381478e6c6b75177acb4ef6830ee70e01a26645397046d"
         },
         {
-          "resource": "repo://libs/evidence-acceptance/src/renderDeliverables.ts",
-          "version": "repo-file-v1:sha256:8e236a78740eae657bc0ccba2b3ed04ded8400dd1416e20ee42c7619c0c66901"
+          "resource": "repo://apps/cli/src/commands/export.ts",
+          "version": "repo-file-v1:sha256:32df4e8247099e505690be374c35fb5aed1fcf88427d886361323cc1d4e5d4f4"
         }
       ]
     },
     {
       "id": "claim_0c31c496b0264958b6bba762706e9d5f",
-      "statement": "test 接收一个生成的 Bruno 集合目录，校验原生文件与元数据一致性；非空执行前 HEAD 探活，并在安全沙箱逐个执行重渲染的完整 flow。",
+      "statement": "test 读取工作区 .evidence/acceptance，校验原生文件与元数据，探活后使用 Bruno safe sandbox 执行选中的完整 flow。",
       "evidence": [
         {
           "resource": "repo://apps/cli/src/commands/test.ts",
-          "version": "repo-file-v1:sha256:072ca01efd658a6d448bf13eed92710e28c49d4176399f057877cb54748570f2"
+          "version": "repo-file-v1:sha256:80620bbe61a4450b690f2ead91d85764b387a2d65e1a69c95ed8a51b5c8dd792"
         },
         {
-          "resource": "repo://libs/evidence-acceptance/src/renderer/brunoSuite.ts",
-          "version": "repo-file-v1:sha256:76c4abe81ac712433e8ece04f0df0428bc8300b4b07a430518c5ec8699a2b331"
-        },
-        {
-          "resource": "repo://libs/evidence-acceptance/src/runner/brunoCli.ts",
-          "version": "repo-file-v1:sha256:b3a37cbf39666c9f7432f92cf413b2b6666a9b834450ad92dbf0ffeba022888e"
+          "resource": "repo://libs/evidence-acceptance/src/runner/acceptanceRunner.ts",
+          "version": "repo-file-v1:sha256:c41faaaba4842dd6ac5e0581de59106bd79d22dffd216a9d8d71bccee4c0da20"
         }
       ]
     },
@@ -60,15 +60,15 @@
     },
     {
       "id": "claim_0e618b469ed4421c960bf34fa0627233",
-      "statement": "allow-pending 只用于 DoD，保留 passed=false/pending=true，执行错误和 strict drift 不可豁免；report-dir 从单次执行写 JSON/Markdown/JUnit。",
+      "statement": "DoD 可以显式报告 pending，但不能豁免执行错误或 strict drift；write-reports 从单次执行写工作区 JSON/Markdown/JUnit 报告。",
       "evidence": [
         {
-          "resource": "repo://apps/cli/src/commands/test.ts#L40-L73",
-          "version": "repo-lines-v1:sha256:561c8dffb0e42b7c37f117694d36601c9b6dd41622dab4173c732d80a11e06ad:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU4MmRiNDJmOTgzOGY2N2E1NmU5ZjYzY2JhNDMxODI5MGMwOGRiNTQ5OWQyMTM3NDEzMDM1Y2MxYjRkZDI3NTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE3NTk0ODEzM2I4MmViYmQwMzdkODFkZmU3MmFjMTk2ZDczNjIyYmUzNWZlZGM0ODA0NTdiYmQxMTFmMTllNDciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE3NDVmZWViZGI3MmFhNGU0MGFhYmQ0ZDZiODY2NGE3N2JiYjVjNmE0MGZmODM0YjczYjhkZGNkMTA1OTIzZTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg4ZDYxMDRmMTI0NTU1NzBjN2Q5Zjg2MzZjZGZmNWY4N2Y3NDViMDhjZWI0MmJhMmQ2MmVmOTNmYjYwYTFjMzYifQ"
+          "resource": "repo://apps/cli/src/commands/test.ts#L96-L154",
+          "version": "repo-lines-v1:sha256:d6c379b093100b7a26a58935c60b881972445c956adb0488ff029644d9170730:eyJzZWxlY3RlZExpbmVDb3VudCI6NTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEyN2UzNWM3MzU1MjYxNWEzYzcxNTY0MGZjOTBiMjI5NDVhMGRhZjhjOTQzYTcxYmJjMGIzZjAxYjVmMjVlNTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA4ODdmODRiOTg5NmE4NDlhMzg4YTRjNjI2NTM4Yjk2Y2IzODBmZjM1NTM0ODg2YzQ4M2JiYWE2MTNlOGVmZjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
         },
         {
-          "resource": "repo://apps/cli/src/commands/test.ts#L97-L139",
-          "version": "repo-lines-v1:sha256:a5d8d6ba694e8445616b31397c77ae401ced15f43a136b88f7ece899b09b04fa:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE0NDRkYjFjNWY1NTIxNTRlMWZmOTIzODY2OThiNzA1NDhlYzQ4NTEyNTExNjFkMjE1ODEyZWRmZTA4YWIxYmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVjYzEyMDU2MTVjYjBjNmNiNzIxYTVjMGVlMGZkNTg3OTZhMjAxMGQwMWY1Y2YwY2Y1ZDViN2JkYWZjNzA3Y2QiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+          "resource": "repo://apps/cli/tests/governance.e2e.spec.ts",
+          "version": "repo-file-v1:sha256:b6a48ab2a4f5eddefdfe4588e76e6f77ebd494ef442c5c9bcaea084b53b6395b"
         }
       ]
     },
@@ -92,29 +92,11 @@
       "evidence": [
         {
           "resource": "repo://.github/workflows/evidence-governance.yml",
-          "version": "repo-file-v1:sha256:29812545f188b62bcefb61c62b03837da5406294ec0b725808d57ed77efea767"
+          "version": "repo-file-v1:sha256:46c51d853135581544270eb2a1fc7d9817803d97f1c524bb84b9a163a28e1396"
         },
         {
           "resource": "repo://templates/ci/evidence-ci.gitlab-ci.yml",
-          "version": "repo-file-v1:sha256:18e2b067608a40dbdc969546de17661090135d4f4f78946e8f7d0994955070b6"
-        }
-      ]
-    },
-    {
-      "id": "claim_1ceedf732a254229badfbc1de87ddf89",
-      "statement": "api migrate-overlay 读取实际模型迁移 v5 默认路径/旧 ledger/journeys，输出新6.0文件并拒覆盖；story --no-ai 可离线投影声明 flow。",
-      "evidence": [
-        {
-          "resource": "repo://apps/cli/src/commands/api.ts",
-          "version": "repo-file-v1:sha256:d81d502bf89178b4c4b1e09e56df1408f18dc95ca46133991d0fec7a45e74ab4"
-        },
-        {
-          "resource": "repo://apps/cli/src/commands/story.ts",
-          "version": "repo-file-v1:sha256:75a3ebb9ebc885f3b6e09ee588870ee827a4ff28197d89dc15310d6d4dc964ec"
-        },
-        {
-          "resource": "repo://libs/evidence-api/src/loader/migrateOverlay.ts",
-          "version": "repo-file-v1:sha256:96797d5e3eb1442b1c66c40e7be370ce22da0df8ff91ccae37295f9e2f439099"
+          "version": "repo-file-v1:sha256:0d1e243f44bacf6a690a279bc871ce4ea563e5f550c5c393f09bd83bd43b3fb2"
         }
       ]
     },
@@ -128,17 +110,31 @@
         },
         {
           "resource": "repo://package.json",
-          "version": "repo-file-v1:sha256:dede372592c0b80c3094dc143616b53ebdaa0cb7ed395730fca230ae6813845d"
+          "version": "repo-file-v1:sha256:f84a2c22acac2b3f6be85de2e51aaf810ba83e49054580ba9a457767a4994085"
         },
         {
           "resource": "repo://tools/verify-fulfillment-examples.mjs",
-          "version": "repo-file-v1:sha256:6245cdc6a86a2781359caeb83309dfb0be8d02beae98c36bc15a4ea0220e370e"
+          "version": "repo-file-v1:sha256:e80e7f8b427ed7619f648369b73863f9702141728b2f3bc6f92f28559c9a7fb6"
+        }
+      ]
+    },
+    {
+      "id": "claim_fcbd72b66f084dfaa3827e142f737f82",
+      "statement": "story --no-ai 从声明的 flow 离线生成事实卡片。",
+      "evidence": [
+        {
+          "resource": "repo://apps/cli/src/commands/story.ts",
+          "version": "repo-file-v1:sha256:7376ca3d77eb70201af7ef7afdb6c74c0fdcb6c38e4b1837dbb97fc98dfde50a"
+        },
+        {
+          "resource": "repo://apps/cli/tests/story-command.e2e.spec.ts",
+          "version": "repo-file-v1:sha256:b90db9333b6b7a3dc9f57b2d5bdc46fd7df394bd29373eb7a27c177a0287aacf"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.9.0",
-    "at": "2026-11-20T12:30:09.424Z"
+    "at": "2026-11-24T13:07:09.861Z"
   }
 }

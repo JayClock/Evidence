@@ -5,20 +5,26 @@ description: 业务聚合根如何成为 URI、Context 如何成为服务，字�
 tags: [delivery, topology, routing, openapi, field-origin, api-diff, breaking-changes, desktop]
 verified:
   - by: openwiki/0.9.0
-    at: 2026-11-20T12:30:09.424Z
+    at: 2026-11-24T13:07:09.861Z
 sources:
+  - id: openwiki-source-19442573d926816973f7a35a
+    resource: repo://apps/cli/src/commands/diff.ts
+  - id: openwiki-source-69d58f985d20203ea0c2f899
+    resource: repo://apps/cli/src/router.ts
+  - id: openwiki-source-8a985fe113b4313884662500
+    resource: repo://apps/desktop/src/main/artifactPipeline.ts
   - id: openwiki-source-c8d6c908e749a45544b1e625
     resource: repo://apps/desktop/src/main/deliveryIpc.ts
   - id: openwiki-source-fc371e1f84c3b5d478075b07
     resource: repo://apps/desktop/src/main/deliveryProjection.ts
   - id: openwiki-source-59e7a4a2571d0728d39ecc85
     resource: repo://apps/desktop/src/main/mcpDeliveryService.ts
+  - id: openwiki-source-eb64da3d440064cfd8e29c7a
+    resource: repo://docs/api-projection-v6.md
   - id: openwiki-source-bf747dad922ce4438e285478
     resource: repo://libs/desktop/feature-canvas/src/LiveApiContext.tsx
   - id: openwiki-source-71d7e1232409d0d4ee39377c
     resource: repo://libs/desktop/feature-delivery/src/components/delivery/DeliveryHub.tsx
-  - id: openwiki-source-effa8775635d4ee2d4bfa795
-    resource: repo://libs/desktop/feature-delivery/src/state/useDeliveryHub.spec.tsx
   - id: openwiki-source-32df59b611c02b85d275991a
     resource: repo://libs/desktop/feature-delivery/src/state/useDeliveryHub.ts
   - id: openwiki-source-00036286abae2d8c898e2cef
@@ -45,7 +51,7 @@ sources:
     resource: repo://libs/evidence-api/src/delivery/topology.ts
   - id: openwiki-source-aac6631a251b846350b2d550
     resource: repo://libs/evidence-mcp/src/server/toolset.ts
-generated: { by: "pi", at: "2026-11-20T12:30:09.424Z" }
+generated: { by: "pi", at: "2026-11-24T13:07:09.861Z" }
 ---
 
 # 交付路由、快照与契约差异
@@ -62,7 +68,7 @@ buildDeliveryTopology 每个 Context 一个 service，而非每表一个服务�
 
 跨 context 的 evidence plays_role 定义供应方 supplies、消费方 consumes 和 capability async link，确认在供应方自己的时钟形成回调。Domain 被规则 binding/ref 或 references 读取时为 reads/sync；pre_contract 到 parent contract 为 signs/sync。links 按 ID 去重排序，services 按 context 排序；替换能力提供方不应改变 core paths。
 
-部署 compose 是占位草图：image/port 非发布配置，但 EVIDENCE_MODEL/CONTEXT/SERVICE_KIND/ROUTE_PREFIXES/ROUTES、依赖和 expose 来自同一 topology；Traefik 逐操作按 Method 与完整路径正则路由；OpenAPI x-evidence-services 复用它，不能各写一套边界。
+OpenAPI 的 `x-evidence-services` 使用同一逻辑服务归属；拓扑不规定容器、网关或传输。
 
 ## HTTP 寻址与角色
 
@@ -82,30 +88,28 @@ fieldFor 优先 derived（可解析规则或已声明 derivedByRuleRef），其�
 
 POST 仅 caller，additionalProperties=false；derived/stamped 在响应 component 标 readOnly、x-evidence-origin、caller-input=false 及规则引用。业务时间 required/keyData/timestamp 的建模约束在 schema 层检查。契约能声明“不接受回填时间”，实际后端仍须执行拒绝；生成类型/静态检查并非 HTTP 防护已实施。
 
-交付树包含 openapi、topology、routes、deployment.compose、projection、http-journeys（runtimeValidated=false）和可选 limitations。缺 confirmation/服务端派生 runtime 等未实现能力明示，不生成虚假闭环。
+交付树包含聚合及分服务 OpenAPI、topology、routes、projection、http-journeys（runtimeValidated=false）和可选 limitations。缺 confirmation/服务端派生 runtime 等未实现能力明示，不生成虚假闭环。
 
 ## oasdiff 是兼容性权威
 
-旧 `apiDiff.ts`、自定义十三种 breaking taxonomy、field shifted 分类、renderApiDiff 和增量 patchDeliveryRoutes 已删除。现在完整投影最终 OpenAPI，再 **异步** compareContracts；没有“补丁路由自动修好”的隐藏路径。
+`compareContracts` 异步比较两份投影的最终 OpenAPI；`compareOpenApiContracts` 直接比较同模型、同服务范围的两份契约，不重新投影。
 
-compareContracts 拒绝不同 modelId、任一侧 error diagnostics 和无效 OpenAPI，返回 base/target modelDigest，以及 oasdiff 原生 changes、Markdown changelog、full details。原生等级 INFO=1、WARN=2、ERR=3，**level>=2 即 breaking**。不要再依赖 ROUTE_REMOVED/RULE_CHANGED 等旧私有枚举；语义扩展的 full diff 与 HTTP breaking changelog 应分别理解。
+compareContracts 拒绝不同 modelId、任一侧 error diagnostics 和无效 OpenAPI，返回 base/target modelDigest，以及 oasdiff 原生 changes、Markdown changelog、full details。原生等级 INFO=1、WARN=2、ERR=3，**level>=2 即 breaking**。语义扩展的 full diff 与 HTTP breaking changelog 应分别理解。
 
 OasdiffRunner 固定版本 1.38.0：binary precedence 为显式 options、EVIDENCE_OASDIFF_BIN、从已安装包位置上溯的 cache、PATH。compare 不联网下载；安装用 `pnpm api:setup`。临时目录写空 config、两份 canonical contract，以 execFile 无 shell 执行 version、changelog JSON/Markdown 和 diff JSON；禁 external refs，默认 30 秒、16MiB buffer，finally 清理。版本/输出不合法或执行失败保留 stdout/stderr 并抛 OasdiffError，不降级成自制比较器。
 
-`evidence diff <base> <target>` 默认 Markdown，兼容 `diff api` 默认 JSON；0 无 breaking、1 breaking、2 工具/输入错误。比较只读，不支持 --out。旧 api diff 使用同一库比较而非旧 0/3/1 约定。
+`evidence diff <base> <target>` 接收两个工作区根，默认 Markdown，可选 `--format json`；成功返回 0，破坏性变化或失败返回非零。库的 `runDiff({ base, target, format })` 接受两个模型目录或两个 OpenAPI JSON 文件的绝对路径，只读比较，分别用 0/1/2 区分通过、破坏性变化和错误。
 
-## 实时草稿、摘要和导出
+## 编辑预览与磁盘产物
 
-桌面有 live revision 与 saved project 两条路径：livePreviewOf 仅分析 renderer 提供 document/baseDocument，无磁盘读取，返回 revision、双 digest、原生 diff/changelog、coverage/issues、route bindings 和 canExportDraft（无 block）；可导出时同时返回与写盘一致的文件内容。baseline 是编辑器打开时快照，保存不重置。
+`livePreviewOf` 分析 renderer 提供的当前文档和基线，返回修订、摘要、契约差异、覆盖和路由绑定；它不读盘、不写盘。`useDeliveryHub` 合并短时间内的编辑并丢弃过期结果。桌面的自动草稿由主进程在模型落盘后生成，写出前复核源字节摘要。MCP 交付从工作区磁盘模型读取。
 
-useDeliveryHub debounce 并丢弃过期 reply；只有当前 accepted analysis 可导出。exportLiveDelivery 在任何 async picker 前 structuredClone 并完成分析，拒绝 expectedModelDigest 不符或 block；选择目录期间不重读 canvas。输出正常交付文件并附 api-changes.md 和 draft-status.json（mode=draft、releaseAuthorized=false、双摘要、issues）。取消不是失败，异常返回 failed。
-
-draft breaking 是 warn，仍可导出带警示草稿；release sensor 将其升级 block。saved preview/export 重新从 disk 投影，不具备 live 的预览摘要握手，保存后导出描述的是当下 disk。
+草稿传感器对破坏性变化给出告警；release 目标将其提升为阻塞。草稿可审查并不等于可发布。
 
 ## 展示与测试
 
-DeliveryHub 是全窗产物工作区，默认展示产物列表及内容，并保留契约全览和增量视图。全览显示 services/routePrefixes/route counts/kind notes、sync/async crossings、bindings 的角色/exposure 和 limitations；差异页展示双摘要、原生 changelog/changes、coverage、非 API_ALIGNED 问题，支持定位和复制 Markdown，不再展示旧字段 shifted taxonomy。LiveApiProvider 让画布复用相同 bindings，inspector 通过 browser-safe delivery field entry 显示 Input/CEL Derived/Service Timestamp。MCP 的两个交付工具从 saved readDelivery 获取相同边界，不写模型。
+DeliveryHub 是全窗产物工作区，默认展示产物列表及内容，并保留契约全览和增量视图。全览显示 services/routePrefixes/route counts/kind notes、sync/async crossings、bindings 的角色/exposure 和 limitations；差异页展示双摘要、原生 changelog/changes、coverage、非 API_ALIGNED 问题，支持定位和复制 Markdown。LiveApiProvider 让画布复用相同 bindings，inspector 通过 browser-safe delivery field entry 显示 Input/CEL Derived/Service Timestamp。MCP 的两个交付工具从 saved readDelivery 获取相同边界，不写模型。
 
-routes/topology/fieldContract specs 保护稳定寻址、角色和字段纪律；oasdiffRunner/compare/breakingScenarios/evolution specs 保护真实原生比较与版本失败；desktop liveDeliveryIpc/useDeliveryHub specs 保护 no-disk、冻结、摘要 pin、过期 reply、baseline 和 disabled export。
+routes/topology/fieldContract specs 保护稳定寻址、角色和字段纪律；oasdiffRunner/compare/breakingScenarios/evolution specs 保护真实原生比较与版本失败；桌面 delivery IPC、useDeliveryHub 与 artifactPipeline specs 分别保护只读预览、过期应答与已落盘产物发布。
 
 相关：[API 投影](./api-projection.md) · [工作区](../desktop/workspace-surfaces.md) · [CLI 验收](../workflows/cli-governance.md)

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:754e4937568d3afcc0dd24b99fdca8fd9c37e00ce514164be15e130a68d56874",
+  "pageVersion": "sha256:6882af83bd6ee2cc5800b92b256a46d9878f32d656a65af39575fba472c130a9",
   "claims": [
     {
       "id": "claim_319186a606cf4eb5b41077fcdfadf0b8",
@@ -8,11 +8,11 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/main/windows.ts",
-          "version": "repo-file-v1:sha256:7d9ca6cfb2e5d5b2c5869ed17c892de1b84e5f24235f5e620d4a95152855690f"
+          "version": "repo-file-v1:sha256:a50e98a3423b2f8b8c2e1877e637549ee784463f446db8f2592e481c03254aa5"
         },
         {
           "resource": "repo://apps/desktop/src/preload/index.ts",
-          "version": "repo-file-v1:sha256:893beffb06095001c2063e6f182a999329d4287e4c86bfad46658f453deec888"
+          "version": "repo-file-v1:sha256:6b57d8c1374462702a182ee86888a5c98e70bc18facb840195f4c43fff3b35af"
         }
       ]
     },
@@ -21,7 +21,7 @@
       "statement": "Preload 提供 projects、agent、mcp、ingestion、story、aiConfig 和 system；订阅可取消，MCP 回答用 send，Agent 补丁由 main 发布事务。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/preload/index.ts#L100-L201",
+          "resource": "repo://apps/desktop/src/preload/index.ts#L118-L219",
           "version": "repo-lines-v1:sha256:9765cb0265de17ba89649dd7d0936ffe0ea4752576bce985cd483bc826b716d9:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAyLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIxNjJmMjg0N2M5MzU5MDExODQwMzgwZTUxZjBmMzUzOGFhMzAyYmQ5OTU1MTAxNmZkOTlhODVkYWQ0NWUxMDc5IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJlYTgyZGJjYWEyYThmZTI3ODJiZjY1NzA0YTk3NTExNTk5YThkZTViM2Q5MTkyNDMwNjdhYTJmNWUzZjc3NWJiIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJhYmNhYjYyMmZjY2Y1MGU3MWRkMWViMjZmOWY5MTgxNzAyZTIyZjM1ZDNkOWE2NDE4ZjdjZTQ1NGE0YWVjNThiIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MCwiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1In0"
         }
       ]
@@ -32,7 +32,7 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/main/main.ts",
-          "version": "repo-file-v1:sha256:320808a8bc54cc3627aabc4e61d24d08e900c58ce2b64340063fe9b12f14c4eb"
+          "version": "repo-file-v1:sha256:d170366a26f53a383031af51e9f3e9d427af7a32b16ad468d2fbdaee4f300f13"
         }
       ]
     },
@@ -41,11 +41,11 @@
       "statement": "With --mcp-stdio the same executable opens no window, reads no project store and registers nothing, running only the stdio MCP server against the derived endpoint.",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/main/main.ts#L150-L151",
+          "resource": "repo://apps/desktop/src/main/main.ts#L187-L188",
           "version": "repo-lines-v1:sha256:03a42be7aad9cf31e7126f6d67707fcf7150cecd596e9d7ec533b587ac8bf701:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTdmM2UxNDM5MDU4MTg1ZDRjOGNkZTQxMWJiOWI3NTgwZDhhN2QxMzA3ODlkODI3N2YxNGM4NGY2ZjI5MDY1YyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYmE3N2M4OTA3OTY5NDNkNTYyNDdmMGY1ZTRiZTljYTRkNjI4MGQ5ZTVhNDZhNWQyYTc1NDhkM2UwNzEyNTI0ZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZjAwNzE0Zjg5NWFlYjYzMDllNjI3MjE4YjAwOGZhYTc0YmRkZDM0YTQzNTU2YjAxYmIwMzg4ZDNiZDk5OTUyMCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiM2JjNmI4OTRkODhkNDMyYjQ5NjliY2UzYmExNjNkYTc5ZGYzMmFhNmUzNzYzOTEyZmE2ZDY0N2I4ZjgxYjViNCJ9"
         },
         {
-          "resource": "repo://apps/desktop/src/main/main.ts#L35-L60",
+          "resource": "repo://apps/desktop/src/main/main.ts#L41-L66",
           "version": "repo-lines-v1:sha256:53d3e19492fa526c1610f5cd7fa49879a2ee7224d110ae761ad9a1c026323941:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiOGY4NTU1YWNhZWRlZWIxMDk4NDc4ZWI2NjBmYjNmNGIyZDc0YzdmMzYyMWZlZGI0MWU1MGY1OGQ0ZjEzYTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFhMWQxYTYzMzkwMjI5Yzc5ODM0N2U4M2EwNDA1NDQxYzk0MDAwMzUyODRhZDE2OGMxYmY2Y2RmMWQ3MGEzNzAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ5YmYyYzFmYWRhMjcwNWU5NTIzYTIyOGY2M2QzMTk1ZjhlMzgyMmI4OTI0YzcwNTUwMWYwNjE2MjYzODUxN2QiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMyOTYyY2MzYmUzODkyNTE4MTkxMzZlYzNhZGIxZmNhMzg5ZDhjZWM1YmYxODYxZTQ1NmQ0NDgzY2NiODNhZTMifQ"
         }
       ]
@@ -55,72 +55,84 @@
       "statement": "The shell keeps one editor window per project root in a Map, focuses an existing window instead of opening a duplicate, removes the entry on close, and exposes the map through listEditorWindows for the MCP bridge.",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/main/windows.ts#L45-L99",
-          "version": "repo-lines-v1:sha256:92622a2849a2f2659136fc9f1218075afb55ac6000ae863c39619488c94f100b:eyJzZWxlY3RlZExpbmVDb3VudCI6NTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRiMGYzMDA2MDNkNGNhYTVmYjhmY2E1OGRiZGNmZTkyMzMzMTkxYTg5OGI0MWVhMTBkNjhiMmQ5NjgwNTFlYjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIwMmQyYzBkNmRjNWU3NGQ5MmZhMTRiOTFkYmVhMjY0MDkwYmViMzVmZGI5MTg4ZDliMzQxMTgxZGNlOWY0Y2UiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQyY2NlNWFiNTBkZmY1OWMxZGRhZTNhNWI0YWY3MTI1YWViYTA4MWRhZTNiNjZjMjQyN2ZjMDRmMTI3MWU0NTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+          "resource": "repo://apps/desktop/src/main/windows.ts#L46-L123",
+          "version": "repo-lines-v1:sha256:0893f1771226ab2e5b9f8716e8d6f113e89bbbfb41865e910423e480616e5693:eyJzZWxlY3RlZExpbmVDb3VudCI6NzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRiMGYzMDA2MDNkNGNhYTVmYjhmY2E1OGRiZGNmZTkyMzMzMTkxYTg5OGI0MWVhMTBkNjhiMmQ5NjgwNTFlYjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIwMmQyYzBkNmRjNWU3NGQ5MmZhMTRiOTFkYmVhMjY0MDkwYmViMzVmZGI5MTg4ZDliMzQxMTgxZGNlOWY0Y2UiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQyY2NlNWFiNTBkZmY1OWMxZGRhZTNhNWI0YWY3MTI1YWViYTA4MWRhZTNiNjZjMjQyN2ZjMDRmMTI3MWU0NTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
         }
       ]
     },
     {
       "id": "claim_316bf19c1e854cd0ab852269c72053c8",
-      "statement": "ProjectStore 每次打开从磁盘读取树或 Bundle，不缓存模型；Bundle 使用文件作为 modelRoot，允许新建空模型但拒绝无对象的无效来源。",
+      "statement": "ProjectStore 打开时从目录工作区读取 .evidence/model，返回解析结果和源文件摘要，不以缓存作为模型来源。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/main/projectStore.ts#L261-L331",
-          "version": "repo-lines-v1:sha256:a44b27723a73ddfbf05cc45d57ad7ddff20d74c88639cd349297cb3d5dfaeeb7:eyJzZWxlY3RlZExpbmVDb3VudCI6NzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc4NmY5OWFjZjg5MzNjM2Q5ZGJkOTFhMzRlOGU2YzlkY2RiNmUxMmVjZWYyYWI1N2I3NWQ0MDIxZDJiODllZGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE5YWEwYWQ2YzBhMWQzNmQyMTk1MDE5M2M3MWNjZDQyZWM5YWQ1MzNkY2ZmMDdlMDMyMGY2NzQzOWJjNzEyOWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk3MWZhOTJjNTJmYzA4Y2UwZDMyM2VhNmI4ODk4YzcyMWJhNzg4ODQ5ZWJiYzg2MjljYTE3M2ViYmU0MTZiNzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhkM2UxNzZlYjBiZmU2NmExODc1MWYyZmIwNTExOWZhMzk1ODdiNThhZTJkMjIzMGI3YjU1YWE5MmIwYWE1NzUifQ"
+          "resource": "repo://apps/desktop/src/main/projectStore.ts#L182-L210",
+          "version": "repo-lines-v1:sha256:c526c339144776cb538b9c7b731e7025fe1f23cff3743530a8c634e94b7d360a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc4NmY5OWFjZjg5MzNjM2Q5ZGJkOTFhMzRlOGU2YzlkY2RiNmUxMmVjZWYyYWI1N2I3NWQ0MDIxZDJiODllZGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmMGNkYjk3MmE3YmZiN2VkMjQ2ZjlmZjY3MjM4NWU1NWY0OTY4ZmMxMTA0M2RjNWI2ODRkNTFkZmEzMWRiY2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk3MWZhOTJjNTJmYzA4Y2UwZDMyM2VhNmI4ODk4YzcyMWJhNzg4ODQ5ZWJiYzg2MjljYTE3M2ViYmU0MTZiNzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIyNjM1OWFkM2ZkNjljZWI4ODI3NDUzYWJmZDRiMjYyNmYzZmMwNzRmYWJkYTEwNjA3OTc3MjU3N2ZmNjM0ZDYifQ"
         }
       ]
     },
     {
       "id": "claim_1d957d1aad50497b9e836ea2d465e18d",
-      "statement": "save 按树/Bundle writer 持久化，返回 written/unchanged/removed，内联 examples/readme 往返且同内容不重写。",
+      "statement": "ProjectStore 写入使用 expectedFiles 拒绝并发覆盖；不变的源文件不重写，写后复核摘要。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/main/projectStore.ts#L331-L362",
-          "version": "repo-lines-v1:sha256:6e174f55c353154464c5256f3d3ef9dcfe0c6cede024faa77ca9c0fbbbed7143:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE5YWEwYWQ2YzBhMWQzNmQyMTk1MDE5M2M3MWNjZDQyZWM5YWQ1MzNkY2ZmMDdlMDMyMGY2NzQzOWJjNzEyOWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjliNjJmNjBkODU5MGE1NzljZjQ2ZjhkNjczNzhjNGM1NzJiOTYyY2VjY2RiOTBjN2E1ZjdiNDJiOTYwNzgyYTQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk3MWZhOTJjNTJmYzA4Y2UwZDMyM2VhNmI4ODk4YzcyMWJhNzg4ODQ5ZWJiYzg2MjljYTE3M2ViYmU0MTZiNzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFiZmE1OTRiYzM5MjgzMTdmODAyZGY5MGMyYTUzMGUxZGI5ZWU1MzNhZGM1ZjMwYzgwNDRkM2VhYTQ4YmM4ZjAifQ"
+          "resource": "repo://apps/desktop/src/main/projectStore.ts#L212-L253",
+          "version": "repo-lines-v1:sha256:8f2822ec3dff026e095d41b537e73c558f2e025426279a6b524b49b47cae3036:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBjYjJiNzgwNzE0OTIyZjg4MWU1YTZmNDY1MGIwZmMyN2Q3MDkxMjI0Y2I5NTJhZjEwZmY0NTZmNDAzZTdlMjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVlM2UxNWNhZWQzNTJjZDg5ODhiMjJhMTM3YTAxMzE5ZTkxNzllM2IxZDVlMWE0ZmExYTg3NzVhMWIyOTUyMjMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk3MWZhOTJjNTJmYzA4Y2UwZDMyM2VhNmI4ODk4YzcyMWJhNzg4ODQ5ZWJiYzg2MjljYTE3M2ViYmU0MTZiNzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjczOTkwZTUzYTViNzllODE2N2ZhZWRiNTU4Yjg4ODA4YWVmMTEwMTBkMDlmZTVlYzY2Y2Q1YTIyZmU2MWMwNzYifQ"
+        },
+        {
+          "resource": "repo://libs/evidence-model-io/src/adapters/diskAdapter.ts",
+          "version": "repo-file-v1:sha256:832c5dea99b9e511e2398b777a7f2744817d273c5b33094e45307bc8376b5b64"
         }
       ]
     },
     {
       "id": "claim_fafaa4c672524ad3bd5d91f0531d4924",
-      "statement": "Creating a project refuses an existing .evidence/fm/model.json or an existing bundle file and names the path the user should open instead, rather than overwriting a model.",
+      "statement": "创建工作区拒绝覆盖已有 .evidence 入口，初始化独占取得目标目录。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/main/projectStore.ts#L195-L230",
-          "version": "repo-lines-v1:sha256:82df62a3331f180d5df6ce936b0df2ba67bde7d482b1469d2a4c579d790f7b95:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYwYzRmNTY3ZDBiYTM5ZjZlZjg5ODUzN2E5MTJjODg4ZGRhMTY1NzYxNGFiN2Q1MTA5ZjY1ZTcyZWNhMTQ0NWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJmMGE4MzBhYzkxMzE2YTc0MjcyMDc5OGM1MDM2ZWU4Yzk3NTA1YTcxNzliMGRmY2Y5OTljYmIzNmEyZWJkNjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUwNWFkN2EyNWQwNTA4NjJkY2QyMmQ2MTA0NGY5NWU0ZDQ0MDhiMzg2NmE3MjUyODkxNWY3MzdiYzRhZTI3MzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImViYzg3YTkxYWEwNzY5N2VkNWU1NDA3ZTc4ZjNlZTA4MmM1YWI5NWYwMmQ5ZjhmNGJhMzFiNWQ0ZTFjOGZjZmYifQ"
+          "resource": "repo://apps/desktop/src/main/projectStore.ts#L136-L145",
+          "version": "repo-lines-v1:sha256:d31ba89e57aafaed224f871947da38644d7d17e4d2f6d54ed25dfab66b3c2e3c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYwYzRmNTY3ZDBiYTM5ZjZlZjg5ODUzN2E5MTJjODg4ZGRhMTY1NzYxNGFiN2Q1MTA5ZjY1ZTcyZWNhMTQ0NWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQyYTJjYjI1YTEyMmI0NDIyMWE2MjM0ZWM2NjBhN2I1ZmI3ZjliZGU3YjNiOWUyYjNjNTU5YTBkOTZmYWM3MzkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdlMDVlMzJiMzM4MjE1YTFhZjIxMDFhMWQ0M2IwZDVhMzExNTk2OWZhZDk0MzlhMDY2NTJjNjAxNGU1NTIxNGYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRhYzEzYjBhYzM1ZTBiMThlYjE5MmRkMGQ2MTE1MjZjNGE1ZTJlZDk0MTk2ZjUyZjljNWY2MGI1NmZmM2Y4MGEifQ"
+        },
+        {
+          "resource": "repo://libs/evidence-model-io/src/workspace.ts",
+          "version": "repo-file-v1:sha256:038a55dd5a2af71ac32eed5f2c5bfaa445ba6a4ff6eb5d6a9dbb79f1843d0939"
         }
       ]
     },
     {
       "id": "claim_d2a2f471038546888af7443f9b36b1d3",
-      "statement": "The project store's fingerprint is a sha1 over either the bundle's bytes or every source file's path and content joined with NUL separators in path order, and returns null for a missing or empty source; the shell exposes no fingerprint IPC channel, so the renderer learns about external writes from the watcher event while the fingerprint is exercised by the store's own tests.",
+      "statement": "ProjectStore fingerprint 对模型源文件计算摘要，读不到源则返回 null；watcher 以此区分自身写入和外部更改。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/main/projectStore.spec.ts#L187-L203",
-          "version": "repo-lines-v1:sha256:fc9ad57f3226a7986ed8e5517dad09102009c19289ad33f91316d2d9eec62094:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZlMjg5MjRjYjcxODg3MDIxNTNjY2U0Y2NmZGZlMDhmNGM2ODBkNjM5N2FiODVkYWI4N2RhNjIyNTZlYzZjZjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFmZmQ0ZWE5N2ZhNWI5NDZlNzQwZjM3MGEyZGUyM2QxNWQxZTJkMWZkYzhkNjZiZmMzZTEwNzM2YWIxYjMwZWMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjcyMGZjOWU2N2RiMDdlZDIzOWJiM2FkMjMxMmVhYWI5YTcwZTFmNmZiYTAxMjg4YjBiYTZlNjFkN2Y4ZWU3ODgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNkNmE3NGMyZjAyODcxM2Q1NGYzNWZjYzgzZDgzYjljY2I3ZjYyMDI0ZjExMjlmMTQxYmQyNjlkNjliZjA2YWEifQ"
+          "resource": "repo://apps/desktop/src/main/projectIpc.ts#L205-L227",
+          "version": "repo-lines-v1:sha256:97e5daa92f25ac6b3997192ef157c9777d6450f5be68ca656b92d1ef3628bc80:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk0ZDdlMGI2N2EwNjA1ZGRlYmZiYmYzMjc5MTkxNGQ4NmEzZTNlNzIwMzI3NTcxMDk0YTQ5MGMzM2YyZDg4ZjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUxMjM3YjU2NjM1ZjAyNDE4YzQzY2FiMGNiY2VmZDZhMDVkODBlOTA5MmNlNDk1Yzg5M2VhZGIxMjA5YzVmYTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBiMmI3OGE5ODQzZjUwZWEzOWI4NjU3ODEwODI3MDM4OGRhYjIxZTA2ZDUyNTZjYmNmNzlmOTNlYjJhOTE2MjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI2MWNjYzM2YmZlYjA1ODkyMTE5YzZmM2M3OWJmMjc2NTRhMGQ0Mzk3MzMxN2E0MDBmNGFiMmJiNGY5MDg2NzcifQ"
         },
         {
-          "resource": "repo://apps/desktop/src/main/projectStore.ts#L363-L391",
-          "version": "repo-lines-v1:sha256:a9b7600e383eff0604140a4c1bc83bf946627db733cbe3e1ac498edbf9f7d802:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmMGNkYjk3MmE3YmZiN2VkMjQ2ZjlmZjY3MjM4NWU1NWY0OTY4ZmMxMTA0M2RjNWI2ODRkNTFkZmEzMWRiY2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmMGNkYjk3MmE3YmZiN2VkMjQ2ZjlmZjY3MjM4NWU1NWY0OTY4ZmMxMTA0M2RjNWI2ODRkNTFkZmEzMWRiY2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNkZGM1ZjVjNzA3NjhhMGYzMzY0OTA1ZTVhOWI0ODJkYjBmODBkNWM4MTU3ZGIyNjJiYjVhMDRkMzgxYjUzNTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg3YzMwMmMwOTA5Mjc4NTM2NGJjZmFhODU4MTYzYzMzZjJiYTAyYWJjZTFkYjczNzdjNThlNjkxODk5NzJjZjQifQ"
+          "resource": "repo://apps/desktop/src/main/projectStore.ts#L147-L154",
+          "version": "repo-lines-v1:sha256:af25f309f8c7c87ed930201668a5fe879230bcad1740130ee1a415808037c726:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZmZkYjkyZmMxOGMzYTcwNmJjMTFlYjdjZDFiZmMxMWYwNjgwMzdlNzNjZDBlYTBkODI1MzkyMjM0N2M3MThkOSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDJhMmNiMjVhMTIyYjQ0MjIxYTYyMzRlYzY2MGE3YjVmYjdmOWJkZTdiM2I5ZTJiM2M1NTlhMGQ5NmZhYzczOSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDc0YjdiYTQ1NWNlZjFlZWY2ODM0YzY5MmQ1MzMyODY2NDY0MWNkMjUxNGUxYjQ1NWU5ODc4NTdkZWYxOWFhNSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDJkNTg0NmY2ZjM4NTExZTc5NWNjZmViNzU2ZDE1MzEwNDI1NzM5NzRmY2VjNmU5YjM2Mzg4NzMwMjE2NjJhNSJ9"
         }
       ]
     },
     {
       "id": "claim_58372312502c40f8a48b1db1c8415b71",
-      "statement": "All shell consumers resolve paths through three helpers in modelSource.ts: isBundleProject tests for a *.evidence.json path, projectDirectoryOf returns the project root for a tree and the bundle's parent directory for a bundle, and modelSourceOf returns <root>/.evidence/fm for a tree and the bundle file itself; there is no trace-path helper, so traces are no longer placed at a fixed path beside the project directory.",
+      "statement": "桌面模型路径由 workspacePaths 派生为工作区下的 .evidence/model。",
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/main/modelSource.ts",
-          "version": "repo-file-v1:sha256:e2112af557be541c96e43406027dc59f1be7681c87cbb65681869b8d8add78a5"
+          "version": "repo-file-v1:sha256:ac39fcf85c97b655a42e95ed94f23cd61acc9d7e2aecb6e6e7194202c6fbc0fb"
+        },
+        {
+          "resource": "repo://libs/evidence-model-io/src/workspace.ts",
+          "version": "repo-file-v1:sha256:038a55dd5a2af71ac32eed5f2c5bfaa445ba6a4ff6eb5d6a9dbb79f1843d0939"
         }
       ]
     },
     {
       "id": "claim_a3e37c3946854343b0ac8bd881168da1",
-      "statement": "Chokidar 从存在祖先监控，剪枝到树 model.json/三类 JSON 或 Bundle 目标，初始静默、稳定写入后去抖合批，支持根重建/atomic save，close 取消 pending 并释放 watcher。",
+      "statement": "Chokidar 从存在的祖先目录开始监控，筛选模型源树，稳定写入后去抖合批，关闭时清理 watcher 和定时器。",
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/main/modelWatcher.ts",
-          "version": "repo-file-v1:sha256:f2ae2681b54a9b937e8d063de00651708faa7d9807101a711920fb4d0143872e"
+          "version": "repo-file-v1:sha256:fa62ec635790cc4d4dabc066c9f0c99e13bed8c6e4b10348770b335aba7a9e4c"
         }
       ]
     },
@@ -140,15 +152,15 @@
     },
     {
       "id": "claim_8e75a74905d64566808d036f732f56c4",
-      "statement": "Dashboard 独立加载 recent 和模板；打开使用 open 后接 openEditorWindow，创建可选树或 Bundle；精选模板包含 blank。",
+      "statement": "Dashboard 独立加载最近工作区和模板；打开已有工作区或在目录中显式创建后进入编辑器。",
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/renderer/components/dashboard/CreateProjectModal.tsx",
-          "version": "repo-file-v1:sha256:cf99fcd3206415c7eb8833cbb298bdd8a83013cf12a5b30c00289eb5d3688344"
+          "version": "repo-file-v1:sha256:2050b37dc65ee78beaa136c043d075ce923cdabd3189bb73e07cb139dc8dd49a"
         },
         {
-          "resource": "repo://apps/desktop/src/renderer/screens/DashboardScreen.tsx#L55-L201",
-          "version": "repo-lines-v1:sha256:0735fad192fb42016e289877cdb138ad5449058ccfde8ee52e8a7f911e6c71e9:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQ3LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIxNjEwYzYxMWYyNThhOTM3OTU0NTk4NDc0OWEyYjYxZjU0ZTBmZWI3ZmEyN2QzYjI5YjRmM2U3NjUxNzE2MmFhIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJiNjI3ZWY0MWI4ZDUzMjI4MjllYmI5ZTY1MDc4OTUxZjVmMWRlNzAzYjQwNTM2MTc5ZTc4ZmUyYTI5YTQ5ZGZjIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJjNTMxZjhhOWQ5NjI4MGE1N2ZlMDNjOGRmOGIwN2ExNTU2MTFiM2QyOWRkYmE5YmQ5NDgwYTExMWM4MzRhMDI0IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIxNGEzYWRlNDI1ZjY1MGUwMzE3YTkxYjdmMTEyMGEyY2Y5ZDFjOTExZTA1OTVlNjNkNDdhMWJlZWM2OWI2NmIzIn0"
+          "resource": "repo://apps/desktop/src/renderer/screens/DashboardScreen.tsx",
+          "version": "repo-file-v1:sha256:0cbabe3cf99a1e2cea3cd2ad41696c56e64a348bd00c2dbb8295c9571c26edf9"
         }
       ]
     },
@@ -157,40 +169,40 @@
       "statement": "最近项目最多 20 条，按 rootPath 去重并用 temp+rename 持久化；不可读文件当空列表。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/main/projectStore.ts#L172-L186",
-          "version": "repo-lines-v1:sha256:718bcdd9513cd0922c852bfb3c8941b7bd3cd6702a97b3e0d9fbe6eb3c785527:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIwNjg0NGRkYWIzMjVmMmRkNjBjMDc1ODIwODZjYzVkZWVkNjI0Zjc4OWU0MjBlN2ZiZDc2MjE0YjdjZjllZDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQyYTJjYjI1YTEyMmI0NDIyMWE2MjM0ZWM2NjBhN2I1ZmI3ZjliZGU3YjNiOWUyYjNjNTU5YTBkOTZmYWM3MzkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhjZjkzN2NlN2E4NGQzMTNhM2ZiYWExNTk5NWIxODViMjY0Yjk5N2VmMzlhNjVkZDY1MTk1MDVkNGJjNzA5ZjYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE4ZDAwODEyNDJiZDI1MjU5ZjZkZTgzNGY2MjAyMDg4MGE2M2E4Mzk1ZGQ1NmQzMDM4YjIwNjUzNDExMDBmOTYifQ"
-        },
-        {
-          "resource": "repo://apps/desktop/src/main/projectStore.ts#L34-L39",
-          "version": "repo-lines-v1:sha256:224df408f5ac56db502c54e2674df3c6d9693b7e7fbb31d460606d1acb88a552:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTUxYmM5NWM1MDFhYTgzMGE3ZWJhYzgwZmMyZWM3ZGRkZTI5NWIxYzg0NDU4NWM3ZjMyZGYxNWJiMDgzYTM4NiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNTZiZjcwNzFiZDllYWU5YjRiNTRiYTc0NWM5ZDVjNzUzYmVlYTQ1OWFlMjUxYjUwZWRiMmU0MTZhZWE0N2Y1ZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDJkMzYyZTdiMGJmODE3ZjFmNzI2NWVlMzI3NzVlOGZhOTQyZDhhMGJjYmVkNWM4MmRiZDVhZTg4ODUwNmUxNSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYzg2NjNiYzMyNzhlM2IyMGQwOTdhOTBhM2Y3MDFhNzFlMWMzMTYxZTE5OGI4NDdjN2RlMDA1NGE5NjhiNjA1ZSJ9"
-        },
-        {
-          "resource": "repo://apps/desktop/src/main/projectStore.ts#L78-L103",
-          "version": "repo-lines-v1:sha256:347d476f87c311e30a44766bea9fdebf6d31f8d2d834a4a5fa143ea9301af7cd:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQzN2E2Mjc3ZWZiNTJiZDgzYTFhY2E1N2QzZDhiYWU4YjYxMmQzMTNhOGZiZjYyMWNkMzUyZjgzNmYyNDcxMjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFhMWQxYTYzMzkwMjI5Yzc5ODM0N2U4M2EwNDA1NDQxYzk0MDAwMzUyODRhZDE2OGMxYmY2Y2RmMWQ3MGEzNzAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM0MTMxYjRiNzI1Zjk4NDE4OTM3ZDQ2ODgzZjUyYzExMjVkNWRkZDI3MGZhZmUzNTc1OWZjZWJmZjAwYzIzYTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk4M2FjOWZkNmViYjg4MGU0NzQzOTQwMzRhYTg3OGEwMjNjMDhmYzZkZGE4ZDVmMjAxZmNjMGVhNWQzODNlMDMifQ"
+          "resource": "repo://apps/desktop/src/main/projectStore.ts",
+          "version": "repo-file-v1:sha256:6a56ceec112a03f6b1b6b65d8c68741009534f2b1056a48938ad33deb1020272"
         }
       ]
     },
     {
       "id": "claim_812211d75e194e05a13c596acf8c7f49",
-      "statement": "项目变更通知记录时间戳；重载用 projects.open，文件失效自动重载仅在没有未保存改动时允许。",
+      "statement": "主进程对 watcher 事件复核摘要，自身提交不引发冲突，外部变更要求显式重新加载并保护待写修订。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/renderer/screens/EditorScreen.tsx#L195-L214",
-          "version": "repo-lines-v1:sha256:b9c432726687a2c3c6689ddc0b16daaec5f8dc963fd5b1d8365de39391c4a158:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdhNWY2ZWZkZDI2MGRjY2E5ZjUyYTI0NDQyODg3NmIwNGIxOTljYzE1OWRkYzdiYjNhYzQzOWRmOGJiMzU1YTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ2MzI2OGMwNDQ4NWE3OTc1YWZjN2M5OGVhOWE4MjVlYmE0MzNhN2JjMGMzNzllZGFmNGQxNGQ5OGRhZWFlMjIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhjMDlkZWM4OGNjMGNkZjQyNGUyMjIyZjY0M2MwYWQyNTRhMDUxOTY5YjFkNTFjNGNmMTEwYTlkZTk1ZjFlZDciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFhYTI2Mjk3MGNjNWU0NmZiMDAwODJkNDdlMDY5YjYxMGRkYjkwOGVjYWM1NjE5YWU3MjhjOGJkOGY4ZmU1ODAifQ"
+          "resource": "repo://apps/desktop/src/main/projectIpc.spec.ts",
+          "version": "repo-file-v1:sha256:0c7ba6a263eedabd956c84791dcafcb110d32be715633c2aa3051f503d3d98cf"
         },
         {
-          "resource": "repo://apps/desktop/src/renderer/state/useEditorSession.ts#L114-L194",
-          "version": "repo-lines-v1:sha256:e936dca6a9051ff54aff90cf41c12da963b6c7fd4c1b61846d486fb20c7b9297:eyJzZWxlY3RlZExpbmVDb3VudCI6ODEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIyZDExY2FmNDNlOTdlZjM2OWU2YmVlZDFhMjY4YmQwNTgzOGYyOWI5ZGQyNTRiZjY5YmE2NDg4NDE0NzIzNGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU3ZjBkYWUzZDk0YzNhODIwNTg2YjQ2ZGM0NDZjYzEyNjVmZDRkNWZlYjdhMmFjZGZjMGUyNWEzNGVkZWY4ZTIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhkMTgzMmI4N2Q3NmQ3ZGVkMDQzOGY0ZmM3YmY0NGNkMGNiYWViODUzMzZmM2VjMzg1MGIxYjdkODJhOGI1ZmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNlNDJhOTc3OTljZGQ1Y2VkM2ExNzk1ZTFmYmUzZTRjM2VjNjU0YWZmN2M3OTBjMjg4MzkxMTViNmQ2ODE2YzkifQ"
+          "resource": "repo://apps/desktop/src/main/projectIpc.ts",
+          "version": "repo-file-v1:sha256:833a5f982eb2b4f572795e86aa6ad03dd45a570df6b8bcbb6e56026809fba856"
+        },
+        {
+          "resource": "repo://apps/desktop/src/renderer/state/useEditorSession.ts",
+          "version": "repo-file-v1:sha256:d7c29147764ee409a89a91c044ba4ab13a0dfdb207f22370253cb88197178e28"
         }
       ]
     },
     {
       "id": "claim_7aa19dd4564b4b3ebc1186ef92520c79",
-      "statement": "Delivery exposes two sources over IPC: the live pair projects an explicit document revision and freezes it with structuredClone before the directory picker, refusing export when the preview reports blocking issues or a stale modelDigest and writing draft-status.json with releaseAuthorized false, while the disk pair reads the saved model source and writes the contract, topology, routes and deployment sketch into the chosen directory.",
+      "statement": "交付预览 IPC 不写盘；自动产物仅从已验证的磁盘修订生成。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/main/deliveryIpc.ts#L97-L196",
-          "version": "repo-lines-v1:sha256:66726c9ed539b0b9800161d07c03b9e856393749934bb69989c6ef32ccfc2648:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAwLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJkNWRmZDAzMTBlNzI0MzU1NzIyNDUzOTI2OGFmNWFiOWM3MTY1N2M5NDExNWRmNmJlMjZjNzA3NjMwMjU0NzY4IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJhYTFkMWE2MzM5MDIyOWM3OTgzNDdlODNhMDQwNTQ0MWM5NDAwMDM1Mjg0YWQxNjhjMWJmNmNkZjFkNzBhMzcwIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIxMmExOWQzOTEwNjk4YWI1OTViZjg0YzdiOTI5YjU5Mjk4OThjMjg1MDBhYmJkOTcxNTgzNzU4NjJkYTAwODc2IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MCwiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1In0"
+          "resource": "repo://apps/desktop/src/main/artifactPipeline.ts",
+          "version": "repo-file-v1:sha256:d1cbdb5f289ec9f96c3a3501650a0f467d5a232075c97dc7b202403184ba992f"
+        },
+        {
+          "resource": "repo://apps/desktop/src/main/deliveryIpc.ts",
+          "version": "repo-file-v1:sha256:9c449861361498b10224dee3cf8dbf1fe31d16c932a9b0fda7f3aa7a314d39b0"
         }
       ]
     },
@@ -199,8 +211,8 @@
       "statement": "Ingestion runs entirely in the main process: draft reads a contract by clauses, a blueprint table or business text, preferring a configured model and falling back to the built-in vocabulary while reporting why, and compile refuses a draft that yields no entity, writes it through createFromDocument and opens the new project's editor window.",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/main/ingestionIpc.ts#L171-L244",
-          "version": "repo-lines-v1:sha256:eef86710ed4527884810a466e5686c8230285f15773e0fbd45c3900aa122537d:eyJzZWxlY3RlZExpbmVDb3VudCI6NzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQyYTJjYjI1YTEyMmI0NDIyMWE2MjM0ZWM2NjBhN2I1ZmI3ZjliZGU3YjNiOWUyYjNjNTU5YTBkOTZmYWM3MzkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFhMWQxYTYzMzkwMjI5Yzc5ODM0N2U4M2EwNDA1NDQxYzk0MDAwMzUyODRhZDE2OGMxYmY2Y2RmMWQ3MGEzNzAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFmNDMwNDY1NTk2OTcyZGYyNmViMzgwZDE1YmU3NmNiNTBjM2E4YTRjZmU5NzIwMWRkM2Y1MzA0NTZhZWI3NTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+          "resource": "repo://apps/desktop/src/main/ingestionIpc.ts#L176-L248",
+          "version": "repo-lines-v1:sha256:cb032b84d4772959ff6e04f37587d81f3c8867c4091a173f1dfc10e11777a446:eyJzZWxlY3RlZExpbmVDb3VudCI6NzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQyYTJjYjI1YTEyMmI0NDIyMWE2MjM0ZWM2NjBhN2I1ZmI3ZjliZGU3YjNiOWUyYjNjNTU5YTBkOTZmYWM3MzkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFhMWQxYTYzMzkwMjI5Yzc5ODM0N2U4M2EwNDA1NDQxYzk0MDAwMzUyODRhZDE2OGMxYmY2Y2RmMWQ3MGEzNzAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFmNDMwNDY1NTk2OTcyZGYyNmViMzgwZDE1YmU3NmNiNTBjM2E4YTRjZmU5NzIwMWRkM2Y1MzA0NTZhZWI3NTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
         },
         {
           "resource": "repo://apps/desktop/src/main/ingestionIpc.ts#L53-L136",
@@ -214,7 +226,7 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/main/agentIpcHandlers.ts",
-          "version": "repo-file-v1:sha256:83e4e9cf0d40e94b578a24529c197e3e6599d657bbdb2172bebc8a6adeb343a0"
+          "version": "repo-file-v1:sha256:bcecdd1c06b2bc3851124d5f606692ddd52a8745a5a4cc1336db343bd5a227cf"
         }
       ]
     },
@@ -223,16 +235,12 @@
       "statement": "Agent 补丁由主进程提交并通知 owner 按 revision 重放，不经旧 renderer 请求/确认。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/main/agentIpcHandlers.ts#L58-L121",
-          "version": "repo-lines-v1:sha256:e4d56364dea1d5a8836fc80b652c8f1366c6222525d3c41b59ad724259001040:eyJzZWxlY3RlZExpbmVDb3VudCI6NjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNlMDJlZjJmZGE3YjFjY2I2MGIyNGNjZDUzMTA1NmYwYzQ1YThmMjMzNWMxYTdlYjc3NGUyNjliNjc5NjAzYmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmMGNkYjk3MmE3YmZiN2VkMjQ2ZjlmZjY3MjM4NWU1NWY0OTY4ZmMxMTA0M2RjNWI2ODRkNTFkZmEzMWRiY2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhkZWZmNmVmMTE5MzM5YzgyMWExZGQ4NGEyNzEyOGZjNTA0OTg4NDg0NGE2OGNhNTZiYTQyZjA2Y2ZmMjE4ZWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVkNTFhMTAyYmRkYTAxYzZhZTBhYjNiYWExZTllN2E3ZDg0ZDc3Mjg5ZmQ1ZDVjMWIyYjNmNDA4ODIwNGMwYzAifQ"
-        },
-        {
-          "resource": "repo://apps/desktop/src/main/agentRuntime.ts#L131-L182",
-          "version": "repo-lines-v1:sha256:960736a1c215ef42ae5b71373133133a280aebce63df027effa461bd62c0a681:eyJzZWxlY3RlZExpbmVDb3VudCI6NTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk4ZjRkMzUxOTU0Y2FlMDAyYzU4NjRjYzlhMWQzNDUyZDFiMGE0MGNhZWNjNzcyYzIyYjVlZTk0YWQyYWFkMDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJmOTcxNGFkYjU1Y2Q3YjQ0MGUxNzQ2YTg3MDNhODAwY2UxNTNlNzM3OTg5NDA4ZWMxZTQ1NTc4OTVjNjM5NmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE4NzVkMmQ3NWVmNGQwYTZmM2Q4MTJlZGRhZjU3YTg0ODkzOTgyOGRlZDI4ZTM5NTFmOTIzNTM4ZDVlZjc4M2MiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZkMWI4YjY1ODA0ZDQ4OWVkMDNiYzVlZGE2M2Y2ZDBlNThiN2RkYTNjODY1NDJkOGQ1YzZiMmE3NjJmNWUzODYifQ"
+          "resource": "repo://apps/desktop/src/main/agentRuntime.ts",
+          "version": "repo-file-v1:sha256:e173b42a06c3c38a7b8c48e0a5e344fb9818d9e07b6330fcd1cb2403b6844c2f"
         },
         {
           "resource": "repo://apps/desktop/src/renderer/state/useLiveModelBridge.ts",
-          "version": "repo-file-v1:sha256:f6091dfd73647df1569262179e4e9bea1779baa8a7a02acc5a94586fe09de2e5"
+          "version": "repo-file-v1:sha256:eb3397acf8f3508aeea5928a1479cbe43c5be57d0069dccb01b246f6e5268dc0"
         }
       ]
     },
@@ -241,7 +249,7 @@
       "statement": "MCP 使用 listEditorWindows 首窗承载模型与截图，status 推所有窗口且可拉取。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/main/main.ts#L107-L132",
+          "resource": "repo://apps/desktop/src/main/main.ts#L144-L169",
           "version": "repo-lines-v1:sha256:5fe16fd241d69790ae24225333ca154ce02c6f6b9ed57cf57c7c4c0fb71640d5:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZmN2Q0Yzk4ODI1M2U3YzMyZWU3ODJkOGNmZjVjNDIwOTFhZDg0NjU3ZjlhZTVjODAxNzQ4ZDU1ZWIxN2U5ODMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMyOWM2NzU0ODlkNTlmZWM1ZGNkNDkyMzJkNWU5ZGVkZGE2ZTBjOTljMjY3ODE4NTlkMDRiZTQ2MDMzY2U5YzkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImYwMjBkNzY1MDNlM2Y5MzkxODQzYjFiZGM5MjkyY2E4NjI3Zjg2ZmRlOWFiNGVlZGNiOTJiNWFjMTlkYWI1MWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg4YmUxYjYzMzMyNmIwMmQwZjFlMGVmYjlmYjExZjU4YTAyMGQ5ZWIxZTgyMDA3ZjVjYWVlN2VkYTFhY2VlN2YifQ"
         }
       ]
@@ -255,18 +263,28 @@
           "version": "repo-file-v1:sha256:91e00f6e4f4395ab4f3b3c58e93bd24b7b0467a2c9f9968d52f2ebe3223b4eea"
         },
         {
-          "resource": "repo://apps/desktop/src/main/ai/aiConfigService.ts",
-          "version": "repo-file-v1:sha256:8f36c454d9b15d556844995ad0e268a61409a84322d1d0d68310adbf143293c0"
+          "resource": "repo://apps/desktop/src/main/main.ts",
+          "version": "repo-file-v1:sha256:d170366a26f53a383031af51e9f3e9d427af7a32b16ad468d2fbdaee4f300f13"
+        }
+      ]
+    },
+    {
+      "id": "claim_970288ca9b2f4d939c938aeaa3ae1e02",
+      "statement": "主进程防抖并串行持久化编辑，最多保留一个待写快照；关窗前可以等待写入。",
+      "evidence": [
+        {
+          "resource": "repo://apps/desktop/src/main/livePersistence.ts",
+          "version": "repo-file-v1:sha256:52145d10a52b5745a2bfabcb79ab083582ebceb57c20361ca8f60f0134fed468"
         },
         {
-          "resource": "repo://apps/desktop/src/main/main.ts#L70-L93",
-          "version": "repo-lines-v1:sha256:51c084ddaa8e30d25ac11149f000d719e164f226a98941636edf6b1f35efcd78:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI0ZTk3NjFkMmM2M2M0NjVmYThlNGExNjA3MzNjZTBiZTg2NjlkMDI3MDE5NjUxZjQ3NTM4ZjZlMGQ3YjU1MWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA1NTNlZTY5YjdiMmUyMTJhODM5NTA2N2YzZjZjMmUzNjJmM2RkNzc4NThlMWJhZDY1YTg5NDVkODZjMTgyZWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY2YmQ4ZmMzMTVhYWY2MGRlODgzYmY5MTY1OTFiOTE4NjU5ZDMzNjAyZjI0NDc5NTk3MWYxOGNlZjE0MDVhMTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFiZDJhNzA1YWVkYjMyMjc2M2UyMzhiMjRlYmJmYWEzYWFkZTIzMWI4MjU2YzNkODUwMThjMWVmN2I0N2JjYWQifQ"
+          "resource": "repo://apps/desktop/src/main/projectIpc.ts",
+          "version": "repo-file-v1:sha256:833a5f982eb2b4f572795e86aa6ad03dd45a570df6b8bcbb6e56026809fba856"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.9.0",
-    "at": "2026-11-20T12:30:09.424Z"
+    "at": "2026-11-24T13:18:19.740Z"
   }
 }
