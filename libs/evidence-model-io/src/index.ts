@@ -23,7 +23,6 @@ export {
 } from './adapters/modelRoot.js';
 
 export {
-  MODEL_DIRECTORY,
   isModelBundleFile,
   packModelDirectory,
   readModelBundle,
@@ -32,3 +31,12 @@ export {
   type UnpackResult,
   type WriteModelBundleResult,
 } from './adapters/modelFileAdapter.js';
+
+export {
+  MODEL_DIRECTORY,
+  workspacePaths,
+  checkWorkspacePath,
+  openWorkspace,
+  findWorkspace,
+  initializeWorkspace,
+} from './workspace.js';

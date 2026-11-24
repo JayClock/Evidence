@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { Dirent } from 'node:fs';
 import {
+  lstat,
   mkdir,
   readdir,
   readFile,
@@ -26,12 +27,27 @@ export interface WriteModelResult {
   removed: string[];
 }
 
+const entryAt = (file: string) =>
+  lstat(file).catch((error: NodeJS.ErrnoException) => {
+    if (error.code === 'ENOENT') return undefined;
+    throw error;
+  });
+
+const assertRegularFile = async (file: string) => {
+  const entry = await entryAt(file);
+  if (entry && !entry.isFile())
+    throw new Error(`MODEL_UNSAFE_PATH: ${file} is not a regular file`);
+};
+
 const readTree = async (
   root: string,
   relativeDirectory: string,
 ): Promise<ModelSourceFile[]> => {
   const absolute = path.join(root, relativeDirectory);
   let entries: Dirent[];
+  const directory = await entryAt(absolute);
+  if (directory && !directory.isDirectory())
+    throw new Error(`MODEL_UNSAFE_PATH: ${absolute} is not a directory`);
 
   try {
     entries = await readdir(absolute, { withFileTypes: true });
@@ -72,6 +88,7 @@ const readTree = async (
 export async function readModelDirectory(
   root: string,
 ): Promise<ModelSourceParseResult & { files: ModelSourceFile[] }> {
+  await assertRegularFile(path.join(root, MODEL_MANIFEST_PATH));
   const files: ModelSourceFile[] = [
     {
       path: MODEL_MANIFEST_PATH,
@@ -101,17 +118,19 @@ const writeAtomically = async (
 ): Promise<void> => {
   const temporary = `${absolute}.tmp-${randomUUID()}`;
 
-  await writeFile(temporary, content, 'utf8');
-  await rename(temporary, absolute);
+  await writeFile(temporary, content, { encoding: 'utf8', flag: 'wx' });
+  try {
+    await rename(temporary, absolute);
+  } finally {
+    await rm(temporary, { force: true });
+  }
 };
 
 const removeStaleFiles = async (
   root: string,
   desired: ReadonlySet<string>,
+  existing: readonly ModelSourceFile[],
 ): Promise<string[]> => {
-  const existing = (
-    await Promise.all(MODEL_SOURCE_TREES.map((tree) => readTree(root, tree)))
-  ).flat();
   const removed: string[] = [];
 
   for (const file of existing) {
@@ -145,6 +164,12 @@ export async function writeModelDirectory(
   const written: string[] = [];
   const unchanged: string[] = [];
 
+  // Preflight all managed trees and destinations before the first write.
+  const existing = (
+    await Promise.all(MODEL_SOURCE_TREES.map((tree) => readTree(root, tree)))
+  ).flat();
+  for (const file of files) await assertRegularFile(path.join(root, file.path));
+
   for (const file of files) {
     const absolute = path.join(root, file.path);
     const current = await readFile(absolute, 'utf8').catch(
@@ -167,7 +192,7 @@ export async function writeModelDirectory(
     written.push(file.path);
   }
 
-  const removed = await removeStaleFiles(root, desired);
+  const removed = await removeStaleFiles(root, desired, existing);
 
   return { written, unchanged, removed };
 }
