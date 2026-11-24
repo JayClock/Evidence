@@ -9,6 +9,7 @@
 export {
   readModelDirectory,
   writeModelDirectory,
+  ModelSourceChangedError,
   type WriteModelResult,
 } from './adapters/diskAdapter.js';
 

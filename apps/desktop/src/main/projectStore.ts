@@ -5,6 +5,7 @@ import path from 'node:path';
 import { serializeDomainModel } from '@evidence-poc/evidence-model-core';
 import {
   initializeWorkspace,
+  ModelSourceChangedError,
   modelDigestOf,
   openWorkspace,
   readModelDirectory,
@@ -143,6 +144,15 @@ export const createProjectStore = ({
     return { success: true, project, document };
   };
 
+  const fingerprint = async (rootPath: string): Promise<string | null> => {
+    try {
+      const parsed = await readModelDirectory(openWorkspace(rootPath).model);
+      return parsed.files.length ? modelDigestOf(parsed.files) : null;
+    } catch {
+      return null;
+    }
+  };
+
   return {
     async listRecent() {
       return readRecent(recentProjectsFile);
@@ -208,10 +218,25 @@ export const createProjectStore = ({
           (sourceDigest !== undefined &&
             sourceDigest !== modelDigestOf(current.files))
         )
-          throw new Error(
-            'WORKSPACE_CHANGED: 磁盘上的模型已变更，请先从磁盘重新加载。',
-          );
-        const result = await writeModelDirectory(model, document);
+          return {
+            success: false,
+            conflict: true,
+            error:
+              'WORKSPACE_CHANGED: 磁盘上的模型已变更，请先从磁盘重新加载。',
+          };
+        const result = await writeModelDirectory(model, document, {
+          expectedFiles: current.files,
+        });
+        const sourceDigestAfterWrite = modelDigestOf(
+          serializeDomainModel(document),
+        );
+        if ((await fingerprint(rootPath)) !== sourceDigestAfterWrite)
+          return {
+            success: false,
+            conflict: true,
+            error:
+              'WORKSPACE_CHANGED: 写入期间磁盘上的模型已变更，请检查文件后重新加载。',
+          };
 
         return {
           success: true,
@@ -219,23 +244,19 @@ export const createProjectStore = ({
           unchanged: result.unchanged,
           removed: result.removed,
           savedAt: now().toISOString(),
-          sourceDigest: modelDigestOf(serializeDomainModel(document)),
+          sourceDigest: sourceDigestAfterWrite,
         };
       } catch (error) {
-        return { success: false, error: toMessage(error) };
+        return {
+          success: false,
+          error: toMessage(error),
+          ...(error instanceof ModelSourceChangedError
+            ? { conflict: true }
+            : {}),
+        };
       }
     },
 
-    async fingerprint(rootPath) {
-      const parsed = await Promise.resolve()
-        .then(() => readModelDirectory(openWorkspace(rootPath).model))
-        .catch(() => null);
-
-      if (parsed === null || parsed.files.length === 0) {
-        return null;
-      }
-
-      return modelDigestOf(parsed.files);
-    },
+    fingerprint,
   };
 };

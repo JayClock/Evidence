@@ -115,21 +115,41 @@ export async function readModelDirectory(
 const writeAtomically = async (
   absolute: string,
   content: string,
+  beforeRename?: () => Promise<void>,
 ): Promise<void> => {
   const temporary = `${absolute}.tmp-${randomUUID()}`;
 
-  await writeFile(temporary, content, { encoding: 'utf8', flag: 'wx' });
   try {
+    await writeFile(temporary, content, { encoding: 'utf8', flag: 'wx' });
+    await beforeRename?.();
     await rename(temporary, absolute);
   } finally {
     await rm(temporary, { force: true });
   }
 };
 
+const readIfPresent = (absolute: string) =>
+  readFile(absolute, 'utf8').catch((error: NodeJS.ErrnoException) => {
+    if (error.code !== 'ENOENT') throw error;
+    return undefined;
+  });
+
+export class ModelSourceChangedError extends Error {}
+
+const assertExpected = (
+  relative: string,
+  found: string | undefined,
+  expected?: ReadonlyMap<string, string>,
+) => {
+  if (expected && found !== expected.get(relative))
+    throw new ModelSourceChangedError(`模型文件已被外部修改：${relative}`);
+};
+
 const removeStaleFiles = async (
   root: string,
   desired: ReadonlySet<string>,
   existing: readonly ModelSourceFile[],
+  expected?: ReadonlyMap<string, string>,
 ): Promise<string[]> => {
   const removed: string[] = [];
 
@@ -138,7 +158,10 @@ const removeStaleFiles = async (
       continue;
     }
 
-    await rm(path.join(root, file.path));
+    const absolute = path.join(root, file.path);
+    await assertRegularFile(absolute);
+    assertExpected(file.path, await readIfPresent(absolute), expected);
+    await rm(absolute);
     removed.push(file.path);
   }
 
@@ -157,7 +180,10 @@ const removeStaleFiles = async (
 export async function writeModelDirectory(
   root: string,
   document: DomainModelDocument,
-  options: { sortKeys?: boolean } = {},
+  options: {
+    sortKeys?: boolean;
+    expectedFiles?: readonly ModelSourceFile[];
+  } = {},
 ): Promise<WriteModelResult> {
   const files = serializeDomainModel(document, options);
   const desired = new Set(files.map((file) => file.path));
@@ -169,18 +195,17 @@ export async function writeModelDirectory(
     await Promise.all(MODEL_SOURCE_TREES.map((tree) => readTree(root, tree)))
   ).flat();
   for (const file of files) await assertRegularFile(path.join(root, file.path));
+  const expected =
+    options.expectedFiles &&
+    new Map(options.expectedFiles.map(({ path, content }) => [path, content]));
+  for (const file of existing)
+    assertExpected(file.path, file.content, expected);
 
   for (const file of files) {
     const absolute = path.join(root, file.path);
-    const current = await readFile(absolute, 'utf8').catch(
-      (error: NodeJS.ErrnoException) => {
-        if (error.code === 'ENOENT') {
-          return undefined;
-        }
-
-        throw error;
-      },
-    );
+    await assertRegularFile(absolute);
+    const current = await readIfPresent(absolute);
+    assertExpected(file.path, current, expected);
 
     if (current === file.content) {
       unchanged.push(file.path);
@@ -188,11 +213,19 @@ export async function writeModelDirectory(
     }
 
     await mkdir(path.dirname(absolute), { recursive: true });
-    await writeAtomically(absolute, file.content);
+    await writeAtomically(
+      absolute,
+      file.content,
+      expected &&
+        (async () => {
+          await assertRegularFile(absolute);
+          assertExpected(file.path, await readIfPresent(absolute), expected);
+        }),
+    );
     written.push(file.path);
   }
 
-  const removed = await removeStaleFiles(root, desired, existing);
+  const removed = await removeStaleFiles(root, desired, existing, expected);
 
   return { written, unchanged, removed };
 }

@@ -27,8 +27,28 @@ export type OpenProjectResult =
       document: DomainModelDocument;
       issues: readonly ProjectSourceIssue[];
       sourceDigest?: string;
+      persistenceId?: string;
     }
   | { success: false; error: string };
+
+export interface LivePersistenceInput {
+  persistenceId: string;
+  revision: number;
+  document: DomainModelDocument;
+}
+
+export type PersistenceResult =
+  | { success: true }
+  | { success: false; error: string };
+
+export type PersistenceState =
+  | { kind: 'queued' | 'writing' | 'persisted' }
+  | { kind: 'conflict' | 'failed'; error: string };
+
+export type PersistenceStatus = PersistenceState & {
+  persistenceId: string;
+  revision: number;
+};
 
 export type SaveProjectResult =
   | {
@@ -39,7 +59,7 @@ export type SaveProjectResult =
       savedAt: string;
       sourceDigest?: string;
     }
-  | { success: false; error: string };
+  | { success: false; error: string; conflict?: true };
 
 export type RecentProjectsResult =
   | { success: true; projects: readonly EvidenceProjectSummary[] }
