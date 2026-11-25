@@ -13,6 +13,8 @@ import {
 import {
   STORY_IPC_CHANNELS,
   type StorySnapshot,
+  type StoryEnrichStepInput,
+  type StoryEnrichStepResult,
 } from '@evidence-poc/desktop-contracts/story';
 import { registerStoryIpc, type StoryIpcOptions } from './storyIpc';
 
@@ -47,6 +49,31 @@ const invoke = <T = unknown>(
   input: unknown,
   window = sender(),
 ) => electron.handlers.get(channel)!({ sender: window }, input) as Promise<T>;
+const draft = { headline: '核对付款', prose: '根据采购协议核对付款。' };
+const request = (
+  snapshot: StorySnapshot,
+  index = 0,
+  rootPath = '/models/p',
+): StoryEnrichStepInput => {
+  const { stepIndex, stepHash } = snapshot.selected!.projection.scenes[index]!;
+  return {
+    rootPath,
+    snapshotId: snapshot.snapshotId,
+    stepIndex,
+    stepHash,
+    requestId: crypto.randomUUID(),
+    storyHistory: [],
+  };
+};
+const enrich = (
+  input: StoryEnrichStepInput,
+  window: ReturnType<typeof sender>,
+) =>
+  invoke<StoryEnrichStepResult | null>(
+    STORY_IPC_CHANNELS.ENRICH_STEP,
+    input,
+    window,
+  );
 const register = (options: StoryIpcOptions = {}) =>
   registerStoryIpc({ readModel: async () => model(), ...options });
 
@@ -90,14 +117,17 @@ describe('story IPC', () => {
       first.selected?.flow.traceDigest,
     );
     expect(
-      second.selected?.projection.scenes.flatMap(
-        (scene) => scene.documentCard.fields,
-      ),
+      second.selected?.projection.scenes.flatMap(({ documentCard }) => [
+        ...documentCard.keyAttributes,
+        ...documentCard.generalAttributes,
+      ]),
     ).toContainEqual(
       expect.objectContaining({ name: 'quantity', value: '12' }),
     );
     expect(
-      second.selected?.projection.scenes.some((scene) => scene.pendingSuspense),
+      second.selected?.projection.scenes.some(
+        (scene) => scene.expectation?.isControlGap,
+      ),
     ).toBe(true);
     expect(readModel).not.toHaveBeenCalled();
     expect(getModelOptions).not.toHaveBeenCalled();
@@ -122,128 +152,136 @@ describe('story IPC', () => {
     }
   });
 
-  it('streams narration only after an explicit start and releases handlers on disposal', async () => {
-    const generate = vi.fn(async () => ({
-      narrative: '根据采购协议核对付款。',
-    }));
+  it('enriches exactly the requested step with its verified history', async () => {
+    const generate = vi.fn(async (_request: { userPrompt: string }) => draft);
     const ipc = register({ createAgent: () => ({ generate }) });
     const window = sender();
+    const document = model();
+    document.entities.find(
+      ({ id }) => id === 'contract.agreement',
+    )!.examples![0]!.description = '新合同账期为五天。';
     const baseline = await invoke<StorySnapshot>(
       STORY_IPC_CHANNELS.LOAD,
-      { rootPath: '/models/p' },
+      { rootPath: '/models/p', document },
       window,
     );
     expect(generate).not.toHaveBeenCalled();
-    const job = { snapshotId: baseline.snapshotId, jobId: 'job' };
-    await invoke(STORY_IPC_CHANNELS.START_NARRATION, job, window);
-    await vi.waitFor(() =>
-      expect(window.send).toHaveBeenCalledWith(STORY_IPC_CHANNELS.NARRATION, {
-        ...job,
-        kind: 'finished',
-      }),
-    );
-    expect(window.send).toHaveBeenCalledWith(STORY_IPC_CHANNELS.NARRATION, {
-      ...job,
-      kind: 'step',
-      sequence: 1,
-      stepHash: baseline.selected!.flow.steps[0]!.stepHash,
-      narrative: '根据采购协议核对付款。',
+    const input = request(baseline, 2);
+    await expect(
+      enrich(
+        {
+          ...input,
+          storyHistory: [
+            {
+              stepIndex: input.stepIndex,
+              headline: '错误',
+              summary: '不是前情',
+            },
+          ],
+        },
+        window,
+      ),
+    ).rejects.toThrow('前情');
+    await expect(
+      enrich({ ...input, rootPath: '/other/project' }, window),
+    ).rejects.toThrow('快照已过期');
+    await expect(
+      enrich({ ...input, stepHash: 'wrong' }, window),
+    ).rejects.toThrow('步骤已变化');
+    await expect(enrich(input, sender())).rejects.toThrow('快照已过期');
+    await expect(enrich(request(baseline), window)).resolves.toBeNull();
+    await expect(
+      enrich(
+        {
+          ...input,
+          storyHistory: [
+            { stepIndex: 1, headline: '旧合同', summary: '原账期' },
+            { stepIndex: 2, headline: '付款申请', summary: '前序草稿' },
+          ],
+        },
+        window,
+      ),
+    ).resolves.toEqual({
+      stepIndex: input.stepIndex,
+      stepHash: input.stepHash,
+      narrative: draft,
+      cached: false,
     });
+    expect(generate).toHaveBeenCalledOnce();
+    expect(JSON.parse(generate.mock.calls[0]![0].userPrompt)).toMatchObject({
+      storyHistory: [
+        { stepIndex: 1, summary: '新合同账期为五天。' },
+        { stepIndex: 2, summary: '前序草稿' },
+      ],
+      currentActivity: { stepIndex: input.stepIndex },
+    });
+    expect(window.send).not.toHaveBeenCalled();
     ipc.dispose();
     expect(electron.handlers.size).toBe(0);
   });
 
-  it('reads cached drafts after restarting, without a provider, and regenerates only changed steps', async () => {
-    const directory = await mkdtemp(
-      path.join(os.tmpdir(), 'story-ipc-drafts-'),
-    );
-    const rootPath = directory;
+  it('reads causally keyed cached drafts after restarting without a provider', async () => {
+    const rootPath = await mkdtemp(path.join(os.tmpdir(), 'story-ipc-drafts-'));
     const document = model();
+    const contract = document.entities.find(
+      ({ id }) => id === 'contract.agreement',
+    )!.examples![0]!;
+    contract.description = '旧的账期。';
     await initializeWorkspace(rootPath, document);
-    const generate = vi.fn(async () => ({ narrative: '按示例核对采购单据。' }));
+    const generate = vi.fn(async () => draft);
     const getModelOptions = vi.fn(async () => ({}));
-    const load = (window: ReturnType<typeof sender>, model = document) =>
+    const load = (window: ReturnType<typeof sender>) =>
       invoke<StorySnapshot>(
         STORY_IPC_CHANNELS.LOAD,
-        { rootPath, document: model },
+        { rootPath, document },
         window,
       );
-    const narrate = async (
-      window: ReturnType<typeof sender>,
-      snapshotId: string,
-      cacheOnly = false,
-    ) => {
-      window.send.mockClear();
-      const job = { snapshotId, jobId: 'drafts' };
-      await invoke(
-        STORY_IPC_CHANNELS.START_NARRATION,
-        { ...job, ...(cacheOnly ? { cacheOnly: true } : {}) },
-        window,
-      );
-      await vi.waitFor(() =>
-        expect(window.send).toHaveBeenCalledWith(STORY_IPC_CHANNELS.NARRATION, {
-          ...job,
-          kind: 'finished',
-        }),
-      );
-      return window.send.mock.calls
-        .map(([, event]) => event)
-        .filter((event) => event.kind === 'step');
-    };
-    let ipc = register({
-      getModelOptions,
-      createAgent: () => ({ generate }),
-    });
+    let ipc = register({ getModelOptions, createAgent: () => ({ generate }) });
     try {
       const before = sender();
       const initial = await load(before);
-      const count = initial.selected!.flow.steps.length;
-      expect(await narrate(before, initial.snapshotId)).toHaveLength(count);
-      expect(generate).toHaveBeenCalledTimes(count);
+      const first = request(initial, 1, rootPath);
+      await expect(enrich(first, before)).resolves.toMatchObject({
+        cached: false,
+      });
       await vi.waitFor(async () =>
-        expect(
-          (await readdir(workspacePaths(rootPath).cache)).filter((file) =>
-            file.endsWith('.json'),
-          ),
-        ).toHaveLength(1),
+        expect(await readdir(workspacePaths(rootPath).cache)).toContain(
+          'narration.json',
+        ),
       );
       ipc.dispose();
       generate.mockClear();
       getModelOptions.mockClear();
-      ipc = register({
-        getModelOptions,
-        createAgent: () => ({ generate }),
-      });
+      ipc = register({ getModelOptions, createAgent: () => ({ generate }) });
       const after = sender();
       const restored = await load(after);
-      const cached = await narrate(after, restored.snapshotId, true);
-      expect(cached).toHaveLength(count);
-      expect(cached.every((event) => event.cached === true)).toBe(true);
+      await expect(
+        enrich({ ...request(restored, 1, rootPath), cacheOnly: true }, after),
+      ).resolves.toMatchObject({ cached: true });
+      contract.description = '新的账期。';
+      const changed = request(await load(after), 1, rootPath);
+      expect(changed.stepHash).toBe(first.stepHash);
+      await expect(
+        enrich({ ...changed, cacheOnly: true }, after),
+      ).resolves.toBeNull();
       expect(getModelOptions).not.toHaveBeenCalled();
       expect(generate).not.toHaveBeenCalled();
-      const example = document.entities.find(
-        ({ id }) => id === 'request.payment',
-      )!.examples![0]!;
-      example.value.quantity = 12;
-      const changed = await load(after);
-      expect(await narrate(after, changed.snapshotId, true)).toHaveLength(
-        count - 1,
-      );
-      expect(getModelOptions).not.toHaveBeenCalled();
-      expect(await narrate(after, changed.snapshotId)).toHaveLength(count);
+      await expect(enrich(changed, after)).resolves.toMatchObject({
+        cached: false,
+      });
       expect(generate).toHaveBeenCalledOnce();
-      const anotherWindow = sender();
-      const freshSnapshot = await load(anotherWindow);
-      expect(
-        await narrate(anotherWindow, freshSnapshot.snapshotId, true),
-      ).toHaveLength(count);
+      await vi.waitFor(async () =>
+        expect(await readdir(workspacePaths(rootPath).cache)).toEqual([
+          'narration.json',
+        ]),
+      );
     } finally {
       ipc.dispose();
-      await rm(directory, { recursive: true, force: true });
+      await rm(rootPath, { recursive: true, force: true });
     }
   });
 
-  it('rejects late snapshots and isolates jobs by sender and snapshot', async () => {
+  it('rejects late load responses and outdated snapshots', async () => {
     let readOld!: (value: ReturnType<typeof model>) => void;
     const ipc = register({
       readModel: () =>
@@ -252,29 +290,23 @@ describe('story IPC', () => {
         }),
     });
     const window = sender();
-    const obsolete = invoke(
-      STORY_IPC_CHANNELS.LOAD,
-      { rootPath: '/models/p' },
-      window,
-    );
+    const rootPath = '/models/p';
+    const obsolete = invoke(STORY_IPC_CHANNELS.LOAD, { rootPath }, window);
     const expected = expect(obsolete).rejects.toThrow('快照已过期');
     const active = await invoke<StorySnapshot>(
       STORY_IPC_CHANNELS.LOAD,
-      { rootPath: '/models/p', document: model() },
+      { rootPath, document: model() },
       window,
     );
     readOld(model());
     await expected;
     await expect(
-      invoke(STORY_IPC_CHANNELS.START_NARRATION, {
-        snapshotId: active.snapshotId,
-        jobId: 'foreign-window',
-      }),
+      enrich({ ...request(active), snapshotId: 'stale' }, window),
     ).rejects.toThrow('快照已过期');
     ipc.dispose();
   });
 
-  it('aborts pending narration on reset, replacement and window destruction without sending stale prose', async () => {
+  it('cancels only the active request and drops late results after reset, load, or destruction', async () => {
     const started: { signal: AbortSignal; finish: (value: unknown) => void }[] =
       [];
     const createAgent = vi.fn(() => ({
@@ -285,65 +317,41 @@ describe('story IPC', () => {
     }));
     const ipc = register({ createAgent });
     const window = sender();
-    const input = { rootPath: '/models/p' };
-    const { snapshotId } = await invoke<StorySnapshot>(
-      STORY_IPC_CHANNELS.LOAD,
-      input,
-      window,
-    );
-    const start = (id: string, snapshot = snapshotId) =>
-      invoke(
-        STORY_IPC_CHANNELS.START_NARRATION,
-        { snapshotId: snapshot, jobId: id },
-        window,
-      );
-    await start('old-model');
+    const rootPath = '/models/p';
+    const load = () =>
+      invoke<StorySnapshot>(STORY_IPC_CHANNELS.LOAD, { rootPath }, window);
+    const snapshot = await load();
+    const first = request(snapshot);
+    const a = enrich(first, window);
+    await vi.waitFor(() => expect(started).toHaveLength(1));
+    const second = request(snapshot, 1);
+    const b = enrich(second, window);
+    await expect(a).resolves.toBeNull();
+    expect(started[0]?.signal.aborted).toBe(true);
+    await vi.waitFor(() => expect(started).toHaveLength(2));
+    await invoke(STORY_IPC_CHANNELS.CANCEL_STEP, first, window);
+    expect(started[1]?.signal.aborted).toBe(false);
+    await invoke(STORY_IPC_CHANNELS.CANCEL_STEP, second, window);
+    await expect(b).resolves.toBeNull();
+    const c = enrich(request(snapshot), window);
     await vi.waitFor(() => expect(started).toHaveLength(3));
     ipc.resetModels();
-    expect(started.slice(0, 3).every(({ signal }) => signal.aborted)).toBe(
-      true,
-    );
+    await expect(c).resolves.toBeNull();
     expect(window.send).toHaveBeenCalledWith(STORY_IPC_CHANNELS.INVALIDATED, {
-      ...input,
+      rootPath,
       kind: 'narration',
     });
-    // A configuration change doesn't invalidate the currently playable snapshot.
-    await start('configured');
-    expect(started).toHaveLength(3);
-    started
-      .slice(0, 3)
-      .forEach(({ finish }) => finish({ narrative: '过时结果' }));
-    await vi.waitFor(() => expect(started).toHaveLength(6));
-    expect(createAgent).toHaveBeenCalledTimes(2);
-    const next = await invoke<StorySnapshot>(
-      STORY_IPC_CHANNELS.LOAD,
-      input,
-      window,
-    );
-    expect(started.slice(3, 6).every(({ signal }) => signal.aborted)).toBe(
-      true,
-    );
-    await expect(start('stale')).rejects.toThrow('快照已过期');
-    await start('next', next.snapshotId);
-    started
-      .slice(3, 6)
-      .forEach(({ finish }) => finish({ narrative: '过时结果' }));
-    await vi.waitFor(() => expect(started).toHaveLength(9));
-    await invoke(
-      STORY_IPC_CHANNELS.CANCEL_NARRATION,
-      { snapshotId, jobId: 'next' },
-      window,
-    );
-    expect(started.slice(6).every(({ signal }) => !signal.aborted)).toBe(true);
+    const d = enrich(request(snapshot), window);
+    await vi.waitFor(() => expect(started).toHaveLength(4));
+    const next = await load();
+    await expect(d).resolves.toBeNull();
+    const e = enrich(request(next), window);
+    await vi.waitFor(() => expect(started).toHaveLength(5));
     window.once.mock.calls[0]![1]();
+    await expect(e).resolves.toBeNull();
     expect(started.every(({ signal }) => signal.aborted)).toBe(true);
-    started.slice(6).forEach(({ finish }) => finish({ narrative: '过时结果' }));
-    await Promise.resolve();
-    expect(
-      window.send.mock.calls.every(
-        ([channel]) => channel !== STORY_IPC_CHANNELS.NARRATION,
-      ),
-    ).toBe(true);
+    started.forEach(({ finish }) => finish(draft));
+    expect(createAgent).toHaveBeenCalledTimes(2);
     ipc.dispose();
   });
 
@@ -392,11 +400,8 @@ describe('story IPC', () => {
       invoke(STORY_IPC_CHANNELS.LOAD, { rootPath: 'relative' }),
     ).rejects.toThrow('路径');
     await expect(
-      invoke(STORY_IPC_CHANNELS.START_NARRATION, {
-        snapshotId: 'missing',
-        jobId: 'job',
-      }),
-    ).rejects.toThrow('快照已过期');
+      invoke(STORY_IPC_CHANNELS.ENRICH_STEP, { stepIndex: 0 }),
+    ).rejects.toThrow('无效的业务故事步骤请求');
     await expect(
       invoke(STORY_IPC_CHANNELS.WHAT_IF, { question: ' ' }),
     ).rejects.toThrow('假设问题');

@@ -3,18 +3,19 @@ import { randomUUID } from 'node:crypto';
 
 import { ipcMain, type WebContents } from 'electron';
 import {
-  createNarrationScheduler,
   createStoryAgent,
   createStoryNarrator,
   projectStoryFacts,
   simulateWhatIf,
+  storyHistoryItem,
+  type BusinessStoryProjection,
   type StoryAgent,
+  type StoryStepHistoryItem,
   type EvidenceModelOptions,
 } from '@evidence-poc/evidence-agent';
 import {
   buildFmCheckReport,
   collectFlowScenarios,
-  type FlowScenarioTrace,
 } from '@evidence-poc/evidence-model-core';
 import {
   openWorkspace,
@@ -29,9 +30,9 @@ import {
   STORY_IPC_CHANNELS,
   type StoryModelInput,
   type StoryLoadInput,
-  type StoryNarrationEvent,
-  type StoryNarrationInput,
-  type StoryNarrationJob,
+  type StoryEnrichStepInput,
+  type StoryEnrichStepResult,
+  type StoryStepRequest,
   type StorySnapshot,
   type StoryWhatIfInput,
 } from '@evidence-poc/desktop-contracts/story';
@@ -58,14 +59,55 @@ const readSavedModel = async (
 type WindowStory = {
   rootPath: string;
   loadId?: string;
-  selected?: { model: DomainModelDocument; flow: FlowScenarioTrace };
+  selected?: BusinessStoryProjection;
   narrator?: ReturnType<typeof createStoryNarrator>;
-  job?: { id: string; controller: AbortController };
+  pending?: { identity: StoryStepRequest; controller: AbortController };
 };
 
-const NARRATION_TIMEOUT_MS = 60_000;
 const validId = (value: unknown): value is string =>
   typeof value === 'string' && value.length > 0 && value.length <= 128;
+
+const historyFor = (
+  input: StoryEnrichStepInput,
+  projection: BusinessStoryProjection,
+): StoryStepHistoryItem[] => {
+  const prior = projection.scenes.filter(
+    ({ stepIndex }) => stepIndex < input.stepIndex,
+  );
+  if (
+    !Array.isArray(input.storyHistory) ||
+    input.storyHistory.length > prior.length
+  )
+    throw new Error('无效的业务故事前情。');
+  const byIndex = new Map(prior.map((scene) => [scene.stepIndex, scene]));
+  const ready = new Map<number, StoryStepHistoryItem>();
+  let previous = 0;
+  for (const item of input.storyHistory) {
+    const scene = byIndex.get(item?.stepIndex);
+    if (!scene || scene.stepIndex <= previous)
+      throw new Error('无效的业务故事前情。');
+    previous = scene.stepIndex;
+    // Explanations always come from the current model revision, never from an old draft.
+    if (scene.narrative.status === 'authored') continue;
+    if (
+      typeof item.headline !== 'string' ||
+      !item.headline.trim() ||
+      item.headline.length > 180 ||
+      typeof item.summary !== 'string' ||
+      !item.summary.trim() ||
+      item.summary.length > 600
+    )
+      throw new Error('无效的业务故事前情。');
+    ready.set(item.stepIndex, {
+      stepIndex: item.stepIndex,
+      headline: item.headline,
+      summary: item.summary,
+    });
+  }
+  return prior.flatMap(
+    (scene) => storyHistoryItem(scene) ?? ready.get(scene.stepIndex) ?? [],
+  );
+};
 
 export const registerStoryIpc = ({
   readModel = readSavedModel,
@@ -75,18 +117,16 @@ export const registerStoryIpc = ({
   ownsProject = () => true,
 }: StoryIpcOptions = {}) => {
   const windows = new Map<WebContents, WindowStory>();
-  const schedule = createNarrationScheduler();
   const storeFor = createStoryNarrationCache();
   const stop = (state: WindowStory) => {
-    const job = state.job;
-    delete state.job;
-    job?.controller.abort();
+    const pending = state.pending;
+    delete state.pending;
+    pending?.controller.abort();
   };
 
   const newNarrator = (rootPath: string) => {
     let agent: Promise<StoryAgent> | undefined;
     return createStoryNarrator({
-      schedule,
       store: storeFor(rootPath),
       agent: {
         async generate(request) {
@@ -172,99 +212,86 @@ export const registerStoryIpc = ({
         flows[0];
       if (!flow) return { snapshotId, flows };
       const projection = projectStoryFacts(flow, model);
-      state.selected = { model, flow };
+      state.selected = projection;
       return { snapshotId, flows, selected: { flow, projection } };
     },
   );
 
   ipcMain.handle(
-    STORY_IPC_CHANNELS.START_NARRATION,
-    async ({ sender }, input: StoryNarrationInput) => {
+    STORY_IPC_CHANNELS.ENRICH_STEP,
+    async (
+      { sender },
+      input: StoryEnrichStepInput,
+    ): Promise<StoryEnrichStepResult | null> => {
       if (
-        !validId(input?.snapshotId) ||
-        !validId(input.jobId) ||
-        (input.cacheOnly !== undefined && input.cacheOnly !== true) ||
-        (input.prioritySequence !== undefined &&
-          (!Number.isSafeInteger(input.prioritySequence) ||
-            input.prioritySequence < 1))
+        typeof input?.rootPath !== 'string' ||
+        !path.isAbsolute(input.rootPath) ||
+        !validId(input.snapshotId) ||
+        !validId(input.requestId) ||
+        !validId(input.stepHash) ||
+        !Number.isSafeInteger(input.stepIndex) ||
+        input.stepIndex < 1 ||
+        (input.cacheOnly !== undefined && typeof input.cacheOnly !== 'boolean')
       )
-        throw new Error('无效的 AI 旁白任务。');
+        throw new Error('无效的业务故事步骤请求。');
       const state = windows.get(sender);
       if (
         !state?.selected ||
         state.loadId !== input.snapshotId ||
-        sender.isDestroyed()
+        state.rootPath !== input.rootPath ||
+        sender.isDestroyed() ||
+        !ownsProject(sender, input.rootPath)
       )
         throw new Error('业务流快照已过期。');
-      if (state.job?.id === input.jobId) return;
+      const scene = state.selected.scenes.find(
+        ({ stepIndex }) => stepIndex === input.stepIndex,
+      );
+      if (!scene || scene.stepHash !== input.stepHash)
+        throw new Error('业务步骤已变化，请刷新放映后重试。');
+      const history = historyFor(input, state.selected);
+      if (scene.narrative.status === 'authored') return null;
+      if (state.pending?.identity.requestId === input.requestId)
+        throw new Error('业务故事步骤已在生成中。');
       stop(state);
-      const job = { id: input.jobId, controller: new AbortController() };
-      state.job = job;
-      const narrator = (state.narrator ??= newNarrator(state.rootPath));
-      const { model, flow } = state.selected;
-      const identity = { snapshotId: input.snapshotId, jobId: job.id };
-      const send = (event: StoryNarrationEvent) => {
-        if (
-          windows.get(sender) === state &&
-          state.job === job &&
-          !sender.isDestroyed()
-        ) {
-          try {
-            sender.send(STORY_IPC_CHANNELS.NARRATION, event);
-          } catch {
-            // Closing/reloading the frame can race with delivery.
-            stop(state);
-          }
-        }
+      const { rootPath, snapshotId, requestId, stepIndex, stepHash } = input;
+      const pending = {
+        identity: { rootPath, snapshotId, requestId, stepIndex, stepHash },
+        controller: new AbortController(),
       };
-      const deadline = AbortSignal.timeout(NARRATION_TIMEOUT_MS);
-      const signal = AbortSignal.any([deadline, job.controller.signal]);
-      void (async () => {
-        try {
-          await narrator.enrich(flow, model, {
-            signal,
-            cacheOnly: input.cacheOnly === true,
-            ...(input.prioritySequence === undefined
-              ? {}
-              : { prioritySequence: input.prioritySequence }),
-            onStep: (result) =>
-              send({
-                ...identity,
-                kind: 'step',
-                sequence: result.sequence,
-                stepHash: result.stepHash,
-                ...(result.kind === 'ready'
-                  ? {
-                      narrative: result.narrative,
-                      ...(result.source === 'cache'
-                        ? { cached: true as const }
-                        : {}),
-                    }
-                  : {}),
-              }),
-          });
-          send({
-            ...identity,
-            kind: 'finished',
-            ...(deadline.aborted ? { reason: 'timeout' as const } : {}),
-          });
-        } catch {
-          send({ ...identity, kind: 'finished', reason: 'unavailable' });
-        } finally {
-          if (state.job === job) stop(state);
-        }
-      })();
+      state.pending = pending;
+      const signal = pending.controller.signal;
+      try {
+        const narrator = (state.narrator ??= newNarrator(state.rootPath));
+        const result = await narrator.enrichStep(scene, history, {
+          signal,
+          cacheOnly: input.cacheOnly === true,
+        });
+        return result && !signal.aborted
+          ? { stepIndex, stepHash, ...result }
+          : null;
+      } catch (error) {
+        if (signal.aborted) return null;
+        throw error;
+      } finally {
+        if (state.pending === pending) delete state.pending;
+      }
     },
   );
 
   ipcMain.handle(
-    STORY_IPC_CHANNELS.CANCEL_NARRATION,
-    async ({ sender }, input: StoryNarrationJob) => {
+    STORY_IPC_CHANNELS.CANCEL_STEP,
+    async ({ sender }, input: StoryStepRequest) => {
       const state = windows.get(sender);
+      const active = state?.pending?.identity;
       if (
-        state?.job &&
-        state.loadId === input?.snapshotId &&
-        state.job.id === input?.jobId
+        state &&
+        active &&
+        input &&
+        active.rootPath === input.rootPath &&
+        active.snapshotId === input.snapshotId &&
+        active.requestId === input.requestId &&
+        active.stepIndex === input.stepIndex &&
+        active.stepHash === input.stepHash
       )
         stop(state);
     },
@@ -329,8 +356,8 @@ export const registerStoryIpc = ({
       windows.clear();
       for (const channel of [
         STORY_IPC_CHANNELS.LOAD,
-        STORY_IPC_CHANNELS.START_NARRATION,
-        STORY_IPC_CHANNELS.CANCEL_NARRATION,
+        STORY_IPC_CHANNELS.ENRICH_STEP,
+        STORY_IPC_CHANNELS.CANCEL_STEP,
         STORY_IPC_CHANNELS.WHAT_IF,
       ])
         ipcMain.removeHandler(channel);

@@ -6,20 +6,21 @@ import {
   openWorkspace,
   workspacePaths,
 } from '@evidence-poc/evidence-model-io';
-import type { StoryNarrationStore } from '@evidence-poc/evidence-agent';
+import {
+  NarrationSchema,
+  type StoryNarrationStore,
+  type StoryNarrativeText,
+} from '@evidence-poc/evidence-agent';
 
-const VERSION = 1;
+const VERSION = 2;
 const ENTRY_LIMIT = 256;
 const BYTE_LIMIT = 1024 * 1024;
 const validKey = (key: string) => /^[a-f0-9]{64}$/u.test(key);
-const validNarrative = (value: unknown): value is string =>
-  typeof value === 'string' && value.trim().length > 0 && value.length <= 600;
-
 const readEntries = async (
   file: string,
   signal?: AbortSignal,
-): Promise<Map<string, string>> => {
-  const entries = new Map<string, string>();
+): Promise<Map<string, StoryNarrativeText>> => {
+  const entries = new Map<string, StoryNarrativeText>();
   try {
     signal?.throwIfAborted();
     const handle = await open(file, 'r');
@@ -44,10 +45,11 @@ const readEntries = async (
           Array.isArray(item) &&
           item.length === 2 &&
           typeof item[0] === 'string' &&
-          validKey(item[0]) &&
-          validNarrative(item[1])
-        )
-          entries.set(item[0], item[1].trim());
+          validKey(item[0])
+        ) {
+          const parsed = NarrationSchema.safeParse(item[1]);
+          if (parsed.success) entries.set(item[0], parsed.data);
+        }
       }
     } finally {
       await handle.close();
@@ -83,9 +85,10 @@ export const createStoryNarrationCache = () => {
           check();
           const merged = await readEntries(file);
           for (const [key, narrative] of generated) {
-            if (!validKey(key) || !validNarrative(narrative)) continue;
+            const parsed = NarrationSchema.safeParse(narrative);
+            if (!validKey(key) || !parsed.success) continue;
             merged.delete(key);
-            merged.set(key, narrative);
+            merged.set(key, parsed.data);
           }
           const entries = [...merged].slice(-ENTRY_LIMIT);
           await mkdir(directory, { recursive: true, mode: 0o700 });

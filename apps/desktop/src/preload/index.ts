@@ -91,19 +91,10 @@ const api: EvidenceDesktopApi = {
   },
   story: {
     load: (input) => ipcRenderer.invoke(STORY_IPC_CHANNELS.LOAD, input),
-    startNarration: (input) =>
-      ipcRenderer.invoke(STORY_IPC_CHANNELS.START_NARRATION, input),
-    cancelNarration: (input) =>
-      ipcRenderer.invoke(STORY_IPC_CHANNELS.CANCEL_NARRATION, input),
-    onNarration: (listener) => {
-      const handler = (
-        _event: Electron.IpcRendererEvent,
-        payload: Parameters<typeof listener>[0],
-      ) => listener(payload);
-      ipcRenderer.on(STORY_IPC_CHANNELS.NARRATION, handler);
-      return () =>
-        ipcRenderer.removeListener(STORY_IPC_CHANNELS.NARRATION, handler);
-    },
+    enrichStep: (input) =>
+      ipcRenderer.invoke(STORY_IPC_CHANNELS.ENRICH_STEP, input),
+    cancelStep: (input) =>
+      ipcRenderer.invoke(STORY_IPC_CHANNELS.CANCEL_STEP, input),
     whatIf: (input) => ipcRenderer.invoke(STORY_IPC_CHANNELS.WHAT_IF, input),
     onInvalidated: (listener) => {
       const handler = (

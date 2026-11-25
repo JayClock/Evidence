@@ -2,14 +2,15 @@ import type { FlowScenarioTrace } from '@evidence-poc/evidence-model-core';
 import type { DomainModelDocument } from '@evidence-poc/evidence-schema';
 import type {
   BusinessStoryProjection,
+  StoryNarrativeText,
+  StoryStepHistoryItem,
   WhatIfResult,
 } from '@evidence-poc/evidence-agent';
 
 export const STORY_IPC_CHANNELS = {
   LOAD: 'evidence:story:load',
-  START_NARRATION: 'evidence:story:start-narration',
-  CANCEL_NARRATION: 'evidence:story:cancel-narration',
-  NARRATION: 'evidence:story:narration',
+  ENRICH_STEP: 'evidence:story:enrich-step',
+  CANCEL_STEP: 'evidence:story:cancel-step',
   WHAT_IF: 'evidence:story:what-if',
   INVALIDATED: 'evidence:story:invalidated',
 } as const;
@@ -35,28 +36,27 @@ export interface StorySnapshot {
   readonly selected?: StoryProjectResult;
 }
 
-export interface StoryNarrationJob {
+export interface StoryStepRequest {
+  readonly rootPath: string;
   readonly snapshotId: string;
-  readonly jobId: string;
+  /** Attempts at the same step have different IDs so a late cancel cannot stop a retry. */
+  readonly requestId: string;
+  readonly stepIndex: number;
+  readonly stepHash: string;
 }
 
-export interface StoryNarrationInput extends StoryNarrationJob {
-  readonly prioritySequence?: number;
-  /** Read existing candidates without resolving credentials or generating a draft. */
-  readonly cacheOnly?: true;
+export interface StoryEnrichStepInput extends StoryStepRequest {
+  readonly storyHistory: readonly StoryStepHistoryItem[];
+  /** Read an existing draft without resolving credentials or generating prose. */
+  readonly cacheOnly?: boolean;
 }
 
-export type StoryNarrationEvent = StoryNarrationJob &
-  (
-    | {
-        readonly kind: 'step';
-        readonly sequence: number;
-        readonly stepHash: string;
-        readonly narrative?: string;
-        readonly cached?: true;
-      }
-    | { readonly kind: 'finished'; readonly reason?: 'timeout' | 'unavailable' }
-  );
+export interface StoryEnrichStepResult {
+  readonly stepIndex: number;
+  readonly stepHash: string;
+  readonly narrative: StoryNarrativeText;
+  readonly cached: boolean;
+}
 
 export interface StoryWhatIfInput extends StoryModelInput {
   readonly flowId: string;
@@ -76,9 +76,11 @@ export interface StoryInvalidatedEvent {
 
 export interface EvidenceStoryApi {
   load: (input: StoryLoadInput) => Promise<StorySnapshot>;
-  startNarration: (input: StoryNarrationInput) => Promise<void>;
-  cancelNarration: (job: StoryNarrationJob) => Promise<void>;
-  onNarration: (listener: (event: StoryNarrationEvent) => void) => () => void;
+  /** Null means cancelled, already authored, or no matching cached draft. */
+  enrichStep: (
+    input: StoryEnrichStepInput,
+  ) => Promise<StoryEnrichStepResult | null>;
+  cancelStep: (input: StoryStepRequest) => Promise<void>;
   whatIf: (input: StoryWhatIfInput) => Promise<WhatIfResult>;
   onInvalidated: (
     listener: (event: StoryInvalidatedEvent) => void,
