@@ -15,6 +15,7 @@ const setup = async ({
   empty = false,
   failure = false,
   timed = false,
+  timedRules = false,
   noRules = false,
   aiConfigured = true,
 } = {}) => {
@@ -43,7 +44,9 @@ const setup = async ({
               started_at: '2026-11-11T02:00:00Z',
               expired_at: '2026-11-11T02:30:00Z',
             }
-          : step.values,
+          : index === 2
+            ? { ...step.values, confirmed_at: '2026-11-11T03:00:00Z' }
+            : step.values,
     })),
   };
   const selected = timed ? timedFlow : flow;
@@ -60,7 +63,7 @@ const setup = async ({
     businessImpactExplanation: '付款不足，未满足结清条件。',
   }));
   const document = empty ? createEmptyDomainModel() : createDesktopFixture();
-  if (timed || noRules) document.rules = [];
+  if ((timed && !timedRules) || noRules) document.rules = [];
   const onRevealOnCanvas = vi.fn();
   const Harness = () => {
     const playback = useStoryPlayback({
@@ -117,6 +120,27 @@ describe('StoryDrawer', () => {
     expect(screen.getByRole('article', { name: '领域故事' })).toHaveTextContent(
       '采购方签署《采购协议》',
     );
+  });
+
+  it('shows remaining time against the scenario clock, not the wall clock', async () => {
+    await setup({ timed: true, aiConfigured: false });
+    fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
+    expect(screen.getByText('距截止：0 小时 30 分 0 秒')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
+    expect(screen.queryByText(/距截止/)).toBeNull();
+  });
+
+  it('distinguishes a missing result from a confirmation that fails a rule', async () => {
+    await setup({ timed: true, timedRules: true });
+    fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
+    expect(
+      screen.getByRole('list', { name: '当前时点规则结果' }),
+    ).toHaveTextContent('输入不足，未能求值');
+    fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
+    expect(
+      screen.getByRole('list', { name: '当前时点规则结果' }),
+    ).toHaveTextContent('条件不成立');
+    expect(screen.queryByText('完成条件成立')).toBeNull();
   });
 
   it('copies prose and reports clipboard failure honestly', async () => {

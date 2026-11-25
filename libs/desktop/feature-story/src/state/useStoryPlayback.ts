@@ -181,6 +181,17 @@ export const useStoryPlayback = ({
   const factScene =
     step &&
     projection?.scenes.find(({ stepIndex }) => stepIndex === step.sequence);
+  const focusedObligations = useMemo(() => {
+    const fulfillment = factScene?.activity.fulfillment;
+    if (!flow || !fulfillment) return obligations;
+    const steps = new Set(
+      fulfillment.requests.map(({ stepIndex }) => stepIndex),
+    );
+    const keys = new Set(
+      flow.steps.filter(({ sequence }) => steps.has(sequence)).map(stepRef),
+    );
+    return obligations.filter(({ key }) => keys.has(key));
+  }, [factScene, flow, obligations]);
   const ready =
     enabled &&
     (rehearsing
@@ -268,19 +279,51 @@ export const useStoryPlayback = ({
         .slice(0, index)
         .map(({ entityId, sequence }) => [entityId, sequence]),
     );
+    const activity = factScene?.activity;
+    const activeRoleIds = new Set<string>();
+    const addRole = (id: string | undefined) => {
+      if (id) activeRoleIds.add(id);
+    };
+    addRole(activity?.actor.roleId);
+    addRole(activity?.recipient?.roleId);
+    for (const { rightHolder, obligor } of activity?.fulfillment?.requests ??
+      []) {
+      addRole(rightHolder?.roleId);
+      addRole(obligor?.roleId);
+    }
     return {
       activeEntityId: step.entityId,
+      activeRoleIds: [...activeRoleIds],
+      activityLabel: activity
+        ? `${activity.actor.roleLabel}${activity.actionPhrase}`
+        : undefined,
       activeStep: step.sequence,
       completedSteps,
       dependencyEntityIds: [...new Set(dependencyEntityIds)],
       relatedEntityIds: journeyPreview.relatedEntityIds,
       activeRelationshipIds: journeyPreview.activeRelationshipIds,
       flowKind: journeyPreview.flowKind,
-      triggeredRuleIds: journeyPreview.triggeredRuleIds,
+      triggeredRuleIds: [
+        ...new Set([
+          ...journeyPreview.triggeredRuleIds,
+          ...focusedObligations.flatMap(({ triggeredRules }) =>
+            triggeredRules.map(({ id }) => id),
+          ),
+        ]),
+      ],
       activeValues: step.values,
       focusKey: `${flow.flowId}:${stepRef(step)}:${step.sequence}:${step.stepHash}`,
     };
-  }, [ready, flow, step, index, journeyPreview, obligations]);
+  }, [
+    ready,
+    flow,
+    step,
+    index,
+    journeyPreview,
+    obligations,
+    focusedObligations,
+    factScene,
+  ]);
 
   const projectedFlowId = useRef<string | undefined>(undefined);
   useEffect(() => {
@@ -543,6 +586,7 @@ export const useStoryPlayback = ({
     currentTime,
     timeline,
     obligations,
+    focusedObligations,
     clockUnavailable: !rehearsing && ready && timeline === null,
     rehearsal: {
       active: rehearsing,

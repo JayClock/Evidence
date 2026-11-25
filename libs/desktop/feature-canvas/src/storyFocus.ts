@@ -13,6 +13,8 @@ export interface CanvasStoryFocus {
   readonly completedSteps?: ReadonlyMap<string, number>;
   readonly dependencyEntityIds: readonly string[];
   readonly relatedEntityIds?: readonly string[];
+  readonly activeRoleIds?: readonly string[];
+  readonly activityLabel?: string;
   readonly activeRelationshipIds?: readonly string[];
   /** Modeled response options, not events that occurred in this playback. */
   readonly candidateRelationshipIds?: readonly string[];
@@ -33,8 +35,10 @@ export const applyStoryFocus = (
     !canvas.nodes.some((node) => node.id === focus.activeEntityId)
   )
     return canvas;
+  const roles = new Set(focus.activeRoleIds);
   const involved = new Set([
     focus.activeEntityId,
+    ...roles,
     ...focus.dependencyEntityIds,
     ...(focus.completedSteps?.keys() ?? []),
     ...(focus.relatedEntityIds ?? []),
@@ -78,7 +82,9 @@ export const applyStoryFocus = (
         ...node,
         className: active
           ? `evidence-story-active${focus.flowKind === 'breach_compensation' ? ' evidence-story-breach' : focus.flowKind === 'escalation' ? ' evidence-story-escalation' : ''}`
-          : undefined,
+          : roles.has(node.id)
+            ? 'evidence-story-role'
+            : undefined,
         style: {
           ...node.style,
           opacity: involved.has(node.id) ? 1 : 0.35,

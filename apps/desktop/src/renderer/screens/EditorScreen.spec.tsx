@@ -912,7 +912,14 @@ describe('EditorScreen', () => {
       await within(details).findByText('采购方签署《采购协议》。'),
     ).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
-    expect(within(details).getByText('供货方提交《交付请求》。')).toBeVisible();
+    expect(
+      within(details).getByText(
+        '供货方要求采购方验收交付成果（《交付请求》）。',
+      ),
+    ).toBeVisible();
+    expect(container.querySelector('[data-id="role.buyer"]')).toHaveClass(
+      'evidence-story-role',
+    );
     expect(container.querySelector('[data-id="evidence.request"]')).toHaveClass(
       'evidence-story-active',
     );

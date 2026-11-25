@@ -4,16 +4,19 @@ import {
 } from '@evidence-poc/evidence-model-core';
 import type { StoryPlaybackController } from '../../state/useStoryPlayback';
 
-export const timelineLabel = (timeline: StoryTimeline, time: number) => {
-  if (timeline.kind === 'examples')
-    return `${new Date(time).toISOString().slice(0, -1).replace('T', ' ')} UTC`;
-  const totalSeconds = Math.floor((time - timeline.start) / 1000);
+export const durationLabel = (milliseconds: number) => {
+  const totalSeconds = Math.floor(milliseconds / 1000);
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
-  const milliseconds = Math.round((time - timeline.start) % 1000);
-  return `T+${hours} 小时 ${minutes} 分 ${seconds}${milliseconds ? `.${String(milliseconds).padStart(3, '0')}` : ''} 秒`;
+  const fraction = Math.round(milliseconds % 1000);
+  return `${hours} 小时 ${minutes} 分 ${seconds}${fraction ? `.${String(fraction).padStart(3, '0')}` : ''} 秒`;
 };
+
+export const timelineLabel = (timeline: StoryTimeline, time: number) =>
+  timeline.kind === 'examples'
+    ? `${new Date(time).toISOString().slice(0, -1).replace('T', ' ')} UTC`
+    : `T+${durationLabel(time - timeline.start)}`;
 
 export const RehearsalControls = ({
   rehearsal,

@@ -16,7 +16,7 @@ const setup = async () => {
   api.story.load = vi.fn(async ({ preferredFlowId }) =>
     storySnapshot(flows, preferredFlowId),
   );
-  api.story.enrichStep = vi.fn(() => new Promise(() => undefined));
+  api.story.enrichStep = vi.fn(() => new Promise<null>(() => undefined));
   api.story.cancelStep = vi.fn(async () => undefined);
   const document = createDesktopFixture();
   const Harness = () => {

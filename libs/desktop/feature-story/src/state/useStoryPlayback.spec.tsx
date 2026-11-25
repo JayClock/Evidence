@@ -16,6 +16,7 @@ import {
   STORY_REFRESH_DELAY,
   STORY_STEP_DURATION,
   useStoryPlayback,
+  type StoryPlaybackController,
 } from './useStoryPlayback';
 
 type Pending = {
@@ -56,13 +57,16 @@ const setup = (enabled = true) => {
         listener({ rootPath, ...(kind ? { kind } : {}) }),
       ),
     );
-  const hook = renderHook(
-    (props: {
+  const hook = renderHook<
+    StoryPlaybackController,
+    {
       document: DomainModelDocument;
       enabled: boolean;
       aiConfigured?: boolean;
       refreshSavedSources?: boolean;
-    }) =>
+    }
+  >(
+    (props) =>
       useStoryPlayback({
         api: api.story,
         rootPath: '/models/test',

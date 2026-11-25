@@ -1,6 +1,6 @@
 import type { FlowStepTrace } from '@evidence-poc/evidence-model-core';
 import type { StoryPlaybackController } from '../../state/useStoryPlayback';
-import { timelineLabel } from './StoryTimelineControls';
+import { durationLabel, timelineLabel } from './StoryTimelineControls';
 import { WhatIfSection } from './WhatIfSection';
 import { StorySceneSheet } from './StorySceneSheet';
 
@@ -30,7 +30,7 @@ const TimelineDetails = ({
 }: {
   playback: StoryPlaybackController;
 }) => {
-  const { timeline, currentTime, obligations } = playback;
+  const { timeline, currentTime, focusedObligations: obligations } = playback;
   if (!timeline || currentTime === undefined) return null;
   return (
     <section
@@ -48,15 +48,7 @@ const TimelineDetails = ({
       {obligations.length === 0 ? <p>该时点没有可预演的履约请求。</p> : null}
       <ul className="flex flex-col gap-2">
         {obligations.map(
-          ({
-            key,
-            label,
-            deadline,
-            status,
-            triggeredRules,
-            unknownRules,
-            responses,
-          }) => (
+          ({ key, label, deadline, status, ruleResults, responses }) => (
             <li key={key} className="border-t border-evidence-line pt-2">
               <p>
                 <strong>{label}</strong> · {statusLabel[status]}
@@ -64,13 +56,27 @@ const TimelineDetails = ({
               {deadline === undefined ? null : (
                 <p>截止：{timelineLabel(timeline, deadline)}</p>
               )}
-              {triggeredRules.length ? (
+              {status === 'waiting' && deadline !== undefined ? (
                 <p>
-                  成立：{triggeredRules.map(({ label }) => label).join('、')}
+                  距截止：{durationLabel(Math.max(0, deadline - currentTime))}
                 </p>
               ) : null}
-              {unknownRules.length ? (
-                <p>未能求值：{unknownRules.join('、')}</p>
+              {ruleResults.length ? (
+                <ul
+                  aria-label="当前时点规则结果"
+                  className="mt-1 flex flex-col gap-0.5 ps-3"
+                >
+                  {ruleResults.map(({ id, label: rule, status }) => (
+                    <li key={id}>
+                      {rule}：
+                      {status === 'satisfied'
+                        ? '条件成立'
+                        : status === 'unsatisfied'
+                          ? '条件不成立'
+                          : '输入不足，未能求值'}
+                    </li>
+                  ))}
+                </ul>
               ) : null}
               {responses.length ? (
                 <p>

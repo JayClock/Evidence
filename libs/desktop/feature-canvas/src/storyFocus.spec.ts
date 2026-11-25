@@ -37,6 +37,7 @@ describe('story canvas projection', () => {
     const result = applyStoryFocus(canvas, {
       ...focus,
       activeStep: 3,
+      activeRoleIds: ['role.buyer'],
       completedSteps: new Map([
         ['evidence.contract', 1],
         ['evidence.request', 2],
@@ -60,6 +61,7 @@ describe('story canvas projection', () => {
     expect(node('evidence.confirmation')?.style?.opacity).toBe(1);
     expect(node('evidence.request')?.style?.opacity).toBe(1);
     expect(node('role.buyer')?.style?.opacity).toBe(1);
+    expect(node('role.buyer')?.className).toBe('evidence-story-role');
     expect(node('role.inventory')?.style?.opacity).toBe(0.35);
     expect(node('role.inventory')?.data.dimmed).toBe(false);
     expect(node('context.procurement')?.data.highlighted).toBe(true);

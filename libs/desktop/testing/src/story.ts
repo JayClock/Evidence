@@ -90,15 +90,31 @@ const storyResult = (flow = storyFlow()): StoryProjectResult => ({
         step.entityKind === 'fulfillment_request'
           ? { roleId: 'role.supplier', roleLabel: '供货方' }
           : { roleId: 'role.buyer', roleLabel: '采购方' };
+      const request = flow.steps.find(
+        ({ entityKind }) => entityKind === 'fulfillment_request',
+      );
+      const holder = { roleId: 'role.supplier', roleLabel: '供货方' };
+      const obligor = { roleId: 'role.buyer', roleLabel: '采购方' };
+      const fulfillment =
+        examplePhase !== 'sign' && request
+          ? ({
+              phase: examplePhase,
+              requests: [
+                {
+                  stepIndex: request.sequence,
+                  action: '验收交付成果',
+                  rightHolder: holder,
+                  obligor,
+                },
+              ],
+            } as const)
+          : undefined;
       const actionPhrase =
-        (examplePhase === 'sign'
-          ? '签署'
+        examplePhase === 'sign'
+          ? `签署《${step.entityLabel}》`
           : examplePhase === 'request'
-            ? '发起履约主张'
-            : '记录') +
-        '《' +
-        step.entityLabel +
-        '》';
+            ? `要求采购方验收交付成果（《${step.entityLabel}》）`
+            : `记录「验收交付成果」的履约确认（《${step.entityLabel}》）`;
       const headline = actor.roleLabel + actionPhrase;
       const previous = flow.steps[index - 1];
       return {
@@ -108,6 +124,7 @@ const storyResult = (flow = storyFlow()): StoryProjectResult => ({
         activity: {
           actor,
           actionPhrase,
+          ...(fulfillment ? { fulfillment } : {}),
           workObject: {
             entityId: step.entityId,
             entityLabel: step.entityLabel,

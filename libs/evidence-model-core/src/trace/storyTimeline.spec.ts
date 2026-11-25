@@ -125,6 +125,9 @@ describe('story timeline', () => {
       {
         status: 'breached',
         triggeredRules: [{ id: breach.id }],
+        ruleResults: expect.arrayContaining([
+          expect.objectContaining({ id: breach.id, status: 'satisfied' }),
+        ]),
         responses: [{ entityId: 'request.refund' }],
       },
     ]);

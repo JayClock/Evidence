@@ -45,7 +45,11 @@ export interface TimelineObligation {
   readonly deadline?: number;
   readonly status: 'waiting' | 'completed' | 'overdue' | 'breached' | 'unknown';
   readonly triggeredRules: readonly { id: string; label: string }[];
-  readonly unknownRules: readonly string[];
+  readonly ruleResults: readonly {
+    id: string;
+    label: string;
+    status: 'satisfied' | 'unsatisfied' | 'unknown';
+  }[];
   readonly responses: readonly {
     id: string;
     entityId: string;
@@ -202,15 +206,26 @@ const buildTimeline = (
           const triggeredRules = breach.flatMap(([rule, value]) =>
             value === true ? [{ id: rule.id, label: rule.label }] : [],
           );
-          const unknownRules = [...completion, ...breach].flatMap(
-            ([rule, value]) => (typeof value !== 'boolean' ? [rule.label] : []),
-          );
+          const ruleResults: TimelineObligation['ruleResults'] = [
+            ...completion,
+            ...breach,
+          ].map(([{ id, label }, value]) => ({
+            id,
+            label,
+            status:
+              value === true
+                ? 'satisfied'
+                : value === false
+                  ? 'unsatisfied'
+                  : 'unknown',
+          }));
           const status: TimelineObligation['status'] =
             triggeredRules.length > 0
               ? 'breached'
               : completion.some(([, value]) => value === true)
                 ? 'completed'
-                : deadline === undefined || unknownRules.length > 0
+                : deadline === undefined ||
+                    ruleResults.some(({ status }) => status === 'unknown')
                   ? 'unknown'
                   : time > deadline
                     ? 'overdue'
@@ -219,11 +234,11 @@ const buildTimeline = (
             {
               key: observation.key,
               requestId: observation.entityId,
-              label: pair.request.label,
+              label: pair.request.fulfillmentAction ?? pair.request.label,
               deadline,
               status,
               triggeredRules,
-              unknownRules,
+              ruleResults,
               // Edges are possible responses, never simulated events. They do not map individual rules to outcomes.
               responses:
                 triggeredRules.length === 0
@@ -233,7 +248,8 @@ const buildTimeline = (
                       entityId: branch.edge.sourceRef,
                       label:
                         branch.kind === 'compensation_pair'
-                          ? branch.compensation.request.label
+                          ? (branch.compensation.request.fulfillmentAction ??
+                            branch.compensation.request.label)
                           : branch.handoff.label,
                       kind:
                         branch.kind === 'compensation_pair'

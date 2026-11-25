@@ -27,6 +27,12 @@
   animation: evidence-story-pulse 1.8s ease-in-out infinite;
 }
 
+.evidence-story-role {
+  border-radius: 4px;
+  outline: 2px solid var(--evidence-accent, #2f5d8f);
+  outline-offset: 2px;
+}
+
 .evidence-story-breach {
   --evidence-story-color: 180 35 24;
 }

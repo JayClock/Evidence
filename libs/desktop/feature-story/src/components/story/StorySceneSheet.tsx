@@ -239,7 +239,9 @@ export const StorySceneSheet = ({
               {activity.recipient ? (
                 <>
                   {' '}
-                  <span aria-hidden="true">→</span>{' '}
+                  <span aria-hidden="true">
+                    {activity.fulfillment ? '·' : '→'}
+                  </span>{' '}
                   {activity.fulfillment?.phase === 'request'
                     ? '义务方'
                     : activity.fulfillment?.phase === 'confirmation'

@@ -204,7 +204,10 @@ describe('story IPC', () => {
     ).resolves.toEqual({
       stepIndex: input.stepIndex,
       stepHash: input.stepHash,
-      narrative: draft,
+      narrative: {
+        headline: baseline.selected?.projection.scenes[2]?.narrative.headline,
+        prose: draft.prose,
+      },
       cached: false,
     });
     expect(generate).toHaveBeenCalledOnce();

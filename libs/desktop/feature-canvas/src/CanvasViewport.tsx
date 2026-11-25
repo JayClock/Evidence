@@ -809,6 +809,12 @@ const CanvasSurface = ({
 
       <BusinessLegend compact viewMode={viewMode} />
 
+      {storyFocus?.activityLabel ? (
+        <p className="pointer-events-none absolute inset-x-4 top-12 z-20 mx-auto w-fit max-w-full rounded-md border border-evidence-line bg-evidence-surface px-3 py-2 text-center text-xs wrap-anywhere text-evidence-ink shadow-sm">
+          {storyFocus.activityLabel}
+        </p>
+      ) : null}
+
       {storming === undefined ? null : (
         <CanvasStormingBar
           {...storming}
