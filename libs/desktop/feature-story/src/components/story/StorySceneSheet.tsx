@@ -1,11 +1,9 @@
-import { useEffect, useState } from 'react';
 import {
   describeStoryExpectation,
   type DocumentCardField,
   type StoryScene,
 } from '@evidence-poc/evidence-agent/browser';
 import { Button, Card } from '@evidence-poc/desktop-ui-kit';
-import { StoryExplanationForm } from './StoryExplanationForm';
 
 const narrativeStatus: Record<StoryScene['narrative']['status'], string> = {
   authored: '已确认的业务解释',
@@ -49,8 +47,6 @@ export const StorySceneSheet = ({
   stepNumber,
   stepCount,
   onJumpToStep,
-  onEditStart,
-  onSaveExplanation,
 }: {
   scene: StoryScene;
   ready: boolean;
@@ -58,12 +54,7 @@ export const StorySceneSheet = ({
   stepNumber: number;
   stepCount: number;
   onJumpToStep: (sequence: number) => void;
-  onEditStart: () => void;
-  onSaveExplanation?: (description: string) => void;
 }) => {
-  const [edit, setEdit] = useState<{ text: string }>();
-  const [notice, setNotice] = useState('');
-  const [speaking, setSpeaking] = useState(false);
   const {
     activity,
     documentCard,
@@ -72,42 +63,6 @@ export const StorySceneSheet = ({
     expectation,
     narrative,
   } = scene;
-  const storyText = [narrative.headline, narrative.prose].join('\n\n');
-  const canSpeak =
-    typeof window.speechSynthesis !== 'undefined' &&
-    typeof SpeechSynthesisUtterance !== 'undefined';
-  useEffect(() => {
-    if (!ready) {
-      window.speechSynthesis?.cancel();
-      setSpeaking(false);
-    }
-    return () => window.speechSynthesis?.cancel();
-  }, [ready]);
-  const readAloud = () => {
-    if (!canSpeak) return;
-    window.speechSynthesis.cancel();
-    if (speaking) {
-      setSpeaking(false);
-      return;
-    }
-    const utterance = new SpeechSynthesisUtterance(storyText);
-    utterance.lang = 'zh-CN';
-    utterance.onend = () => setSpeaking(false);
-    utterance.onerror = () => {
-      setSpeaking(false);
-      setNotice('朗读不可用，请尝试复制故事。');
-    };
-    setSpeaking(true);
-    window.speechSynthesis.speak(utterance);
-  };
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(storyText);
-      setNotice('故事已复制。');
-    } catch {
-      setNotice('复制失败，请检查剪贴板权限。');
-    }
-  };
   return (
     <div className="flex flex-col gap-4" lang="zh-CN">
       <header className="flex flex-wrap items-center justify-between gap-2 text-evidence-muted">
@@ -171,60 +126,6 @@ export const StorySceneSheet = ({
               </p>
             ))}
           </div>
-          {edit && onSaveExplanation ? (
-            <StoryExplanationForm
-              initialText={edit.text}
-              onSave={(description) => {
-                onSaveExplanation(description);
-                setEdit(undefined);
-              }}
-              onCancel={() => setEdit(undefined)}
-            />
-          ) : null}
-          <footer className="flex flex-wrap items-center gap-2">
-            {!edit && onSaveExplanation ? (
-              <Button
-                size="xs"
-                variant="outline"
-                disabled={!ready}
-                onClick={() => {
-                  onEditStart();
-                  setEdit({
-                    text:
-                      narrative.status === 'authored' ||
-                      narrative.status === 'ready'
-                        ? narrative.prose
-                        : '',
-                  });
-                }}
-              >
-                {narrative.status === 'ready'
-                  ? '采纳为业务解释'
-                  : narrative.status === 'authored'
-                    ? '编辑业务解释'
-                    : '编写业务解释'}
-              </Button>
-            ) : null}
-            <Button
-              size="xs"
-              variant="outline"
-              disabled={!ready || !canSpeak}
-              onClick={readAloud}
-            >
-              {speaking ? '停止朗读' : '朗读故事'}
-            </Button>
-            <Button
-              size="xs"
-              variant="outline"
-              disabled={!ready}
-              onClick={() => void copy()}
-            >
-              复制故事
-            </Button>
-            <span role="status" className="text-[11px] text-evidence-muted">
-              {notice}
-            </span>
-          </footer>
         </article>
       </Card>
       <Card asChild className="flex flex-col gap-4 p-4">

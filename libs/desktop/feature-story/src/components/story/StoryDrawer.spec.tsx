@@ -94,7 +94,6 @@ const setup = async ({
 };
 afterEach(() => {
   vi.useRealTimers();
-  vi.unstubAllGlobals();
 });
 
 describe('StoryDrawer', () => {
@@ -141,53 +140,6 @@ describe('StoryDrawer', () => {
       screen.getByRole('list', { name: '当前时点规则结果' }),
     ).toHaveTextContent('条件不成立');
     expect(screen.queryByText('完成条件成立')).toBeNull();
-  });
-
-  it('copies prose and reports clipboard failure honestly', async () => {
-    const writeText = vi.fn(async () => undefined);
-    vi.stubGlobal('navigator', { clipboard: { writeText } });
-    await setup();
-    await act(async () =>
-      fireEvent.click(screen.getByRole('button', { name: '复制故事' })),
-    );
-    expect(writeText).toHaveBeenCalledWith(
-      '采购方签署《采购协议》\n\n采购方签署《采购协议》。',
-    );
-    expect(screen.getByText('故事已复制。')).toBeInTheDocument();
-    writeText.mockRejectedValueOnce(new Error('denied'));
-    await act(async () =>
-      fireEvent.click(screen.getByRole('button', { name: '复制故事' })),
-    );
-    expect(screen.getByText(/复制失败/)).toBeInTheDocument();
-  });
-
-  it('cancels speech on navigation and unmount', async () => {
-    const cancel = vi.fn();
-    const speak = vi.fn();
-    vi.stubGlobal('speechSynthesis', { cancel, speak });
-    vi.stubGlobal(
-      'SpeechSynthesisUtterance',
-      class {
-        constructor(public text: string) {}
-      },
-    );
-    const { view } = await setup();
-    fireEvent.click(screen.getByRole('button', { name: '朗读故事' }));
-    expect(speak).toHaveBeenCalledWith(
-      expect.objectContaining({
-        text: '采购方签署《采购协议》\n\n采购方签署《采购协议》。',
-        lang: 'zh-CN',
-      }),
-    );
-    expect(
-      screen.getByRole('button', { name: '停止朗读' }),
-    ).toBeInTheDocument();
-    cancel.mockClear();
-    fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
-    expect(cancel).toHaveBeenCalled();
-    cancel.mockClear();
-    view.unmount();
-    expect(cancel).toHaveBeenCalled();
   });
 
   it('does not offer a question on the contract and jumps to a fulfillment step', async () => {

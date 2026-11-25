@@ -1,4 +1,3 @@
-import type { FlowStepTrace } from '@evidence-poc/evidence-model-core';
 import type { StoryPlaybackController } from '../../state/useStoryPlayback';
 import { durationLabel, timelineLabel } from './StoryTimelineControls';
 import { WhatIfSection } from './WhatIfSection';
@@ -11,7 +10,6 @@ interface StoryDrawerProps {
   aiConfigured?: boolean;
   onConfigureAi?: () => void;
   onRevealOnCanvas?: (nodeId: string) => void;
-  onSaveExplanation?: (step: FlowStepTrace, description: string) => void;
 }
 
 const buttonClass =
@@ -102,7 +100,6 @@ export const StoryDrawer = ({
   aiConfigured = true,
   onConfigureAi,
   onRevealOnCanvas,
-  onSaveExplanation,
 }: StoryDrawerProps) => (
   <section
     aria-label="业务故事"
@@ -184,15 +181,6 @@ export const StoryDrawer = ({
           stepNumber={playback.stepNumber}
           stepCount={playback.stepCount}
           onJumpToStep={playback.jumpToStep}
-          onEditStart={playback.pause}
-          onSaveExplanation={
-            playback.ready && playback.step && onSaveExplanation
-              ? (description) => {
-                  if (playback.step)
-                    onSaveExplanation(playback.step, description);
-                }
-              : undefined
-          }
         />
       ) : null}
       {playback.ready ? <TimelineDetails playback={playback} /> : null}

@@ -582,7 +582,6 @@ export const useStoryPlayback = ({
     activeFlowId: rehearsing ? undefined : activeFlowId,
     currentStepSequence: step?.sequence ?? 0,
     snapshotId: ready && !rehearsing ? loaded?.result.snapshotId : undefined,
-    pause: () => setIsPlaying(false),
     currentTime,
     timeline,
     obligations,
