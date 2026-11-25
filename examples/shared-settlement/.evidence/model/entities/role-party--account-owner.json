@@ -3,6 +3,6 @@
   "id": "role.account-owner",
   "category": "role",
   "kind": "party",
-  "label": "业绩负责人",
+  "label": "业务负责人（Account Owner）",
   "contextRef": "context.performance"
 }

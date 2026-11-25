@@ -3,6 +3,6 @@
   "id": "role.payment-gateway",
   "category": "role",
   "kind": "third_party",
-  "label": "支付对账系统",
+  "label": "支付结算网关（Payment Gateway）",
   "contextRef": "context.advertising-order"
 }

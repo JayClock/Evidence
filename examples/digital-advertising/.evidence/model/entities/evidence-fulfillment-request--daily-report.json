@@ -3,7 +3,7 @@
   "id": "request.daily-report",
   "category": "evidence",
   "kind": "fulfillment_request",
-  "label": "日报生成请求",
+  "label": "投放日报生成请求（Daily Report Request）",
   "contextRef": "context.advertising-order",
   "responsibleRoleRef": "role.advertiser",
   "attributes": [

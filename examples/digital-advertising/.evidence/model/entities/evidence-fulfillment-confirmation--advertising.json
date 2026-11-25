@@ -3,7 +3,7 @@
   "id": "confirmation.advertising",
   "category": "evidence",
   "kind": "fulfillment_confirmation",
-  "label": "上线凭证",
+  "label": "广告实际上线凭证（Ad Campaign Launch）",
   "contextRef": "context.advertising-order",
   "responsibleRoleRef": "role.agency",
   "attributes": [

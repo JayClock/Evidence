@@ -3,6 +3,6 @@
   "id": "role.advertiser",
   "category": "role",
   "kind": "party",
-  "label": "广告主",
+  "label": "广告主（Advertiser）",
   "contextRef": "context.advertising-order"
 }

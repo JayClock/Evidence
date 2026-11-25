@@ -3,6 +3,6 @@
   "id": "role.finance",
   "category": "role",
   "kind": "party",
-  "label": "财务控制方",
+  "label": "财务结算方（Finance Controller）",
   "contextRef": "context.performance"
 }

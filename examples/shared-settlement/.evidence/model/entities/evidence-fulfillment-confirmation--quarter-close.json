@@ -3,7 +3,7 @@
   "id": "confirmation.quarter-close",
   "category": "evidence",
   "kind": "fulfillment_confirmation",
-  "label": "季度指标锁账确认",
+  "label": "季度财务锁账确认（Quarterly Close Confirmation）",
   "contextRef": "context.performance",
   "responsibleRoleRef": "role.account-owner",
   "attributes": [

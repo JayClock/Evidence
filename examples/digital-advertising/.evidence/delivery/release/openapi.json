@@ -426,7 +426,7 @@
       },
       "contract_ads-promotion-order": {
         "additionalProperties": false,
-        "description": "签署数字广告投放，双方权责自此成立",
+        "description": "签署广告推广排期协议（Advertising Promotion Order），双方权责自此成立",
         "examples": [
           {
             "_links": {
@@ -744,7 +744,7 @@
       },
       "request_advertising": {
         "additionalProperties": false,
-        "description": "发起广告上线申请，开启一个有截止时间的履约窗口",
+        "description": "发起广告排期上线申请（Ad Campaign Request），开启一个有截止时间的履约窗口",
         "examples": [
           {
             "_links": {
@@ -824,7 +824,7 @@
       },
       "request_daily-report": {
         "additionalProperties": false,
-        "description": "发起日报生成请求，开启一个有截止时间的履约窗口",
+        "description": "发起投放日报生成请求（Daily Report Request），开启一个有截止时间的履约窗口",
         "examples": [
           {
             "_links": {
@@ -1020,7 +1020,7 @@
       },
       "request_payment": {
         "additionalProperties": false,
-        "description": "发起预付款申请，开启一个有截止时间的履约窗口",
+        "description": "发起预付款申请（Payment Request），开启一个有截止时间的履约窗口",
         "examples": [
           {
             "_links": {
@@ -1526,7 +1526,7 @@
                 }
               }
             },
-            "description": "发起投放需求征询，向对方征询方案",
+            "description": "发起广告投放意向书（Advertising Promotion RFP），向对方征询方案",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -1539,7 +1539,7 @@
             }
           }
         },
-        "summary": "发起投放需求征询，向对方征询方案",
+        "summary": "发起广告投放意向书（Advertising Promotion RFP），向对方征询方案",
         "tags": [
           "context:context.advertising-negotiation"
         ],
@@ -1839,7 +1839,7 @@
                 }
               }
             },
-            "description": "提交广告投放报价，回应投放需求征询",
+            "description": "提交投放方案报价单（Advertising Promotion Proposal），回应广告投放意向书（Advertising Promotion RFP）",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -1858,7 +1858,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "提交广告投放报价，回应投放需求征询",
+        "summary": "提交投放方案报价单（Advertising Promotion Proposal），回应广告投放意向书（Advertising Promotion RFP）",
         "tags": [
           "context:context.advertising-negotiation"
         ],
@@ -2047,7 +2047,7 @@
                 }
               }
             },
-            "description": "接受广告投放报价并签署数字广告投放",
+            "description": "接受投放方案报价单（Advertising Promotion Proposal）并签署广告推广排期协议（Advertising Promotion Order）",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -2066,7 +2066,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "接受广告投放报价并签署数字广告投放",
+        "summary": "接受投放方案报价单（Advertising Promotion Proposal）并签署广告推广排期协议（Advertising Promotion Order）",
         "tags": [
           "context:context.advertising-order"
         ],
@@ -2389,7 +2389,7 @@
                 }
               }
             },
-            "description": "签署数字广告投放，双方权责自此成立",
+            "description": "签署广告推广排期协议（Advertising Promotion Order），双方权责自此成立",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -2408,7 +2408,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "签署数字广告投放，双方权责自此成立",
+        "summary": "签署广告推广排期协议（Advertising Promotion Order），双方权责自此成立",
         "tags": [
           "context:context.advertising-order"
         ],
@@ -2734,7 +2734,7 @@
                 }
               }
             },
-            "description": "发起广告上线申请，开启一个有截止时间的履约窗口",
+            "description": "发起广告排期上线申请（Ad Campaign Request），开启一个有截止时间的履约窗口",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -2753,7 +2753,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "发起广告上线申请，开启一个有截止时间的履约窗口",
+        "summary": "发起广告排期上线申请（Ad Campaign Request），开启一个有截止时间的履约窗口",
         "tags": [
           "context:context.advertising-order"
         ],
@@ -2878,7 +2878,7 @@
                 }
               }
             },
-            "description": "登记上线凭证",
+            "description": "登记广告实际上线凭证（Ad Campaign Launch）",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -2897,7 +2897,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "登记上线凭证",
+        "summary": "登记广告实际上线凭证（Ad Campaign Launch）",
         "tags": [
           "context:context.advertising-order"
         ],
@@ -3126,7 +3126,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "发起日报生成请求，开启一个有截止时间的履约窗口",
+        "summary": "发起投放日报生成请求（Daily Report Request），开启一个有截止时间的履约窗口",
         "tags": [
           "context:context.advertising-order"
         ],
@@ -3371,7 +3371,7 @@
                 }
               }
             },
-            "description": "登记广告日报凭证",
+            "description": "登记投放效果日报凭证（Daily Report Confirmation）",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -3390,7 +3390,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "登记广告日报凭证",
+        "summary": "登记投放效果日报凭证（Daily Report Confirmation）",
         "tags": [
           "context:context.advertising-order"
         ],
@@ -3621,7 +3621,7 @@
                 }
               }
             },
-            "description": "发起预付款申请，开启一个有截止时间的履约窗口",
+            "description": "发起预付款申请（Payment Request），开启一个有截止时间的履约窗口",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -3640,7 +3640,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "发起预付款申请，开启一个有截止时间的履约窗口",
+        "summary": "发起预付款申请（Payment Request），开启一个有截止时间的履约窗口",
         "tags": [
           "context:context.advertising-order"
         ],
@@ -3798,7 +3798,7 @@
                 }
               }
             },
-            "description": "登记到账凭证",
+            "description": "登记预付款到账凭证（Payment Confirmation）",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -3817,7 +3817,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "登记到账凭证",
+        "summary": "登记预付款到账凭证（Payment Confirmation）",
         "tags": [
           "context:context.advertising-order"
         ],

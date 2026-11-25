@@ -23,7 +23,7 @@
             "ref": "contract.performance-agreement#sign-fy26",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "签署季度与年度收入核销，双方权责自此成立",
+              "description": "签署业绩责任与分成协议（Performance Agreement），双方权责自此成立",
               "examples": [
                 {
                   "_links": {
@@ -125,7 +125,7 @@
             "ref": "request.annual-target#open-year",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起年度收入指标，开启一个有截止时间的履约窗口",
+              "description": "发起年度收入考核指标（Annual Revenue Target），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -243,7 +243,7 @@
             "ref": "request.quarterly-target#open-q1",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起季度收入指标，开启一个有截止时间的履约窗口",
+              "description": "发起季度收入考核指标（Quarterly Revenue Target），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {

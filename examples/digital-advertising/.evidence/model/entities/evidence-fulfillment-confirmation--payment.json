@@ -3,7 +3,7 @@
   "id": "confirmation.payment",
   "category": "evidence",
   "kind": "fulfillment_confirmation",
-  "label": "到账凭证",
+  "label": "预付款到账凭证（Payment Confirmation）",
   "contextRef": "context.advertising-order",
   "responsibleRoleRef": "role.advertiser",
   "attributes": [

@@ -3,7 +3,7 @@
   "id": "context.advertising-order",
   "category": "context",
   "kind": "contract",
-  "label": "数字广告投放",
+  "label": "广告投放订单（Advertising Order）",
   "rootRefs": [
     "contract.ads-promotion-order"
   ]

@@ -3,7 +3,7 @@
   "id": "contract.ads-promotion-order",
   "category": "evidence",
   "kind": "contract",
-  "label": "数字广告投放",
+  "label": "广告推广排期协议（Advertising Promotion Order）",
   "contextRef": "context.advertising-order",
   "roleRefs": [
     "role.advertiser",

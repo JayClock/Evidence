@@ -275,7 +275,7 @@
             "ref": "contract.ads-promotion-order#sign-campaign-order",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "签署数字广告投放，双方权责自此成立",
+              "description": "签署广告推广排期协议（Advertising Promotion Order），双方权责自此成立",
               "examples": [
                 {
                   "_links": {
@@ -394,7 +394,7 @@
             "ref": "request.payment#summer-payment-window",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起预付款申请，开启一个有截止时间的履约窗口",
+              "description": "发起预付款申请（Payment Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -624,7 +624,7 @@
             "ref": "request.advertising#request-launch",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起广告上线申请，开启一个有截止时间的履约窗口",
+              "description": "发起广告排期上线申请（Ad Campaign Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -822,7 +822,7 @@
             "ref": "request.daily-report#report-accepted",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起日报生成请求，开启一个有截止时间的履约窗口",
+              "description": "发起投放日报生成请求（Daily Report Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -1045,7 +1045,7 @@
             "ref": "contract.ads-promotion-order#payment-order",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "签署数字广告投放，双方权责自此成立",
+              "description": "签署广告推广排期协议（Advertising Promotion Order），双方权责自此成立",
               "examples": [
                 {
                   "_links": {
@@ -1164,7 +1164,7 @@
             "ref": "request.payment#payment-window",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起预付款申请，开启一个有截止时间的履约窗口",
+              "description": "发起预付款申请（Payment Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {

@@ -3,7 +3,7 @@
   "id": "confirmation.revenue",
   "category": "evidence",
   "kind": "fulfillment_confirmation",
-  "label": "共享收入凭证",
+  "label": "跨业务分成收益凭证（Shared Revenue Voucher）",
   "contextRef": "context.performance",
   "responsibleRoleRef": "role.finance",
   "attributes": [

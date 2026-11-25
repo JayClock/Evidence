@@ -3,7 +3,7 @@
   "id": "contract.performance-agreement",
   "category": "evidence",
   "kind": "contract",
-  "label": "季度与年度收入核销",
+  "label": "业绩责任与分成协议（Performance Agreement）",
   "contextRef": "context.performance",
   "roleRefs": [
     "role.account-owner",

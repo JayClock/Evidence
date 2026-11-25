@@ -3,7 +3,7 @@
   "id": "confirmation.daily-report",
   "category": "evidence",
   "kind": "fulfillment_confirmation",
-  "label": "广告日报凭证",
+  "label": "投放效果日报凭证（Daily Report Confirmation）",
   "contextRef": "context.advertising-order",
   "responsibleRoleRef": "role.agency",
   "attributes": [

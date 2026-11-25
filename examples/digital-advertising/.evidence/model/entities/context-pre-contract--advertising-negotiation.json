@@ -3,7 +3,7 @@
   "id": "context.advertising-negotiation",
   "category": "context",
   "kind": "pre_contract",
-  "label": "广告方案磋商",
+  "label": "商务方案磋商（Advertising Negotiation）",
   "parentContextRef": "context.advertising-order",
   "rootRefs": [
     "rfp.ads-promotion-inquiry"

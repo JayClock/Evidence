@@ -3,7 +3,7 @@
   "id": "request.annual-target",
   "category": "evidence",
   "kind": "fulfillment_request",
-  "label": "年度收入指标",
+  "label": "年度收入考核指标（Annual Revenue Target）",
   "contextRef": "context.performance",
   "responsibleRoleRef": "role.account-owner",
   "attributes": [

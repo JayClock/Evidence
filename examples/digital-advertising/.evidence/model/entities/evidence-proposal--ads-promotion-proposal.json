@@ -3,7 +3,7 @@
   "id": "proposal.ads-promotion-proposal",
   "category": "evidence",
   "kind": "proposal",
-  "label": "广告投放报价",
+  "label": "投放方案报价单（Advertising Promotion Proposal）",
   "contextRef": "context.advertising-negotiation",
   "responsibleRoleRef": "role.agency",
   "attributes": [
