@@ -25,7 +25,7 @@ const handoff = ({
   activity: { actor, recipient },
   timing,
 }: StoryScene): string =>
-  `${timing.displayDate} · ${actor.roleLabel}${recipient ? ` → ${recipient.roleLabel}` : ''}`;
+  `${timing.displayDate} · ${actor.businessName}${recipient ? ` → ${recipient.businessName}` : ''}`;
 const groups = ({ documentCard }: StoryScene) =>
   [
     ['核心商业要素', documentCard.keyAttributes],

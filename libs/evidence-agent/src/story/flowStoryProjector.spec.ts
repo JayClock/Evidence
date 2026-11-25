@@ -64,7 +64,7 @@ it('projects a deterministic DST handoff from both dependency forms, with locali
   expect(facts.scenes[1]).toMatchObject({
     timing: { displayDate: '2026年4月1日 10:00 UTC' },
     activity: {
-      recipient: { roleLabel: '买方财务部' },
+      recipient: { businessName: '买方财务部' },
       workObject: { referenceCode: 'PAY-1' },
     },
     prerequisites: [
@@ -99,7 +99,9 @@ it('projects a deterministic DST handoff from both dependency forms, with locali
     },
     ruleEvaluations: [],
   });
-  expect(facts.scenes[2]?.activity.recipient?.roleLabel).toBe('供应商销售部');
+  expect(facts.scenes[2]?.activity.recipient?.businessName).toBe(
+    '供应商销售部',
+  );
   expect(facts.scenes[1]?.narrative.prose).not.toMatch(
     /办理|规则判定|contract\.purchase/u,
   );

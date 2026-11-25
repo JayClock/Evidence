@@ -6,10 +6,10 @@ import {
 } from '@evidence-poc/evidence-model-core';
 import {
   isEvidenceEntity,
-  isRoleEntity,
   timeAttributeOf,
   type DomainModelDocument,
 } from '@evidence-poc/evidence-schema';
+import { sanitizeDocumentTitle, storyRoleOf } from './domainSanitizer.js';
 import {
   describeStoryExpectation,
   storyHistoryItem,
@@ -121,8 +121,8 @@ const nextExpectation = (
   const workObjects = [
     ...new Set(
       next.length
-        ? next.map(({ entityLabel }) => entityLabel)
-        : modeled.map(({ label }) => label),
+        ? next.map(({ entityLabel }) => sanitizeDocumentTitle(entityLabel))
+        : modeled.map(({ label }) => sanitizeDocumentTitle(label)),
     ),
   ];
   if (!workObjects.length && !step.gaps.length) return {};
@@ -158,7 +158,7 @@ const nextExpectation = (
 };
 
 const activitySentence = (activity: DomainActivity) =>
-  `${activity.actor.roleLabel}${activity.actionPhrase}`;
+  `${activity.actor.businessName}${activity.actionPhrase}`;
 
 /** Project the declared scenario without a provider, clock oracle, or cache. */
 export const projectStoryFacts = (
@@ -166,10 +166,8 @@ export const projectStoryFacts = (
   model?: DomainModelDocument,
 ): BusinessStoryProjection => {
   const graph = model && createDomainGraph(model);
-  const roleLabel = (ref: string | undefined): string | undefined => {
-    const role = ref ? graph?.getEntity(ref) : undefined;
-    return isRoleEntity(role) ? role.label : undefined;
-  };
+  const role = (ref: string | undefined) => storyRoleOf(graph, ref);
+  const roleLabel = (ref: string | undefined) => role(ref)?.businessName;
   const ordered = [...trace.steps].sort((a, b) => a.sequence - b.sequence);
   const sequences = new Set<number>();
   const exact = new Map<string, FlowStepTrace>();
@@ -229,9 +227,9 @@ export const projectStoryFacts = (
     );
     const entity = graph?.getEntity(step.entityId);
     const actorId = actingRole(step);
-    const actor = {
+    const actor = role(actorId) ?? {
       roleId: actorId ?? '',
-      roleLabel: roleLabel(actorId) ?? '经办方待明确',
+      businessName: '经办方待明确',
     };
     const anchorKind =
       step.entityKind === 'proposal' ? 'rfp' : 'fulfillment_request';
@@ -248,15 +246,11 @@ export const projectStoryFacts = (
               (entity.roleRefs ?? []).filter((role) => role !== actorId),
             )
           : nextRole;
-    const recipientLabel =
-      recipientId !== actorId ? roleLabel(recipientId) : undefined;
-    const recipient =
-      recipientId && recipientLabel
-        ? { roleId: recipientId, roleLabel: recipientLabel }
-        : undefined;
+    const recipient = recipientId !== actorId ? role(recipientId) : undefined;
     const [actionVerb, verb] = deduceVerb(step, graph);
     const rejectedExample = rejected.has(step);
-    const workObject = `《${step.entityLabel}》`;
+    const businessTitle = sanitizeDocumentTitle(step.entityLabel);
+    const workObject = `《${businessTitle}》`;
     const action =
       actionVerb === 'claim_breach' || actionVerb === 'escalate'
         ? `以${workObject}${verb}`
@@ -265,10 +259,10 @@ export const projectStoryFacts = (
     const activity: DomainActivity = {
       actor,
       actionVerb,
-      actionPhrase: `${rejectedExample ? '尝试' : ''}${recipient ? `${actionVerb === 'sign' ? '与' : '向'}${recipient.roleLabel}` : ''}${action}`,
+      actionPhrase: `${rejectedExample ? '尝试' : ''}${recipient ? `${actionVerb === 'sign' ? '与' : '向'}${recipient.businessName}` : ''}${action}`,
       workObject: {
         entityId: step.entityId,
-        entityLabel: step.entityLabel,
+        entityLabel: businessTitle,
         entityKind: step.entityKind,
         ...(referenceCode ? { referenceCode } : {}),
       },
@@ -281,7 +275,7 @@ export const projectStoryFacts = (
       return [
         {
           previousStepIndex: sequence,
-          fromActorLabel: prior.activity.actor.roleLabel,
+          fromActorLabel: prior.activity.actor.businessName,
           workObjectLabel: prior.activity.workObject.entityLabel,
           businessSummary: `${activitySentence(prior.activity)}${prior.activity.rejectedExample ? '（该情形预期不予受理）' : ''}`,
         },
@@ -325,7 +319,7 @@ export const projectStoryFacts = (
         const linked = resolve(ref);
         if (!linked) return undefined;
         const code = documentReferenceOf(linked);
-        return `《${linked.entityLabel}》${code && code !== ref ? `（${code}）` : ''}`;
+        return `《${sanitizeDocumentTitle(linked.entityLabel)}》${code && code !== ref ? `（${code}）` : ''}`;
       }),
       ...(expectation && !rejectedExample ? { expectation } : {}),
       ruleEvaluations: [],

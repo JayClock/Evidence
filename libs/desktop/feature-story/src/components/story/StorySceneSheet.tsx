@@ -235,13 +235,13 @@ export const StorySceneSheet = ({
             </p>
             <h3 className="text-sm font-semibold">《{documentCard.title}》</h3>
             <p>
-              经办方：{activity.actor.roleLabel}
+              经办方：{activity.actor.businessName}
               {activity.recipient ? (
                 <>
                   {' '}
                   <span aria-hidden="true">→</span>{' '}
                   {activity.actionVerb === 'sign' ? '签约方' : '接收方'}：
-                  {activity.recipient.roleLabel}
+                  {activity.recipient.businessName}
                 </>
               ) : null}
             </p>

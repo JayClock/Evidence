@@ -18,9 +18,10 @@ export type DomainActionVerb =
   | 'claim_breach'
   | 'escalate';
 
-interface StoryRole {
+export interface StoryRole {
   readonly roleId: string;
-  readonly roleLabel: string;
+  readonly businessName: string;
+  readonly organization?: string;
 }
 
 export interface DomainActivity {

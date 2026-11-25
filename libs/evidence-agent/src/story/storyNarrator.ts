@@ -78,8 +78,8 @@ export const createStoryNarrator = ({
         currentActivity: {
           stepIndex: scene.stepIndex,
           asOf: timing.displayDate,
-          actor: activity.actor.roleLabel,
-          recipient: activity.recipient?.roleLabel,
+          actor: activity.actor.businessName,
+          recipient: activity.recipient?.businessName,
           actionPhrase: activity.actionPhrase,
           workObject: activity.workObject.entityLabel,
           referenceCode: activity.workObject.referenceCode,
