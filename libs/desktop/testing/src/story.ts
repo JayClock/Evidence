@@ -80,22 +80,22 @@ const storyResult = (flow = storyFlow()): StoryProjectResult => ({
     storySummary: '从采购协议到交付确认',
     businessGoal: '核对单据流转',
     scenes: flow.steps.map((step, index) => {
-      const actionVerb =
+      const examplePhase =
         step.entityKind === 'contract'
           ? 'sign'
           : step.entityKind === 'fulfillment_request'
-            ? 'submit'
-            : 'confirm';
+            ? 'request'
+            : 'confirmation';
       const actor =
         step.entityKind === 'fulfillment_request'
           ? { roleId: 'role.supplier', roleLabel: '供货方' }
           : { roleId: 'role.buyer', roleLabel: '采购方' };
       const actionPhrase =
-        (actionVerb === 'sign'
+        (examplePhase === 'sign'
           ? '签署'
-          : actionVerb === 'submit'
-            ? '提交'
-            : '出具') +
+          : examplePhase === 'request'
+            ? '发起履约主张'
+            : '记录') +
         '《' +
         step.entityLabel +
         '》';
@@ -107,14 +107,13 @@ const storyResult = (flow = storyFlow()): StoryProjectResult => ({
         timing: { rawIso: step.asOf, displayDate: '2026年11月11日 08:00 UTC' },
         activity: {
           actor,
-          actionVerb,
           actionPhrase,
           workObject: {
             entityId: step.entityId,
             entityLabel: step.entityLabel,
             entityKind: step.entityKind,
           },
-          ...(actionVerb === 'submit'
+          ...(examplePhase === 'request'
             ? { recipient: { roleId: 'role.buyer', roleLabel: '采购方' } }
             : {}),
         },
@@ -141,7 +140,6 @@ const storyResult = (flow = storyFlow()): StoryProjectResult => ({
             { name: 'id', label: '单据编号', value: 'C-001' },
           ],
         },
-        ruleEvaluations: [],
         ...(step.gaps.length
           ? {
               expectation: {

@@ -9,23 +9,24 @@ export interface DocumentCardField {
   readonly sourceOrigin?: string;
 }
 
-export type DomainActionVerb =
-  | 'sign'
-  | 'submit'
-  | 'confirm'
-  | 'issue'
-  | 'notify'
-  | 'claim_breach'
-  | 'escalate';
-
 interface StoryRole {
   readonly roleId: string;
   readonly roleLabel: string;
 }
 
+export interface StoryFulfillmentRequest {
+  readonly stepIndex: number;
+  readonly action?: string;
+  readonly rightHolder?: StoryRole;
+  readonly obligor?: StoryRole;
+}
+
 export interface DomainActivity {
   readonly actor: StoryRole;
-  readonly actionVerb: DomainActionVerb;
+  readonly fulfillment?: {
+    readonly phase: 'request' | 'confirmation';
+    readonly requests: readonly StoryFulfillmentRequest[];
+  };
   readonly actionPhrase: string;
   readonly workObject: {
     readonly entityId: string;
@@ -83,11 +84,6 @@ export interface StoryScene {
     readonly clauseRef?: string;
   };
   readonly expectation?: NextStepExpectation;
-  readonly ruleEvaluations: readonly {
-    readonly ruleName: string;
-    readonly explanation: string;
-    readonly satisfied: boolean;
-  }[];
 }
 
 export interface BusinessStoryProjection {

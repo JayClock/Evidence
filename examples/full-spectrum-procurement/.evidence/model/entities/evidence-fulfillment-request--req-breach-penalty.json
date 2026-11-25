@@ -3,6 +3,7 @@
   "id": "req-breach-penalty",
   "category": "evidence",
   "kind": "fulfillment_request",
+  "fulfillmentAction": "赔付交货逾期违约金",
   "contextRef": "ctx-main-procurement",
   "responsibleRoleRef": "role-buyer",
   "label": "交货逾期违约赔偿与滞纳金索赔请求（Late Delivery Penalty Request）",

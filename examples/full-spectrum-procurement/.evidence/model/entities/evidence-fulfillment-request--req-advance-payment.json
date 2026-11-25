@@ -3,6 +3,7 @@
   "id": "req-advance-payment",
   "category": "evidence",
   "kind": "fulfillment_request",
+  "fulfillmentAction": "支付首期生产预付款",
   "contextRef": "ctx-main-procurement",
   "responsibleRoleRef": "role-seller",
   "label": "首期生产预付款支付请求（Advance Down Payment Request）",

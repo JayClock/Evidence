@@ -106,9 +106,7 @@ describe('built evidence story binary', () => {
     expect(
       payment?.scenes.some((scene) => scene.activity.rejectedExample),
     ).toBe(true);
-    expect(
-      payment?.scenes.every((scene) => scene.ruleEvaluations.length === 0),
-    ).toBe(true);
+    expect(payment?.scenes[1]?.activity.fulfillment?.phase).toBe('request');
     expect(
       payment?.scenes.some((scene) => scene.expectation?.isControlGap),
     ).toBe(true);
@@ -135,6 +133,13 @@ describe('built evidence story binary', () => {
     expect(happyPath.code, happyPath.stderr).toBe(0);
     expect(happyPath.stdout).toContain(
       '### 1. 买方（Buyer）向卖方（Seller）发出《智能装备全球采购招标建议书（Global Procurement RFP）》',
+    );
+
+    expect(happyPath.stdout).toContain(
+      '卖方（Seller）要求买方（Buyer）支付首期生产预付款',
+    );
+    expect(happyPath.stdout).toContain(
+      '买方（Buyer）记录「支付首期生产预付款」的履约确认',
     );
 
     const all = await invoke(args);

@@ -32,7 +32,7 @@ export type {
   BusinessStoryProjection,
   CausalPrerequisite,
   DocumentCardField,
-  DomainActionVerb,
+  StoryFulfillmentRequest,
   DomainActivity,
   NextStepExpectation,
   StoryAgent,

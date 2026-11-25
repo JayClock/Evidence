@@ -3,6 +3,7 @@
   "id": "req-escrow-release",
   "category": "evidence",
   "kind": "fulfillment_request",
+  "fulfillmentAction": "释放托管尾款",
   "contextRef": "ctx-escrow-settlement",
   "responsibleRoleRef": "role-escrow-depositor",
   "label": "验收合格后托管尾款放款请求（Final Escrow Release Request）",

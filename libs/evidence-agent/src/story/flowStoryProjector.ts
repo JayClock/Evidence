@@ -3,6 +3,7 @@ import {
   type DomainGraph,
   type FlowScenarioTrace,
   type FlowStepTrace,
+  type FulfillmentPair,
 } from '@evidence-poc/evidence-model-core';
 import {
   isEvidenceEntity,
@@ -22,8 +23,8 @@ import {
 import { createStoryNarrator } from './storyNarrator.js';
 import type {
   BusinessStoryProjection,
-  DomainActionVerb,
   DomainActivity,
+  StoryFulfillmentRequest,
   NextStepExpectation,
   StoryAgent,
   StoryScene,
@@ -39,43 +40,57 @@ const uniqueRole = (refs: readonly (string | undefined)[]) => {
   return ids.size === 1 ? ids.values().next().value : undefined;
 };
 
-const deduceVerb = (
+const documentAction = (
   step: FlowStepTrace,
   graph: DomainGraph | undefined,
-): readonly [DomainActionVerb, string] => {
-  const edges = graph?.outgoing(step.entityId) ?? [];
+  recipient: string | undefined,
+  workObject: string,
+): string => {
+  if (step.entityKind === 'contract')
+    return `${recipient ? `与${recipient}` : ''}签署${workObject}`;
+  const to = recipient ? `向${recipient}` : '';
+  if (step.entityKind === 'rfp') return `${to}发出${workObject}`;
+  if (step.entityKind === 'proposal') return `${to}提交${workObject}`;
   if (
-    step.entityKind === 'fulfillment_request' &&
-    edges.some(
-      ({ kind, flowKind }) =>
-        kind === 'references' && flowKind === 'breach_compensation',
-    )
+    graph
+      ?.outgoing(step.entityId)
+      .some(
+        ({ kind, flowKind, terminalRemedyKind }) =>
+          kind === 'references' &&
+          flowKind === 'escalation' &&
+          terminalRemedyKind,
+      )
   )
-    return ['claim_breach', '提出违约主张'];
-  if (
-    edges.some(
-      ({ kind, flowKind, terminalRemedyKind }) =>
-        kind === 'references' &&
-        flowKind === 'escalation' &&
-        terminalRemedyKind,
-    )
-  )
-    return ['escalate', '提请争议处理'];
-  switch (step.entityKind) {
-    case 'contract':
-      return ['sign', '签署'];
-    case 'rfp':
-      return ['notify', '发出'];
-    case 'proposal':
-    case 'fulfillment_request':
-      return ['submit', '提交'];
-    case 'fulfillment_confirmation':
-      return ['confirm', '出具'];
-    default:
-      return /通知|函件|notice/iu.test(step.entityLabel)
-        ? ['notify', '送达']
-        : ['issue', /发票|invoice/iu.test(step.entityLabel) ? '开具' : '出具'];
+    return `以${workObject}提请争议处理`;
+  return `记录${workObject}`;
+};
+
+const obligorOf = ({ request, contract }: FulfillmentPair) => {
+  const holder = request.responsibleRoleRef;
+  const sides = contract?.roleRefs;
+  return holder && sides?.length === 2 && sides.includes(holder)
+    ? uniqueRole(sides.filter((role) => role !== holder))
+    : undefined;
+};
+
+const fulfillmentAction = (
+  fulfillment: NonNullable<DomainActivity['fulfillment']>,
+  recipient: string | undefined,
+  workObject: string,
+): string => {
+  const actions = [
+    ...new Set(fulfillment.requests.map(({ action }) => action)),
+  ];
+  if (fulfillment.phase === 'request') {
+    const obligor = recipient ?? '义务方（待明确）';
+    const action = actions[0];
+    return action
+      ? `要求${obligor}${action}（${workObject}）`
+      : `发起履约主张（${workObject}；履约动作待明确）`;
   }
+  if (!actions.length) return `记录${workObject}（关联请求未明确）`;
+  if (actions.includes(undefined)) return `记录${workObject}（履约动作待明确）`;
+  return `记录「${actions.join('、')}」的履约确认（${workObject}）`;
 };
 
 const nextExpectation = (
@@ -88,14 +103,7 @@ const nextExpectation = (
   const observedConfirmations = successors.filter(
     (next) =>
       next.entityKind === 'fulfillment_confirmation' &&
-      (!pair ||
-        pair.confirmations.some(({ id }) => id === next.entityId) ||
-        graph
-          ?.outgoing(next.entityId)
-          .some(
-            ({ kind, targetRef }) =>
-              kind === 'references' && targetRef === step.entityId,
-          )),
+      (!graph || pair?.confirmations.some(({ id }) => id === next.entityId)),
   );
   const confirmations =
     step.entityKind === 'fulfillment_request' ? observedConfirmations : [];
@@ -218,6 +226,40 @@ export const projectStoryFacts = (
           ?.expectedStatus ?? 200) >= 400,
     ),
   );
+  const requestFacts = (
+    step: FlowStepTrace,
+    pair: FulfillmentPair | undefined,
+  ): StoryFulfillmentRequest => ({
+    stepIndex: step.sequence,
+    action: pair?.request.fulfillmentAction,
+    rightHolder: storyRole(pair?.request.responsibleRoleRef),
+    obligor: storyRole(pair && obligorOf(pair)),
+  });
+  const storyRole = (roleId: string | undefined) => {
+    const label = roleLabel(roleId);
+    return roleId && label ? { roleId, roleLabel: label } : undefined;
+  };
+  const confirmationRequests = (step: FlowStepTrace) => {
+    const pending = [...(upstream.get(step) ?? [])];
+    const visited = new Set<FlowStepTrace>();
+    const byRequest = new Map<string, StoryFulfillmentRequest[]>();
+    while (pending.length) {
+      const parent = pending.pop()!;
+      if (visited.has(parent) || rejected.has(parent)) continue;
+      visited.add(parent);
+      pending.push(...(upstream.get(parent) ?? []));
+      const pair = graph?.fulfillmentPair(parent.entityId);
+      if (!pair?.confirmations.some(({ id }) => id === step.entityId)) continue;
+      const instances = byRequest.get(parent.entityId) ?? [];
+      instances.push(requestFacts(parent, pair));
+      byRequest.set(parent.entityId, instances);
+    }
+    // A shared confirmation can cover multiple request types, never an ambiguous instance.
+    return [...byRequest.values()]
+      .flatMap((instances) => (instances.length === 1 ? instances : []))
+      .sort((a, b) => a.stepIndex - b.stepIndex);
+  };
+
   const priorScenes = new Map<number, StoryScene>();
   const scenes = ordered.map((step): StoryScene => {
     const parents = upstream.get(step) ?? [];
@@ -233,14 +275,27 @@ export const projectStoryFacts = (
       roleId: actorId ?? '',
       roleLabel: roleLabel(actorId) ?? '经办方待明确',
     };
-    const anchorKind =
-      step.entityKind === 'proposal' ? 'rfp' : 'fulfillment_request';
-    const recipientId =
-      step.entityKind === 'fulfillment_confirmation' ||
-      step.entityKind === 'proposal'
+    const fulfillment: DomainActivity['fulfillment'] =
+      step.entityKind === 'fulfillment_request'
+        ? {
+            phase: 'request',
+            requests: [
+              requestFacts(step, graph?.fulfillmentPair(step.entityId)),
+            ],
+          }
+        : step.entityKind === 'fulfillment_confirmation'
+          ? { phase: 'confirmation', requests: confirmationRequests(step) }
+          : undefined;
+    const recipientId = fulfillment
+      ? fulfillment.phase === 'request'
+        ? fulfillment.requests[0]?.obligor?.roleId
+        : uniqueRole(
+            fulfillment.requests.map(({ rightHolder }) => rightHolder?.roleId),
+          )
+      : step.entityKind === 'proposal'
         ? uniqueRole(
             parents
-              .filter(({ entityKind }) => entityKind === anchorKind)
+              .filter(({ entityKind }) => entityKind === 'rfp')
               .map(actingRole),
           )
         : step.entityKind === 'contract' && isEvidenceEntity(entity)
@@ -248,24 +303,22 @@ export const projectStoryFacts = (
               (entity.roleRefs ?? []).filter((role) => role !== actorId),
             )
           : nextRole;
-    const recipientLabel =
-      recipientId !== actorId ? roleLabel(recipientId) : undefined;
     const recipient =
-      recipientId && recipientLabel
-        ? { roleId: recipientId, roleLabel: recipientLabel }
-        : undefined;
-    const [actionVerb, verb] = deduceVerb(step, graph);
+      recipientId !== actorId ? storyRole(recipientId) : undefined;
     const rejectedExample = rejected.has(step);
     const workObject = `《${step.entityLabel}》`;
-    const action =
-      actionVerb === 'claim_breach' || actionVerb === 'escalate'
-        ? `以${workObject}${verb}`
-        : `${verb}${workObject}`;
+    const action = fulfillment
+      ? fulfillmentAction(
+          fulfillment,
+          fulfillment.requests[0]?.obligor?.roleLabel,
+          workObject,
+        )
+      : documentAction(step, graph, recipient?.roleLabel, workObject);
     const referenceCode = documentReferenceOf(step);
     const activity: DomainActivity = {
       actor,
-      actionVerb,
-      actionPhrase: `${rejectedExample ? '尝试' : ''}${recipient ? `${actionVerb === 'sign' ? '与' : '向'}${recipient.roleLabel}` : ''}${action}`,
+      actionPhrase: `${rejectedExample ? '尝试' : ''}${action}`,
+      ...(fulfillment ? { fulfillment } : {}),
       workObject: {
         entityId: step.entityId,
         entityLabel: step.entityLabel,
@@ -328,7 +381,6 @@ export const projectStoryFacts = (
         return `《${linked.entityLabel}》${code && code !== ref ? `（${code}）` : ''}`;
       }),
       ...(expectation && !rejectedExample ? { expectation } : {}),
-      ruleEvaluations: [],
     };
     priorScenes.set(scene.stepIndex, scene);
     return scene;

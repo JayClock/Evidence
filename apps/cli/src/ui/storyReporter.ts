@@ -22,10 +22,10 @@ const markdown = (value: string): string =>
     .replace(/([`*_{}[\]()#+.!|~=-])/gu, '\\$1');
 
 const handoff = ({
-  activity: { actor, recipient },
+  activity: { actor, recipient, fulfillment },
   timing,
 }: StoryScene): string =>
-  `${timing.displayDate} · ${actor.roleLabel}${recipient ? ` → ${recipient.roleLabel}` : ''}`;
+  `${timing.displayDate} · ${actor.roleLabel}${recipient ? (fulfillment ? ` · ${fulfillment.phase === 'request' ? '义务方' : '权利方'}：${recipient.roleLabel}` : ` → ${recipient.roleLabel}`) : ''}`;
 const groups = ({ documentCard }: StoryScene) =>
   [
     ['核心商业要素', documentCard.keyAttributes],
@@ -74,11 +74,6 @@ export function renderStoryMarkdown(
       }
       if (scene.documentCard.clauseRef)
         lines.push(`条款依据：${markdown(scene.documentCard.clauseRef)}`, '');
-      for (const rule of scene.ruleEvaluations)
-        lines.push(
-          `- ${rule.satisfied ? '✓' : '✗'} ${markdown(rule.ruleName)}：${markdown(rule.explanation)}`,
-        );
-      if (scene.ruleEvaluations.length) lines.push('');
       if (scene.expectation)
         lines.push(
           `> **${nextHeading(scene)}**：${markdown(describeStoryExpectation(scene.expectation))}`,
@@ -123,13 +118,6 @@ export function renderStoryText(
       }
       if (scene.documentCard.clauseRef)
         lines.push(`  条款依据：${inline(scene.documentCard.clauseRef)}`);
-      for (const rule of scene.ruleEvaluations)
-        lines.push(
-          paint(
-            rule.satisfied ? 32 : 31,
-            `${rule.satisfied ? '✓' : '✗'} ${inline(rule.ruleName)}：${inline(rule.explanation)}`,
-          ),
-        );
       if (scene.expectation)
         lines.push(
           `${nextHeading(scene)}：${inline(describeStoryExpectation(scene.expectation))}`,

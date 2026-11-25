@@ -19,7 +19,6 @@ const stories: BusinessStoryProjection[] = [
         activity: {
           actor: { roleId: 'seller', roleLabel: '卖方' },
           recipient: { roleId: 'buyer', roleLabel: '买方' },
-          actionVerb: 'submit',
           actionPhrase: '提交《付款申请》',
           workObject: {
             entityId: 'request.payment',
@@ -64,7 +63,6 @@ const stories: BusinessStoryProjection[] = [
           expectedWorkObject: '支付确认',
           isControlGap: true,
         },
-        ruleEvaluations: [],
       },
     ],
   },

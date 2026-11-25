@@ -3,6 +3,7 @@
   "id": "req-escrow-freeze",
   "category": "evidence",
   "kind": "fulfillment_request",
+  "fulfillmentAction": "冻结托管资金",
   "contextRef": "ctx-escrow-settlement",
   "responsibleRoleRef": "role-escrow-depositor",
   "label": "托管冻结请求（Escrow Freeze Request）",

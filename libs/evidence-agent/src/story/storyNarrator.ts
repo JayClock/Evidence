@@ -81,6 +81,7 @@ export const createStoryNarrator = ({
           actor: activity.actor.roleLabel,
           recipient: activity.recipient?.roleLabel,
           actionPhrase: activity.actionPhrase,
+          fulfillment: activity.fulfillment,
           workObject: activity.workObject.entityLabel,
           referenceCode: activity.workObject.referenceCode,
           rejectedExample: activity.rejectedExample,
@@ -115,7 +116,10 @@ export const createStoryNarrator = ({
           purpose: 'narration',
         });
         signal.throwIfAborted();
-        const narrative = NarrationSchema.parse(responseObject(response));
+        const draft = NarrationSchema.parse(responseObject(response));
+        const narrative = activity.fulfillment
+          ? { ...draft, headline: scene.narrative.headline }
+          : draft;
         remember(key, narrative);
         if (store)
           void store.write(new Map([[key, narrative]])).catch(() => undefined);

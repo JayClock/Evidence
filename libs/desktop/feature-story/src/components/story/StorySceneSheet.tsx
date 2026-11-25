@@ -240,8 +240,14 @@ export const StorySceneSheet = ({
                 <>
                   {' '}
                   <span aria-hidden="true">→</span>{' '}
-                  {activity.actionVerb === 'sign' ? '签约方' : '接收方'}：
-                  {activity.recipient.roleLabel}
+                  {activity.fulfillment?.phase === 'request'
+                    ? '义务方'
+                    : activity.fulfillment?.phase === 'confirmation'
+                      ? '权利方'
+                      : activity.workObject.entityKind === 'contract'
+                        ? '签约方'
+                        : '接收方'}
+                  ：{activity.recipient.roleLabel}
                 </>
               ) : null}
             </p>
