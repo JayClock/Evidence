@@ -44,6 +44,7 @@ export async function storyCommand(
   const projector = createFlowStoryProjector({
     skipAi: options.ai === false,
   });
+  // Each projection advances in causal order; history starts fresh for every flow.
   const projections = [];
   for (const flow of flows)
     projections.push(await projector.project(flow, model));

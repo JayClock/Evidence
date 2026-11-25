@@ -21,6 +21,7 @@ import { dispatch } from '../router.js';
 
 vi.mock('@evidence-poc/evidence-agent', () => ({
   createFlowStoryProjector: vi.fn(),
+  describeStoryExpectation: vi.fn(),
 }));
 
 const model = fileURLToPath(
@@ -112,7 +113,7 @@ describe('story command dispatch', () => {
     expect(output[0]).toContain('--workspace');
     expect(output[0]).toContain('default: markdown');
     expect(output[0]).toContain(
-      '--no-ai  Offline fact cards without LLM expansion (default: false)',
+      '--no-ai  Offline storyboard without AI narration (default: false)',
     );
     expect(output[0]).toContain('--compact');
     expect(project).not.toHaveBeenCalled();

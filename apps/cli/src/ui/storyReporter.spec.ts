@@ -1,109 +1,97 @@
+import { expect, it } from 'vitest';
 import type { BusinessStoryProjection } from '@evidence-poc/evidence-agent';
-import { describe, expect, it } from 'vitest';
 import { renderStoryMarkdown, renderStoryText } from './storyReporter.js';
 
-const stories: readonly BusinessStoryProjection[] = [
+const stories: BusinessStoryProjection[] = [
   {
     flowId: 'payment',
-    storyTitle: '采购付款',
-    storySummary: '付款的业务摘要',
-    businessGoal: '核对履约依据',
+    storyTitle: '采购结算',
+    storySummary: '从合同到结算',
+    businessGoal: '核对支付',
     scenes: [
       {
-        stepIndex: 1,
-        stepHash: 'hash',
-        phaseTitle: '卖方提出付款申请',
-        narrative: '供应商发出申请的详细旁白。',
-        narrativeSource: 'model',
-        actingRoleLabel: '供应商',
-        targetEntityLabel: '付款申请单',
+        stepIndex: 2,
+        stepHash: 'internal-hash',
+        timing: {
+          rawIso: '2026-04-01T10:00:00Z',
+          displayDate: '2026年4月1日 10:00 UTC',
+        },
+        activity: {
+          actor: { roleId: 'seller', roleLabel: '卖方' },
+          recipient: { roleId: 'buyer', roleLabel: '买方' },
+          actionVerb: 'submit',
+          actionPhrase: '提交《付款申请》',
+          workObject: {
+            entityId: 'request.payment',
+            entityLabel: '付款申请',
+            entityKind: 'fulfillment_request',
+          },
+        },
+        narrative: {
+          headline: '卖方向买方提交《付款申请》',
+          prose: '依据已签署的合同。\n\n提交给买方。',
+          status: 'authored',
+        },
+        prerequisites: [
+          {
+            previousStepIndex: 1,
+            fromActorLabel: '卖方',
+            workObjectLabel: '合同',
+            businessSummary: '卖方签署《采购合同》',
+          },
+        ],
         documentCard: {
-          title: '付款申请单',
-          fields: [
+          title: '付款申请',
+          keyAttributes: [
             {
               name: 'amount',
               label: '金额',
-              value: '9007199254740993',
-              keyData: true,
-              sourceOrigin: '采购合同',
+              value: '¥500.00',
+              sourceOrigin: '合同',
             },
           ],
-          basisNotes: '采购合同签约示例',
+          generalAttributes: [
+            {
+              name: 'memo',
+              label: '备注',
+              value: '<script>x</script> | [链接](https://example.com)',
+            },
+          ],
         },
-        ruleEvaluations: [
-          { ruleName: '金额一致', explanation: '与依据吻合', satisfied: true },
-          { ruleName: '未超时', explanation: '已逾期', satisfied: false },
-        ],
-        stateTransitionNotice: '等待确认',
-        pendingSuspense: '请问由谁完成付款确认？',
+        expectation: {
+          assignedToRoleLabel: '买方',
+          deadlineNotice: '于4月3日前',
+          expectedWorkObject: '支付确认',
+          isControlGap: true,
+        },
+        ruleEvaluations: [],
       },
     ],
   },
 ];
 
-describe('business story reporters', () => {
-  it('renders Markdown headings, document fields, provenance and gap questions without ANSI codes', () => {
-    const result = renderStoryMarkdown(stories);
-    for (const expected of [
-      '# 业务故事',
-      '## 采购付款',
-      '业务流：payment',
-      '### 1. 卖方提出付款申请',
-      '#### 付款申请单',
-      '| 金额 \\(amount\\) | 9007199254740993 | 是 | 采购合同 |',
-      '采购合同签约示例',
-      '✓ 金额一致',
-      '✗ 未超时',
-      '状态：等待确认',
-      '> 请问由谁完成付款确认？',
-      '不代表已执行验收或规则判定',
-    ])
-      expect(result).toContain(expected);
-    expect(result).not.toContain('\u001b');
-  });
+it('renders a causal storyboard with real paragraphs and safely escaped model values', () => {
+  const result = renderStoryMarkdown(stories);
+  expect(result).toContain('### 2. 卖方向买方提交《付款申请》');
+  expect(result).toContain('承接第 1 步**：卖方签署《采购合同》');
+  expect(result).toContain('依据已签署的合同。\n\n提交给买方。');
+  expect(result).toContain('核心商业要素');
+  expect(result).toContain('业务归档要素');
+  expect(result).toContain('协同闭环待补');
+  expect(result).toContain('于4月3日前');
+  expect(result).toContain('&lt;script&gt;');
+  expect(result).toContain('\\[链接\\]');
+  expect(result).not.toMatch(/<script>|internal-hash|request\.payment|\| ---/u);
+});
 
-  it('escapes Markdown syntax, multiline table cells and HTML in user data', () => {
-    const hostile = structuredClone(stories);
-    Object.assign(hostile[0]!.scenes[0]!.documentCard.fields[0]!, {
-      value: 'a|b\n<script>*x*</script>\\`code`',
-    });
-    const result = renderStoryMarkdown(hostile);
-    expect(result).toContain(
-      'a\\|b<br>&lt;script&gt;\\*x\\*&lt;/script&gt;\\\\\\`code\\`',
-    );
-    expect(result).not.toContain('<script>');
-  });
-
-  it.each([false, true])('renders text cards with color=%s', (color) => {
-    const result = renderStoryText(stories, { color });
-    expect(result.includes('\u001b[')).toBe(color);
-    for (const expected of [
-      '┌─ 付款申请单',
-      '│ 金额: 9007199254740993',
-      '来源：采购合同',
-      '请问由谁完成付款确认？',
-    ])
-      expect(result).toContain(expected);
-  });
-
-  it('compacts prose and borders without losing fields, basis, rules or suspense', () => {
-    for (const render of [
-      () => renderStoryMarkdown(stories, { compact: true }),
-      () => renderStoryText(stories, { compact: true, color: false }),
-    ]) {
-      const result = render();
-      expect(result).not.toContain(stories[0]!.storySummary);
-      expect(result).not.toContain(stories[0]!.scenes[0]!.narrative);
-      expect(result).not.toContain('┌');
-      expect(result).toContain('9007199254740993');
-      expect(result).toContain('采购合同签约示例');
-      expect(result).toContain('金额一致');
-      expect(result).toContain('请问由谁完成付款确认？');
-    }
-  });
-
-  it('explains empty models', () => {
-    expect(renderStoryMarkdown([])).toContain('未检测到');
-    expect(renderStoryText([], { color: false })).toContain('未检测到');
-  });
+it('keeps the causal rails and commercial values in compact text, without adding color to plain output', () => {
+  const plain = renderStoryText(stories, { compact: true, color: false });
+  expect(plain).toContain('承接第 1 步：卖方签署《采购合同》');
+  expect(plain).toContain('金额：¥500.00');
+  expect(plain).toContain('业务归档要素');
+  expect(plain).toContain('协同闭环待补');
+  expect(plain).not.toContain('提交给买方。');
+  expect(plain).not.toContain('\u001b');
+  expect(renderStoryText(stories, { color: true })).toContain('\u001b');
+  expect(renderStoryMarkdown([])).toContain('未检测到');
 });

@@ -43,7 +43,7 @@ export function createCli(context: CommandContext = defaultContext()): CAC {
       default: 'markdown',
     })
     .option('--export', 'Write to .evidence/stories')
-    .option('--no-ai', 'Offline fact cards without LLM expansion')
+    .option('--no-ai', 'Offline storyboard without AI narration')
     .option('--compact', 'Compact stories (single-line JSON)')
     .action((options: CommandOptions) => storyCommand(options, context));
   cli

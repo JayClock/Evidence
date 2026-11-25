@@ -82,22 +82,36 @@ describe('built evidence story binary', () => {
     expect(payment?.scenes.map((scene) => scene.stepIndex)).toEqual([
       1, 2, 3, 4,
     ]);
-    expect(payment?.scenes.map((scene) => scene.targetEntityLabel)).toEqual([
+    expect(
+      payment?.scenes.map((scene) => scene.activity.workObject.entityLabel),
+    ).toEqual([
       'Agreement',
       'payment request',
       'payment confirmation',
       'payment confirmation',
     ]);
-    expect(payment?.scenes[2]?.documentCard.fields).toContainEqual({
+    expect(payment?.scenes[2]?.documentCard.generalAttributes).toContainEqual({
       name: 'total_amount',
       label: 'total_amount',
       value: '500',
-      keyData: false,
     });
+    expect(payment?.scenes[2]?.prerequisites).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          previousStepIndex: 2,
+          workObjectLabel: 'payment request',
+        }),
+      ]),
+    );
+    expect(
+      payment?.scenes.some((scene) => scene.activity.rejectedExample),
+    ).toBe(true);
     expect(
       payment?.scenes.every((scene) => scene.ruleEvaluations.length === 0),
     ).toBe(true);
-    expect(payment?.scenes.some((scene) => scene.pendingSuspense)).toBe(true);
+    expect(
+      payment?.scenes.some((scene) => scene.expectation?.isControlGap),
+    ).toBe(true);
     expect((await invoke(args)).stdout).toBe(result.stdout);
     expect(readdirSync(root)).toEqual(['.evidence']);
     expect(result.stdout).not.toContain('\u001b');
@@ -108,7 +122,9 @@ describe('built evidence story binary', () => {
     expect(fromTree.code, fromTree.stderr).toBe(0);
     expect(fromTree.stdout).toMatch(/^# 业务故事\n/u);
     expect(fromTree.stdout).toContain('### 1.');
-    expect(fromTree.stdout).toContain('| 字段 | 值 | 关键数据 | 来源 |');
+    expect(fromTree.stdout).toContain('承接第 2 步');
+    expect(fromTree.stdout).toContain('业务归档要素');
+    expect(fromTree.stdout).not.toContain('request.payment#requested');
     expect(fromTree.stdout).not.toContain('\u001b');
   });
 
@@ -163,7 +179,7 @@ describe('built evidence story binary', () => {
         expect(stories(content)[0]?.flowId).toBe('payment');
       if (format === 'markdown')
         expect(content).toContain('#### payment request');
-      if (format === 'text') expect(content).toContain('┌─ payment request');
+      if (format === 'text') expect(content).toContain('单据：payment request');
     },
   );
 
@@ -178,9 +194,10 @@ describe('built evidence story binary', () => {
     const shortText = await invoke([...args, '--format', 'text', '--compact']);
     expect(fullText.code, fullText.stderr).toBe(0);
     expect(shortText.code, shortText.stderr).toBe(0);
-    expect(shortText.stdout).toContain('total_amount: 500');
-    expect(shortText.stdout).toContain('声明依据：request.payment#requested');
-    expect(shortText.stdout).toContain('业务待决悬念');
+    expect(shortText.stdout).toContain('total_amount：500');
+    expect(shortText.stdout).toContain('承接第 2 步');
+    expect(shortText.stdout).toContain('协同闭环待补');
+    expect(shortText.stdout).not.toContain('request.payment#requested');
     expect(shortText.stdout.length).toBeLessThan(fullText.stdout.length);
     expect(shortText.stdout).not.toContain('┌');
     expect(fullText.stdout).not.toContain('\u001b');
