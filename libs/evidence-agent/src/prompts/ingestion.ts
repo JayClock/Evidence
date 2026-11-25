@@ -33,6 +33,8 @@ export const INGESTION_PROMPT = `# 把业务叙述读成履约草稿
 - **法务条款不许改写成履约。** 读不到业务动作的句子就留在模型之外；宁可少一个凭证，也不要把一条免责声明变成义务。
 - **合约只有两个角色。** 其他参与人（财务、库管、销售）是 \`participants\`，通过 \`roles\` 的 \`playedByParticipantRef\` 扮演合约的两方；不要为每个人新建角色。
 - **一个时刻只能承担一次确认。** 时段类凭证（\`rfp\`、\`proposal\`、\`fulfillment_request\`）不能当作履约完成的结果。
+- **实体名称使用业务语言。** 所有实体（\`contexts\`、\`participants\`、\`roles\`、\`things\`、\`evidences\`）的 \`label\` 必须采用「业务中文名（English Business Name）」格式，英文名用全角括号包裹。例如：买方（Buyer）、销售总监（Sales Director）、付款申请书（Payment Request）。只用业务人员日常使用的名称，不补造组织或单据。
+- **实体 \`label\` 禁用分类词。** 不得包含「角色」「当事人」「上下文」「标的物」或英文「Role」「Party」「Context」「Thing」（不区分大小写）。分类由 \`category\` / \`kind\` 等结构化字段表达，不要拼入名称。
 - **只输出 JSON。** 不要 Markdown 代码块以外的任何文字。
 
 ## 输出形状
@@ -42,11 +44,11 @@ export const INGESTION_PROMPT = `# 把业务叙述读成履约草稿
   "modelName": "业务名称",
   "description": "一句话说明这份草稿覆盖的业务范围",
   "source": "contract | prd | interview | unknown",
-  "contexts": [{ "id": "context.x", "label": "上下文名称", "kind": "contract | pre_contract | domain", "parentContextRef": "context.x", "rootRefs": ["contract.x"], "provenance": { "text": "原句", "locator": "第 1 句" } }],
-  "participants": [{ "id": "party.x", "label": "当事人", "kind": "party" }],
-  "roles": [{ "id": "role.x", "label": "角色", "kind": "party", "contextRef": "context.x", "playedByParticipantRef": "party.x" }],
-  "things": [{ "id": "thing.x", "label": "标的物", "meaning": "业务含义", "contextRef": "context.domain", "domainRole": "calculator | checker" }],
-  "evidences": [{ "id": "contract.x", "label": "凭证名称", "kind": "rfp | proposal | contract | fulfillment_request | fulfillment_confirmation | other_evidence", "contextRef": "context.x", "responsibleRoleRef": "role.x", "roleRefs": ["role.a", "role.b"], "attributes": [{ "name": "signed_at", "label": "签署时间", "meaning": "谁在什么业务动作中给出", "valueType": "timestamp", "required": true, "keyData": true }], "provenance": { "text": "原句", "locator": "第 1 句" } }],
+  "contexts": [{ "id": "context.x", "label": "设备采购（Equipment Procurement）", "kind": "contract | pre_contract | domain", "parentContextRef": "context.x", "rootRefs": ["contract.x"], "provenance": { "text": "原句", "locator": "第 1 句" } }],
+  "participants": [{ "id": "party.x", "label": "采购商（Purchaser）", "kind": "party" }],
+  "roles": [{ "id": "role.x", "label": "买方（Buyer）", "kind": "party", "contextRef": "context.x", "playedByParticipantRef": "party.x" }],
+  "things": [{ "id": "thing.x", "label": "设备核验器（Equipment Checker）", "meaning": "业务含义", "contextRef": "context.domain", "domainRole": "calculator | checker" }],
+  "evidences": [{ "id": "contract.x", "label": "采购协议（Procurement Agreement）", "kind": "rfp | proposal | contract | fulfillment_request | fulfillment_confirmation | other_evidence", "contextRef": "context.x", "responsibleRoleRef": "role.x", "roleRefs": ["role.a", "role.b"], "attributes": [{ "name": "signed_at", "label": "签署时间", "meaning": "谁在什么业务动作中给出", "valueType": "timestamp", "required": true, "keyData": true }], "provenance": { "text": "原句", "locator": "第 1 句" } }],
   "fulfillmentPairs": [{ "id": "pair.x", "label": "请求 → 确认", "requestRef": "request.x", "confirmationRef": "confirmation.x", "proofRef": "evidence.x", "description": "这一对交付什么" }],
   "breachCompensations": [{ "id": "breach.x", "label": "违约处理", "triggeredByPairRef": "pair.x", "compensationPairRef": "pair.y", "conditionDescription": "什么情况下触发" }],
   "relationships": [{ "id": "relation.x", "kind": "references | plays_role", "sourceRef": "confirmation.x", "targetRef": "request.x", "label": "确认引用所属请求" }]

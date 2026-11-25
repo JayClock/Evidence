@@ -28,13 +28,48 @@ describe('starter models', () => {
     },
   );
 
-  it.each(VALID_TEMPLATES)('uses the caller name and id in %s', (templateId) => {
-    const document = createStarterDocument(templateId, starterContext);
+  it.each(VALID_TEMPLATES)(
+    'uses the caller name and id in %s',
+    (templateId) => {
+      const document = createStarterDocument(templateId, starterContext);
 
-    expect(document.manifest.id).toBe('procurement-demo');
-    expect(document.manifest.name).toBe('采购履约模型');
-    expect(document.manifest.entryContextRefs.length).toBeGreaterThan(0);
-  });
+      expect(document.manifest.id).toBe('procurement-demo');
+      expect(document.manifest.name).toBe('采购履约模型');
+      expect(document.manifest.entryContextRefs.length).toBeGreaterThan(0);
+    },
+  );
+
+  it.each(VALID_TEMPLATES)(
+    'uses bilingual business labels throughout %s',
+    (templateId) => {
+      const { entities } = createStarterDocument(templateId, starterContext);
+
+      for (const { id, label } of entities) {
+        expect(label, id).toMatch(
+          /^.*\p{Script=Han}.*（[A-Za-z0-9 &/\-.]+）$/u,
+        );
+        expect(label, id).not.toMatch(
+          /角色|当事人|上下文|标的物|Role|Party|Context|Thing/iu,
+        );
+      }
+    },
+  );
+
+  it.each([
+    ['procurement', 'role.buyer', '买方（Buyer）'],
+    ['procurement', 'role.seller', '卖方（Seller）'],
+    ['subscription', 'role.reader', '订阅用户（Subscriber）'],
+    ['subscription', 'role.publisher', '专栏出版方（Publisher）'],
+    ['service_blueprint', 'role.client', '委托客户（Client）'],
+    ['service_blueprint', 'role.provider', '咨询机构（Consulting Provider）'],
+  ] as const)(
+    'uses the business name in %s for %s',
+    (templateId, id, label) => {
+      const { entities } = createStarterDocument(templateId, starterContext);
+
+      expect(entities.find((entity) => entity.id === id)?.label).toBe(label);
+    },
+  );
 
   it('keeps the blank template empty on purpose', () => {
     const document = createStarterDocument('blank', starterContext);

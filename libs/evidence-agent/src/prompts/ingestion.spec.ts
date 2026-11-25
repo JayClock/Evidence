@@ -8,11 +8,19 @@ import {
 
 describe('the extraction prompt', () => {
   it('states the five readings in the order the method requires', () => {
-    const anchors = ['先找合约', '合约前的上下文', '成对读履约', '违约读成新履约', '分离标的物'];
+    const anchors = [
+      '先找合约',
+      '合约前的上下文',
+      '成对读履约',
+      '违约读成新履约',
+      '分离标的物',
+    ];
     const positions = anchors.map((anchor) => INGESTION_PROMPT.indexOf(anchor));
 
     expect(positions.every((position) => position >= 0)).toBe(true);
-    expect([...positions].sort((left, right) => left - right)).toEqual(positions);
+    expect([...positions].sort((left, right) => left - right)).toEqual(
+      positions,
+    );
   });
 
   it('names the evidence kinds the compiler writes', () => {
@@ -32,6 +40,16 @@ describe('the extraction prompt', () => {
     expect(INGESTION_PROMPT).toContain('不臆造事实');
     expect(INGESTION_PROMPT).toContain('合约只有两个角色');
     expect(INGESTION_PROMPT).toContain('不要补一个想象中的确认');
+  });
+
+  it('requires bilingual business labels and forbids metamodel names in labels', () => {
+    expect(INGESTION_PROMPT).toContain('业务中文名（English Business Name）');
+    expect(INGESTION_PROMPT).toContain('全角括号');
+    expect(INGESTION_PROMPT).toContain(
+      '不得包含「角色」「当事人」「上下文」「标的物」或英文「Role」「Party」「Context」「Thing」',
+    );
+    expect(INGESTION_PROMPT).toContain('"label": "买方（Buyer）"');
+    expect(INGESTION_PROMPT).toContain('付款申请书（Payment Request）');
   });
 
   it('requires the sentence every element was read from', () => {

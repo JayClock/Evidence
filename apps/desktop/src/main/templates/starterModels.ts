@@ -211,7 +211,7 @@ const sourcingContext = (
 ): ContextEntityAST =>
   preContractContext(
     'context.sourcing',
-    '询报价上下文',
+    '商品询报价（Product Sourcing）',
     [rfpRef],
     parentContextRef,
   );
@@ -222,7 +222,7 @@ const sourcingEntities = (): EntityAST[] => [
     id: 'rfp.product-inquiry',
     category: 'evidence',
     kind: 'rfp',
-    label: '商品询价',
+    label: '商品询价（Product Inquiry）',
     contextRef: 'context.sourcing',
     responsibleRoleRef: 'role.buyer',
     attributes: [
@@ -246,7 +246,7 @@ const sourcingEntities = (): EntityAST[] => [
     id: 'proposal.product-quotation',
     category: 'evidence',
     kind: 'proposal',
-    label: '商品报价',
+    label: '商品报价（Product Quotation）',
     contextRef: 'context.sourcing',
     responsibleRoleRef: 'role.seller',
     attributes: [
@@ -289,7 +289,7 @@ const procurementTemplate = (context: StarterContext): DomainModelDocument => ({
       '公对公商品采购履约起点：询价与报价、采购协议、发货/支付/开票三组履约项，以及标的物所在的商品目录上下文。',
   },
   entities: [
-    contractContext('context.procurement', '采购协议上下文', [
+    contractContext('context.procurement', '商品采购（Product Procurement）', [
       'contract.procurement',
     ]),
     {
@@ -297,7 +297,7 @@ const procurementTemplate = (context: StarterContext): DomainModelDocument => ({
       id: 'contract.procurement',
       category: 'evidence',
       kind: 'contract',
-      label: '商品采购协议',
+      label: '商品采购协议（Product Procurement Agreement）',
       contextRef: 'context.procurement',
       roleRefs: ['role.buyer', 'role.seller'],
       attributes: [
@@ -316,16 +316,16 @@ const procurementTemplate = (context: StarterContext): DomainModelDocument => ({
         ),
       ],
     },
-    partyRole('role.buyer', '买方', 'context.procurement'),
-    partyRole('role.seller', '卖方', 'context.procurement'),
-    party('party.buyer-agent', '买方采购员'),
-    party('party.seller-sales', '卖方销售'),
+    partyRole('role.buyer', '买方（Buyer）', 'context.procurement'),
+    partyRole('role.seller', '卖方（Seller）', 'context.procurement'),
+    party('party.buyer-agent', '买方采购员（Purchasing Agent）'),
+    party('party.seller-sales', '卖方销售（Sales Representative）'),
     sourcingContext('context.procurement', 'rfp.product-inquiry'),
     ...sourcingEntities(),
     evidence(
       'request.payment',
       'fulfillment_request',
-      '支付申请',
+      '支付申请（Payment Request）',
       'context.procurement',
       'role.seller',
       [
@@ -352,7 +352,7 @@ const procurementTemplate = (context: StarterContext): DomainModelDocument => ({
     evidence(
       'confirmation.payment',
       'fulfillment_confirmation',
-      '支付确认',
+      '支付确认（Payment Confirmation）',
       'context.procurement',
       'role.buyer',
       [
@@ -373,7 +373,7 @@ const procurementTemplate = (context: StarterContext): DomainModelDocument => ({
     evidence(
       'request.delivery',
       'fulfillment_request',
-      '发货申请',
+      '发货申请（Dispatch Request）',
       'context.procurement',
       'role.buyer',
       [
@@ -400,7 +400,7 @@ const procurementTemplate = (context: StarterContext): DomainModelDocument => ({
     evidence(
       'confirmation.delivery',
       'fulfillment_confirmation',
-      '发货确认',
+      '发货确认（Dispatch Confirmation）',
       'context.procurement',
       'role.seller',
       [
@@ -416,7 +416,7 @@ const procurementTemplate = (context: StarterContext): DomainModelDocument => ({
     evidence(
       'evidence.delivery-note',
       'other_evidence',
-      '发货单',
+      '发货单（Dispatch Note）',
       'context.procurement',
       'role.seller',
       [
@@ -431,7 +431,7 @@ const procurementTemplate = (context: StarterContext): DomainModelDocument => ({
     evidence(
       'request.invoice',
       'fulfillment_request',
-      '开票申请',
+      '开票申请（Invoice Request）',
       'context.procurement',
       'role.buyer',
       [
@@ -458,7 +458,7 @@ const procurementTemplate = (context: StarterContext): DomainModelDocument => ({
     evidence(
       'confirmation.invoice',
       'fulfillment_confirmation',
-      '开票确认',
+      '开票确认（Invoice Issuance Confirmation）',
       'context.procurement',
       'role.seller',
       [
@@ -479,7 +479,7 @@ const procurementTemplate = (context: StarterContext): DomainModelDocument => ({
     evidence(
       'evidence.invoice',
       'other_evidence',
-      '发票',
+      '发票（Invoice）',
       'context.procurement',
       'role.seller',
       [
@@ -491,13 +491,15 @@ const procurementTemplate = (context: StarterContext): DomainModelDocument => ({
         ),
       ],
     ),
-    domainContext('context.catalog', '商品目录上下文', ['thing.product']),
+    domainContext('context.catalog', '商品目录（Product Catalog）', [
+      'thing.product',
+    ]),
     {
       type: 'entity',
       id: 'thing.product',
       category: 'participant',
       kind: 'thing',
-      label: '商品',
+      label: '商品（Product）',
       contextRef: 'context.catalog',
       attributes: [
         keyAttribute(
@@ -509,7 +511,11 @@ const procurementTemplate = (context: StarterContext): DomainModelDocument => ({
         keyAttribute('name', '商品名称', '商品的业务名称', 'string'),
       ],
     },
-    domainRole('role.catalog-item', '目录商品', 'context.catalog'),
+    domainRole(
+      'role.catalog-item',
+      '目录商品（Catalog Item）',
+      'context.catalog',
+    ),
   ],
   relationships: [
     references(
@@ -650,7 +656,7 @@ const subscriptionTemplate = (
       '内容订阅履约起点：订阅协议下的付款与内容访问两组履约项，断更补偿作为违约触发的履约项，付款由独立的支付协议上下文支撑。',
   },
   entities: [
-    contractContext('context.subscription', '专栏订阅合同上下文', [
+    contractContext('context.subscription', '专栏订阅（Column Subscription）', [
       'contract.subscription',
     ]),
     {
@@ -658,7 +664,7 @@ const subscriptionTemplate = (
       id: 'contract.subscription',
       category: 'evidence',
       kind: 'contract',
-      label: '专栏订阅合同',
+      label: '专栏订阅合同（Column Subscription Agreement）',
       contextRef: 'context.subscription',
       roleRefs: ['role.reader', 'role.publisher'],
       attributes: [
@@ -682,14 +688,18 @@ const subscriptionTemplate = (
         ),
       ],
     },
-    partyRole('role.reader', '读者', 'context.subscription'),
-    partyRole('role.publisher', '内容方', 'context.subscription'),
-    party('party.reader', '读者'),
-    party('party.publisher-editor', '专栏编辑'),
+    partyRole('role.reader', '订阅用户（Subscriber）', 'context.subscription'),
+    partyRole(
+      'role.publisher',
+      '专栏出版方（Publisher）',
+      'context.subscription',
+    ),
+    party('party.reader', '订阅用户（Subscriber）'),
+    party('party.publisher-editor', '专栏编辑（Column Editor）'),
     evidence(
       'request.pay-subscription',
       'fulfillment_request',
-      '订阅付款申请',
+      '订阅付款申请（Subscription Payment Request）',
       'context.subscription',
       'role.publisher',
       [
@@ -716,7 +726,7 @@ const subscriptionTemplate = (
     evidence(
       'confirmation.pay-subscription',
       'fulfillment_confirmation',
-      '订阅付款确认',
+      '订阅付款确认（Subscription Payment Confirmation）',
       'context.subscription',
       'role.reader',
       [
@@ -737,7 +747,7 @@ const subscriptionTemplate = (
     evidence(
       'request.content-access',
       'fulfillment_request',
-      '付费内容访问申请',
+      '付费内容访问申请（Paid Content Access Request）',
       'context.subscription',
       'role.reader',
       [
@@ -758,7 +768,7 @@ const subscriptionTemplate = (
     evidence(
       'confirmation.content-unlocked',
       'fulfillment_confirmation',
-      '付费内容放行确认',
+      '付费内容放行确认（Paid Content Access Confirmation）',
       'context.subscription',
       'role.publisher',
       [
@@ -773,7 +783,7 @@ const subscriptionTemplate = (
     evidence(
       'request.discontinue-refund',
       'fulfillment_request',
-      '断更退款申请',
+      '断更退款申请（Discontinuation Refund Request）',
       'context.subscription',
       'role.reader',
       [
@@ -800,7 +810,7 @@ const subscriptionTemplate = (
     evidence(
       'confirmation.refund-completed',
       'fulfillment_confirmation',
-      '退款完成确认',
+      '退款完成确认（Refund Completion Confirmation）',
       'context.subscription',
       'role.publisher',
       [
@@ -818,7 +828,7 @@ const subscriptionTemplate = (
         ),
       ],
     ),
-    contractContext('context.payment-support', '移动支付协议上下文', [
+    contractContext('context.payment-support', '移动支付（Mobile Payments）', [
       'contract.payment-support',
     ]),
     {
@@ -826,7 +836,7 @@ const subscriptionTemplate = (
       id: 'contract.payment-support',
       category: 'evidence',
       kind: 'contract',
-      label: '移动支付用户协议',
+      label: '移动支付用户协议（Mobile Payment User Agreement）',
       contextRef: 'context.payment-support',
       roleRefs: ['role.payer', 'role.payment-provider'],
       attributes: [
@@ -838,13 +848,20 @@ const subscriptionTemplate = (
         ),
       ],
     },
-    partyRole('role.payer', '付款用户', 'context.payment-support'),
-    partyRole('role.payment-provider', '支付服务商', 'context.payment-support'),
-    party('party.payment-provider-operator', '支付服务商运营'),
+    partyRole('role.payer', '付款用户（Payer）', 'context.payment-support'),
+    partyRole(
+      'role.payment-provider',
+      '支付服务商（Payment Provider）',
+      'context.payment-support',
+    ),
+    party(
+      'party.payment-provider-operator',
+      '支付服务商运营（Payment Operations Specialist）',
+    ),
     evidence(
       'request.charge',
       'fulfillment_request',
-      '扣款申请',
+      '扣款申请（Charge Request）',
       'context.payment-support',
       'role.payment-provider',
       [
@@ -871,7 +888,7 @@ const subscriptionTemplate = (
     evidence(
       'confirmation.charge',
       'fulfillment_confirmation',
-      '扣款确认',
+      '扣款确认（Charge Confirmation）',
       'context.payment-support',
       'role.payer',
       [
@@ -889,13 +906,15 @@ const subscriptionTemplate = (
         ),
       ],
     ),
-    domainContext('context.course-catalog', '专栏目录上下文', ['thing.column']),
+    domainContext('context.course-catalog', '专栏目录（Column Catalog）', [
+      'thing.column',
+    ]),
     {
       type: 'entity',
       id: 'thing.column',
       category: 'participant',
       kind: 'thing',
-      label: '专栏',
+      label: '专栏（Column）',
       contextRef: 'context.course-catalog',
       attributes: [
         keyAttribute(
@@ -907,7 +926,11 @@ const subscriptionTemplate = (
         keyAttribute('title', '专栏标题', '专栏的业务标题', 'string'),
       ],
     },
-    domainRole('role.catalog-column', '目录专栏', 'context.course-catalog'),
+    domainRole(
+      'role.catalog-column',
+      '目录专栏（Catalog Column）',
+      'context.course-catalog',
+    ),
   ],
   relationships: [
     references(
@@ -1056,7 +1079,7 @@ const serviceBlueprintTemplate = (
       '服务蓝图变种的建模起点：把蓝图里的阶段、活动与交互产物落到询价、服务合同与交付验收这一条最小链路上，供工作坊继续补充后台行为与违约补偿。',
   },
   entities: [
-    contractContext('context.engagement', '服务合同上下文', [
+    contractContext('context.engagement', '服务委托（Service Engagement）', [
       'contract.engagement',
     ]),
     {
@@ -1064,7 +1087,7 @@ const serviceBlueprintTemplate = (
       id: 'contract.engagement',
       category: 'evidence',
       kind: 'contract',
-      label: '服务合同',
+      label: '服务合同（Service Agreement）',
       contextRef: 'context.engagement',
       roleRefs: ['role.client', 'role.provider'],
       attributes: [
@@ -1083,13 +1106,17 @@ const serviceBlueprintTemplate = (
         ),
       ],
     },
-    partyRole('role.client', '客户', 'context.engagement'),
-    partyRole('role.provider', '服务方', 'context.engagement'),
-    party('party.client-contact', '客户对接人'),
-    party('party.provider-owner', '服务负责人'),
+    partyRole('role.client', '委托客户（Client）', 'context.engagement'),
+    partyRole(
+      'role.provider',
+      '咨询机构（Consulting Provider）',
+      'context.engagement',
+    ),
+    party('party.client-contact', '客户对接人（Client Contact）'),
+    party('party.provider-owner', '服务负责人（Service Lead）'),
     preContractContext(
       'context.sourcing',
-      '方案征询上下文',
+      '服务寻源（Service Sourcing）',
       ['rfp.service-inquiry'],
       'context.engagement',
     ),
@@ -1098,7 +1125,7 @@ const serviceBlueprintTemplate = (
       id: 'rfp.service-inquiry',
       category: 'evidence',
       kind: 'rfp',
-      label: '服务方案征询',
+      label: '服务方案征询（Service RFP）',
       contextRef: 'context.sourcing',
       responsibleRoleRef: 'role.client',
       attributes: [
@@ -1121,7 +1148,7 @@ const serviceBlueprintTemplate = (
       id: 'proposal.service-proposal',
       category: 'evidence',
       kind: 'proposal',
-      label: '服务方案',
+      label: '服务方案（Service Proposal）',
       contextRef: 'context.sourcing',
       responsibleRoleRef: 'role.provider',
       attributes: [
@@ -1142,7 +1169,7 @@ const serviceBlueprintTemplate = (
     evidence(
       'request.service-delivery',
       'fulfillment_request',
-      '服务交付申请',
+      '服务交付申请（Service Delivery Request）',
       'context.engagement',
       'role.client',
       [
@@ -1163,7 +1190,7 @@ const serviceBlueprintTemplate = (
     evidence(
       'confirmation.service-acceptance',
       'fulfillment_confirmation',
-      '服务验收确认',
+      '服务验收确认（Service Acceptance Confirmation）',
       'context.engagement',
       'role.provider',
       [
@@ -1184,7 +1211,7 @@ const serviceBlueprintTemplate = (
     evidence(
       'evidence.acceptance-form',
       'other_evidence',
-      '验收单',
+      '验收单（Acceptance Form）',
       'context.engagement',
       'role.provider',
       [
@@ -1196,7 +1223,7 @@ const serviceBlueprintTemplate = (
         ),
       ],
     ),
-    domainContext('context.service-catalog', '服务目录上下文', [
+    domainContext('context.service-catalog', '服务目录（Service Catalog）', [
       'thing.service',
     ]),
     {
@@ -1204,7 +1231,7 @@ const serviceBlueprintTemplate = (
       id: 'thing.service',
       category: 'participant',
       kind: 'thing',
-      label: '服务项',
+      label: '服务项（Service Item）',
       contextRef: 'context.service-catalog',
       attributes: [
         keyAttribute(
@@ -1216,7 +1243,11 @@ const serviceBlueprintTemplate = (
         keyAttribute('title', '服务名称', '服务的业务名称', 'string'),
       ],
     },
-    domainRole('role.catalog-service', '目录服务项', 'context.service-catalog'),
+    domainRole(
+      'role.catalog-service',
+      '目录服务项（Catalog Service）',
+      'context.service-catalog',
+    ),
   ],
   relationships: [
     references(
