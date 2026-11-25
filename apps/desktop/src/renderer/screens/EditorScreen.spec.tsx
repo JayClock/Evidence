@@ -249,6 +249,10 @@ describe('EditorScreen', () => {
     );
     expect(screen.queryByRole('dialog', { name: '业务场景推演' })).toBeNull();
     expect(screen.getByLabelText('选择业务流')).toHaveValue('正常签约案例');
+    const details = screen.getByRole('region', { name: '剧情详情' });
+    expect(
+      await within(details).findByRole('heading', { name: '正常签约案例' }),
+    ).toBeVisible();
     expect(api.calls.persistence).toHaveLength(submitted);
   });
   it('opens canvas storming from the directory without submitting an empty business example', async () => {
@@ -1160,7 +1164,7 @@ describe('EditorScreen', () => {
     expect(api.calls.persistence).toHaveLength(0);
   });
 
-  it('starts from the command palette and exits with Escape without clearing selection', async () => {
+  it('opens a collapsed rail from the command palette and exits from the rail with one Escape', async () => {
     const api = readyProject(createDesktopStoryFixture());
     api.story.load = vi.fn(async () => storySnapshot());
     const { container } = render(
@@ -1169,14 +1173,47 @@ describe('EditorScreen', () => {
     await readyCanvas();
     const node = container.querySelector('[data-node-id="evidence.contract"]')!;
     fireEvent.click(node);
+    const inspector = screen.getByRole('region', { name: '实体属性检视' });
+    fireEvent.keyDown(node, { key: 'i', metaKey: true });
+    expect(inspector).toHaveAttribute('inert');
     fireEvent.click(screen.getByRole('button', { name: '打开快速命令' }));
     fireEvent.click(await screen.findByRole('option', { name: /放映业务流/ }));
-    await screen.findByRole('slider', { name: '业务时间' });
-    fireEvent.keyDown(window, { key: 'Escape' });
+    const details = screen.getByRole('region', { name: '剧情详情' });
+    expect(details).not.toHaveAttribute('inert');
+    expect(
+      await within(details).findByRole('article', { name: '领域故事' }),
+    ).toBeVisible();
+    const back = within(details).getByRole('button', { name: '返回画布' });
+    act(() => back.focus());
+    fireEvent.keyDown(back, { key: 'Escape' });
     expect(screen.queryByLabelText('业务流放映控制')).toBeNull();
+    expect(screen.queryByRole('region', { name: '剧情详情' })).toBeNull();
+    expect(screen.getByRole('region', { name: '实体属性检视' })).toBeVisible();
     expect(node).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: '放映业务流' })).toHaveFocus();
     expect(api.calls.persistence).toHaveLength(0);
+  });
+
+  it('shows loading, failure and retry in the same details rail', async () => {
+    const api = readyProject(createDesktopStoryFixture());
+    api.story.load = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('故事快照暂不可用'))
+      .mockResolvedValue(storySnapshot());
+    render(<EditorScreen rootPath="/models/procurement" />);
+    await readyCanvas();
+    fireEvent.click(screen.getByRole('button', { name: '放映业务流' }));
+    const details = within(screen.getByRole('region', { name: '剧情详情' }));
+    expect(details.getByRole('status')).toHaveTextContent('正在读取业务流');
+    expect(await details.findByRole('alert')).toHaveTextContent(
+      '故事快照暂不可用',
+    );
+    fireEvent.click(details.getByRole('button', { name: '重试放映' }));
+    expect(
+      await details.findByRole('article', { name: '领域故事' }),
+    ).toBeVisible();
+    expect(details.queryByRole('alert')).toBeNull();
+    expect(api.story.load).toHaveBeenCalledTimes(2);
   });
 
   it('stops automatic playback when entering the ledger and does not resume on return', async () => {
@@ -1190,11 +1227,14 @@ describe('EditorScreen', () => {
     await screen.findByRole('slider', { name: '业务时间' });
     fireEvent.click(screen.getByRole('button', { name: '自动播放' }));
     expect(screen.getByRole('button', { name: '暂停放映' })).toBeVisible();
+    expect(screen.getByRole('region', { name: '剧情详情' })).toBeVisible();
     fireEvent.keyDown(window, { key: '1', metaKey: true });
     expect(screen.getByLabelText('领域模型总台账')).toBeVisible();
+    expect(screen.queryByRole('region', { name: '剧情详情' })).toBeNull();
     expect(unsubscribe).toHaveBeenCalledOnce();
     fireEvent.keyDown(window, { code: 'Digit1', altKey: true });
     expect(screen.queryByLabelText('业务流放映控制')).toBeNull();
+    expect(screen.getByRole('region', { name: '实体属性检视' })).toBeVisible();
     expect(screen.getByRole('button', { name: '放映业务流' })).toBeEnabled();
     expect(api.story.load).toHaveBeenCalledOnce();
   });
