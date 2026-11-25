@@ -5,7 +5,7 @@ description: evidence 如何从 FM 模型导出 OpenAPI 与 Bruno 集合，对�
 tags: [cli, acceptance, governance, bruno, oasdiff, drift, ci]
 verified:
   - by: openwiki/0.9.0
-    at: 2026-11-24T13:07:09.861Z
+    at: 2026-11-25T01:33:08.568Z
 sources:
   - id: openwiki-source-164e2da859b5277df81c7d94
     resource: repo://.github/workflows/ci.yml
@@ -25,21 +25,31 @@ sources:
     resource: repo://apps/cli/src/router.ts
   - id: openwiki-source-02a26c76270021edd7d42c0b
     resource: repo://apps/cli/tests/governance.e2e.spec.ts
-  - id: openwiki-source-0e5f54b2760a7fffae7e836c
-    resource: repo://apps/cli/tests/story-command.e2e.spec.ts
+  - id: openwiki-source-e9f3db93565f2ef43eb5bb8c
+    resource: repo://apps/desktop/src/main/storyIpc.ts
+  - id: openwiki-source-04b37141fc6924223b4b68e1
+    resource: repo://libs/desktop/feature-story/src/state/useStoryNarration.ts
+  - id: openwiki-source-43eb7034377ae7c409649f49
+    resource: repo://libs/desktop/feature-story/src/state/useStoryPlayback.spec.tsx
   - id: openwiki-source-cfb863e81258afec257b30c8
     resource: repo://libs/evidence-acceptance/src/runner/acceptanceRunner.ts
   - id: openwiki-source-706dba0858eef2721b63a216
     resource: repo://libs/evidence-acceptance/src/runner/driftInspector.ts
   - id: openwiki-source-a2d80ddb56c0c51c2eb2ba47
     resource: repo://libs/evidence-acceptance/src/runner/suiteSelection.ts
+  - id: openwiki-source-ece7f3389ee03e6d65881863
+    resource: repo://libs/evidence-agent/src/story/flowStoryProjector.ts
+  - id: openwiki-source-3835794d59c54a34f91612aa
+    resource: repo://libs/evidence-agent/src/story/storyContinuity.ts
+  - id: openwiki-source-fa38c71722f723d8640319b9
+    resource: repo://libs/evidence-agent/src/story/storyNarrator.ts
   - id: openwiki-source-5b54a58d1b51cd490b0e7162
     resource: repo://package.json
   - id: openwiki-source-c22dc8548266abcfb6970baf
     resource: repo://templates/ci/evidence-ci.gitlab-ci.yml
   - id: openwiki-source-7c69eb298e88106dc73939dd
     resource: repo://tools/verify-fulfillment-examples.mjs
-generated: { by: "pi", at: "2026-11-24T13:07:09.861Z" }
+generated: { by: "pi", at: "2026-11-25T01:33:08.568Z" }
 ---
 
 # 统一 CLI 与双门禁验收工作流
@@ -57,7 +67,17 @@ pnpm evidence --help
 
 CLI 从当前目录发现工作区，或用 `--workspace <dir>` 显式指定。`diff` 使用两个工作区根作为位置参数。路径按调用者 cwd 解析，未知选项和多余参数报错，`--scope` 与 `--tag` 可重复。JSON 模式输出机器可读错误，其他模式将错误写到 stderr。
 
-`evidence story --no-ai` 可从声明的 flow 离线生成事实卡片，不执行后端。
+## 业务故事：同一事实投影，两种生成节奏
+
+`evidence story --no-ai --format markdown` 从声明的示例 flow 离线生成故事板。投影按因果顺序解析 `basedOn`，把经办方、活动、单据和有据可查的接收方组织成领域故事；单据明细按核心商业要素和归档要素分组。业务时点保留示例声明的时区，预期不予受理的示例不写成已交付。业务故事不执行后端，也不替代 HTTP 验收。
+
+```bash
+pnpm evidence story --workspace examples/full-spectrum-procurement --flow happy-path --no-ai
+```
+
+CLI 启用 AI 时逐步等待润色结果，并把已生成草稿和已确认业务解释串行传给后续步骤。人工解释优先，润色只更新标题和正文。Markdown 与纯文本按故事章节展示交接；`--format json` 提供结构化结果，`--export` 写入 `.evidence/stories/story.*`。
+
+桌面在读取快照时不调用模型；[回放控制器](../desktop/renderer-state.md)先显示确定性事实，再发起当前游标的单步请求。当前故事就绪或已有人工解释后，最多预取紧邻的下一步；游标命中在途预取时复用该请求。退出、改用仅事实模式或换快照会取消过时请求。草稿缓存同时匹配本步事实与前情，修改前序解释后不会复用基于旧前情的草稿。
 
 ## 从模型到产物
 

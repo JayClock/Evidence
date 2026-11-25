@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:02e6f12993d8509274414c3e3b0536806a43a4e842ccb660405c64fe3abe874b",
+  "pageVersion": "sha256:5387571604e21502232d630d3d83cd9b5a9e8547ffb81a90fe1136c0d8f1f832",
   "claims": [
     {
       "id": "claim_2e23d63c615949bcbde260388194c88b",
@@ -12,7 +12,7 @@
         },
         {
           "resource": "repo://apps/cli/src/router.ts",
-          "version": "repo-file-v1:sha256:3ba75dcdd18e4b4bf904a3db79841c21fdf4bb5378f894a18d404bc82436069a"
+          "version": "repo-file-v1:sha256:19eb4c44fe7bb5c21edd795d6c14b40e914c11ed1eb0c246d4d60bb3f6a83dfe"
         }
       ]
     },
@@ -120,21 +120,67 @@
     },
     {
       "id": "claim_fcbd72b66f084dfaa3827e142f737f82",
-      "statement": "story --no-ai 从声明的 flow 离线生成事实卡片。",
+      "statement": "story --no-ai 从声明的 flow 离线导出领域故事板，解析 basedOn、保留业务时点且按商业要素分组；不调用模型或执行后端。",
       "evidence": [
         {
-          "resource": "repo://apps/cli/src/commands/story.ts",
-          "version": "repo-file-v1:sha256:7376ca3d77eb70201af7ef7afdb6c74c0fdcb6c38e4b1837dbb97fc98dfde50a"
+          "resource": "repo://apps/cli/src/commands/story.ts#L31-L72",
+          "version": "repo-lines-v1:sha256:29df83248c413585e1a13a839346a80ea90e6dc27c12699ae9478d6a28aef93a:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY2OGNhNTQzMjU5NDAwOGQ4NDgxYjNmZjYxYzRlYzBiZjE1Nzg3ZDllZmNlZTY4ODNjOWNhODE0NTBmMDZmMTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRhOTY2ZjlkODFlOWE4ZThmMDA2NjY2NjQ2ZDBiNWY1MTBiMDhmYjljNGYyMDA4YWQ0MTFjZDNlYjE4YWFiYmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJhZWU1ZjhkOWIyODBjYWU4MTg3NDYzZDAzYTVkMDhjMDcyODZkZGMwZGMwZDllMzQzYWY0NDBjMTkwNmQ0OTEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk2ZmQ5YTRmZWQ5MDNhMzg1NDEyZjcyMWQyN2MzOWNhMTBiMmJmMjMwMTZjMjc3ZTI0NzJjZWNiYjI2MGFkZGYifQ"
         },
         {
-          "resource": "repo://apps/cli/tests/story-command.e2e.spec.ts",
-          "version": "repo-file-v1:sha256:b90db9333b6b7a3dc9f57b2d5bdc46fd7df394bd29373eb7a27c177a0287aacf"
+          "resource": "repo://libs/evidence-agent/src/story/flowStoryProjector.ts#L164-L340",
+          "version": "repo-lines-v1:sha256:b98cee348e3e88673fdda9a859d1f038cf148eae8566cae62f2c7b4aa828d9e7:eyJzZWxlY3RlZExpbmVDb3VudCI6MTc3LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI4MzJhZGZmZmM4Y2ZiYTU0YTQxMThkYjk4MGVhNzQwODkxMDNiZDdlMTJkMWI4ZmQ2YjMzODZhZjc5OGE4MTkxIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI3MDI0ZGRiOTAyZDkwMGFhYTkzNzM4NGE4MjA2NGZlZTdlYzhhNjQxMDIwYmI1OGM3OGY5N2I3ZjM1MGE5OWQ5IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI3NmY0ZTE2N2I3ZDRjMzFmNzM4ZDA2ZmEzMzAxNzgwMjcwY2JmYTQ1MDdmZDc3ZThlMzU0YTM1Mzk3NzU2MzhjIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlNDQzYThkMTU5MzQyYWE0MzBmNDkxYTVmZmI2MGUxNjhkZTg5ODFiYWE3YTgxN2NmOTQ4MTQ0MGVhYmI2YjAwIn0"
+        }
+      ]
+    },
+    {
+      "id": "claim_43b811875508491e9206959eff7da4e6",
+      "statement": "CLI 逐步等待 AI 草稿，串行累积已就绪叙事或人工解释；人工解释优先，润色只能覆盖标题和正文。",
+      "evidence": [
+        {
+          "resource": "repo://libs/evidence-agent/src/story/flowStoryProjector.ts#L356-L383",
+          "version": "repo-lines-v1:sha256:b179c1954a0c411d63ba6ed1b76b6fb89b7a9b9b3a8e64a8d48f3c5fdbf40330:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUwMmIwMzlmMzlkNTRhOTJiYThkMmVjODU2OGVhZjJkNGI0N2NhNmQyMzhlZjQ2MDQ5MThjOTk5Y2UzMzg1YWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFhMWQxYTYzMzkwMjI5Yzc5ODM0N2U4M2EwNDA1NDQxYzk0MDAwMzUyODRhZDE2OGMxYmY2Y2RmMWQ3MGEzNzAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY2ZGJkYzgyZmU4YjM0MDc4NmEzODNhNzE0YTJjMjc1MzgwOTY4ZDc0Mjg1OWE5OGIzMmIzM2JjYWVlMDVkYzciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://libs/evidence-agent/src/story/storyContinuity.ts#L1-L16",
+          "version": "repo-lines-v1:sha256:25894e7896ddc500d2c0e2e6cac6ac709887f5fdfdb527d0bdc5b0a78f647e3a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMxYjdmOTA3OGU5ZTRlMWE0OWRiZDk4MmZiZmIxYWU5ZmVlMzU5NDlhNjhhNTdiN2FiNWE4NGE5ZDcyZTA1MmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJiMTE2N2Y3MDY5MTA3ZTJkYjNkM2Q5MjE5OGI3YjQ4NTM5NzhjYzljNjE4OWRiMzMwOTc4MTU1N2MzMzYyMDkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM3NzNkMTdhZWUxM2NlYTRlNmZkNzVhZGE3NzM0NTYwNjJlZmE4ZWNhYTczNGYyOTFkYzM1ODBlZDkwMTg5MGQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_5c663c9691104f20bf487aa4de55b7c1",
+      "statement": "桌面按游标发起单步请求，当前故事就绪后最多预取下一步；游标命中在途预取复用请求，过时请求被取消。",
+      "evidence": [
+        {
+          "resource": "repo://apps/desktop/src/main/storyIpc.ts#L220-L297",
+          "version": "repo-lines-v1:sha256:99873c569779bd2dab9e6558849e919dd1572462016ce81687916e6dcd6f73d2:eyJzZWxlY3RlZExpbmVDb3VudCI6NzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ1ZGZkMDMxMGU3MjQzNTU3MjI0NTM5MjY4YWY1YWI5YzcxNjU3Yzk0MTE1ZGY2YmUyNmM3MDc2MzAyNTQ3NjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmMGNkYjk3MmE3YmZiN2VkMjQ2ZjlmZjY3MjM4NWU1NWY0OTY4ZmMxMTA0M2RjNWI2ODRkNTFkZmEzMWRiY2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImEzMGM1OGE5MTcwNWFhODYzZTdmZDIzOTJkZGE0ZGNhYzM0YjQwODQ0ZjQ2NzgxZGNjOWI2M2VlYTM3ZmRjMmUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVkNTFhMTAyYmRkYTAxYzZhZTBhYjNiYWExZTllN2E3ZDg0ZDc3Mjg5ZmQ1ZDVjMWIyYjNmNDA4ODIwNGMwYzAifQ"
+        },
+        {
+          "resource": "repo://libs/desktop/feature-story/src/state/useStoryNarration.ts#L19-L154",
+          "version": "repo-lines-v1:sha256:6cddf033ee24fb59472fc279a5141c7a1254f319a3f94942288806acde0a6d7c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTM2LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI3OGVjYzAzOWU5YmM0NzliYjI4MGUzMDdlM2RjNmIwNGM1MGRlZTA1Nzg4OGU3NDA0ZmYzZWZlYmM5MmU1NDY5IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI5OGY2MTU1Y2NmZjIxZWUzMmJhMTEyYjg4Y2VlMjMyN2I0NzE3YTliZDFjNmM1ODU0NzkyOTNiODNhYjVkNThkIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI2YjQ0MmZhYzgzYzI2Zjg4ODkzOTM4ZWU2MDViODJhNzNlMTIyNDI2NjY3NzBhODk5NDUwZDdkZTkwM2FmNmY1IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIzMmI4ODA3Y2IzYWE3ZTQ3Y2Y3NmIwYjBkMTk0NDU3MTdiYzUwMThmZGNhMTA2NDRjMzFkNjhiNTMwOTg0YmI3In0"
+        }
+      ]
+    },
+    {
+      "id": "claim_5ca11aed2ec447129d05aca3ad13fe04",
+      "statement": "草稿缓存同时匹配本步事实与前情；主进程用当前快照中的人工解释覆盖旧草稿前情，前序编辑后不复用旧前情的草稿。",
+      "evidence": [
+        {
+          "resource": "repo://apps/desktop/src/main/storyIpc.ts#L72-L110",
+          "version": "repo-lines-v1:sha256:e8fced9188576c0e95749a4fb35021720747df1af83e754b875dfdbe7dc3b74d:eyJzZWxlY3RlZExpbmVDb3VudCI6MzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI1YmNiZWQ3Y2JhMmI3ZDRmZTAxNzI5ZWY2ODgwYTBlZDU1MjEwZjQ5OWMwNzUzNWNiOTU1OWIyOWFlNWViOTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFhMWQxYTYzMzkwMjI5Yzc5ODM0N2U4M2EwNDA1NDQxYzk0MDAwMzUyODRhZDE2OGMxYmY2Y2RmMWQ3MGEzNzAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhmNDlhMTU5Y2FlMTc2NzM0OWM5NGEyMTg4ZDY3NWI1MDRlNTdhZjhjNDk1MzQxNmY3MjhkMmNhYTFlMWNlNzEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdlYTQyMDc5NDc5ZDg2Mjc2OTc0Mzk0ZWY3OGRiNGIxMzVlOTNmNzdjZGRiNDU1ZjZkMmRkMDk4YmI4ODBjZmUifQ"
+        },
+        {
+          "resource": "repo://libs/desktop/feature-story/src/state/useStoryPlayback.spec.tsx#L214-L248",
+          "version": "repo-lines-v1:sha256:d57c76cc4e96e1d2a15cf761e55ef1ef9927b489f59a8c2a287451b359af19be:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYzOTgzMWJjYWNmYjZmMzliYjgwMjdkMmI3ZjNiYjJmMGQ2MThkMDQzNTVkNGUzNzA1Y2RmZjYzMmE0N2JiNWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjlkMjM2NzM3NjIxZmExZmJlMmFiOThjZDU4YjU0OTMzMjE5YTQ4ZTRlMzhiNTdlY2JiMTNkZDEzNWQwMTUyYTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNiMzU1NmVlNzQwMWFmMDUyMjE2NDAyNGFmMzNkYzBhYjZmYjYyNDg5Y2Q0MjJjZTM0MjFhOWYzNDcwOTYwZjgifQ"
+        },
+        {
+          "resource": "repo://libs/evidence-agent/src/story/storyNarrator.ts#L65-L106",
+          "version": "repo-lines-v1:sha256:8cf6839b57ae4d29dbf4d7643180409d6024332fc4ed556814aa0efebf083159:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY5MDU2NjFjMzEwMzlhNjZlY2ZiNzZkMjNlYmI4OTBjMzI0Mjk2NmI0NjdjNjA3Mzg4MTI3Yjg4YzcyMWI0NjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYwMGNiZGYwZDM0OTMwOGVmNDgwYzVkYWFlYjA4OTJmYThlNzU2MDcwZDVkODg2NGViMmQ3MzgyOTY4NWJmYjIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEzOGZhMmMxZTlhMGUzMzI4YzEwODhlMjUwZWM0N2JiODczMDk5NWQyMjgzN2ViZTBmYWE5NmI4NjA1ZjBmODYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRiOTY0ZDFkZjE4ZThjMDlhNzFlN2E3YzJkZjRlMmQyOWYwMTNmOTZjMDlmNWZlMGM3YjFmOWUxMDg1NDQ2OGMifQ"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.9.0",
-    "at": "2026-11-24T13:07:09.861Z"
+    "at": "2026-11-25T01:33:08.568Z"
   }
 }
