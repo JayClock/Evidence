@@ -1,4 +1,4 @@
-import { mkdtemp, readdir, rm } from 'node:fs/promises';
+import { mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -7,7 +7,6 @@ import { collectFlowScenarios } from '@evidence-poc/evidence-model-core';
 import {
   initializeWorkspace,
   readModelDirectory,
-  workspacePaths,
 } from '@evidence-poc/evidence-model-io';
 
 import {
@@ -17,6 +16,7 @@ import {
   type StoryEnrichStepResult,
 } from '@evidence-poc/desktop-contracts/story';
 import { registerStoryIpc, type StoryIpcOptions } from './storyIpc';
+import { createStoryNarrationCache } from './storyNarrationCache';
 
 const electron = vi.hoisted(() => ({
   handlers: new Map<string, (...args: unknown[]) => Promise<unknown>>(),
@@ -228,6 +228,12 @@ describe('story IPC', () => {
     )!.examples![0]!;
     contract.description = '旧的账期。';
     await initializeWorkspace(rootPath, document);
+    const cache = createStoryNarrationCache()(rootPath);
+    const signal = new AbortController().signal;
+    const waitForEntries = (size: number) =>
+      vi.waitFor(async () =>
+        expect((await cache.read(signal)).size).toBe(size),
+      );
     const generate = vi.fn(async () => draft);
     const getModelOptions = vi.fn(async () => ({}));
     const load = (window: ReturnType<typeof sender>) =>
@@ -244,11 +250,7 @@ describe('story IPC', () => {
       await expect(enrich(first, before)).resolves.toMatchObject({
         cached: false,
       });
-      await vi.waitFor(async () =>
-        expect(await readdir(workspacePaths(rootPath).cache)).toContain(
-          'narration.json',
-        ),
-      );
+      await waitForEntries(1);
       ipc.dispose();
       generate.mockClear();
       getModelOptions.mockClear();
@@ -270,11 +272,9 @@ describe('story IPC', () => {
         cached: false,
       });
       expect(generate).toHaveBeenCalledOnce();
-      await vi.waitFor(async () =>
-        expect(await readdir(workspacePaths(rootPath).cache)).toEqual([
-          'narration.json',
-        ]),
-      );
+      // The original cache file already exists. Wait for the new history key
+      // to be persisted before removing the workspace.
+      await waitForEntries(2);
     } finally {
       ipc.dispose();
       await rm(rootPath, { recursive: true, force: true });
