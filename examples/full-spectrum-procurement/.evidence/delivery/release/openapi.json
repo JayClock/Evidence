@@ -2302,7 +2302,7 @@
       },
       "req-escrow-freeze": {
         "additionalProperties": false,
-        "description": "发起质检不合格后凭证质押冻结仲裁请求，开启一个有截止时间的履约窗口",
+        "description": "发起托管冻结请求（Escrow Freeze Request），开启一个有截止时间的履约窗口",
         "examples": [
           {
             "_links": {
@@ -4016,7 +4016,7 @@
                 }
               }
             },
-            "description": "发起质检不合格后凭证质押冻结仲裁请求，开启一个有截止时间的履约窗口",
+            "description": "发起托管冻结请求（Escrow Freeze Request），开启一个有截止时间的履约窗口",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -4035,7 +4035,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "发起质检不合格后凭证质押冻结仲裁请求，开启一个有截止时间的履约窗口",
+        "summary": "发起托管冻结请求（Escrow Freeze Request），开启一个有截止时间的履约窗口",
         "tags": [
           "context:ctx-escrow-settlement"
         ],

@@ -5,7 +5,7 @@
   "kind": "fulfillment_request",
   "contextRef": "ctx-escrow-settlement",
   "responsibleRoleRef": "role-escrow-depositor",
-  "label": "质检不合格后凭证质押冻结仲裁请求",
+  "label": "托管冻结请求（Escrow Freeze Request）",
   "attributes": [
     {
       "name": "started_at",

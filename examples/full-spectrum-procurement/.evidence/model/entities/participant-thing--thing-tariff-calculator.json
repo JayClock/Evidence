@@ -5,7 +5,7 @@
   "kind": "thing",
   "domainRole": "calculator",
   "contextRef": "ctx-fintech-domain",
-  "label": "跨境税费与逾期违约罚息阶梯测算器",
+  "label": "税费与罚息测算器（Tariff Calculator）",
   "examples": [
     {
       "label": "合同日费率",

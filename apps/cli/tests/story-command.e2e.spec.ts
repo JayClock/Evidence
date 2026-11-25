@@ -128,6 +128,25 @@ describe('built evidence story binary', () => {
     expect(fromTree.stdout).not.toContain('\u001b');
   });
 
+  it('projects the procurement gold model with business labels and matches its committed story', async () => {
+    const workspace = path.join(repo, 'examples/full-spectrum-procurement');
+    const args = ['--workspace', workspace, '--no-ai', '--format', 'markdown'];
+    const happyPath = await invoke([...args, '--flow', 'happy-path']);
+    expect(happyPath.code, happyPath.stderr).toBe(0);
+    expect(happyPath.stdout).toContain(
+      '### 1. 买方（Buyer）向卖方（Seller）发出《智能装备全球采购招标建议书（Global Procurement RFP）》',
+    );
+
+    const all = await invoke(args);
+    expect(all.code, all.stderr).toBe(0);
+    expect(all.stdout).not.toMatch(
+      /角色|当事人|上下文|标的物|Role|Party|Context|Thing/iu,
+    );
+    expect(all.stdout).toBe(
+      readFileSync(path.join(workspace, '.evidence/stories/story.md'), 'utf8'),
+    );
+  });
+
   it('filters exact flow IDs without losing steps and rejects an absent flow', async () => {
     await writeModelDirectory(
       model(),

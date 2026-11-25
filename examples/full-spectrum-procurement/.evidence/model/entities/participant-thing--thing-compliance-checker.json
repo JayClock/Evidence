@@ -5,7 +5,7 @@
   "kind": "thing",
   "domainRole": "checker",
   "contextRef": "ctx-inspection-domain",
-  "label": "工业母机技术标准与进出口合规核验器",
+  "label": "合规核验器（Compliance Checker）",
   "examples": [
     {
       "label": "执行标准",

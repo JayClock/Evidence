@@ -4,5 +4,5 @@
   "category": "role",
   "kind": "party",
   "contextRef": "ctx-main-procurement",
-  "label": "供货方当事人卖方角色（Equipment Supplier Role）"
+  "label": "卖方（Seller）"
 }

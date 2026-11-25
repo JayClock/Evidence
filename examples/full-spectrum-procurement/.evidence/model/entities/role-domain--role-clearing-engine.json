@@ -4,5 +4,5 @@
   "category": "role",
   "kind": "domain",
   "contextRef": "ctx-fintech-domain",
-  "label": "资金清算核算器"
+  "label": "清算引擎（Clearing Engine）"
 }

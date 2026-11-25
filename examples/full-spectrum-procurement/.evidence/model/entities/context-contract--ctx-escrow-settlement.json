@@ -3,7 +3,7 @@
   "id": "ctx-escrow-settlement",
   "category": "context",
   "kind": "contract",
-  "label": "三方资金与物权托管清算上下文（Escrow & Settlement Context）",
+  "label": "资金托管监管（Escrow Custody）",
   "rootRefs": [
     "doc-escrow-agreement"
   ]

@@ -4,5 +4,5 @@
   "category": "role",
   "kind": "context",
   "contextRef": "ctx-main-procurement",
-  "label": "寻源比选阶段转结主合同网关角色"
+  "label": "寻源网关（Sourcing Gateway）"
 }

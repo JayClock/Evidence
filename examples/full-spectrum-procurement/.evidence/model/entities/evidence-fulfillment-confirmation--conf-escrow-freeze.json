@@ -5,7 +5,7 @@
   "kind": "fulfillment_confirmation",
   "contextRef": "ctx-escrow-settlement",
   "responsibleRoleRef": "role-escrow-agent",
-  "label": "独立托管行冻结受理与仲裁介入确认",
+  "label": "托管冻结确认（Escrow Freeze Confirmation）",
   "attributes": [
     {
       "name": "frozen",

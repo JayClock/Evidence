@@ -4,7 +4,7 @@
   "category": "participant",
   "kind": "thing",
   "contextRef": "ctx-machinery-domain",
-  "label": "六轴重载工业机器人柔性装配单元标的物",
+  "label": "机器人工作站（Robot Workstation）",
   "attributes": [
     {
       "name": "unit_model",

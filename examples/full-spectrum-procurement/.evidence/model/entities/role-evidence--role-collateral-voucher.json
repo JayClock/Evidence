@@ -4,5 +4,5 @@
   "category": "role",
   "kind": "evidence",
   "contextRef": "ctx-escrow-settlement",
-  "label": "跨合同提货凭单质押担保角色"
+  "label": "质押凭单（Collateral Voucher）"
 }

@@ -3,7 +3,7 @@
   "id": "ctx-fintech-domain",
   "category": "context",
   "kind": "domain",
-  "label": "金融科技清算与违约测算领域（FinTech & Calculation Domain）",
+  "label": "离岸金融清结算（Offshore FinTech）",
   "rootRefs": [
     "thing-tariff-calculator"
   ]

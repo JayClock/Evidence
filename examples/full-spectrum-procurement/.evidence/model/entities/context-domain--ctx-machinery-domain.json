@@ -3,7 +3,7 @@
   "id": "ctx-machinery-domain",
   "category": "context",
   "kind": "domain",
-  "label": "工业装备标的物与技术标准领域（Machinery Asset Domain）",
+  "label": "高端装备制造（Machinery Manufacturing）",
   "rootRefs": [
     "thing-robot-workstation"
   ]

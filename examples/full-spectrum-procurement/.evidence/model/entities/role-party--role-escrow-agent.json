@@ -4,5 +4,5 @@
   "category": "role",
   "kind": "party",
   "contextRef": "ctx-escrow-settlement",
-  "label": "托管结算代理人角色（Escrow Settlement Agent Role）"
+  "label": "托管结算代理人（Escrow Settlement Agent）"
 }
