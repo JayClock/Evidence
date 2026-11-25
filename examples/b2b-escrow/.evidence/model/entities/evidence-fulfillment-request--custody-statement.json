@@ -4,7 +4,7 @@
   "category": "evidence",
   "kind": "fulfillment_request",
   "contextRef": "context.escrow",
-  "label": "custody-statement",
+  "label": "对账明细申请（Custody Statement Request）",
   "notes": "escrow's claim on buyer; expires 48 hours after its server-recorded start.",
   "responsibleRoleRef": "role.escrow-escrow",
   "attributes": [

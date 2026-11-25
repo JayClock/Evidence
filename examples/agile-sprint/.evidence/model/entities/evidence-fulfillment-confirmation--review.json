@@ -3,7 +3,7 @@
   "id": "confirmation.review",
   "category": "evidence",
   "kind": "fulfillment_confirmation",
-  "label": "迭代评审纪要",
+  "label": "迭代评审纪要（Sprint Review Minutes）",
   "contextRef": "context.sprint",
   "responsibleRoleRef": "role.product-owner",
   "attributes": [

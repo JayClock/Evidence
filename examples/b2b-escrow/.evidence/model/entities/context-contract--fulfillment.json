@@ -3,7 +3,7 @@
   "id": "context.fulfillment",
   "category": "context",
   "kind": "contract",
-  "label": "fulfillment",
+  "label": "物流交付（Fulfillment）",
   "rootRefs": [
     "contract.fulfillment"
   ]

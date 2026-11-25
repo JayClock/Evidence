@@ -3,7 +3,7 @@
   "id": "context.sprint",
   "category": "context",
   "kind": "contract",
-  "label": "产研迭代计划",
+  "label": "敏捷迭代计划（Agile Sprint）",
   "rootRefs": [
     "contract.iteration-plan"
   ]

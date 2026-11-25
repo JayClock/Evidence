@@ -4,7 +4,7 @@
   "category": "evidence",
   "kind": "contract",
   "contextRef": "context.escrow",
-  "label": "escrow",
+  "label": "托管监管协议（Escrow Agreement）",
   "notes": "Bilateral escrow agreement. The third party participates through its own contract, not a third signatory on this contract.",
   "roleRefs": [
     "role.escrow-buyer",

@@ -3,7 +3,7 @@
   "id": "context.procurement",
   "category": "context",
   "kind": "contract",
-  "label": "procurement",
+  "label": "设备主采购（Equipment Procurement）",
   "rootRefs": [
     "contract.agreement"
   ]

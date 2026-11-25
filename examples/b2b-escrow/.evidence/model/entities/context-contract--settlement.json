@@ -3,7 +3,7 @@
   "id": "context.settlement",
   "category": "context",
   "kind": "contract",
-  "label": "settlement",
+  "label": "账期结算（Settlement）",
   "rootRefs": [
     "contract.settlement"
   ]

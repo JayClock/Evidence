@@ -3525,7 +3525,7 @@
       },
       "contract_agreement": {
         "additionalProperties": false,
-        "description": "签署agreement，双方权责自此成立",
+        "description": "签署采购主协议（Procurement Agreement），双方权责自此成立",
         "examples": [
           {
             "_links": {
@@ -4007,7 +4007,7 @@
       },
       "contract_escrow": {
         "additionalProperties": false,
-        "description": "签署escrow，双方权责自此成立",
+        "description": "签署托管监管协议（Escrow Agreement），双方权责自此成立",
         "examples": [
           {
             "_links": {
@@ -4222,7 +4222,7 @@
       },
       "contract_fulfillment": {
         "additionalProperties": false,
-        "description": "签署fulfillment，双方权责自此成立",
+        "description": "签署交付履约协议（Fulfillment Agreement），双方权责自此成立",
         "examples": [
           {
             "_links": {
@@ -4456,7 +4456,7 @@
       },
       "contract_settlement": {
         "additionalProperties": false,
-        "description": "签署settlement，双方权责自此成立",
+        "description": "签署结算划款协议（Settlement Agreement），双方权责自此成立",
         "examples": [
           {
             "_links": {
@@ -4709,7 +4709,7 @@
       },
       "request_acceptance": {
         "additionalProperties": false,
-        "description": "发起acceptance，开启一个有截止时间的履约窗口",
+        "description": "发起终验合格申请（Acceptance Request），开启一个有截止时间的履约窗口",
         "examples": [
           {
             "_links": {
@@ -4901,7 +4901,7 @@
       },
       "request_commitment": {
         "additionalProperties": false,
-        "description": "发起commitment，开启一个有截止时间的履约窗口",
+        "description": "发起履约承诺申请（Commitment Request），开启一个有截止时间的履约窗口",
         "examples": [
           {
             "_links": {
@@ -5123,7 +5123,7 @@
       },
       "request_custody-statement": {
         "additionalProperties": false,
-        "description": "发起custody-statement，开启一个有截止时间的履约窗口",
+        "description": "发起对账明细申请（Custody Statement Request），开启一个有截止时间的履约窗口",
         "examples": [
           {
             "_links": {
@@ -5345,7 +5345,7 @@
       },
       "request_delivery": {
         "additionalProperties": false,
-        "description": "发起delivery，开启一个有截止时间的履约窗口",
+        "description": "发起发货通知申请（Delivery Request），开启一个有截止时间的履约窗口",
         "examples": [
           {
             "_links": {
@@ -5537,7 +5537,7 @@
       },
       "request_deposit-lock": {
         "additionalProperties": false,
-        "description": "发起deposit-lock，开启一个有截止时间的履约窗口",
+        "description": "发起定金锁定申请（Deposit Lock Request），开启一个有截止时间的履约窗口",
         "examples": [
           {
             "_links": {
@@ -5759,7 +5759,7 @@
       },
       "request_final-milestone": {
         "additionalProperties": false,
-        "description": "发起final-milestone，开启一个有截止时间的履约窗口",
+        "description": "发起终期款申请（Final Milestone Request），开启一个有截止时间的履约窗口",
         "examples": [
           {
             "_links": {
@@ -5961,7 +5961,7 @@
       },
       "request_first-milestone": {
         "additionalProperties": false,
-        "description": "发起first-milestone，开启一个有截止时间的履约窗口",
+        "description": "发起首期款申请（First Milestone Request），开启一个有截止时间的履约窗口",
         "examples": [
           {
             "_links": {
@@ -6163,7 +6163,7 @@
       },
       "request_milestone-acceptance": {
         "additionalProperties": false,
-        "description": "发起milestone-acceptance，开启一个有截止时间的履约窗口",
+        "description": "发起阶段验收申请（Milestone Acceptance Request），开启一个有截止时间的履约窗口",
         "examples": [
           {
             "_links": {
@@ -6365,7 +6365,7 @@
       },
       "request_milestone-release": {
         "additionalProperties": false,
-        "description": "发起milestone-release，开启一个有截止时间的履约窗口",
+        "description": "发起阶段放款申请（Milestone Release Request），开启一个有截止时间的履约窗口",
         "examples": [
           {
             "_links": {
@@ -6567,7 +6567,7 @@
       },
       "request_milestone-statement": {
         "additionalProperties": false,
-        "description": "发起milestone-statement，开启一个有截止时间的履约窗口",
+        "description": "发起阶段对账请求（Milestone Statement Request），开启一个有截止时间的履约窗口",
         "examples": [
           {
             "_links": {
@@ -6769,7 +6769,7 @@
       },
       "request_order": {
         "additionalProperties": false,
-        "description": "发起order，开启一个有截止时间的履约窗口",
+        "description": "发起采购订单申请（Order Request），开启一个有截止时间的履约窗口",
         "examples": [
           {
             "_links": {
@@ -6991,7 +6991,7 @@
       },
       "request_release": {
         "additionalProperties": false,
-        "description": "发起release，开启一个有截止时间的履约窗口",
+        "description": "发起托管放款申请（Release Request），开启一个有截止时间的履约窗口",
         "examples": [
           {
             "_links": {
@@ -7183,7 +7183,7 @@
       },
       "request_settlement-receipt": {
         "additionalProperties": false,
-        "description": "发起settlement-receipt，开启一个有截止时间的履约窗口",
+        "description": "发起清算凭证申请（Settlement Receipt Request），开启一个有截止时间的履约窗口",
         "examples": [
           {
             "_links": {
@@ -8198,7 +8198,7 @@
                 }
               }
             },
-            "description": "签署agreement，双方权责自此成立",
+            "description": "签署采购主协议（Procurement Agreement），双方权责自此成立",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -8217,7 +8217,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "签署agreement，双方权责自此成立",
+        "summary": "签署采购主协议（Procurement Agreement），双方权责自此成立",
         "tags": [
           "context:context.procurement"
         ],
@@ -8865,7 +8865,7 @@
                 }
               }
             },
-            "description": "发起commitment，开启一个有截止时间的履约窗口",
+            "description": "发起履约承诺申请（Commitment Request），开启一个有截止时间的履约窗口",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -8884,7 +8884,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "发起commitment，开启一个有截止时间的履约窗口",
+        "summary": "发起履约承诺申请（Commitment Request），开启一个有截止时间的履约窗口",
         "tags": [
           "context:context.procurement"
         ],
@@ -9280,7 +9280,7 @@
                 }
               }
             },
-            "description": "登记commitment",
+            "description": "登记履约承诺函（Commitment Confirmation）",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -9299,7 +9299,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "登记commitment",
+        "summary": "登记履约承诺函（Commitment Confirmation）",
         "tags": [
           "context:context.procurement"
         ],
@@ -9727,7 +9727,7 @@
                 }
               }
             },
-            "description": "发起order，开启一个有截止时间的履约窗口",
+            "description": "发起采购订单申请（Order Request），开启一个有截止时间的履约窗口",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -9746,7 +9746,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "发起order，开启一个有截止时间的履约窗口",
+        "summary": "发起采购订单申请（Order Request），开启一个有截止时间的履约窗口",
         "tags": [
           "context:context.procurement"
         ],
@@ -10486,7 +10486,7 @@
                 }
               }
             },
-            "description": "登记order",
+            "description": "登记采购订单凭证（Order Confirmation）",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -10505,7 +10505,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "登记order",
+        "summary": "登记采购订单凭证（Order Confirmation）",
         "tags": [
           "context:context.procurement"
         ],
@@ -11807,7 +11807,7 @@
                 }
               }
             },
-            "description": "签署escrow，双方权责自此成立",
+            "description": "签署托管监管协议（Escrow Agreement），双方权责自此成立",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -11826,7 +11826,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "签署escrow，双方权责自此成立",
+        "summary": "签署托管监管协议（Escrow Agreement），双方权责自此成立",
         "tags": [
           "context:context.escrow"
         ],
@@ -12439,7 +12439,7 @@
                 }
               }
             },
-            "description": "发起custody-statement，开启一个有截止时间的履约窗口",
+            "description": "发起对账明细申请（Custody Statement Request），开启一个有截止时间的履约窗口",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -12458,7 +12458,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "发起custody-statement，开启一个有截止时间的履约窗口",
+        "summary": "发起对账明细申请（Custody Statement Request），开启一个有截止时间的履约窗口",
         "tags": [
           "context:context.escrow"
         ],
@@ -12854,7 +12854,7 @@
                 }
               }
             },
-            "description": "登记custody-statement",
+            "description": "登记资金托管对账单（Custody Statement）",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -12873,7 +12873,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "登记custody-statement",
+        "summary": "登记资金托管对账单（Custody Statement）",
         "tags": [
           "context:context.escrow"
         ],
@@ -13301,7 +13301,7 @@
                 }
               }
             },
-            "description": "发起deposit-lock，开启一个有截止时间的履约窗口",
+            "description": "发起定金锁定申请（Deposit Lock Request），开启一个有截止时间的履约窗口",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -13320,7 +13320,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "发起deposit-lock，开启一个有截止时间的履约窗口",
+        "summary": "发起定金锁定申请（Deposit Lock Request），开启一个有截止时间的履约窗口",
         "tags": [
           "context:context.escrow"
         ],
@@ -13915,7 +13915,7 @@
                 }
               }
             },
-            "description": "登记deposit-lock",
+            "description": "登记定金锁定确认（Deposit Lock Confirmation）",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -13934,7 +13934,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "登记deposit-lock",
+        "summary": "登记定金锁定确认（Deposit Lock Confirmation）",
         "tags": [
           "context:context.escrow"
         ],
@@ -14914,7 +14914,7 @@
                 }
               }
             },
-            "description": "签署fulfillment，双方权责自此成立",
+            "description": "签署交付履约协议（Fulfillment Agreement），双方权责自此成立",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -14933,7 +14933,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "签署fulfillment，双方权责自此成立",
+        "summary": "签署交付履约协议（Fulfillment Agreement），双方权责自此成立",
         "tags": [
           "context:context.fulfillment"
         ],
@@ -15470,7 +15470,7 @@
                 }
               }
             },
-            "description": "发起acceptance，开启一个有截止时间的履约窗口",
+            "description": "发起终验合格申请（Acceptance Request），开启一个有截止时间的履约窗口",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -15489,7 +15489,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "发起acceptance，开启一个有截止时间的履约窗口",
+        "summary": "发起终验合格申请（Acceptance Request），开启一个有截止时间的履约窗口",
         "tags": [
           "context:context.fulfillment"
         ],
@@ -15784,7 +15784,7 @@
                 }
               }
             },
-            "description": "登记acceptance",
+            "description": "登记验收合格凭据（Acceptance Confirmation）",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -15803,7 +15803,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "登记acceptance",
+        "summary": "登记验收合格凭据（Acceptance Confirmation）",
         "tags": [
           "context:context.fulfillment"
         ],
@@ -16069,7 +16069,7 @@
                 }
               }
             },
-            "description": "发起delivery，开启一个有截止时间的履约窗口",
+            "description": "发起发货通知申请（Delivery Request），开启一个有截止时间的履约窗口",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -16088,7 +16088,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "发起delivery，开启一个有截止时间的履约窗口",
+        "summary": "发起发货通知申请（Delivery Request），开启一个有截止时间的履约窗口",
         "tags": [
           "context:context.fulfillment"
         ],
@@ -16374,7 +16374,7 @@
                 }
               }
             },
-            "description": "登记delivery",
+            "description": "登记交货签收确认（Delivery Confirmation）",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -16393,7 +16393,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "登记delivery",
+        "summary": "登记交货签收确认（Delivery Confirmation）",
         "tags": [
           "context:context.fulfillment"
         ],
@@ -16707,7 +16707,7 @@
                 }
               }
             },
-            "description": "发起final-milestone，开启一个有截止时间的履约窗口",
+            "description": "发起终期款申请（Final Milestone Request），开启一个有截止时间的履约窗口",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -16726,7 +16726,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "发起final-milestone，开启一个有截止时间的履约窗口",
+        "summary": "发起终期款申请（Final Milestone Request），开启一个有截止时间的履约窗口",
         "tags": [
           "context:context.fulfillment"
         ],
@@ -17062,7 +17062,7 @@
                 }
               }
             },
-            "description": "登记final-milestone",
+            "description": "登记终期款到账确认（Final Milestone Confirmation）",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -17081,7 +17081,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "登记final-milestone",
+        "summary": "登记终期款到账确认（Final Milestone Confirmation）",
         "tags": [
           "context:context.fulfillment"
         ],
@@ -17395,7 +17395,7 @@
                 }
               }
             },
-            "description": "发起first-milestone，开启一个有截止时间的履约窗口",
+            "description": "发起首期款申请（First Milestone Request），开启一个有截止时间的履约窗口",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -17414,7 +17414,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "发起first-milestone，开启一个有截止时间的履约窗口",
+        "summary": "发起首期款申请（First Milestone Request），开启一个有截止时间的履约窗口",
         "tags": [
           "context:context.fulfillment"
         ],
@@ -17770,7 +17770,7 @@
                 }
               }
             },
-            "description": "登记first-milestone",
+            "description": "登记首期款到账确认（First Milestone Confirmation）",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -17789,7 +17789,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "登记first-milestone",
+        "summary": "登记首期款到账确认（First Milestone Confirmation）",
         "tags": [
           "context:context.fulfillment"
         ],
@@ -18103,7 +18103,7 @@
                 }
               }
             },
-            "description": "发起milestone-acceptance，开启一个有截止时间的履约窗口",
+            "description": "发起阶段验收申请（Milestone Acceptance Request），开启一个有截止时间的履约窗口",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -18122,7 +18122,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "发起milestone-acceptance，开启一个有截止时间的履约窗口",
+        "summary": "发起阶段验收申请（Milestone Acceptance Request），开启一个有截止时间的履约窗口",
         "tags": [
           "context:context.fulfillment"
         ],
@@ -18474,7 +18474,7 @@
                 }
               }
             },
-            "description": "登记milestone-acceptance",
+            "description": "登记阶段验收凭据（Milestone Acceptance Confirmation）",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -18493,7 +18493,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "登记milestone-acceptance",
+        "summary": "登记阶段验收凭据（Milestone Acceptance Confirmation）",
         "tags": [
           "context:context.fulfillment"
         ],
@@ -20778,7 +20778,7 @@
                 }
               }
             },
-            "description": "签署settlement，双方权责自此成立",
+            "description": "签署结算划款协议（Settlement Agreement），双方权责自此成立",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -20797,7 +20797,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "签署settlement，双方权责自此成立",
+        "summary": "签署结算划款协议（Settlement Agreement），双方权责自此成立",
         "tags": [
           "context:context.settlement"
         ],
@@ -21366,7 +21366,7 @@
                 }
               }
             },
-            "description": "发起milestone-release，开启一个有截止时间的履约窗口",
+            "description": "发起阶段放款申请（Milestone Release Request），开启一个有截止时间的履约窗口",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -21385,7 +21385,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "发起milestone-release，开启一个有截止时间的履约窗口",
+        "summary": "发起阶段放款申请（Milestone Release Request），开启一个有截止时间的履约窗口",
         "tags": [
           "context:context.settlement"
         ],
@@ -22008,7 +22008,7 @@
                 }
               }
             },
-            "description": "登记milestone-release",
+            "description": "登记阶段放款凭单（Milestone Release Confirmation）",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -22027,7 +22027,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "登记milestone-release",
+        "summary": "登记阶段放款凭单（Milestone Release Confirmation）",
         "tags": [
           "context:context.settlement"
         ],
@@ -22358,7 +22358,7 @@
                 }
               }
             },
-            "description": "发起milestone-statement，开启一个有截止时间的履约窗口",
+            "description": "发起阶段对账请求（Milestone Statement Request），开启一个有截止时间的履约窗口",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -22377,7 +22377,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "发起milestone-statement，开启一个有截止时间的履约窗口",
+        "summary": "发起阶段对账请求（Milestone Statement Request），开启一个有截止时间的履约窗口",
         "tags": [
           "context:context.settlement"
         ],
@@ -22683,7 +22683,7 @@
                 }
               }
             },
-            "description": "登记milestone-statement",
+            "description": "登记阶段对账单（Milestone Statement Confirmation）",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -22702,7 +22702,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "登记milestone-statement",
+        "summary": "登记阶段对账单（Milestone Statement Confirmation）",
         "tags": [
           "context:context.settlement"
         ],
@@ -22959,7 +22959,7 @@
                 }
               }
             },
-            "description": "发起release，开启一个有截止时间的履约窗口",
+            "description": "发起托管放款申请（Release Request），开启一个有截止时间的履约窗口",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -22978,7 +22978,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "发起release，开启一个有截止时间的履约窗口",
+        "summary": "发起托管放款申请（Release Request），开启一个有截止时间的履约窗口",
         "tags": [
           "context:context.settlement"
         ],
@@ -23450,7 +23450,7 @@
                 }
               }
             },
-            "description": "登记release",
+            "description": "登记托管放款确认（Release Confirmation）",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -23469,7 +23469,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "登记release",
+        "summary": "登记托管放款确认（Release Confirmation）",
         "tags": [
           "context:context.settlement"
         ],
@@ -23743,7 +23743,7 @@
                 }
               }
             },
-            "description": "发起settlement-receipt，开启一个有截止时间的履约窗口",
+            "description": "发起清算凭证申请（Settlement Receipt Request），开启一个有截止时间的履约窗口",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -23762,7 +23762,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "发起settlement-receipt，开启一个有截止时间的履约窗口",
+        "summary": "发起清算凭证申请（Settlement Receipt Request），开启一个有截止时间的履约窗口",
         "tags": [
           "context:context.settlement"
         ],
@@ -24023,7 +24023,7 @@
                 }
               }
             },
-            "description": "登记settlement-receipt",
+            "description": "登记清算收据凭单（Settlement Receipt）",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -24042,7 +24042,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "登记settlement-receipt",
+        "summary": "登记清算收据凭单（Settlement Receipt）",
         "tags": [
           "context:context.settlement"
         ],

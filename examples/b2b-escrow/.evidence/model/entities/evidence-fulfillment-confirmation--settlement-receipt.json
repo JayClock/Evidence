@@ -4,7 +4,7 @@
   "category": "evidence",
   "kind": "fulfillment_confirmation",
   "contextRef": "context.settlement",
-  "label": "settlement-receipt",
+  "label": "清算收据凭单（Settlement Receipt）",
   "notes": "seller's immutable answer to request.settlement-receipt.",
   "responsibleRoleRef": "role.settlement-seller",
   "attributes": [

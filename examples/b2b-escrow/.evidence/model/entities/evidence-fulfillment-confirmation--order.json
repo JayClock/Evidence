@@ -4,7 +4,7 @@
   "category": "evidence",
   "kind": "fulfillment_confirmation",
   "contextRef": "context.procurement",
-  "label": "order",
+  "label": "采购订单凭证（Order Confirmation）",
   "notes": "seller's immutable answer to request.order.",
   "responsibleRoleRef": "role.procurement-seller",
   "attributes": [

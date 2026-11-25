@@ -4,5 +4,5 @@
   "category": "role",
   "kind": "party",
   "contextRef": "context.settlement",
-  "label": "escrow"
+  "label": "托管行（Escrow Agent）"
 }

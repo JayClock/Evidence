@@ -4,7 +4,7 @@
   "category": "evidence",
   "kind": "fulfillment_request",
   "contextRef": "context.fulfillment",
-  "label": "milestone-acceptance",
+  "label": "阶段验收申请（Milestone Acceptance Request）",
   "notes": "seller's claim on buyer; expires 48 hours after its server-recorded start.",
   "responsibleRoleRef": "role.fulfillment-seller",
   "attributes": [

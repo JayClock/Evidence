@@ -440,7 +440,7 @@
       },
       "contract_iteration-plan": {
         "additionalProperties": false,
-        "description": "签署产研迭代计划，双方权责自此成立",
+        "description": "签署迭代承诺计划（Iteration Plan），双方权责自此成立",
         "examples": [
           {
             "_links": {
@@ -614,7 +614,7 @@
       },
       "request_backlog": {
         "additionalProperties": false,
-        "description": "发起待办范围确认请求，开启一个有截止时间的履约窗口",
+        "description": "发起待办基线确认请求（Backlog Confirmation Request），开启一个有截止时间的履约窗口",
         "examples": [
           {
             "_links": {
@@ -712,7 +712,7 @@
       },
       "request_review": {
         "additionalProperties": false,
-        "description": "发起迭代评审请求，开启一个有截止时间的履约窗口",
+        "description": "发起迭代评审请求（Sprint Review Request），开启一个有截止时间的履约窗口",
         "examples": [
           {
             "_links": {
@@ -1078,7 +1078,7 @@
                 }
               }
             },
-            "description": "签署产研迭代计划，双方权责自此成立",
+            "description": "签署迭代承诺计划（Iteration Plan），双方权责自此成立",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -1097,7 +1097,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "签署产研迭代计划，双方权责自此成立",
+        "summary": "签署迭代承诺计划（Iteration Plan），双方权责自此成立",
         "tags": [
           "context:context.sprint"
         ],
@@ -1441,7 +1441,7 @@
                 }
               }
             },
-            "description": "发起待办范围确认请求，开启一个有截止时间的履约窗口",
+            "description": "发起待办基线确认请求（Backlog Confirmation Request），开启一个有截止时间的履约窗口",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -1460,7 +1460,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "发起待办范围确认请求，开启一个有截止时间的履约窗口",
+        "summary": "发起待办基线确认请求（Backlog Confirmation Request），开启一个有截止时间的履约窗口",
         "tags": [
           "context:context.sprint"
         ],
@@ -1578,7 +1578,7 @@
                 }
               }
             },
-            "description": "登记待办基线锁定凭证",
+            "description": "登记待办基线锁定凭据（Backlog Baseline Locked）",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -1597,7 +1597,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "登记待办基线锁定凭证",
+        "summary": "登记待办基线锁定凭据（Backlog Baseline Locked）",
         "tags": [
           "context:context.sprint"
         ],
@@ -1798,7 +1798,7 @@
                 }
               }
             },
-            "description": "发起迭代评审请求，开启一个有截止时间的履约窗口",
+            "description": "发起迭代评审请求（Sprint Review Request），开启一个有截止时间的履约窗口",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -1817,7 +1817,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "发起迭代评审请求，开启一个有截止时间的履约窗口",
+        "summary": "发起迭代评审请求（Sprint Review Request），开启一个有截止时间的履约窗口",
         "tags": [
           "context:context.sprint"
         ],
@@ -1932,7 +1932,7 @@
                 }
               }
             },
-            "description": "登记迭代评审纪要",
+            "description": "登记迭代评审纪要（Sprint Review Minutes）",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -1951,7 +1951,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "登记迭代评审纪要",
+        "summary": "登记迭代评审纪要（Sprint Review Minutes）",
         "tags": [
           "context:context.sprint"
         ],
@@ -2209,7 +2209,7 @@
                 }
               }
             },
-            "description": "登记单个用户故事验收凭证",
+            "description": "登记用户故事验收凭证（Story Acceptance Confirmation）",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -2228,7 +2228,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "登记单个用户故事验收凭证",
+        "summary": "登记用户故事验收凭证（Story Acceptance Confirmation）",
         "tags": [
           "context:context.sprint"
         ],

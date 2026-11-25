@@ -3,7 +3,7 @@
   "id": "contract.iteration-plan",
   "category": "evidence",
   "kind": "contract",
-  "label": "产研迭代计划",
+  "label": "迭代承诺计划（Iteration Plan）",
   "contextRef": "context.sprint",
   "roleRefs": [
     "role.product-owner",

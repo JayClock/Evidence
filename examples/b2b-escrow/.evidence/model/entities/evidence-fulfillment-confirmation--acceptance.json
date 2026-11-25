@@ -4,7 +4,7 @@
   "category": "evidence",
   "kind": "fulfillment_confirmation",
   "contextRef": "context.fulfillment",
-  "label": "acceptance",
+  "label": "验收合格凭据（Acceptance Confirmation）",
   "notes": "buyer's immutable answer to request.acceptance.",
   "responsibleRoleRef": "role.fulfillment-buyer",
   "attributes": [

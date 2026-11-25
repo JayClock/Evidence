@@ -4,7 +4,7 @@
   "category": "evidence",
   "kind": "fulfillment_confirmation",
   "contextRef": "context.settlement",
-  "label": "milestone-release",
+  "label": "阶段放款凭单（Milestone Release Confirmation）",
   "notes": "escrow's immutable answer to request.milestone-release.",
   "responsibleRoleRef": "role.settlement-escrow",
   "attributes": [

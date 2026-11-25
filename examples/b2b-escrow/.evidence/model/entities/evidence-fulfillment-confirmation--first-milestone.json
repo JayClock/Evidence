@@ -4,7 +4,7 @@
   "category": "evidence",
   "kind": "fulfillment_confirmation",
   "contextRef": "context.fulfillment",
-  "label": "first-milestone",
+  "label": "首期款到账确认（First Milestone Confirmation）",
   "notes": "seller's immutable answer to request.first-milestone.",
   "responsibleRoleRef": "role.fulfillment-seller",
   "attributes": [

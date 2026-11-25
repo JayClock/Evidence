@@ -23,7 +23,7 @@
             "ref": "contract.iteration-plan#sprint-42",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "签署产研迭代计划，双方权责自此成立",
+              "description": "签署迭代承诺计划（Iteration Plan），双方权责自此成立",
               "examples": [
                 {
                   "_links": {
@@ -117,7 +117,7 @@
             "ref": "request.backlog#propose-scope",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起待办范围确认请求，开启一个有截止时间的履约窗口",
+              "description": "发起待办基线确认请求（Backlog Confirmation Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -556,7 +556,7 @@
             "ref": "request.review#review-iteration",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起迭代评审请求，开启一个有截止时间的履约窗口",
+              "description": "发起迭代评审请求（Sprint Review Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {

@@ -37,7 +37,7 @@
             "ref": "contract.agreement#milestone-capped",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "签署agreement，双方权责自此成立",
+              "description": "签署采购主协议（Procurement Agreement），双方权责自此成立",
               "examples": [
                 {
                   "_links": {
@@ -324,7 +324,7 @@
             "ref": "request.order#milestone-capped",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起order，开启一个有截止时间的履约窗口",
+              "description": "发起采购订单申请（Order Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -725,7 +725,7 @@
             "ref": "request.commitment#milestone-capped",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起commitment，开启一个有截止时间的履约窗口",
+              "description": "发起履约承诺申请（Commitment Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -992,7 +992,7 @@
             "ref": "contract.escrow#milestone-capped",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "签署escrow，双方权责自此成立",
+              "description": "签署托管监管协议（Escrow Agreement），双方权责自此成立",
               "examples": [
                 {
                   "_links": {
@@ -1124,7 +1124,7 @@
             "ref": "request.deposit-lock#milestone-capped",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起deposit-lock，开启一个有截止时间的履约窗口",
+              "description": "发起定金锁定申请（Deposit Lock Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -1404,7 +1404,7 @@
             "ref": "request.custody-statement#milestone-capped",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起custody-statement，开启一个有截止时间的履约窗口",
+              "description": "发起对账明细申请（Custody Statement Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -1673,7 +1673,7 @@
             "ref": "contract.fulfillment#milestone-capped",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "签署fulfillment，双方权责自此成立",
+              "description": "签署交付履约协议（Fulfillment Agreement），双方权责自此成立",
               "examples": [
                 {
                   "_links": {
@@ -1817,7 +1817,7 @@
             "ref": "request.first-milestone#milestone-capped",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起first-milestone，开启一个有截止时间的履约窗口",
+              "description": "发起首期款申请（First Milestone Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -2055,7 +2055,7 @@
             "ref": "request.final-milestone#milestone-capped",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起final-milestone，开启一个有截止时间的履约窗口",
+              "description": "发起终期款申请（Final Milestone Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -2293,7 +2293,7 @@
             "ref": "request.milestone-acceptance#milestone-capped",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起milestone-acceptance，开启一个有截止时间的履约窗口",
+              "description": "发起阶段验收申请（Milestone Acceptance Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -2572,7 +2572,7 @@
             "ref": "contract.settlement#milestone-capped",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "签署settlement，双方权责自此成立",
+              "description": "签署结算划款协议（Settlement Agreement），双方权责自此成立",
               "examples": [
                 {
                   "_links": {
@@ -2728,7 +2728,7 @@
             "ref": "request.milestone-release#milestone-capped",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起milestone-release，开启一个有截止时间的履约窗口",
+              "description": "发起阶段放款申请（Milestone Release Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -3222,7 +3222,7 @@
             "ref": "request.milestone-statement#milestone-capped",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起milestone-statement，开启一个有截止时间的履约窗口",
+              "description": "发起阶段对账请求（Milestone Statement Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -3474,7 +3474,7 @@
             "ref": "contract.agreement#milestone-on-time",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "签署agreement，双方权责自此成立",
+              "description": "签署采购主协议（Procurement Agreement），双方权责自此成立",
               "examples": [
                 {
                   "_links": {
@@ -3761,7 +3761,7 @@
             "ref": "request.order#milestone-on-time",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起order，开启一个有截止时间的履约窗口",
+              "description": "发起采购订单申请（Order Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -4162,7 +4162,7 @@
             "ref": "request.commitment#milestone-on-time",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起commitment，开启一个有截止时间的履约窗口",
+              "description": "发起履约承诺申请（Commitment Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -4429,7 +4429,7 @@
             "ref": "contract.escrow#milestone-on-time",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "签署escrow，双方权责自此成立",
+              "description": "签署托管监管协议（Escrow Agreement），双方权责自此成立",
               "examples": [
                 {
                   "_links": {
@@ -4561,7 +4561,7 @@
             "ref": "request.deposit-lock#milestone-on-time",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起deposit-lock，开启一个有截止时间的履约窗口",
+              "description": "发起定金锁定申请（Deposit Lock Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -4841,7 +4841,7 @@
             "ref": "request.custody-statement#milestone-on-time",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起custody-statement，开启一个有截止时间的履约窗口",
+              "description": "发起对账明细申请（Custody Statement Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -5110,7 +5110,7 @@
             "ref": "contract.fulfillment#milestone-on-time",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "签署fulfillment，双方权责自此成立",
+              "description": "签署交付履约协议（Fulfillment Agreement），双方权责自此成立",
               "examples": [
                 {
                   "_links": {
@@ -5254,7 +5254,7 @@
             "ref": "request.first-milestone#milestone-on-time",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起first-milestone，开启一个有截止时间的履约窗口",
+              "description": "发起首期款申请（First Milestone Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -5492,7 +5492,7 @@
             "ref": "request.final-milestone#milestone-on-time",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起final-milestone，开启一个有截止时间的履约窗口",
+              "description": "发起终期款申请（Final Milestone Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -5730,7 +5730,7 @@
             "ref": "request.milestone-acceptance#milestone-on-time",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起milestone-acceptance，开启一个有截止时间的履约窗口",
+              "description": "发起阶段验收申请（Milestone Acceptance Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -6009,7 +6009,7 @@
             "ref": "contract.settlement#milestone-on-time",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "签署settlement，双方权责自此成立",
+              "description": "签署结算划款协议（Settlement Agreement），双方权责自此成立",
               "examples": [
                 {
                   "_links": {
@@ -6165,7 +6165,7 @@
             "ref": "request.milestone-release#milestone-on-time",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起milestone-release，开启一个有截止时间的履约窗口",
+              "description": "发起阶段放款申请（Milestone Release Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -6659,7 +6659,7 @@
             "ref": "request.milestone-statement#milestone-on-time",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起milestone-statement，开启一个有截止时间的履约窗口",
+              "description": "发起阶段对账请求（Milestone Statement Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -6910,7 +6910,7 @@
             "ref": "contract.agreement#milestone-precision",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "签署agreement，双方权责自此成立",
+              "description": "签署采购主协议（Procurement Agreement），双方权责自此成立",
               "examples": [
                 {
                   "_links": {
@@ -7197,7 +7197,7 @@
             "ref": "request.order#milestone-precision",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起order，开启一个有截止时间的履约窗口",
+              "description": "发起采购订单申请（Order Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -7598,7 +7598,7 @@
             "ref": "request.commitment#milestone-precision",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起commitment，开启一个有截止时间的履约窗口",
+              "description": "发起履约承诺申请（Commitment Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -7865,7 +7865,7 @@
             "ref": "contract.escrow#milestone-precision",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "签署escrow，双方权责自此成立",
+              "description": "签署托管监管协议（Escrow Agreement），双方权责自此成立",
               "examples": [
                 {
                   "_links": {
@@ -7997,7 +7997,7 @@
             "ref": "request.deposit-lock#milestone-precision",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起deposit-lock，开启一个有截止时间的履约窗口",
+              "description": "发起定金锁定申请（Deposit Lock Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -8277,7 +8277,7 @@
             "ref": "request.custody-statement#milestone-precision",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起custody-statement，开启一个有截止时间的履约窗口",
+              "description": "发起对账明细申请（Custody Statement Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -8546,7 +8546,7 @@
             "ref": "contract.fulfillment#milestone-precision",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "签署fulfillment，双方权责自此成立",
+              "description": "签署交付履约协议（Fulfillment Agreement），双方权责自此成立",
               "examples": [
                 {
                   "_links": {
@@ -8690,7 +8690,7 @@
             "ref": "request.first-milestone#milestone-precision",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起first-milestone，开启一个有截止时间的履约窗口",
+              "description": "发起首期款申请（First Milestone Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -8928,7 +8928,7 @@
             "ref": "request.final-milestone#milestone-precision",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起final-milestone，开启一个有截止时间的履约窗口",
+              "description": "发起终期款申请（Final Milestone Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -9166,7 +9166,7 @@
             "ref": "request.milestone-acceptance#milestone-precision",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起milestone-acceptance，开启一个有截止时间的履约窗口",
+              "description": "发起阶段验收申请（Milestone Acceptance Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -9445,7 +9445,7 @@
             "ref": "contract.settlement#milestone-precision",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "签署settlement，双方权责自此成立",
+              "description": "签署结算划款协议（Settlement Agreement），双方权责自此成立",
               "examples": [
                 {
                   "_links": {
@@ -9601,7 +9601,7 @@
             "ref": "request.milestone-release#milestone-precision",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起milestone-release，开启一个有截止时间的履约窗口",
+              "description": "发起阶段放款申请（Milestone Release Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -10095,7 +10095,7 @@
             "ref": "request.milestone-statement#milestone-precision",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起milestone-statement，开启一个有截止时间的履约窗口",
+              "description": "发起阶段对账请求（Milestone Statement Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -10347,7 +10347,7 @@
             "ref": "contract.agreement#single-late",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "签署agreement，双方权责自此成立",
+              "description": "签署采购主协议（Procurement Agreement），双方权责自此成立",
               "examples": [
                 {
                   "_links": {
@@ -10634,7 +10634,7 @@
             "ref": "request.order#single-late",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起order，开启一个有截止时间的履约窗口",
+              "description": "发起采购订单申请（Order Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -11035,7 +11035,7 @@
             "ref": "request.commitment#single-late",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起commitment，开启一个有截止时间的履约窗口",
+              "description": "发起履约承诺申请（Commitment Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -11302,7 +11302,7 @@
             "ref": "contract.escrow#single-late",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "签署escrow，双方权责自此成立",
+              "description": "签署托管监管协议（Escrow Agreement），双方权责自此成立",
               "examples": [
                 {
                   "_links": {
@@ -11434,7 +11434,7 @@
             "ref": "request.deposit-lock#single-late",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起deposit-lock，开启一个有截止时间的履约窗口",
+              "description": "发起定金锁定申请（Deposit Lock Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -11714,7 +11714,7 @@
             "ref": "request.custody-statement#single-late",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起custody-statement，开启一个有截止时间的履约窗口",
+              "description": "发起对账明细申请（Custody Statement Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -11983,7 +11983,7 @@
             "ref": "contract.fulfillment#single-late",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "签署fulfillment，双方权责自此成立",
+              "description": "签署交付履约协议（Fulfillment Agreement），双方权责自此成立",
               "examples": [
                 {
                   "_links": {
@@ -12127,7 +12127,7 @@
             "ref": "request.delivery#single-late",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起delivery，开启一个有截止时间的履约窗口",
+              "description": "发起发货通知申请（Delivery Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -12345,7 +12345,7 @@
             "ref": "request.acceptance#single-late",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起acceptance，开启一个有截止时间的履约窗口",
+              "description": "发起终验合格申请（Acceptance Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -12602,7 +12602,7 @@
             "ref": "contract.settlement#single-late",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "签署settlement，双方权责自此成立",
+              "description": "签署结算划款协议（Settlement Agreement），双方权责自此成立",
               "examples": [
                 {
                   "_links": {
@@ -12758,7 +12758,7 @@
             "ref": "request.release#single-late",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起release，开启一个有截止时间的履约窗口",
+              "description": "发起托管放款申请（Release Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -13190,7 +13190,7 @@
             "ref": "request.settlement-receipt#single-late",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起settlement-receipt，开启一个有截止时间的履约窗口",
+              "description": "发起清算凭证申请（Settlement Receipt Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -13421,7 +13421,7 @@
             "ref": "contract.agreement#single-on-time",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "签署agreement，双方权责自此成立",
+              "description": "签署采购主协议（Procurement Agreement），双方权责自此成立",
               "examples": [
                 {
                   "_links": {
@@ -13708,7 +13708,7 @@
             "ref": "request.order#single-on-time",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起order，开启一个有截止时间的履约窗口",
+              "description": "发起采购订单申请（Order Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -14109,7 +14109,7 @@
             "ref": "request.commitment#single-on-time",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起commitment，开启一个有截止时间的履约窗口",
+              "description": "发起履约承诺申请（Commitment Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -14376,7 +14376,7 @@
             "ref": "contract.escrow#single-on-time",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "签署escrow，双方权责自此成立",
+              "description": "签署托管监管协议（Escrow Agreement），双方权责自此成立",
               "examples": [
                 {
                   "_links": {
@@ -14508,7 +14508,7 @@
             "ref": "request.deposit-lock#single-on-time",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起deposit-lock，开启一个有截止时间的履约窗口",
+              "description": "发起定金锁定申请（Deposit Lock Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -14788,7 +14788,7 @@
             "ref": "request.custody-statement#single-on-time",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起custody-statement，开启一个有截止时间的履约窗口",
+              "description": "发起对账明细申请（Custody Statement Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -15057,7 +15057,7 @@
             "ref": "contract.fulfillment#single-on-time",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "签署fulfillment，双方权责自此成立",
+              "description": "签署交付履约协议（Fulfillment Agreement），双方权责自此成立",
               "examples": [
                 {
                   "_links": {
@@ -15201,7 +15201,7 @@
             "ref": "request.delivery#single-on-time",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起delivery，开启一个有截止时间的履约窗口",
+              "description": "发起发货通知申请（Delivery Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -15419,7 +15419,7 @@
             "ref": "request.acceptance#single-on-time",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起acceptance，开启一个有截止时间的履约窗口",
+              "description": "发起终验合格申请（Acceptance Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -15676,7 +15676,7 @@
             "ref": "contract.settlement#single-on-time",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "签署settlement，双方权责自此成立",
+              "description": "签署结算划款协议（Settlement Agreement），双方权责自此成立",
               "examples": [
                 {
                   "_links": {
@@ -15832,7 +15832,7 @@
             "ref": "request.release#single-on-time",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起release，开启一个有截止时间的履约窗口",
+              "description": "发起托管放款申请（Release Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {
@@ -16264,7 +16264,7 @@
             "ref": "request.settlement-receipt#single-on-time",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起settlement-receipt，开启一个有截止时间的履约窗口",
+              "description": "发起清算凭证申请（Settlement Receipt Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {

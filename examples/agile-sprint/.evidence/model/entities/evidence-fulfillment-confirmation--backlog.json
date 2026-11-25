@@ -3,7 +3,7 @@
   "id": "confirmation.backlog",
   "category": "evidence",
   "kind": "fulfillment_confirmation",
-  "label": "待办基线锁定凭证",
+  "label": "待办基线锁定凭据（Backlog Baseline Locked）",
   "contextRef": "context.sprint",
   "responsibleRoleRef": "role.development-team",
   "attributes": [

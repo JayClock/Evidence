@@ -4,7 +4,7 @@
   "category": "evidence",
   "kind": "contract",
   "contextRef": "context.settlement",
-  "label": "settlement",
+  "label": "结算划款协议（Settlement Agreement）",
   "notes": "Bilateral settlement agreement. The third party participates through its own contract, not a third signatory on this contract.",
   "roleRefs": [
     "role.settlement-seller",

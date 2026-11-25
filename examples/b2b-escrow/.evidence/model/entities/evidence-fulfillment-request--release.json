@@ -4,7 +4,7 @@
   "category": "evidence",
   "kind": "fulfillment_request",
   "contextRef": "context.settlement",
-  "label": "release",
+  "label": "托管放款申请（Release Request）",
   "notes": "seller's claim on escrow; expires 48 hours after its server-recorded start.",
   "responsibleRoleRef": "role.settlement-seller",
   "attributes": [

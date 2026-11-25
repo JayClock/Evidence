@@ -92,7 +92,16 @@ describe('B2B escrow phase-one contract', () => {
       const target = current.entities.find((item) => item.id === entity.id)!;
       const { examples: prior = [], ...priorShape } = entity;
       const { examples: next = [], ...nextShape } = target;
-      expect(nextShape).toEqual(priorShape);
+      // The frozen baseline keeps its old labels. Only the display name may change.
+      expect(nextShape).toEqual({
+        ...priorShape,
+        label: expect.stringMatching(
+          /^.*\p{Script=Han}.*（[A-Za-z0-9 &/\-.]+）$/u,
+        ),
+      });
+      expect(target.label).not.toMatch(
+        /角色|当事人|上下文|标的物|Role|Party|Context|Thing/iu,
+      );
       expect(next).toEqual(expect.arrayContaining(prior));
     }
     const baselineProjection = projectAcceptanceTests(baseline);

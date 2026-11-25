@@ -4,7 +4,7 @@
   "category": "evidence",
   "kind": "fulfillment_confirmation",
   "contextRef": "context.procurement",
-  "label": "commitment",
+  "label": "履约承诺函（Commitment Confirmation）",
   "notes": "buyer's immutable answer to request.commitment.",
   "responsibleRoleRef": "role.procurement-buyer",
   "attributes": [

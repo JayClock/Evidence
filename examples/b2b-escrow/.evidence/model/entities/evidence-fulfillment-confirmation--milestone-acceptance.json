@@ -4,7 +4,7 @@
   "category": "evidence",
   "kind": "fulfillment_confirmation",
   "contextRef": "context.fulfillment",
-  "label": "milestone-acceptance",
+  "label": "阶段验收凭据（Milestone Acceptance Confirmation）",
   "notes": "buyer's immutable answer to request.milestone-acceptance.",
   "responsibleRoleRef": "role.fulfillment-buyer",
   "attributes": [

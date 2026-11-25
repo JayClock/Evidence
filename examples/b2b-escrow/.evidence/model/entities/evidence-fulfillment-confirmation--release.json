@@ -4,7 +4,7 @@
   "category": "evidence",
   "kind": "fulfillment_confirmation",
   "contextRef": "context.settlement",
-  "label": "release",
+  "label": "托管放款确认（Release Confirmation）",
   "notes": "escrow's immutable answer to request.release.",
   "responsibleRoleRef": "role.settlement-escrow",
   "attributes": [

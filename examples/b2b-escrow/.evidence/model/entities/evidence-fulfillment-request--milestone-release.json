@@ -4,7 +4,7 @@
   "category": "evidence",
   "kind": "fulfillment_request",
   "contextRef": "context.settlement",
-  "label": "milestone-release",
+  "label": "阶段放款申请（Milestone Release Request）",
   "notes": "seller's claim on escrow; expires 48 hours after its server-recorded start.",
   "responsibleRoleRef": "role.settlement-seller",
   "attributes": [

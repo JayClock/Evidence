@@ -3,7 +3,7 @@
   "id": "context.escrow",
   "category": "context",
   "kind": "contract",
-  "label": "escrow",
+  "label": "资金托管监管（Escrow Custody）",
   "rootRefs": [
     "contract.escrow"
   ]

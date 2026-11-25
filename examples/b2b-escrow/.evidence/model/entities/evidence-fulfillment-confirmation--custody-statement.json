@@ -4,7 +4,7 @@
   "category": "evidence",
   "kind": "fulfillment_confirmation",
   "contextRef": "context.escrow",
-  "label": "custody-statement",
+  "label": "资金托管对账单（Custody Statement）",
   "notes": "buyer's immutable answer to request.custody-statement.",
   "responsibleRoleRef": "role.escrow-buyer",
   "attributes": [

@@ -3,7 +3,7 @@
   "id": "request.backlog",
   "category": "evidence",
   "kind": "fulfillment_request",
-  "label": "待办范围确认请求",
+  "label": "待办基线确认请求（Backlog Confirmation Request）",
   "contextRef": "context.sprint",
   "responsibleRoleRef": "role.product-owner",
   "attributes": [

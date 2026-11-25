@@ -4,7 +4,7 @@
   "category": "evidence",
   "kind": "fulfillment_confirmation",
   "contextRef": "context.escrow",
-  "label": "deposit-lock",
+  "label": "定金锁定确认（Deposit Lock Confirmation）",
   "notes": "escrow's immutable answer to request.deposit-lock.",
   "responsibleRoleRef": "role.escrow-escrow",
   "attributes": [

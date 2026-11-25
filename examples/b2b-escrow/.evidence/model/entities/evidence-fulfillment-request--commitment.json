@@ -4,7 +4,7 @@
   "category": "evidence",
   "kind": "fulfillment_request",
   "contextRef": "context.procurement",
-  "label": "commitment",
+  "label": "履约承诺申请（Commitment Request）",
   "notes": "seller's claim on buyer; expires 48 hours after its server-recorded start.",
   "responsibleRoleRef": "role.procurement-seller",
   "attributes": [

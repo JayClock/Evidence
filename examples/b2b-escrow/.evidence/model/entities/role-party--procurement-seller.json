@@ -4,5 +4,5 @@
   "category": "role",
   "kind": "party",
   "contextRef": "context.procurement",
-  "label": "seller"
+  "label": "卖方（Seller）"
 }

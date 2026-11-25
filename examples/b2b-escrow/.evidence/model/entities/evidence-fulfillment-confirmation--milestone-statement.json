@@ -4,7 +4,7 @@
   "category": "evidence",
   "kind": "fulfillment_confirmation",
   "contextRef": "context.settlement",
-  "label": "milestone-statement",
+  "label": "阶段对账单（Milestone Statement Confirmation）",
   "notes": "seller's immutable answer to request.milestone-statement.",
   "responsibleRoleRef": "role.settlement-seller",
   "attributes": [

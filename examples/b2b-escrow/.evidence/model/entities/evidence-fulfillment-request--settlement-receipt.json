@@ -4,7 +4,7 @@
   "category": "evidence",
   "kind": "fulfillment_request",
   "contextRef": "context.settlement",
-  "label": "settlement-receipt",
+  "label": "清算凭证申请（Settlement Receipt Request）",
   "notes": "escrow's claim on seller; expires 48 hours after its server-recorded start.",
   "responsibleRoleRef": "role.settlement-escrow",
   "attributes": [

@@ -3,6 +3,6 @@
   "id": "role.product-owner",
   "category": "role",
   "kind": "party",
-  "label": "产品负责人",
+  "label": "产品负责人（Product Owner）",
   "contextRef": "context.sprint"
 }

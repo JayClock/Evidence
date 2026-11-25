@@ -4,7 +4,7 @@
   "category": "evidence",
   "kind": "contract",
   "contextRef": "context.procurement",
-  "label": "agreement",
+  "label": "采购主协议（Procurement Agreement）",
   "notes": "Bilateral procurement agreement. The third party participates through its own contract, not a third signatory on this contract.",
   "roleRefs": [
     "role.procurement-buyer",

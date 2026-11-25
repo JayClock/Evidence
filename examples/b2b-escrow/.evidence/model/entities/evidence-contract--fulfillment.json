@@ -4,7 +4,7 @@
   "category": "evidence",
   "kind": "contract",
   "contextRef": "context.fulfillment",
-  "label": "fulfillment",
+  "label": "交付履约协议（Fulfillment Agreement）",
   "notes": "Bilateral fulfillment agreement. The third party participates through its own contract, not a third signatory on this contract.",
   "roleRefs": [
     "role.fulfillment-buyer",

@@ -3,6 +3,6 @@
   "id": "role.development-team",
   "category": "role",
   "kind": "party",
-  "label": "研发团队",
+  "label": "研发团队（Development Team）",
   "contextRef": "context.sprint"
 }

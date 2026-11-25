@@ -4,7 +4,7 @@
   "category": "evidence",
   "kind": "fulfillment_confirmation",
   "contextRef": "context.fulfillment",
-  "label": "delivery",
+  "label": "交货签收确认（Delivery Confirmation）",
   "notes": "seller's immutable answer to request.delivery.",
   "responsibleRoleRef": "role.fulfillment-seller",
   "attributes": [

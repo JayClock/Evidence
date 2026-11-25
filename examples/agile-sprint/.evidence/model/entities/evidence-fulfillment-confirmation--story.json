@@ -3,7 +3,7 @@
   "id": "confirmation.story",
   "category": "evidence",
   "kind": "fulfillment_confirmation",
-  "label": "单个用户故事验收凭证",
+  "label": "用户故事验收凭证（Story Acceptance Confirmation）",
   "contextRef": "context.sprint",
   "responsibleRoleRef": "role.product-owner",
   "attributes": [

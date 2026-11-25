@@ -3,5 +3,5 @@
   "id": "party.escrow",
   "category": "participant",
   "kind": "party",
-  "label": "escrow"
+  "label": "托管行（Escrow Agent）"
 }
