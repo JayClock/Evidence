@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 import type { ImperativePanelHandle } from 'react-resizable-panels';
 
@@ -65,10 +72,6 @@ import {
 import { RightInspector } from '@evidence-poc/desktop-feature-inspector';
 import {
   Button,
-  Popover,
-  PopoverClose,
-  PopoverContent,
-  PopoverTrigger,
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
@@ -217,6 +220,9 @@ const EditorWorkspace = ({
   const toggleRightRail = useCallback(() => {
     if (!expandRightRail()) rightRail.current?.collapse();
   }, [expandRightRail]);
+  useLayoutEffect(() => {
+    if (storyActive) expandRightRail();
+  }, [storyActive, expandRightRail]);
   const layout = useWorkspaceLayoutState(toggleLedger, {
     active: ledgerActive,
     returnToGraph: workspaceView.returnToGraph,
@@ -1104,60 +1110,11 @@ const EditorWorkspace = ({
                   storyActive: true,
                   onCloseStory: closeStory,
                   storyControls: (
-                    <>
-                      <StoryPlayerBar
-                        playback={story}
-                        aiConfigured={ai?.aiConfigured}
-                        onConfigureAi={ai?.openSettings}
-                      />
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button type="button" variant="default">
-                            剧情详情
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent
-                          align="end"
-                          aria-label="剧情详情"
-                          onInteractOutside={(event) => {
-                            if (
-                              event.target instanceof Element &&
-                              event.target.closest('[data-story-toolbar]')
-                            ) {
-                              // Let readers step through scenes with details open.
-                              event.preventDefault();
-                            }
-                          }}
-                          collisionPadding={12}
-                          className="flex h-[min(720px,var(--radix-popover-content-available-height))] w-[min(360px,var(--radix-popover-content-available-width))] flex-col rounded-xl p-0"
-                        >
-                          <div className="flex shrink-0 items-center justify-between border-b border-workbench-border px-4 py-2">
-                            <h2 className="text-sm font-semibold">剧情详情</h2>
-                            <PopoverClose asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon-xs"
-                                aria-label="关闭剧情详情"
-                              >
-                                ×
-                              </Button>
-                            </PopoverClose>
-                          </div>
-                          <StoryDrawer
-                            aiConfigured={ai?.aiConfigured}
-                            onConfigureAi={ai?.openSettings}
-                            onRevealOnCanvas={(nodeId) => {
-                              closeStory();
-                              revealOnGraph(nodeId);
-                            }}
-                            playback={story}
-                            onSaveExplanation={saveStoryExplanation}
-                            pendingPersistence={pendingPersistence}
-                            externalConflict={externalConflict}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </>
+                    <StoryPlayerBar
+                      playback={story}
+                      aiConfigured={ai?.aiConfigured}
+                      onConfigureAi={ai?.openSettings}
+                    />
                   ),
                 }
               : {
@@ -1250,6 +1207,14 @@ const EditorWorkspace = ({
               >
                 {!ledgerActive ? (
                   <InspectorShell
+                    title={storyActive ? '剧情详情' : '实体属性检视'}
+                    badge={
+                      storyActive
+                        ? story.rehearsal.active
+                          ? '履约时钟假设'
+                          : '放映中'
+                        : '只读'
+                    }
                     collapsed={rightRailCollapsed}
                     onReturnToCanvas={returnToCanvas}
                     returnOnEscape={
@@ -1258,13 +1223,28 @@ const EditorWorkspace = ({
                       !stormingOpen
                     }
                   >
-                    <RightInspector
-                      graph={state.graph}
-                      selection={state.selection}
-                      showHeading={false}
-                      active={!rightRailCollapsed}
-                      gateReport={diagnosticsStale ? null : sensors.report}
-                    />
+                    {storyActive ? (
+                      <StoryDrawer
+                        aiConfigured={ai?.aiConfigured}
+                        onConfigureAi={ai?.openSettings}
+                        onRevealOnCanvas={(nodeId) => {
+                          closeStory();
+                          revealOnGraph(nodeId);
+                        }}
+                        playback={story}
+                        onSaveExplanation={saveStoryExplanation}
+                        pendingPersistence={pendingPersistence}
+                        externalConflict={externalConflict}
+                      />
+                    ) : (
+                      <RightInspector
+                        graph={state.graph}
+                        selection={state.selection}
+                        showHeading={false}
+                        active={!rightRailCollapsed}
+                        gateReport={diagnosticsStale ? null : sensors.report}
+                      />
+                    )}
                   </InspectorShell>
                 ) : null}
               </ResizablePanel>

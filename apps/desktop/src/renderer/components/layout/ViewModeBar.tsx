@@ -25,7 +25,6 @@ export const ViewModeBar = (props: ViewModeBarProps) => {
     <div
       data-canvas-control=""
       data-evidence-capture-hide=""
-      data-story-toolbar=""
       data-workbench-chrome=""
       className="flex min-h-[38px] shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b border-workbench-border bg-white px-4 py-1"
     >

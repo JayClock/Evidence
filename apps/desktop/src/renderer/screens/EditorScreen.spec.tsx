@@ -899,13 +899,16 @@ describe('EditorScreen', () => {
       canvas,
     );
     expect(screen.queryByLabelText('副视口')).toBeNull();
-    expect(screen.queryByRole('region', { name: '业务故事' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: '剧情详情' }));
+    const details = screen.getByRole('region', { name: '剧情详情' });
+    expect(details).toBeVisible();
+    expect(screen.queryByRole('region', { name: '实体属性检视' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '剧情详情' })).toBeNull();
+    expect(screen.queryByRole('dialog', { name: '剧情详情' })).toBeNull();
     expect(
-      await screen.findByText('采购方签署《采购协议》。'),
-    ).toBeInTheDocument();
+      await within(details).findByText('采购方签署《采购协议》。'),
+    ).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
-    expect(screen.getByText('供货方提交《交付请求》。')).toBeInTheDocument();
+    expect(within(details).getByText('供货方提交《交付请求》。')).toBeVisible();
     expect(container.querySelector('[data-id="evidence.request"]')).toHaveClass(
       'evidence-story-active',
     );
@@ -951,10 +954,6 @@ describe('EditorScreen', () => {
     expect(
       container.querySelector('[data-node-id="evidence.request"]'),
     ).toHaveAttribute('data-story-step', 'active');
-    fireEvent.keyDown(screen.getByRole('dialog', { name: '剧情详情' }), {
-      key: 'Escape',
-    });
-    expect(screen.queryByRole('dialog', { name: '剧情详情' })).toBeNull();
     expect(screen.getByRole('slider', { name: '业务时间' })).toHaveAttribute(
       'aria-valuetext',
       '2026-11-11 08:00:00.000 UTC',
@@ -970,7 +969,9 @@ describe('EditorScreen', () => {
     );
     expect(screen.getByRole('button', { name: '放映业务流' })).toHaveFocus();
     expect(screen.queryByLabelText('业务流放映控制')).toBeNull();
+    expect(screen.queryByRole('region', { name: '剧情详情' })).toBeNull();
     expect(screen.queryByRole('region', { name: '业务故事' })).toBeNull();
+    expect(screen.getByRole('region', { name: '实体属性检视' })).toBeVisible();
     expect(unsubscribe).toHaveBeenCalled();
     expect(container.querySelector('.evidence-story-active')).toBeNull();
     expect(screen.getByLabelText('聚焦范围')).toHaveValue('context.catalog');
@@ -990,10 +991,8 @@ describe('EditorScreen', () => {
     }));
     const view = render(<EditorScreen rootPath="/models/procurement" />);
     await readyCanvas();
-    const openStory = () => {
+    const openStory = () =>
       fireEvent.click(screen.getByRole('button', { name: '放映业务流' }));
-      fireEvent.click(screen.getByRole('button', { name: '剧情详情' }));
-    };
     openStory();
     fireEvent.click(
       await screen.findByRole('button', { name: '采纳为业务解释' }),
@@ -1052,12 +1051,13 @@ describe('EditorScreen', () => {
     );
     await readyCanvas();
     fireEvent.click(screen.getByRole('button', { name: '放映业务流' }));
-    fireEvent.click(screen.getByRole('button', { name: '剧情详情' }));
+    const details = within(screen.getByRole('region', { name: '剧情详情' }));
     fireEvent.click(
-      await screen.findByRole('button', { name: '前往「交付请求」' }),
+      await details.findByRole('button', { name: '前往「交付请求」' }),
     );
-    fireEvent.click(screen.getByRole('button', { name: '在画布定位凭证' }));
-    expect(screen.queryByRole('dialog', { name: '剧情详情' })).toBeNull();
+    fireEvent.click(details.getByRole('button', { name: '在画布定位凭证' }));
+    expect(screen.queryByRole('region', { name: '剧情详情' })).toBeNull();
+    expect(screen.getByRole('region', { name: '实体属性检视' })).toBeVisible();
     expect(screen.getByRole('button', { name: '放映业务流' })).toBeVisible();
     expect(
       container.querySelector('[data-node-id="evidence.request"]'),
@@ -1147,12 +1147,12 @@ describe('EditorScreen', () => {
     const slider = screen.getByRole('slider', { name: '业务时间' });
     expect(slider).toHaveAccessibleName('业务时间');
     fireEvent.change(slider, { target: { value: String(8 * 3_600_000 + 1) } });
-    fireEvent.click(screen.getByRole('button', { name: '剧情详情' }));
-    expect(screen.getByText(/违约条件成立/)).toBeVisible();
+    const details = within(screen.getByRole('region', { name: '剧情详情' }));
+    expect(details.getByText(/违约条件成立/)).toBeVisible();
     expect(
-      screen.getByText('模型中的处置选项（未发生）：仲裁移交'),
+      details.getByText('模型中的处置选项（未发生）：仲裁移交'),
     ).toBeVisible();
-    expect(screen.queryByRole('article', { name: '业务单据' })).toBeNull();
+    expect(details.queryByRole('article', { name: '业务单据' })).toBeNull();
     expect(
       container.querySelector('[data-node-id="evidence.request"]'),
     ).not.toHaveAttribute('data-story-step');
