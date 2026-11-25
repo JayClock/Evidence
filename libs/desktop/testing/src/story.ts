@@ -88,8 +88,8 @@ const storyResult = (flow = storyFlow()): StoryProjectResult => ({
             : 'confirm';
       const actor =
         step.entityKind === 'fulfillment_request'
-          ? { roleId: 'role.supplier', businessName: '供货方' }
-          : { roleId: 'role.buyer', businessName: '采购方' };
+          ? { roleId: 'role.supplier', roleLabel: '供货方' }
+          : { roleId: 'role.buyer', roleLabel: '采购方' };
       const actionPhrase =
         (actionVerb === 'sign'
           ? '签署'
@@ -99,7 +99,7 @@ const storyResult = (flow = storyFlow()): StoryProjectResult => ({
         '《' +
         step.entityLabel +
         '》';
-      const headline = actor.businessName + actionPhrase;
+      const headline = actor.roleLabel + actionPhrase;
       const previous = flow.steps[index - 1];
       return {
         stepIndex: step.sequence,
@@ -115,7 +115,7 @@ const storyResult = (flow = storyFlow()): StoryProjectResult => ({
             entityKind: step.entityKind,
           },
           ...(actionVerb === 'submit'
-            ? { recipient: { roleId: 'role.buyer', businessName: '采购方' } }
+            ? { recipient: { roleId: 'role.buyer', roleLabel: '采购方' } }
             : {}),
         },
         prerequisites:

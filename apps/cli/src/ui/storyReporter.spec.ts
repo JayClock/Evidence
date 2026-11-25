@@ -17,8 +17,8 @@ const stories: BusinessStoryProjection[] = [
           displayDate: '2026年4月1日 10:00 UTC',
         },
         activity: {
-          actor: { roleId: 'seller', businessName: '卖方' },
-          recipient: { roleId: 'buyer', businessName: '买方' },
+          actor: { roleId: 'seller', roleLabel: '卖方' },
+          recipient: { roleId: 'buyer', roleLabel: '买方' },
           actionVerb: 'submit',
           actionPhrase: '提交《付款申请》',
           workObject: {
