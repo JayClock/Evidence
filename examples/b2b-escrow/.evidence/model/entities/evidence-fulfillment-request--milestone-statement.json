@@ -3,6 +3,7 @@
   "id": "request.milestone-statement",
   "category": "evidence",
   "kind": "fulfillment_request",
+  "fulfillmentAction": "核对阶段托管流水",
   "contextRef": "context.settlement",
   "label": "阶段对账请求（Milestone Statement Request）",
   "notes": "escrow's claim on seller; expires 48 hours after its server-recorded start.",

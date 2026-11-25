@@ -3,6 +3,7 @@
   "id": "request.order",
   "category": "evidence",
   "kind": "fulfillment_request",
+  "fulfillmentAction": "确认采购订单",
   "contextRef": "context.procurement",
   "label": "采购订单申请（Order Request）",
   "notes": "buyer's claim on seller; expires 48 hours after its server-recorded start.",

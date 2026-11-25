@@ -3,6 +3,7 @@
   "id": "request.acceptance",
   "category": "evidence",
   "kind": "fulfillment_request",
+  "fulfillmentAction": "验收交付成果",
   "contextRef": "context.fulfillment",
   "label": "终验合格申请（Acceptance Request）",
   "notes": "seller's claim on buyer; expires 48 hours after its server-recorded start.",

@@ -3,6 +3,7 @@
   "id": "request.delivery",
   "category": "evidence",
   "kind": "fulfillment_request",
+  "fulfillmentAction": "发运约定货物",
   "contextRef": "context.fulfillment",
   "label": "发货通知申请（Delivery Request）",
   "notes": "buyer's claim on seller; expires 48 hours after its server-recorded start.",

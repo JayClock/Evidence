@@ -3,6 +3,7 @@
   "id": "request.payment",
   "category": "evidence",
   "kind": "fulfillment_request",
+  "fulfillmentAction": "支付广告投放预付款",
   "label": "预付款申请（Payment Request）",
   "contextRef": "context.advertising-order",
   "responsibleRoleRef": "role.agency",

@@ -3,6 +3,7 @@
   "id": "request.first-milestone",
   "category": "evidence",
   "kind": "fulfillment_request",
+  "fulfillmentAction": "交付首期里程碑成果",
   "contextRef": "context.fulfillment",
   "label": "首期款申请（First Milestone Request）",
   "notes": "buyer's claim on seller; expires 48 hours after its server-recorded start.",

@@ -3,6 +3,7 @@
   "id": "request.release",
   "category": "evidence",
   "kind": "fulfillment_request",
+  "fulfillmentAction": "划付托管款项",
   "contextRef": "context.settlement",
   "label": "托管放款申请（Release Request）",
   "notes": "seller's claim on escrow; expires 48 hours after its server-recorded start.",

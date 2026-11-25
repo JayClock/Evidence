@@ -3,6 +3,7 @@
   "id": "request.commitment",
   "category": "evidence",
   "kind": "fulfillment_request",
+  "fulfillmentAction": "确认采购订单并承诺履行",
   "contextRef": "context.procurement",
   "label": "履约承诺申请（Commitment Request）",
   "notes": "seller's claim on buyer; expires 48 hours after its server-recorded start.",

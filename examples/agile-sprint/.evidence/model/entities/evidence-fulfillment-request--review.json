@@ -3,6 +3,7 @@
   "id": "request.review",
   "category": "evidence",
   "kind": "fulfillment_request",
+  "fulfillmentAction": "评审迭代成果",
   "label": "迭代评审请求（Sprint Review Request）",
   "contextRef": "context.sprint",
   "responsibleRoleRef": "role.development-team",

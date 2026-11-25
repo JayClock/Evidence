@@ -3,6 +3,7 @@
   "id": "request.deposit-lock",
   "category": "evidence",
   "kind": "fulfillment_request",
+  "fulfillmentAction": "锁定全额托管款",
   "contextRef": "context.escrow",
   "label": "定金锁定申请（Deposit Lock Request）",
   "notes": "buyer's claim on escrow; expires 48 hours after its server-recorded start.",

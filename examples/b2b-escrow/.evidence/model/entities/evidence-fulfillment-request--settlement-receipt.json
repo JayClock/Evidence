@@ -3,6 +3,7 @@
   "id": "request.settlement-receipt",
   "category": "evidence",
   "kind": "fulfillment_request",
+  "fulfillmentAction": "核对清算结果",
   "contextRef": "context.settlement",
   "label": "清算凭证申请（Settlement Receipt Request）",
   "notes": "escrow's claim on seller; expires 48 hours after its server-recorded start.",

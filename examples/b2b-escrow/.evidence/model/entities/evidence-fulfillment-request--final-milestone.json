@@ -3,6 +3,7 @@
   "id": "request.final-milestone",
   "category": "evidence",
   "kind": "fulfillment_request",
+  "fulfillmentAction": "交付终期里程碑成果",
   "contextRef": "context.fulfillment",
   "label": "终期款申请（Final Milestone Request）",
   "notes": "buyer's claim on seller; expires 48 hours after its server-recorded start.",

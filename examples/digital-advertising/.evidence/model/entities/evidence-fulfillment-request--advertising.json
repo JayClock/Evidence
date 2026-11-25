@@ -3,6 +3,7 @@
   "id": "request.advertising",
   "category": "evidence",
   "kind": "fulfillment_request",
+  "fulfillmentAction": "按约定排期上线广告",
   "label": "广告排期上线申请（Ad Campaign Request）",
   "contextRef": "context.advertising-order",
   "responsibleRoleRef": "role.advertiser",

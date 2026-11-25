@@ -3,6 +3,7 @@
   "id": "request.custody-statement",
   "category": "evidence",
   "kind": "fulfillment_request",
+  "fulfillmentAction": "核对托管资金流水",
   "contextRef": "context.escrow",
   "label": "对账明细申请（Custody Statement Request）",
   "notes": "escrow's claim on buyer; expires 48 hours after its server-recorded start.",
