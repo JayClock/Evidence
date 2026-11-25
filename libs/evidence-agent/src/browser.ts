@@ -24,4 +24,13 @@ export {
 export type { AgentStreamEvent } from './session/streamEvents.js';
 
 // Story DTOs are safe to consume without loading the Node agent runtime.
-export type { StoryScene, WhatIfResult } from './story/types.js';
+export type {
+  StoryScene,
+  DocumentCardField,
+  WhatIfResult,
+  NextStepExpectation,
+} from './story/types.js';
+export {
+  describeStoryExpectation,
+  storyHistoryItem,
+} from './story/storyContinuity.js';

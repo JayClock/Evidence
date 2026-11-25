@@ -11,7 +11,6 @@ export {
 } from './story/storyAgent.js';
 export {
   createStoryNarrator,
-  createNarrationScheduler,
   type StoryNarrationStore,
 } from './story/storyNarrator.js';
 export {
@@ -19,16 +18,27 @@ export {
   type WhatIfSimulatorOptions,
 } from './story/whatIfSimulator.js';
 export {
-  STORY_SYSTEM_PROMPT,
+  describeStoryExpectation,
+  storyHistoryItem,
+} from './story/storyContinuity.js';
+export { NarrationSchema } from './story/responseSchemas.js';
+export {
+  DST_CHAINED_STORY_PROMPT,
   WHAT_IF_EXPLANATION_PROMPT,
   WHAT_IF_EXTRACTION_PROMPT,
   WHAT_IF_SPECULATIVE_PROMPT,
 } from './story/prompts.js';
 export type {
   BusinessStoryProjection,
+  CausalPrerequisite,
   DocumentCardField,
+  DomainActionVerb,
+  DomainActivity,
+  NextStepExpectation,
   StoryAgent,
+  StoryNarrativeText,
   StoryScene,
+  StoryStepHistoryItem,
   WhatIfHypothesis,
   WhatIfInput,
   WhatIfResult,

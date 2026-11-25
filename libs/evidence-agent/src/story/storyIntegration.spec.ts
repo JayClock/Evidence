@@ -24,14 +24,17 @@ const acceptanceModel = async (name: string) => {
 
 describe('M1 trace to M2 story integration', () => {
   it.each(['procurement', 'procurement-deposit'])(
-    'projects %s and regenerates only its edited request scene',
+    'projects %s and regenerates the edited request against its history',
     async (name) => {
       const model = await acceptanceModel(name);
       const { report } = buildFmCheckReport({ model });
       const flows = collectFlowScenarios(model, report);
       const generate = vi
         .fn()
-        .mockResolvedValue({ narrative: '核对业务凭证。' });
+        .mockResolvedValue({
+          headline: '核对业务凭证',
+          prose: '核对业务凭证。',
+        });
       const projector = createFlowStoryProjector({ agent: { generate } });
       for (const flow of flows) {
         const projection = await projector.project(flow, model);
@@ -41,10 +44,16 @@ describe('M1 trace to M2 story integration', () => {
         );
         for (const [index, scene] of projection.scenes.entries()) {
           expect(
-            scene.documentCard.fields.map(({ name }) => name).sort(),
+            [
+              ...scene.documentCard.keyAttributes,
+              ...scene.documentCard.generalAttributes,
+            ]
+              .map(({ name }) => name)
+              .sort(),
           ).toEqual(Object.keys(flow.steps[index]!.values).sort());
-          expect(Boolean(scene.pendingSuspense)).toBe(
-            flow.steps[index]!.gaps.length > 0,
+          expect(scene.expectation?.isControlGap ?? false).toBe(
+            flow.steps[index]!.gaps.length > 0 &&
+              !scene.activity.rejectedExample,
           );
         }
       }

@@ -6,31 +6,88 @@ export interface DocumentCardField {
   readonly name: string;
   readonly label: string;
   readonly value: string;
-  readonly keyData: boolean;
   readonly sourceOrigin?: string;
+}
+
+export type DomainActionVerb =
+  | 'sign'
+  | 'submit'
+  | 'confirm'
+  | 'issue'
+  | 'notify'
+  | 'claim_breach'
+  | 'escalate';
+
+interface StoryRole {
+  readonly roleId: string;
+  readonly roleLabel: string;
+}
+
+export interface DomainActivity {
+  readonly actor: StoryRole;
+  readonly actionVerb: DomainActionVerb;
+  readonly actionPhrase: string;
+  readonly workObject: {
+    readonly entityId: string;
+    readonly entityLabel: string;
+    readonly entityKind: string;
+    readonly referenceCode?: string;
+  };
+  readonly recipient?: StoryRole;
+  readonly rejectedExample?: true;
+}
+
+export interface CausalPrerequisite {
+  readonly previousStepIndex: number;
+  readonly fromActorLabel: string;
+  readonly workObjectLabel: string;
+  readonly businessSummary: string;
+}
+
+export interface NextStepExpectation {
+  readonly assignedToRoleLabel: string;
+  readonly expectedWorkObject: string;
+  readonly deadlineNotice?: string;
+  readonly isControlGap: boolean;
+}
+
+export interface StoryStepHistoryItem {
+  readonly stepIndex: number;
+  readonly headline: string;
+  readonly summary: string;
+}
+
+export interface StoryNarrativeText {
+  readonly headline: string;
+  readonly prose: string;
 }
 
 export interface StoryScene {
   /** The trace's one-based sequence, assigned by the projector, never the LLM. */
   readonly stepIndex: number;
   readonly stepHash: string;
-  readonly phaseTitle: string;
-  readonly narrative: string;
-  readonly narrativeSource: 'facts' | 'model' | 'ai' | 'cache';
-  readonly actingRoleLabel: string;
-  readonly targetEntityLabel: string;
+  readonly timing: {
+    readonly rawIso: string;
+    readonly displayDate: string;
+    readonly relativeTime?: string;
+  };
+  readonly activity: DomainActivity;
+  readonly prerequisites: readonly CausalPrerequisite[];
+  readonly narrative: StoryNarrativeText & {
+    readonly status: 'baseline' | 'enriching' | 'ready' | 'authored';
+  };
   readonly documentCard: {
     readonly title: string;
-    readonly fields: readonly DocumentCardField[];
-    readonly basisNotes?: string;
+    readonly keyAttributes: readonly DocumentCardField[];
+    readonly generalAttributes: readonly DocumentCardField[];
+    readonly clauseRef?: string;
   };
+  readonly expectation?: NextStepExpectation;
   readonly ruleEvaluations: readonly {
     readonly ruleName: string;
     readonly explanation: string;
     readonly satisfied: boolean;
   }[];
-  readonly stateTransitionNotice?: string;
-  readonly pendingSuspense?: string;
 }
 
 export interface BusinessStoryProjection {

@@ -10,7 +10,9 @@ export const responseObject = (value: unknown): unknown => {
 
 const text = z.string().trim().min(1);
 
-export const NarrationSchema = z.object({ narrative: text.max(600) }).strict();
+export const NarrationSchema = z
+  .object({ headline: text.max(180), prose: text.max(600) })
+  .strict();
 
 export const HypothesisSchema = z
   .object({
