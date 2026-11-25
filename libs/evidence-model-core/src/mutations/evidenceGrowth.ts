@@ -96,7 +96,11 @@ const setRole = (
 
 const addRequest = (
   draft: DomainModelDocument,
-  input: Named & { deadlineMeaning?: string; responsibleRoleRef?: string },
+  input: Named & {
+    deadlineMeaning?: string;
+    responsibleRoleRef?: string;
+    fulfillmentAction?: string;
+  },
   contextRef?: string,
 ): EvidenceEntityAST => {
   const entity: EvidenceEntityAST = {
@@ -106,6 +110,9 @@ const addRequest = (
     stage: 'fulfillment',
     id: input.id,
     label: input.label,
+    ...(input.fulfillmentAction === undefined
+      ? {}
+      : { fulfillmentAction: input.fulfillmentAction.trim() }),
     ...(contextRef === undefined ? {} : { contextRef }),
     attributes: [
       {

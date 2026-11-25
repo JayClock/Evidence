@@ -29,7 +29,7 @@ export interface FulfillmentMomentInput {
 export interface CreateFulfillmentPairInput {
   /** Contract Context that owns both moments. */
   contextRef: string;
-  request: FulfillmentMomentInput;
+  request: FulfillmentMomentInput & { fulfillmentAction?: string };
   confirmation: FulfillmentMomentInput;
   /** Confirmation → request reference id. */
   referenceId?: string;
@@ -78,6 +78,9 @@ export const createFulfillmentPairMutator = (
     contextRef: context.id,
     responsibleRoleRef: input.request.responsibleRoleRef,
     attributes: input.request.attributes,
+    ...(input.request.fulfillmentAction === undefined
+      ? {}
+      : { fulfillmentAction: input.request.fulfillmentAction.trim() }),
     ...(input.request.notes === undefined
       ? {}
       : { notes: input.request.notes }),

@@ -132,7 +132,9 @@ const party = (id: string, label: string): EntityAST => ({
 
 const evidence = (
   id: string,
-  kind: EvidenceKind,
+  kind:
+    | Exclude<EvidenceKind, 'fulfillment_request'>
+    | { fulfillmentAction: string },
   label: string,
   contextRef: string,
   responsibleRoleRef: string,
@@ -141,7 +143,12 @@ const evidence = (
   type: 'entity',
   id,
   category: 'evidence',
-  kind,
+  ...(typeof kind === 'string'
+    ? { kind }
+    : {
+        kind: 'fulfillment_request',
+        fulfillmentAction: kind.fulfillmentAction,
+      }),
   label,
   contextRef,
   responsibleRoleRef,
@@ -324,7 +331,7 @@ const procurementTemplate = (context: StarterContext): DomainModelDocument => ({
     ...sourcingEntities(),
     evidence(
       'request.payment',
-      'fulfillment_request',
+      { fulfillmentAction: '支付采购货款' },
       '支付申请（Payment Request）',
       'context.procurement',
       'role.seller',
@@ -372,7 +379,7 @@ const procurementTemplate = (context: StarterContext): DomainModelDocument => ({
     ),
     evidence(
       'request.delivery',
-      'fulfillment_request',
+      { fulfillmentAction: '交付采购商品' },
       '发货申请（Dispatch Request）',
       'context.procurement',
       'role.buyer',
@@ -430,7 +437,7 @@ const procurementTemplate = (context: StarterContext): DomainModelDocument => ({
     ),
     evidence(
       'request.invoice',
-      'fulfillment_request',
+      { fulfillmentAction: '开具采购发票' },
       '开票申请（Invoice Request）',
       'context.procurement',
       'role.buyer',
@@ -698,7 +705,7 @@ const subscriptionTemplate = (
     party('party.publisher-editor', '专栏编辑（Column Editor）'),
     evidence(
       'request.pay-subscription',
-      'fulfillment_request',
+      { fulfillmentAction: '支付订阅费用' },
       '订阅付款申请（Subscription Payment Request）',
       'context.subscription',
       'role.publisher',
@@ -746,7 +753,7 @@ const subscriptionTemplate = (
     ),
     evidence(
       'request.content-access',
-      'fulfillment_request',
+      { fulfillmentAction: '开放付费内容访问权限' },
       '付费内容访问申请（Paid Content Access Request）',
       'context.subscription',
       'role.reader',
@@ -782,7 +789,7 @@ const subscriptionTemplate = (
     ),
     evidence(
       'request.discontinue-refund',
-      'fulfillment_request',
+      { fulfillmentAction: '退还专栏订阅费用' },
       '断更退款申请（Discontinuation Refund Request）',
       'context.subscription',
       'role.reader',
@@ -860,7 +867,7 @@ const subscriptionTemplate = (
     ),
     evidence(
       'request.charge',
-      'fulfillment_request',
+      { fulfillmentAction: '划转订阅款项' },
       '扣款申请（Charge Request）',
       'context.payment-support',
       'role.payment-provider',
@@ -1168,7 +1175,7 @@ const serviceBlueprintTemplate = (
     },
     evidence(
       'request.service-delivery',
-      'fulfillment_request',
+      { fulfillmentAction: '交付约定的咨询成果' },
       '服务交付申请（Service Delivery Request）',
       'context.engagement',
       'role.client',

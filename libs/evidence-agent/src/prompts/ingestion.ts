@@ -21,7 +21,7 @@ export const INGESTION_PROMPT = `# 把业务叙述读成履约草稿
 
 2. **先找合约。** 找双方形成法律或口头约束的那一刻，它是 \`contract\`，只有一个 \`signed_at\`。合约是双边协议，所以必须有两位当事人；它们成为合约绑定的两个角色。
 3. **再分合约前的上下文。** 签约之前的询价、比价、方案征询是 \`rfp\`；报价、方案、套餐是 \`proposal\`。两者都是时段，归入 \`pre_contract\` 上下文，并指明它溯源到哪一份合约。
-4. **然后成对读履约。** 权利方主张、义务方交付，构成一对：主张是 \`fulfillment_request\`（时段，有开始与截止），交付是 \`fulfillment_confirmation\`（时刻，有确认时间）。有请求而没有确认，就是业务缺口，不要补一个想象中的确认。
+4. **然后成对读履约。** 权利方主张、义务方交付，构成一对：主张是 \`fulfillment_request\`（时段，有开始与截止），交付是 \`fulfillment_confirmation\`（时刻，有确认时间）。在请求的 \`fulfillmentAction\` 写清义务方要做的事（如「支付首期服务费」）；凭证名称仍写在 \`label\`，不要把「提交付款申请」当成履约动作。只在原文能确定动作时填写，确认凭证不重复保存动作；另附的银行回单等证明写为 \`other_evidence\`。有请求而没有确认，就是业务缺口，不要补一个想象中的确认。
 5. **把违约读成新履约。** 未按时履约的处理方案（退款、补偿、赔付、罚息）不是技术上的回滚，而是一个新的履约对，用 \`breachCompensations\` 指向被违反的那一对。
 6. **然后分离标的物。** 交易对象（商品、课件、病历、设备）不是合约，是 \`things\`，归入 \`domain\` 上下文。
 7. **最后抽出计算。** 算出来的值（阶梯价、折扣、等级、有效期、资格）写成 \`domainRole\` 为 \`calculator\` 或 \`checker\` 的标的物，并在 \`meaning\` 里写清它依据哪一句条款。
@@ -48,8 +48,8 @@ export const INGESTION_PROMPT = `# 把业务叙述读成履约草稿
   "participants": [{ "id": "party.x", "label": "采购商（Purchaser）", "kind": "party" }],
   "roles": [{ "id": "role.x", "label": "买方（Buyer）", "kind": "party", "contextRef": "context.x", "playedByParticipantRef": "party.x" }],
   "things": [{ "id": "thing.x", "label": "设备核验器（Equipment Checker）", "meaning": "业务含义", "contextRef": "context.domain", "domainRole": "calculator | checker" }],
-  "evidences": [{ "id": "contract.x", "label": "采购协议（Procurement Agreement）", "kind": "rfp | proposal | contract | fulfillment_request | fulfillment_confirmation | other_evidence", "contextRef": "context.x", "responsibleRoleRef": "role.x", "roleRefs": ["role.a", "role.b"], "attributes": [{ "name": "signed_at", "label": "签署时间", "meaning": "谁在什么业务动作中给出", "valueType": "timestamp", "required": true, "keyData": true }], "provenance": { "text": "原句", "locator": "第 1 句" } }],
-  "fulfillmentPairs": [{ "id": "pair.x", "label": "请求 → 确认", "requestRef": "request.x", "confirmationRef": "confirmation.x", "proofRef": "evidence.x", "description": "这一对交付什么" }],
+  "evidences": [{ "id": "request.x", "label": "首期付款请求（Advance Payment Request）", "kind": "fulfillment_request", "fulfillmentAction": "支付首期服务费", "contextRef": "context.x", "responsibleRoleRef": "role.x", "attributes": [{ "name": "started_at", "timeRole": "start", "label": "请款时间", "meaning": "发起首期请款的时刻", "valueType": "timestamp", "required": true, "keyData": true }], "provenance": { "text": "原句", "locator": "第 1 句" } }],
+  "fulfillmentPairs": [{ "id": "pair.x", "label": "首期付款", "requestRef": "request.x", "confirmationRef": "confirmation.x", "proofRef": "evidence.x", "description": "这一对交付什么" }],
   "breachCompensations": [{ "id": "breach.x", "label": "违约处理", "triggeredByPairRef": "pair.x", "compensationPairRef": "pair.y", "conditionDescription": "什么情况下触发" }],
   "relationships": [{ "id": "relation.x", "kind": "references | plays_role", "sourceRef": "confirmation.x", "targetRef": "request.x", "label": "确认引用所属请求" }]
 }

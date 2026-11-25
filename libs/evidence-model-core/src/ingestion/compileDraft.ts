@@ -1,4 +1,5 @@
 import {
+  FulfillmentActionSchema,
   isDomainId,
   type AttributeAST,
   type ContextEntityAST,
@@ -504,6 +505,23 @@ export const compileIngestionDraft = (
         ? undefined
         : roleIds.get(evidence.responsibleRoleRef);
 
+    const action = FulfillmentActionSchema.safeParse(
+      evidence.fulfillmentAction,
+    );
+    if (
+      (evidence.kind === 'fulfillment_request' && !action.success) ||
+      (evidence.kind !== 'fulfillment_request' &&
+        evidence.fulfillmentAction !== undefined)
+    ) {
+      issues.push({
+        draftId: evidence.id,
+        message:
+          evidence.kind === 'fulfillment_request'
+            ? `「${evidence.label}」缺少明确的履约动作，请补充义务方需要做什么。`
+            : `「${evidence.label}」不是履约请求，未写入履约动作。`,
+      });
+    }
+
     const entity: EvidenceEntityAST = {
       type: 'entity',
       id,
@@ -512,6 +530,9 @@ export const compileIngestionDraft = (
       label: evidence.label,
       contextRef,
       ...(responsibleRoleRef === undefined ? {} : { responsibleRoleRef }),
+      ...(evidence.kind === 'fulfillment_request' && action.success
+        ? { fulfillmentAction: action.data.trim() }
+        : {}),
       ...(roleRefs === undefined ? {} : { roleRefs }),
       ...(evidence.attributes === undefined || evidence.attributes.length === 0
         ? {}

@@ -79,6 +79,7 @@ export {
   EVIDENCE_KIND_DEFINITIONS,
   EVIDENCE_KIND_LABELS,
   EvidenceEntitySchema,
+  FulfillmentActionSchema,
   EvidenceKindSchema,
   EvidenceStageSchema,
   TimeRoleSchema,

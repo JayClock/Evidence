@@ -400,6 +400,24 @@ describe('context checks', () => {
   });
 });
 
+describe('fulfillment actions', () => {
+  it('accepts an action on a request, but not on its confirmation', () => {
+    const document = baseDocument();
+    requireEvidence(document, 'request.payment').fulfillmentAction =
+      '支付采购款';
+    expect(validate(document).valid).toBe(true);
+    requireEvidence(document, 'confirmation.payment').fulfillmentAction =
+      '支付采购款';
+    expectIssue(document, 'entity.shape');
+  });
+
+  it('rejects a blank action', () => {
+    const document = baseDocument();
+    requireEvidence(document, 'request.payment').fulfillmentAction = '   ';
+    expect(validate(document).valid).toBe(false);
+  });
+});
+
 describe('responsibility checks', () => {
   it('accepts a request before its responsible role has been identified', () => {
     const document = baseDocument();

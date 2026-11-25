@@ -42,16 +42,14 @@ describe('reading prose without a model', () => {
     const unconfirmed = draft.evidences.filter(
       (evidence) =>
         evidence.kind === 'fulfillment_request' &&
-        !draft.fulfillmentPairs.some(
-          (pair) => pair.requestRef === evidence.id,
-        ),
+        !draft.fulfillmentPairs.some((pair) => pair.requestRef === evidence.id),
     );
 
     expect(unconfirmed.length).toBeGreaterThan(0);
     expect(issues.join(' ')).toContain('缺少履约确认');
   });
 
-  it('compiles an offline reading into a model that validates', () => {
+  it('compiles an offline reading and reports obligations it cannot extract precisely', () => {
     const { draft } = draftFromBusinessText(CONTRACT_CLAUSE, {
       modelName: '云服务采购',
     });
@@ -59,9 +57,25 @@ describe('reading prose without a model', () => {
       modelId: 'cloud-procurement',
     });
 
-    expect(issues).toEqual([]);
+    expect(issues.map(({ message }) => message)).toEqual(
+      ['支付申请', '开通申请', '退款申请'].map(
+        (label) => `「${label}」缺少明确的履约动作，请补充义务方需要做什么。`,
+      ),
+    );
     expect(strictValidateDomainModel(document).valid).toBe(true);
     expect(document.entities.length).toBeGreaterThan(0);
+  });
+
+  it('keeps a directly stated obligation distinct from its request label', () => {
+    const { draft } = draftFromBusinessText(
+      '甲乙双方签署《采购合同》。乙方须在 3 天内交付设备。',
+    );
+    expect(draft.evidences).toContainEqual(
+      expect.objectContaining({
+        label: '交付申请',
+        fulfillmentAction: '交付设备',
+      }),
+    );
   });
 
   it('carries the clause each reading came from', () => {

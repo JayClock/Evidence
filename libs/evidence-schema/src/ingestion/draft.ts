@@ -98,6 +98,8 @@ export interface DraftEvidence {
   contextRef: string;
   /** Signing or delivering role; required for every non-contract evidence. */
   responsibleRoleRef?: string;
+  /** Business obligation on the request, not the activity of filing it. */
+  fulfillmentAction?: string;
   /** Exactly two for a contract. */
   roleRefs?: string[];
   attributes?: DraftAttribute[];

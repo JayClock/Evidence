@@ -462,6 +462,19 @@ const validateEntities = (
 
     if (
       entity.category === 'evidence' &&
+      entity.fulfillmentAction !== undefined &&
+      entity.kind !== 'fulfillment_request'
+    ) {
+      addIssue(
+        ctx,
+        'entity.shape',
+        [...path, 'fulfillmentAction'],
+        'Only a fulfillment request may declare a fulfillment action.',
+        entity.id,
+      );
+    }
+    if (
+      entity.category === 'evidence' &&
       entity.asyncAcceptance === true &&
       entity.kind !== 'fulfillment_request'
     ) {

@@ -174,6 +174,8 @@ const EntityBaseSchema = z.object({
   sourceSnippet: ProvenanceSnippetSchema.optional(),
 });
 
+export const FulfillmentActionSchema = z.string().regex(/\S/u);
+
 /** Evidence objects carry a context and may own responsibility metadata. */
 export const EvidenceEntitySchema = EntityBaseSchema.extend({
   category: z.literal('evidence'),
@@ -181,6 +183,8 @@ export const EvidenceEntitySchema = EntityBaseSchema.extend({
   stage: EvidenceStageSchema.optional(),
   contextRef: DomainIdSchema.optional(),
   responsibleRoleRef: DomainIdSchema.optional(),
+  /** The obligation requested, independent of the documents that attest to it. */
+  fulfillmentAction: FulfillmentActionSchema.optional(),
   /** Explicit delegates for recording this confirmation; they do not own the obligation. */
   callbackRoleRefs: z.array(DomainIdSchema).min(1).optional(),
   /** Accept processing now; record the outcome separately as a confirmation. */

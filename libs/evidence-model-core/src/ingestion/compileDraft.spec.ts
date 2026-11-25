@@ -9,14 +9,19 @@ import {
 
 import { parseBlueprint } from './blueprintParser.js';
 import { compileIngestionDraft } from './compileDraft.js';
-import { LAYOUT_COLUMNS, LAYOUT_ROWS, layoutDomainModel } from './layoutDomainModel.js';
+import { readIngestionDraftJson } from './readDraftJson.js';
+import {
+  LAYOUT_COLUMNS,
+  LAYOUT_ROWS,
+  layoutDomainModel,
+} from './layoutDomainModel.js';
 
-const BLUEPRINT = `| 阶段 | 客户旅程 / 前台活动 | 业务凭证 | 凭证类型 | 当事人 | 标的物 |
-| :--- | :--- | :--- | :--- | :--- | :--- |
+const BLUEPRINT = `| 阶段 | 客户旅程 / 前台活动 | 业务凭证 | 凭证类型 | 当事人 | 标的物 | 履约动作 |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | 合约前阶段 | 提交采购意向 | 商品询价单 | rfp | 甲方采购员 | 采购物资 |
 | 合约前阶段 | 提供商品报价 | 商品报价单 | proposal | 乙方销售 | 采购物资 |
 | 合约确立 | 签署采购协议 | 采购框架合同 | contract | 甲方代表, 乙方代表 | 采购物资 |
-| 履约交付 | 提交付款申请 | 支付申请单 | request | 甲方财务 | 采购货款 |
+| 履约交付 | 提交付款申请 | 支付申请单 | request | 甲方财务 | 采购货款 | 支付采购货款 |
 | 履约交付 | 确认款项到账 | 支付确认单 | confirmation | 乙方财务 | 采购货款 |
 | 履约交付 | 提供转账凭据 | 银行回单 | evidence | 甲方财务 | 采购货款 |`;
 
@@ -27,7 +32,10 @@ const compileBlueprint = (content = BLUEPRINT) => {
     throw new Error(parsed.error);
   }
 
-  return { parsed, compiled: compileIngestionDraft(parsed.draft, { modelId: 'procurement' }) };
+  return {
+    parsed,
+    compiled: compileIngestionDraft(parsed.draft, { modelId: 'procurement' }),
+  };
 };
 
 describe('compiling a draft', () => {
@@ -35,8 +43,44 @@ describe('compiling a draft', () => {
     const { compiled } = compileBlueprint();
     const validation = strictValidateDomainModel(compiled.document);
 
-    expect(validation.issues.map((issue) => `${issue.path}: ${issue.message}`)).toEqual([]);
+    expect(
+      validation.issues.map((issue) => `${issue.path}: ${issue.message}`),
+    ).toEqual([]);
     expect(validation.valid).toBe(true);
+  });
+
+  it('preserves the requested action through JSON reading and compilation without renaming the document', () => {
+    const { parsed } = compileBlueprint();
+    const read = readIngestionDraftJson(JSON.stringify(parsed.draft));
+    if (!read.success) throw new Error(read.error);
+    const { document } = compileIngestionDraft(read.draft, {
+      modelId: 'procurement',
+    });
+    expect(
+      document.entities.find(({ kind }) => kind === 'fulfillment_request'),
+    ).toMatchObject({
+      label: '支付申请单',
+      fulfillmentAction: '支付采购货款',
+    });
+    expect(
+      document.entities.find(({ kind }) => kind === 'fulfillment_confirmation'),
+    ).not.toHaveProperty('fulfillmentAction');
+  });
+
+  it('reports an undeclared action instead of copying the document or activity label', () => {
+    const { compiled } = compileBlueprint(
+      BLUEPRINT.replace('支付采购货款 |', '   |'),
+    );
+    expect(
+      compiled.document.entities.find(
+        ({ kind }) => kind === 'fulfillment_request',
+      ),
+    ).not.toHaveProperty('fulfillmentAction');
+    expect(compiled.issues).toContainEqual(
+      expect.objectContaining({
+        message: expect.stringContaining('缺少明确的履约动作'),
+      }),
+    );
   });
 
   it('writes the pre-contract context under the contract it sourced', () => {
@@ -97,7 +141,9 @@ describe('compiling a draft', () => {
       (entity) => entity.category === 'evidence' && entity.kind === 'contract',
     );
 
-    expect(contract?.category === 'evidence' ? contract.roleRefs : undefined).toHaveLength(2);
+    expect(
+      contract?.category === 'evidence' ? contract.roleRefs : undefined,
+    ).toHaveLength(2);
     expect(parsed.issues.map((issue) => issue.message).join(' ')).toContain(
       '已按「甲方 / 乙方」补齐角色',
     );
@@ -116,7 +162,9 @@ describe('compiling a draft', () => {
 
     // No contract anywhere, so the contract context has no root and everything
     // hanging off it has to go too; what is left still has to validate.
-    const compiled = compileIngestionDraft(parsed.draft, { modelId: 'orphaned' });
+    const compiled = compileIngestionDraft(parsed.draft, {
+      modelId: 'orphaned',
+    });
     const validation = strictValidateDomainModel(compiled.document);
 
     // Everything that hung a fact on the missing contract is gone; what must not
@@ -164,8 +212,20 @@ describe('compiling a draft', () => {
 
     // A cross-context reference may only cite a proposal; an inquiry stays in
     // its own context, and the proposal references it from there.
-    expect(cited.every((entity) => entity?.category !== 'evidence' || entity.kind === 'proposal' || entity.kind === 'other_evidence')).toBe(true);
-    expect(cited.some((entity) => entity?.category === 'evidence' && entity.kind === 'proposal')).toBe(true);
+    expect(
+      cited.every(
+        (entity) =>
+          entity?.category !== 'evidence' ||
+          entity.kind === 'proposal' ||
+          entity.kind === 'other_evidence',
+      ),
+    ).toBe(true);
+    expect(
+      cited.some(
+        (entity) =>
+          entity?.category === 'evidence' && entity.kind === 'proposal',
+      ),
+    ).toBe(true);
   });
 
   it('keeps a domain component a thing, with the role it was read as', () => {
@@ -183,7 +243,9 @@ describe('compiling a draft', () => {
 
     thing.domainRole = 'checker';
 
-    const compiled = compileIngestionDraft(parsed.draft, { modelId: 'procurement' });
+    const compiled = compileIngestionDraft(parsed.draft, {
+      modelId: 'procurement',
+    });
     const written = compiled.document.entities.find(
       (entity) => entity.id === compiled.writtenIds[thing.id],
     );
@@ -193,7 +255,8 @@ describe('compiling a draft', () => {
     expect(strictValidateDomainModel(compiled.document).valid).toBe(true);
   });
 
-  it('records the id every draft element ended up with', () => {    const { parsed, compiled } = compileBlueprint();
+  it('records the id every draft element ended up with', () => {
+    const { parsed, compiled } = compileBlueprint();
     const request = parsed.draft.evidences.find(
       (evidence) => evidence.kind === 'fulfillment_request',
     );
@@ -230,7 +293,9 @@ describe('laying out a compiled model', () => {
       (entity) => entity.category === 'evidence' && entity.kind === 'contract',
     );
     const confirmation = compiled.document.entities.find(
-      (entity) => entity.category === 'evidence' && entity.kind === 'fulfillment_confirmation',
+      (entity) =>
+        entity.category === 'evidence' &&
+        entity.kind === 'fulfillment_confirmation',
     );
 
     expect(layout[rfp?.id ?? '']?.x).toBe(LAYOUT_COLUMNS.preContract);
@@ -245,13 +310,17 @@ describe('laying out a compiled model', () => {
       (entity) => entity.category === 'participant' && entity.kind === 'thing',
     );
 
-    expect(layout[thing?.id ?? '']?.y).toBeGreaterThanOrEqual(LAYOUT_ROWS.domain);
+    expect(layout[thing?.id ?? '']?.y).toBeGreaterThanOrEqual(
+      LAYOUT_ROWS.domain,
+    );
   });
 
   it('never gives two entities the same coordinate', () => {
     const { compiled } = compileBlueprint();
     const layout = layoutDomainModel(compiled.document);
-    const points = Object.values(layout).map((point) => `${point.x}:${point.y}`);
+    const points = Object.values(layout).map(
+      (point) => `${point.x}:${point.y}`,
+    );
 
     const placed = compiled.document.entities.filter(
       (entity) => entity.category !== 'context',
@@ -264,7 +333,9 @@ describe('laying out a compiled model', () => {
   it('lays out a model re-read from disk the same way', () => {
     const { compiled } = compileBlueprint();
     const once = layoutDomainModel(compiled.document);
-    const twice = layoutDomainModel(JSON.parse(JSON.stringify(compiled.document)));
+    const twice = layoutDomainModel(
+      JSON.parse(JSON.stringify(compiled.document)),
+    );
 
     expect(twice).toEqual(once);
   });

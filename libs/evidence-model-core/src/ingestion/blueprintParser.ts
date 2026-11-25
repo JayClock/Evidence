@@ -22,6 +22,7 @@ import {
 export const BLUEPRINT_COLUMNS = [
   'stage',
   'activity',
+  'fulfillmentAction',
   'evidence',
   'kind',
   'party',
@@ -49,6 +50,7 @@ const COLUMN_ALIASES: Readonly<Record<BlueprintColumn, readonly string[]>> = {
     'touchpoint',
     'journey',
   ],
+  fulfillmentAction: ['履约动作', 'fulfillment action', 'obligation'],
   evidence: ['业务凭证', '凭证', '单据', 'evidence', 'document'],
   kind: ['凭证类型', '类型', 'type', 'kind'],
   party: ['当事人', '责任人', '参与人', 'party', 'owner', 'actor'],
@@ -81,7 +83,9 @@ export interface BlueprintParseFailure {
   issues: readonly BlueprintIssue[];
 }
 
-export type BlueprintParseResult = BlueprintParseSuccess | BlueprintParseFailure;
+export type BlueprintParseResult =
+  | BlueprintParseSuccess
+  | BlueprintParseFailure;
 
 const splitCells = (line: string): string[] =>
   line
@@ -123,7 +127,9 @@ const normalizeHeader = (cell: string): string =>
 
 const matchColumn = (header: string): BlueprintColumn | undefined =>
   BLUEPRINT_COLUMNS.find((column) =>
-    COLUMN_ALIASES[column].some((alias) => header.includes(normalizeHeader(alias))),
+    COLUMN_ALIASES[column].some((alias) =>
+      header.includes(normalizeHeader(alias)),
+    ),
   );
 
 const splitNames = (cell: string): string[] =>
@@ -137,7 +143,10 @@ interface ParsedTable {
   issues: BlueprintIssue[];
 }
 
-const readTable = (content: string, format: 'markdown' | 'csv'): ParsedTable => {
+const readTable = (
+  content: string,
+  format: 'markdown' | 'csv',
+): ParsedTable => {
   const issues: BlueprintIssue[] = [];
   const lines = content
     .split(/\r?\n/)
@@ -215,11 +224,13 @@ const readTable = (content: string, format: 'markdown' | 'csv'): ParsedTable => 
     }
 
     const thing = columnValue(cells, 'thing');
+    const fulfillmentAction = columnValue(cells, 'fulfillmentAction');
 
     rows.push({
       line,
       stage: columnValue(cells, 'stage') || '未分阶段',
       activity: columnValue(cells, 'activity'),
+      ...(fulfillmentAction ? { fulfillmentAction } : {}),
       evidence: evidenceLabel,
       ...(kind === undefined ? {} : { kind }),
       parties: splitNames(columnValue(cells, 'party')),
@@ -241,7 +252,9 @@ const readTable = (content: string, format: 'markdown' | 'csv'): ParsedTable => 
  */
 export const parseBlueprint = (
   content: string,
-  options: BlueprintParseOptions & { format?: 'markdown' | 'csv' | 'auto' } = {},
+  options: BlueprintParseOptions & {
+    format?: 'markdown' | 'csv' | 'auto';
+  } = {},
 ): BlueprintParseResult => {
   const format =
     options.format === undefined || options.format === 'auto'
@@ -279,10 +292,7 @@ export const parseBlueprint = (
   return {
     success: true,
     draft: assembled.draft,
-    issues: [
-      ...issues,
-      ...assembled.issues.map((message) => ({ message })),
-    ],
+    issues: [...issues, ...assembled.issues.map((message) => ({ message }))],
   };
 };
 

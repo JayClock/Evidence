@@ -24,6 +24,8 @@ export interface DraftRow {
   line: number;
   stage: string;
   activity: string;
+  /** Explicit obligation, separate from the activity that creates a document. */
+  fulfillmentAction?: string;
   /** Business name of the document the step leaves behind. */
   evidence: string;
   /** Explicit kind, or omitted to infer it from the document name. */
@@ -65,7 +67,8 @@ export const inferEvidenceKind = (label: string): EvidenceKind => {
   const text = label.toLowerCase();
 
   if (/询价|征集|索取|招标|rfp|inquiry/.test(text)) return 'rfp';
-  if (/报价|提案|方案|套餐|投标|proposal|quotation/.test(text)) return 'proposal';
+  if (/报价|提案|方案|套餐|投标|proposal|quotation/.test(text))
+    return 'proposal';
   if (/合同|协议|签约|contract|agreement/.test(text)) return 'contract';
   if (/申请|请求|通知|要求|request/.test(text)) return 'fulfillment_request';
   if (/确认|到账|签收|验收|完成|确认函|confirmation/.test(text)) {
@@ -186,7 +189,8 @@ export const assembleDraftFromRows = (
   const contractRowIndex = rows.findIndex(
     (row) => (row.kind ?? inferEvidenceKind(row.evidence)) === 'contract',
   );
-  const contractRow = contractRowIndex >= 0 ? rows[contractRowIndex] : undefined;
+  const contractRow =
+    contractRowIndex >= 0 ? rows[contractRowIndex] : undefined;
 
   const sideLabels: string[] =
     contractRow !== undefined && contractRow.parties.length >= 2
@@ -284,7 +288,9 @@ export const assembleDraftFromRows = (
       takenEvidenceIds,
       `row-${row.line}`,
     );
-    const rowSides = row.parties.map((partyLabel) => sideOf(partyLabel, row.line));
+    const rowSides = row.parties.map((partyLabel) =>
+      sideOf(partyLabel, row.line),
+    );
 
     const evidence: DraftEvidence = {
       id,
@@ -292,6 +298,9 @@ export const assembleDraftFromRows = (
       kind,
       contextRef: context.id,
       attributes: [...mandatoryTimeAttributes(kind)],
+      ...(kind === 'fulfillment_request' && row.fulfillmentAction
+        ? { fulfillmentAction: row.fulfillmentAction }
+        : {}),
       provenance: snippetOf(row, options.source, `第 ${row.line} 行`),
       ...(kind === 'contract'
         ? {
@@ -366,7 +375,7 @@ export const assembleDraftFromRows = (
 
       const pair: DraftFulfillmentPair = {
         id: `pair.${request.id}-${evidence.id}`,
-        label: `${request.label} → ${evidence.label}`,
+        label: request.fulfillmentAction ?? request.label,
         requestRef: request.id,
         confirmationRef: evidence.id,
         description: row.activity,
@@ -401,7 +410,9 @@ export const assembleDraftFromRows = (
   }
 
   const breachPairs = new Set(
-    [...pairByRow.entries()].filter(([row]) => isBreachRow(row)).map(([, pair]) => pair),
+    [...pairByRow.entries()]
+      .filter(([row]) => isBreachRow(row))
+      .map(([, pair]) => pair),
   );
 
   for (const pair of breachPairs) {
@@ -440,7 +451,9 @@ export const assembleDraftFromRows = (
   }
 
   if (preContractEvidences.length > 0) {
-    preContractContext.rootRefs = preContractEvidences.map((evidence) => evidence.id);
+    preContractContext.rootRefs = preContractEvidences.map(
+      (evidence) => evidence.id,
+    );
     draft.contexts.push(preContractContext);
   }
 

@@ -41,7 +41,8 @@ const ACTIONS: readonly { pattern: RegExp; label: string }[] = [
 ];
 
 /** A clause that names a deadline is an obligation, so it reads as a request. */
-const DEADLINE = /(\d+|几|若干)\s*(个)?\s*(工作日|自然日|日|天|小时|分钟)|及时|尽快|期限内|到期/;
+const DEADLINE =
+  /(\d+|几|若干)\s*(个)?\s*(工作日|自然日|日|天|小时|分钟)|及时|尽快|期限内|到期/;
 
 /** A clause that names completion is the result side. */
 const COMPLETION = /完成|确认|到账|签收|验收|收到|出具|已开通|已支付/;
@@ -254,10 +255,20 @@ export const draftFromBusinessText = (
       // its confirmation is the next clause that reports the result.
       if (hasDeadline || !hasCompletion) {
         emitted.add(`${action.label}`);
+        const match = action.pattern.exec(clause);
+        const trailing = match
+          ? clause.slice(match.index + match[0].length)
+          : '';
+        const object = THINGS.find((noun) => trailing.startsWith(noun));
+        const fulfillmentAction =
+          match && object && match[0] !== '提交'
+            ? `${match[0]}${object}`
+            : undefined;
         push({
           stage,
           activity: clause,
           evidence: `${action.label}申请`,
+          ...(fulfillmentAction === undefined ? {} : { fulfillmentAction }),
           kind: 'fulfillment_request',
           parties,
           ...(thing === undefined ? {} : { thing }),
@@ -311,14 +322,17 @@ export const draftFromBusinessText = (
     }
 
     if (breach) {
-      issues.push(`「${clause.slice(0, 24)}…」按违约处理读入，请确认它触发了哪一项补偿。`);
+      issues.push(
+        `「${clause.slice(0, 24)}…」按违约处理读入，请确认它触发了哪一项补偿。`,
+      );
     }
   }
 
   const assembled = assembleDraftFromRows(rows, {
     modelName: options.modelName ?? '文本导入的履约模型',
     source: options.source ?? 'unknown',
-    description: '由业务自然语言导入：先找合约，再分成对的履约，违约读成新的履约。',
+    description:
+      '由业务自然语言导入：先找合约，再分成对的履约，违约读成新的履约。',
     ...(options.contractContextLabel === undefined
       ? {}
       : { contractContextLabel: options.contractContextLabel }),

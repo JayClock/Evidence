@@ -90,6 +90,7 @@ const pairInput = ({
     label: string;
     responsibleRoleRef: string;
     window?: string;
+    fulfillmentAction?: string;
   };
   confirmation: {
     id: string;
@@ -104,6 +105,9 @@ const pairInput = ({
     label: request.label,
     responsibleRoleRef: request.responsibleRoleRef,
     attributes: [startedAt(request.window), expiredAt(request.window)],
+    ...(request.fulfillmentAction === undefined
+      ? {}
+      : { fulfillmentAction: request.fulfillmentAction }),
   },
   confirmation: {
     id: confirmation.id,

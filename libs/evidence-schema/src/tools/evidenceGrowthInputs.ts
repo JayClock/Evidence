@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   AttributeSourceSchema,
   EvidenceStageSchema,
+  FulfillmentActionSchema,
   TimeRoleSchema,
 } from '../ast/entity.js';
 import { AttributeNameSchema, DomainIdSchema } from '../ast/id.js';
@@ -41,6 +42,9 @@ const request = named
   .extend({
     responsibleRoleRef: DomainIdSchema.optional(),
     deadlineMeaning: condition.optional(),
+    fulfillmentAction: FulfillmentActionSchema.optional().describe(
+      '义务方应完成的业务动作，不是请求或确认单据名称。',
+    ),
   })
   .strict();
 const rule = named

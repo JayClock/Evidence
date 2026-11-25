@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   AttributeASTSchema,
   DomainComponentRoleSchema,
+  FulfillmentActionSchema,
 } from '../ast/entity.js';
 import { CelVariableNameSchema, DomainIdSchema } from '../ast/id.js';
 import { RuleBindingSchema } from '../ast/rule.js';
@@ -20,6 +21,9 @@ const moment = namedObject
   .strict();
 const request = moment
   .extend({
+    fulfillmentAction: FulfillmentActionSchema.optional().describe(
+      '义务方应完成的业务动作，例如支付首期款；不是提交请求的动作。',
+    ),
     window: z
       .string()
       .min(1)
