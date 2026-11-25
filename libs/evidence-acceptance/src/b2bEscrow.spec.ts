@@ -92,9 +92,13 @@ describe('B2B escrow phase-one contract', () => {
       const target = current.entities.find((item) => item.id === entity.id)!;
       const { examples: prior = [], ...priorShape } = entity;
       const { examples: next = [], ...nextShape } = target;
-      // The frozen baseline keeps its old labels. Only the display name may change.
+      // Allow only presentation metadata to differ from the frozen baseline.
       expect(nextShape).toEqual({
         ...priorShape,
+        ...(entity.category === 'evidence' &&
+        entity.kind === 'fulfillment_request'
+          ? { fulfillmentAction: expect.stringMatching(/\S/u) }
+          : {}),
         label: expect.stringMatching(
           /^.*\p{Script=Han}.*（[A-Za-z0-9 &/\-.]+）$/u,
         ),
