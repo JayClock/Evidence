@@ -31,10 +31,12 @@ nx make desktop         # installers in apps/desktop/out/make
   edit fields or rules.
 - Use **Cmd/Ctrl+Shift+K** to search for commands or jump to business objects.
 - Use **放映业务流** at the right of the top canvas bar to walk through a declared
-  scenario on the same canvas. **剧情详情** opens narration, sample documents and
-  What-If questions. **退出放映** or **Esc** closes playback without clearing the
-  selection; if scene details are open, the first **Esc** closes those details.
-  Opening the ledger also stops playback; returning does not resume it.
+  scenario on the same canvas. The right pane expands if needed and switches
+  from **实体属性检视** to **剧情详情**, showing narration, sample documents and
+  What-If questions for the current step. **退出放映** (or **Esc** when not
+  editing a field or using a dialog) restores the inspector without clearing
+  the selection. Opening the ledger also stops playback; returning does not
+  resume it.
 - The canvas HUD controls zoom, fit and density; its **更多画布工具** contains
   grid and scenario actions.
 - Use **实体属性检查** in the right pane to edit the selected object. **返回画布**
