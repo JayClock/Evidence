@@ -1,5 +1,6 @@
 import {
   createEmptyIngestionDraft,
+  FulfillmentActionSchema,
   isDomainComponentRole,
   isIngestionDraftShape,
   normalizeDraftEvidenceKind,
@@ -106,7 +107,8 @@ export const readIngestionDraftJson = (reply: string): DraftJsonReadResult => {
 
   const draft = createEmptyIngestionDraft({
     modelName:
-      typeof source['modelName'] === 'string' && source['modelName'].trim().length > 0
+      typeof source['modelName'] === 'string' &&
+      source['modelName'].trim().length > 0
         ? source['modelName'].trim()
         : '文本导入的履约模型',
     source: 'unknown',
@@ -130,7 +132,11 @@ export const readIngestionDraftJson = (reply: string): DraftJsonReadResult => {
     'participants',
     issues,
   ) as IngestionDraft['participants'];
-  draft.roles = collectionOf(source, 'roles', issues) as IngestionDraft['roles'];
+  draft.roles = collectionOf(
+    source,
+    'roles',
+    issues,
+  ) as IngestionDraft['roles'];
   draft.things = collectionOf(
     source,
     'things',
@@ -174,11 +180,21 @@ export const readIngestionDraftJson = (reply: string): DraftJsonReadResult => {
       issues.push(
         `凭证「${evidence.label}」的类型无法识别，已按「其它凭证」保留，请在审核面板中修改。`,
       );
-      evidence.kind = 'other_evidence';
-      continue;
     }
-
-    evidence.kind = kind;
+    evidence.kind = kind ?? 'other_evidence';
+    if (evidence.fulfillmentAction !== undefined) {
+      const action = FulfillmentActionSchema.safeParse(
+        evidence.fulfillmentAction,
+      );
+      if (kind === 'fulfillment_request' && action.success) {
+        evidence.fulfillmentAction = action.data.trim();
+      } else {
+        delete evidence.fulfillmentAction;
+        issues.push(
+          `凭证「${evidence.label}」的履约动作无效，请在审核面板中核对。`,
+        );
+      }
+    }
   }
 
   for (const thing of draft.things) {

@@ -21,6 +21,7 @@ import { createRelationshipMutator } from '../mutations/relationshipMutations.js
 type PairSpec = readonly [
   requestLabel: string,
   confirmationLabel: string,
+  fulfillmentAction: string,
   reverse?: true,
 ];
 type Archetype = {
@@ -41,32 +42,32 @@ const archetypes = {
     summary: '先询价撮合，再由独立托管协议提供到账证明，完成交付后结算。',
     channel: ['撮合询价', '匹配报价'],
     contract: '撮合交易协议',
-    primary: ['请求交付', '交付确认'],
+    primary: ['请求交付', '交付确认', '交付交易标的'],
     supportingContract: '资金托管协议',
-    external: ['请求托管资金', '托管到账确认'],
+    external: ['请求托管资金', '托管到账确认', '托管交易款项'],
     socket: '担保到账凭证',
-    settlement: ['主张担保结算', '担保结算确认'],
+    settlement: ['主张担保结算', '担保结算确认', '结算担保交易款项'],
   },
   'periodic-subscription': {
     label: '周期订阅与会员服务',
     summary:
       '订阅协议约束每期服务交付，由独立支付协议提供扣款证明，不预设自动续费。',
     contract: '订阅框架协议',
-    primary: ['请求本期服务', '本期服务交付确认'],
+    primary: ['请求本期服务', '本期服务交付确认', '提供本期订阅服务'],
     supportingContract: '订阅支付协议',
-    external: ['请求本期扣款', '本期扣款确认'],
+    external: ['请求本期扣款', '本期扣款确认', '扣收本期订阅款项'],
     socket: '订阅到账凭证',
-    settlement: ['主张本期订阅费', '订阅费到账确认', true],
+    settlement: ['主张本期订阅费', '订阅费到账确认', '支付本期订阅费', true],
   },
   'back-to-back-consignment': {
     label: '委托代销与背靠背履约',
     summary: '销售与供货各有协议，供货验收凭证支撑交付，并保留独立的销售结算。',
     contract: '销售订单协议',
-    primary: ['请求订单交付', '订单交付确认'],
+    primary: ['请求订单交付', '订单交付确认', '交付订单商品'],
     supportingContract: '委托供货协议',
-    external: ['请求代发货', '代发货签收确认'],
+    external: ['请求代发货', '代发货签收确认', '代为发运商品'],
     socket: '上游交付凭证',
-    settlement: ['主张货款结算', '货款结算确认', true],
+    settlement: ['主张货款结算', '货款结算确认', '结算代销货款', true],
   },
 } as const satisfies Record<BusinessArchetypeId, Archetype>;
 
@@ -237,7 +238,7 @@ function buildArchetype(input: InstantiateArchetypeInput) {
   const pair = (
     key: string,
     scope: typeof core,
-    [requestLabel, confirmationLabel, reverse]: PairSpec,
+    [requestLabel, confirmationLabel, fulfillmentAction, reverse]: PairSpec,
     window?: string,
   ) => {
     const confirmation = id(`${key}.confirmation`);
@@ -268,6 +269,7 @@ function buildArchetype(input: InstantiateArchetypeInput) {
         mode: 'create',
         id: request,
         label: requestLabel,
+        fulfillmentAction,
         responsibleRoleRef: scope.roles[reverse ? 1 : 0],
         ...(window ? { deadlineMeaning: window } : {}),
       },
@@ -330,8 +332,14 @@ function buildArchetype(input: InstantiateArchetypeInput) {
   }
   const compensationRef = id('compensation.request');
   if (values.compensation) {
-    const { condition, requester, requestLabel, confirmationLabel, window } =
-      values.compensation;
+    const {
+      condition,
+      requester,
+      requestLabel,
+      confirmationLabel,
+      fulfillmentAction,
+      window,
+    } = values.compensation;
     const reverse = requester === 'operator';
     recordBreachOutcomeMutator(model, {
       requestRef: primary.request,
@@ -341,6 +349,7 @@ function buildArchetype(input: InstantiateArchetypeInput) {
         request: {
           id: compensationRef,
           label: requestLabel,
+          ...(fulfillmentAction ? { fulfillmentAction } : {}),
           responsibleRoleRef: core.roles[reverse ? 1 : 0],
           ...(window ? { deadlineMeaning: window } : {}),
         },

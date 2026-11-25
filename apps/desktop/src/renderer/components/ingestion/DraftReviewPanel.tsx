@@ -93,6 +93,11 @@ export const DraftReviewPanel = ({
   );
 
   const orphans = draft.fulfillmentPairs.length - pairs.length;
+  const missingActions = evidences.filter(
+    (evidence) =>
+      evidence.kind === 'fulfillment_request' &&
+      !evidence.fulfillmentAction?.trim(),
+  ).length;
 
   const rename = (id: string, label: string): void => {
     setEvidences((current) =>
@@ -104,8 +109,19 @@ export const DraftReviewPanel = ({
 
   const updateKind = (id: string, next: DraftEvidence['kind']): void => {
     setEvidences((current) =>
+      current.map((evidence) => {
+        if (evidence.id !== id) return evidence;
+        const changed = { ...evidence, kind: next };
+        if (next !== 'fulfillment_request') delete changed.fulfillmentAction;
+        return changed;
+      }),
+    );
+  };
+
+  const updateAction = (id: string, fulfillmentAction: string): void => {
+    setEvidences((current) =>
       current.map((evidence) =>
-        evidence.id === id ? { ...evidence, kind: next } : evidence,
+        evidence.id === id ? { ...evidence, fulfillmentAction } : evidence,
       ),
     );
   };
@@ -186,6 +202,11 @@ export const DraftReviewPanel = ({
                 {orphans > 0 ? ` · ${orphans} 组因删改断开` : ''}
               </li>
             </ul>
+            {missingActions > 0 ? (
+              <p className="text-workbench-muted">
+                {missingActions} 项履约动作待明确，可展开凭证校对后补充。
+              </p>
+            ) : null}
           </section>
           {issues.length > 0 ? (
             <section className="mb-4 rounded-md border border-[#f5e2b8] bg-[#fdf8ec] px-3 py-2">
@@ -279,6 +300,19 @@ export const DraftReviewPanel = ({
                         </button>
                       </div>
                     </div>
+                    {evidence.kind === 'fulfillment_request' ? (
+                      <label className="mt-2 flex flex-col gap-1 text-[11px] text-evidence-ink">
+                        履约动作
+                        <input
+                          className="w-full rounded-md border border-evidence-line bg-transparent px-2 py-1"
+                          value={evidence.fulfillmentAction ?? ''}
+                          onChange={(event) =>
+                            updateAction(evidence.id, event.currentTarget.value)
+                          }
+                          placeholder="例如：支付首期服务费"
+                        />
+                      </label>
+                    ) : null}
                     {evidence.provenance === undefined ? null : (
                       <p
                         className="mt-1.5 line-clamp-2 text-[10px] text-evidence-muted"

@@ -30,6 +30,7 @@ export const InstantiateArchetypeInputSchema = z
             requester: z.enum(['customer', 'operator']),
             requestLabel: businessText,
             confirmationLabel: businessText,
+            fulfillmentAction: businessText.optional(),
             window: businessText.optional(),
           })
           .strict()

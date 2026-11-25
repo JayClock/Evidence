@@ -113,6 +113,8 @@ const WizardSteps = ({ document, disabled, onApply }: WizardProps) => {
                   condition: form.compensationCondition ?? '',
                   requestLabel: form.compensationRequestLabel ?? '',
                   confirmationLabel: form.compensationConfirmationLabel ?? '',
+                  fulfillmentAction:
+                    form.compensationAction?.trim() || undefined,
                   window: form.compensationWindow?.trim() || undefined,
                 },
               }
@@ -276,6 +278,7 @@ const WizardSteps = ({ document, disabled, onApply }: WizardProps) => {
                       ['compensationCondition', '已确认的补偿触发条件', true],
                       ['compensationRequestLabel', '补偿请求名称', true],
                       ['compensationConfirmationLabel', '补偿确认名称', true],
+                      ['compensationAction', '补偿动作（可选）', false],
                       ['compensationWindow', '补偿时限（可选）', false],
                     ] as const
                   ).map(([key, label, required]) => (

@@ -39,6 +39,10 @@ describe('business archetypes', () => {
       ]);
       const graph = createDomainGraph(model);
       expect(graph.fulfillmentPairs()).toHaveLength(9);
+      for (const { request } of graph.fulfillmentPairs()) {
+        expect(request.fulfillmentAction).toMatch(/\S/u);
+        expect(request.fulfillmentAction).not.toBe(request.label);
+      }
       expect(graph.preContractPairs()).toHaveLength(
         id === 'matching-escrow' ? 3 : 0,
       );

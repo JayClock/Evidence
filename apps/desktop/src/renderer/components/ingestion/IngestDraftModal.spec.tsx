@@ -331,7 +331,7 @@ describe('IngestDraftModal', () => {
     ).toBe('other_evidence');
   });
 
-  it('lets a document be renamed before it is written', async () => {
+  it('lets the document and its fulfillment action be edited independently', async () => {
     const api = installDesktopApi({
       ingestResult: {
         success: true,
@@ -374,15 +374,19 @@ describe('IngestDraftModal', () => {
     fireEvent.change(screen.getAllByLabelText('凭证名称')[0] as HTMLElement, {
       target: { value: '首期服务费支付申请' },
     });
+    fireEvent.change(screen.getByLabelText('履约动作'), {
+      target: { value: '支付首期服务费' },
+    });
     fireEvent.click(screen.getByText('选择位置并生成模型'));
 
     await waitFor(() => {
       expect(api.calls.compileDraft).toHaveLength(1);
     });
 
-    expect(api.calls.compileDraft[0]?.draft.evidences[0]?.label).toBe(
-      '首期服务费支付申请',
-    );
+    expect(api.calls.compileDraft[0]?.draft.evidences[0]).toMatchObject({
+      label: '首期服务费支付申请',
+      fulfillmentAction: '支付首期服务费',
+    });
   });
 
   it('drops an element the reader got wrong', async () => {
