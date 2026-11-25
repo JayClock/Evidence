@@ -1,10 +1,8 @@
-import { useEffect, useState } from 'react';
 import type { FlowStepTrace } from '@evidence-poc/evidence-model-core';
-import type { StoryScene } from '@evidence-poc/evidence-agent/browser';
 import type { StoryPlaybackController } from '../../state/useStoryPlayback';
 import { timelineLabel } from './StoryTimelineControls';
 import { WhatIfSection } from './WhatIfSection';
-import { StoryExplanationForm } from './StoryExplanationForm';
+import { StorySceneSheet } from './StorySceneSheet';
 
 interface StoryDrawerProps {
   playback: StoryPlaybackController;
@@ -18,196 +16,6 @@ interface StoryDrawerProps {
 
 const buttonClass =
   'rounded border border-evidence-line px-2 py-1 text-[11px] hover:bg-evidence-hover disabled:opacity-40';
-
-const SceneSheet = ({
-  scene,
-  ready,
-  stale,
-  onEditStart,
-  onSaveExplanation,
-}: {
-  scene: StoryScene;
-  ready: boolean;
-  stale: boolean;
-  onEditStart: () => void;
-  onSaveExplanation?: (description: string) => void;
-}) => {
-  const [edit, setEdit] = useState<{ text: string }>();
-  const [notice, setNotice] = useState('');
-  const [speaking, setSpeaking] = useState(false);
-  const canSpeak =
-    typeof window.speechSynthesis !== 'undefined' &&
-    typeof SpeechSynthesisUtterance !== 'undefined';
-  useEffect(() => {
-    if (!ready) {
-      window.speechSynthesis?.cancel();
-      setSpeaking(false);
-    }
-    return () => window.speechSynthesis?.cancel();
-  }, [ready]);
-  const readAloud = () => {
-    if (!canSpeak) return;
-    window.speechSynthesis.cancel();
-    if (speaking) {
-      setSpeaking(false);
-      return;
-    }
-    const utterance = new SpeechSynthesisUtterance(scene.narrative);
-    utterance.lang = 'zh-CN';
-    utterance.onend = () => setSpeaking(false);
-    utterance.onerror = () => {
-      setSpeaking(false);
-      setNotice('朗读不可用，请尝试复制旁白。');
-    };
-    setSpeaking(true);
-    window.speechSynthesis.speak(utterance);
-  };
-  const copy = async () => {
-    try {
-      if (!navigator.clipboard) throw new Error('剪贴板不可用');
-      await navigator.clipboard.writeText(scene.narrative);
-      setNotice('旁白已复制。');
-    } catch {
-      setNotice('复制失败，请检查剪贴板权限。');
-    }
-  };
-  return (
-    <>
-      <article
-        className="rounded-lg border border-evidence-line bg-evidence-surface p-4"
-        aria-label="剧情旁白"
-      >
-        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-          <h3 className="font-medium">{scene.phaseTitle}</h3>
-          <span className="text-[10px] text-evidence-muted">
-            {stale
-              ? '上一版本 · 请等待更新'
-              : scene.narrativeSource === 'model'
-                ? '模型业务解释'
-                : scene.narrativeSource === 'ai'
-                  ? 'AI 草稿 · 请核对模型事实'
-                  : scene.narrativeSource === 'cache'
-                    ? '缓存草稿 · 尚未采纳'
-                    : '模型事实 · 未使用 AI'}
-          </span>
-        </div>
-        <p className="whitespace-pre-wrap leading-6">{scene.narrative}</p>
-        {edit && onSaveExplanation ? (
-          <StoryExplanationForm
-            initialText={edit.text}
-            onSave={(description) => {
-              onSaveExplanation(description);
-              setEdit(undefined);
-            }}
-            onCancel={() => setEdit(undefined)}
-          />
-        ) : null}
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          {!edit && onSaveExplanation ? (
-            <button
-              type="button"
-              className={buttonClass}
-              disabled={!ready}
-              onClick={() => {
-                onEditStart();
-                setEdit({
-                  text:
-                    scene.narrativeSource === 'facts' ? '' : scene.narrative,
-                });
-              }}
-            >
-              {scene.narrativeSource === 'model'
-                ? '编辑业务解释'
-                : scene.narrativeSource === 'facts'
-                  ? '编写业务解释'
-                  : '采纳为业务解释'}
-            </button>
-          ) : null}
-          <button
-            type="button"
-            className={buttonClass}
-            disabled={!ready || !canSpeak}
-            title={canSpeak ? '朗读当前旁白' : '当前环境不支持朗读'}
-            onClick={readAloud}
-          >
-            {speaking ? '停止朗读' : '朗读旁白'}
-          </button>
-          <button
-            type="button"
-            className={buttonClass}
-            disabled={!ready}
-            onClick={() => void copy()}
-          >
-            复制旁白
-          </button>
-          <span role="status" className="text-[11px] text-evidence-muted">
-            {notice}
-          </span>
-        </div>
-      </article>
-      <article
-        aria-label="业务单据"
-        className="border border-stone-300 bg-[#fffef9] p-5 text-stone-900 shadow-sm"
-      >
-        <div className="mb-4 border-b-2 border-stone-700 pb-3 text-center">
-          <p className="mb-1 text-[10px] tracking-widest text-stone-500">
-            业务示例 · 非真实凭证
-          </p>
-          <h3 className="text-lg font-semibold tracking-wider">
-            {scene.documentCard.title}
-          </h3>
-        </div>
-        <p className="mb-4 text-[11px]">经办方：{scene.actingRoleLabel}</p>
-        <dl className="divide-y divide-stone-200 border-y border-stone-300">
-          {scene.documentCard.fields.map((field) => (
-            <div
-              key={field.name}
-              className={`grid grid-cols-[minmax(6rem,1fr)_2fr] gap-3 py-3 ${field.keyData ? 'bg-amber-50 font-medium' : ''}`}
-            >
-              <dt className="px-2">
-                {field.label}
-                {field.keyData ? (
-                  <span className="ml-1 text-[9px] text-amber-800">
-                    核心要素
-                  </span>
-                ) : null}
-              </dt>
-              <dd className="min-w-0 break-words whitespace-pre-wrap">
-                {field.value}
-                {field.sourceOrigin ? (
-                  <small className="mt-1 block font-normal text-stone-500">
-                    来源：{field.sourceOrigin}
-                  </small>
-                ) : null}
-              </dd>
-            </div>
-          ))}
-        </dl>
-        {scene.documentCard.fields.length === 0 ? (
-          <p className="py-3 text-stone-500">该示例尚未声明字段值。</p>
-        ) : null}
-        {scene.documentCard.basisNotes ? (
-          <p className="mt-4 whitespace-pre-wrap text-[11px] text-stone-600">
-            {scene.documentCard.basisNotes}
-          </p>
-        ) : null}
-      </article>
-      {scene.stateTransitionNotice ? (
-        <p className="rounded border border-evidence-line p-3">
-          {scene.stateTransitionNotice}
-        </p>
-      ) : null}
-      {scene.pendingSuspense ? (
-        <aside
-          aria-label="业务缺口"
-          className="rounded border border-amber-300 bg-amber-50 p-3 text-amber-900"
-        >
-          {scene.pendingSuspense}
-        </aside>
-      ) : null}
-    </>
-  );
-};
 
 const statusLabel = {
   waiting: '窗口内等待',
@@ -322,7 +130,7 @@ export const StoryDrawer = ({
       {!aiConfigured && !playback.rehearsal.active ? (
         <aside className="rounded border border-evidence-line p-3">
           <p>
-            当前为离线放映，可读取本地旁白草稿。配置大模型后可生成新旁白和使用
+            当前为离线放映，可阅读业务事实和本地故事草稿。配置大模型后可润色当前故事并使用
             AI 推演。
           </p>
           <button type="button" className={buttonClass} onClick={onConfigureAi}>
@@ -361,13 +169,15 @@ export const StoryDrawer = ({
           test.flow、业务时点和单据依据后再开始放映。
         </p>
       ) : null}
-      {playback.ready ? <TimelineDetails playback={playback} /> : null}
       {playback.scene ? (
-        <SceneSheet
+        <StorySceneSheet
           key={`${playback.snapshotId}:${playback.scene.stepIndex}:${playback.scene.stepHash}`}
           scene={playback.scene}
           ready={playback.ready}
           stale={playback.stale}
+          stepNumber={playback.stepNumber}
+          stepCount={playback.stepCount}
+          onJumpToStep={playback.jumpToStep}
           onEditStart={playback.pause}
           onSaveExplanation={
             playback.ready && playback.step && onSaveExplanation
@@ -379,6 +189,7 @@ export const StoryDrawer = ({
           }
         />
       ) : null}
+      {playback.ready ? <TimelineDetails playback={playback} /> : null}
       <WhatIfSection
         playback={playback}
         aiConfigured={aiConfigured}

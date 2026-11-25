@@ -487,9 +487,8 @@ export const installDesktopApi = ({
     },
     story: {
       load: async () => ({ snapshotId: 'empty', flows: [] }),
-      startNarration: async () => undefined,
-      cancelNarration: async () => undefined,
-      onNarration: () => () => undefined,
+      enrichStep: async () => null,
+      cancelStep: async () => undefined,
       whatIf: async () => {
         throw new Error('测试没有配置沙盘。');
       },

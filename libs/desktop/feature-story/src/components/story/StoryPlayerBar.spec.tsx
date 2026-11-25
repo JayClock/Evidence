@@ -16,7 +16,8 @@ const setup = async () => {
   api.story.load = vi.fn(async ({ preferredFlowId }) =>
     storySnapshot(flows, preferredFlowId),
   );
-  api.story.cancelNarration = vi.fn(async () => undefined);
+  api.story.enrichStep = vi.fn(() => new Promise(() => undefined));
+  api.story.cancelStep = vi.fn(async () => undefined);
   const document = createDesktopFixture();
   const Harness = () => {
     const playback = useStoryPlayback({
@@ -48,7 +49,7 @@ describe('StoryPlayerBar', () => {
     expect(screen.getByRole('button', { name: /上一步/ })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
     expect(screen.getByLabelText('当前步骤序号')).toHaveTextContent('2');
-    expect(screen.getByText('步骤 2/3：办理交付请求')).toBeInTheDocument();
+    expect(screen.getByText('步骤 2/3：交付请求')).toBeInTheDocument();
     // Same-time steps remain independently addressable without inventing timestamps.
     expect(screen.getByRole('slider', { name: '业务时间' })).toBeDisabled();
     fireEvent.change(screen.getByRole('combobox', { name: '跳转时点' }), {
@@ -83,7 +84,7 @@ describe('StoryPlayerBar', () => {
       await vi.advanceTimersByTimeAsync(STORY_REFRESH_DELAY);
     });
     expect(api.story.load).toHaveBeenCalledTimes(2);
-    expect(api.story.cancelNarration).toHaveBeenCalledTimes(2);
+    expect(api.story.cancelStep).toHaveBeenCalledTimes(2);
     expect(screen.queryByRole('progressbar')).toBeNull();
     expect(screen.getByRole('button', { name: /下一步/ })).toBeEnabled();
   });

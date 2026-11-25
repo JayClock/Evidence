@@ -901,9 +901,11 @@ describe('EditorScreen', () => {
     expect(screen.queryByLabelText('副视口')).toBeNull();
     expect(screen.queryByRole('region', { name: '业务故事' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: '剧情详情' }));
-    expect(await screen.findByText('采购方办理采购协议。')).toBeInTheDocument();
+    expect(
+      await screen.findByText('采购方签署《采购协议》。'),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
-    expect(screen.getByText('采购方办理交付请求。')).toBeInTheDocument();
+    expect(screen.getByText('供货方提交《交付请求》。')).toBeInTheDocument();
     expect(container.querySelector('[data-id="evidence.request"]')).toHaveClass(
       'evidence-story-active',
     );
@@ -938,7 +940,7 @@ describe('EditorScreen', () => {
       ).toHaveTextContent('外部更新采购协议'),
     );
     await waitFor(() =>
-      expect(screen.getByText('步骤 2/3：办理交付请求')).toBeInTheDocument(),
+      expect(screen.getByText('步骤 2/3：交付请求')).toBeInTheDocument(),
     );
     expect(api.story.load).toHaveBeenLastCalledWith(
       expect.objectContaining({ document }),
@@ -974,32 +976,18 @@ describe('EditorScreen', () => {
     expect(screen.getByLabelText('聚焦范围')).toHaveValue('context.catalog');
   });
 
-  it('reviews AI prose, writes only the selected example and reads it after saving and reopening', async () => {
+  it('reviews a step story, writes only the selected example and reads it after saving and reopening', async () => {
     const original = createDesktopStoryFixture();
     const api = readyProject(original);
     api.story.load = vi.fn(async ({ document }) =>
       storySnapshot(collectFlowScenarios(document!)),
     );
-    api.story.startNarration = vi.fn(async (job) => {
-      const lastLoad = await vi.mocked(api.story.load).mock.results.at(-1)
-        ?.value;
-      const step = lastLoad?.selected?.flow.steps[0];
-      if (step && !step.description)
-        publish?.({
-          ...job,
-          kind: 'step',
-          sequence: step.sequence,
-          stepHash: step.stepHash,
-          narrative: 'AI 草稿：核对采购协议。',
-        });
-    });
-    let publish: Parameters<typeof api.story.onNarration>[0] | undefined;
-    api.story.onNarration = (listener) => {
-      publish = listener;
-      return () => {
-        publish = undefined;
-      };
-    };
+    api.story.enrichStep = vi.fn(async (input) => ({
+      stepIndex: input.stepIndex,
+      stepHash: input.stepHash,
+      narrative: { headline: 'AI 草稿', prose: 'AI 草稿：核对采购协议。' },
+      cached: false,
+    }));
     const view = render(<EditorScreen rootPath="/models/procurement" />);
     await readyCanvas();
     const openStory = () => {
@@ -1025,7 +1013,7 @@ describe('EditorScreen', () => {
     fireEvent.click(screen.getByRole('button', { name: '应用到示例' }));
     const explanation = '双方依据采购协议确认本案例的订购安排。';
     expect(await screen.findByText(explanation)).toBeVisible();
-    expect(screen.getByText('模型业务解释')).toBeVisible();
+    expect(screen.getByText('已确认的业务解释')).toBeVisible();
     expect(api.calls.persistence).toHaveLength(1);
     fireEvent.keyDown(window, { key: 'z', metaKey: true });
     expect(
@@ -1051,7 +1039,7 @@ describe('EditorScreen', () => {
     await readyCanvas();
     openStory();
     expect(await screen.findByText(explanation)).toBeVisible();
-    expect(screen.queryByRole('button', { name: '采纳为业务解释' })).toBeNull();
+    expect(screen.getByRole('button', { name: '编辑业务解释' })).toBeVisible();
   });
 
   it('returns from an unmodeled What-If step to the selected credential on the canvas', async () => {
@@ -1144,7 +1132,7 @@ describe('EditorScreen', () => {
     });
     const api = readyProject(document);
     api.story.load = vi.fn(async () => storySnapshot([]));
-    api.story.startNarration = vi.fn();
+    api.story.enrichStep = vi.fn(async () => null);
     const { container } = render(
       <EditorScreen rootPath="/models/procurement" />,
     );
@@ -1168,7 +1156,7 @@ describe('EditorScreen', () => {
     expect(
       container.querySelector('[data-node-id="evidence.request"]'),
     ).not.toHaveAttribute('data-story-step');
-    expect(api.story.startNarration).not.toHaveBeenCalled();
+    expect(api.story.enrichStep).not.toHaveBeenCalled();
     expect(api.calls.persistence).toHaveLength(0);
   });
 

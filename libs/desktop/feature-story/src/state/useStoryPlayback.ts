@@ -14,7 +14,10 @@ import {
 } from '@evidence-poc/evidence-schema';
 import { previewJourneyStep } from './journeyPreview';
 import { evaluateWhatIfCapability } from './whatIfCapability';
-import type { WhatIfResult } from '@evidence-poc/evidence-agent/browser';
+import type {
+  StoryScene,
+  WhatIfResult,
+} from '@evidence-poc/evidence-agent/browser';
 import type {
   EvidenceStoryApi,
   StorySnapshot,
@@ -187,26 +190,25 @@ export const useStoryPlayback = ({
         !stale &&
         flow !== undefined &&
         (step !== undefined || seekTime !== undefined));
-  const narration = useStoryNarration(
+  const narration = useStoryNarration({
     api,
-    ready && !rehearsing && !skipAi ? loaded?.result.snapshotId : undefined,
-    flow,
-    step?.sequence,
-    narrationGeneration,
-    !aiConfigured,
-  );
-  const voice =
-    factScene?.narrativeSource === 'facts' && !stale
-      ? narration.entries?.get(factScene.stepIndex)
-      : undefined;
-  const scene =
-    factScene && voice !== undefined
-      ? {
-          ...factScene,
-          narrative: voice.narrative,
-          narrativeSource: voice.source,
-        }
-      : factScene;
+    rootPath,
+    snapshotId:
+      ready && factScene && !skipAi ? loaded?.result.snapshotId : undefined,
+    scenes: projection?.scenes,
+    index,
+    generation: narrationGeneration,
+    cacheOnly: !aiConfigured,
+  });
+  const scene: StoryScene | undefined =
+    factScene && narration.draft
+      ? { ...factScene, narrative: { ...narration.draft, status: 'ready' } }
+      : factScene && narration.running
+        ? {
+            ...factScene,
+            narrative: { ...factScene.narrative, status: 'enriching' },
+          }
+        : factScene;
   const nextIndex =
     seekTime === undefined || rehearsing
       ? index + 1

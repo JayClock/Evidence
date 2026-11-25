@@ -1,137 +1,177 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import type { FlowScenarioTrace } from '@evidence-poc/evidence-model-core';
-import type { EvidenceStoryApi } from '@evidence-poc/desktop-contracts/story';
+import { useEffect, useEffectEvent, useMemo, useState } from 'react';
+import {
+  storyHistoryItem,
+  type StoryScene,
+} from '@evidence-poc/evidence-agent/browser';
+import type {
+  EvidenceStoryApi,
+  StoryEnrichStepResult,
+  StoryStepRequest,
+} from '@evidence-poc/desktop-contracts/story';
 
-const RENDERER_DEADLINE_MS = 65_000;
+type Entry = { historyKey: string } & (
+  | { kind: 'ready'; narrative: StoryEnrichStepResult['narrative'] }
+  | { kind: 'miss' | 'failed' }
+);
+const EMPTY_ENTRIES: ReadonlyMap<number, Entry> = new Map();
 
-type Draft = { narrative: string; source: 'ai' | 'cache' };
-
-type Narration = {
-  key: object;
-  snapshotId: string;
-  generation: number;
-  entries: ReadonlyMap<number, Draft | undefined>;
-  finished: boolean;
-  incomplete?: boolean;
+/** Plan only the cursor and its immediate successor. No request fills skipped steps. */
+const planWindow = (
+  scenes: readonly StoryScene[],
+  index: number,
+  entries: ReadonlyMap<number, Entry>,
+) => {
+  const history: NonNullable<ReturnType<typeof storyHistoryItem>>[] = [];
+  let historyKey = '';
+  const entryFor = (scene: StoryScene) => {
+    const entry = entries.get(scene.stepIndex);
+    return entry?.historyKey === historyKey ? entry : undefined;
+  };
+  for (const scene of scenes.slice(0, index)) {
+    const draft = entryFor(scene);
+    const item = storyHistoryItem(
+      draft?.kind === 'ready'
+        ? { ...scene, narrative: { ...draft.narrative, status: 'ready' } }
+        : scene,
+    );
+    if (item) {
+      historyKey += JSON.stringify(item);
+      history.push(item);
+    }
+  }
+  const current = scenes[index];
+  const entry = current && entryFor(current);
+  if (!current) return { history, historyKey, entry };
+  if (current.narrative.status === 'baseline' && !entry)
+    return { history, historyKey, entry, target: current };
+  const confirmed = storyHistoryItem(
+    entry?.kind === 'ready'
+      ? { ...current, narrative: { ...entry.narrative, status: 'ready' } }
+      : current,
+  );
+  if (!confirmed) return { history, historyKey, entry };
+  history.push(confirmed);
+  historyKey += JSON.stringify(confirmed);
+  const next = scenes[index + 1];
+  return {
+    history,
+    historyKey,
+    entry,
+    target:
+      next?.narrative.status === 'baseline' && !entryFor(next)
+        ? next
+        : undefined,
+  };
 };
 
-export const useStoryNarration = (
-  api: EvidenceStoryApi,
-  snapshotId: string | undefined,
-  flow: FlowScenarioTrace | undefined,
-  prioritySequence: number | undefined,
-  generation: number,
-  cacheOnly: boolean,
-) => {
-  const [attempt, setAttempt] = useState(0);
-  const [state, setState] = useState<Narration>();
-  const key = useMemo(
-    () => ({}),
-    [api, snapshotId, flow, attempt, generation, cacheOnly],
+export const useStoryNarration = ({
+  api,
+  rootPath,
+  snapshotId,
+  scenes,
+  index,
+  generation,
+  cacheOnly,
+}: {
+  api: EvidenceStoryApi;
+  rootPath: string;
+  snapshotId: string | undefined;
+  scenes: readonly StoryScene[] | undefined;
+  index: number;
+  generation: number;
+  cacheOnly: boolean;
+}) => {
+  const scope = useMemo(
+    () => ({ api, rootPath, snapshotId, generation, cacheOnly }),
+    [api, rootPath, snapshotId, generation, cacheOnly],
   );
-  const candidates = useMemo(
-    () => flow?.steps.filter((step) => !step.description?.trim()) ?? [],
-    [flow],
+  const [settled, setSettled] = useState<{
+    scope: typeof scope;
+    entries: ReadonlyMap<number, Entry>;
+  }>();
+  const entries = settled?.scope === scope ? settled.entries : EMPTY_ENTRIES;
+  const plan = useMemo(
+    () =>
+      snapshotId && scenes ? planWindow(scenes, index, entries) : undefined,
+    [snapshotId, scenes, index, entries],
   );
-  const priority = useRef(prioritySequence);
-  priority.current = prioritySequence;
+  const target = plan?.target;
+  const historyKey = plan?.historyKey ?? '';
+  const historyForTarget = useEffectEvent(() => plan?.history ?? []);
+
   useEffect(() => {
-    if (!snapshotId || candidates.length === 0) return;
-    const job = { snapshotId, jobId: globalThis.crypto.randomUUID() };
+    if (!scope.snapshotId || !target) return;
+    const identity: StoryStepRequest = {
+      rootPath: scope.rootPath,
+      snapshotId: scope.snapshotId,
+      requestId: globalThis.crypto.randomUUID(),
+      stepIndex: target.stepIndex,
+      stepHash: target.stepHash,
+    };
     let active = true;
-    const steps = new Map(
-      candidates.map(({ sequence, stepHash }) => [sequence, stepHash]),
-    );
-    const complete = (incomplete: boolean) => {
-      clearTimeout(timer);
-      setState((prev) =>
-        prev?.key === key && !prev.finished
-          ? { ...prev, finished: true, incomplete }
-          : prev,
-      );
-    };
-    const cancel = () => {
-      void api.cancelNarration(job).catch(() => undefined);
-    };
-    const timer = setTimeout(() => {
-      complete(true);
-      cancel();
-    }, RENDERER_DEADLINE_MS);
-    setState((previous) => ({
-      key,
-      snapshotId,
-      generation,
-      finished: false,
-      // A retry on this snapshot keeps successful prose visible. New snapshots never reuse UI state.
-      entries: new Map(
-        previous?.snapshotId === snapshotId &&
-        previous.generation === generation
-          ? [...previous.entries].filter(
-              ([, narrative]) => narrative !== undefined,
-            )
-          : [],
-      ),
-    }));
-    const unsubscribe = api.onNarration((update) => {
-      if (
-        !active ||
-        update.jobId !== job.jobId ||
-        update.snapshotId !== job.snapshotId
-      )
-        return;
-      if (update.kind === 'finished') {
-        complete(update.reason !== undefined);
-      } else if (steps.get(update.sequence) === update.stepHash) {
-        setState((prev) => {
-          if (prev?.key !== key || prev.finished) return prev;
-          const entries = new Map(prev.entries);
-          if (update.narrative !== undefined || !entries.has(update.sequence)) {
-            entries.set(
-              update.sequence,
-              update.narrative === undefined
-                ? undefined
-                : {
-                    narrative: update.narrative,
-                    source: update.cached ? 'cache' : 'ai',
-                  },
-            );
-          }
-          return { ...prev, entries };
-        });
-      }
-    });
-    const sequence = priority.current;
-    void api
-      .startNarration({
-        ...job,
-        ...(cacheOnly ? { cacheOnly: true as const } : {}),
-        ...(sequence === undefined ? {} : { prioritySequence: sequence }),
-      })
-      .catch(() => {
-        if (active) complete(true);
+    let finished = false;
+    const commit = (entry: Entry) => {
+      finished = true;
+      if (!active) return;
+      setSettled((prior) => {
+        const updated = new Map(
+          prior?.scope === scope ? prior.entries : undefined,
+        );
+        updated.set(target.stepIndex, entry);
+        return { scope, entries: updated };
       });
+    };
+    void scope.api
+      .enrichStep({
+        ...identity,
+        storyHistory: historyForTarget(),
+        ...(scope.cacheOnly ? { cacheOnly: true } : {}),
+      })
+      .then(
+        (result) => {
+          if (
+            result &&
+            result.stepIndex === identity.stepIndex &&
+            result.stepHash === identity.stepHash
+          )
+            commit({ kind: 'ready', historyKey, narrative: result.narrative });
+          else
+            commit({
+              kind: scope.cacheOnly && !result ? 'miss' : 'failed',
+              historyKey,
+            });
+        },
+        () => commit({ kind: 'failed', historyKey }),
+      );
     return () => {
       active = false;
-      clearTimeout(timer);
-      unsubscribe();
-      cancel();
+      if (!finished) void scope.api.cancelStep(identity).catch(() => undefined);
     };
-  }, [api, snapshotId, candidates, key, generation, cacheOnly]);
-  const visible = snapshotId && state?.key === key ? state : undefined;
-  const total = snapshotId ? candidates.length : 0;
-  const completed = visible?.entries.size ?? 0;
-  const failed = [...(visible?.entries.values() ?? [])].filter(
-    (narrative) => narrative === undefined,
-  ).length;
+    // The matching prefetch stays in flight when the cursor lands on it: target
+    // and historyKey are unchanged even though the window's index has moved.
+    // eslint-plugin-react-hooks v5 does not recognize Effect Events.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scope, target, historyKey]);
+
+  const current = scenes?.[index];
+  const draft =
+    plan?.entry?.kind === 'ready' ? plan.entry.narrative : undefined;
   return {
-    entries: visible?.entries,
-    total,
-    completed,
-    running: !cacheOnly && total > 0 && !visible?.finished,
-    incomplete:
-      !cacheOnly &&
-      visible?.finished === true &&
-      (Boolean(visible.incomplete) || failed > 0 || completed < total),
-    retry: () => setAttempt((value) => value + 1),
+    draft,
+    running: !cacheOnly && target !== undefined && target === current,
+    incomplete: plan?.entry?.kind === 'failed',
+    retry: () => {
+      if (!current || plan?.entry?.kind !== 'failed') return;
+      setSettled((prior) => {
+        if (
+          prior?.scope !== scope ||
+          prior.entries.get(current.stepIndex) !== plan.entry
+        )
+          return prior;
+        const updated = new Map(prior.entries);
+        updated.delete(current.stepIndex);
+        return { scope, entries: updated };
+      });
+    },
   };
 };

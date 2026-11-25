@@ -87,16 +87,16 @@ describe('Pi model onboarding integration', () => {
   it('keeps stories offline and opens settings when attempting AI narration', async () => {
     const { api } = await setup();
     api.story.load = vi.fn(async () => storySnapshot());
-    api.story.startNarration = vi.fn(async () => undefined);
+    api.story.enrichStep = vi.fn(async () => null);
     fireEvent.click(screen.getByRole('button', { name: '放映业务流' }));
-    await screen.findByText('步骤 1/3：办理采购协议');
-    expect(api.story.startNarration).toHaveBeenCalledWith(
+    await screen.findByText('步骤 1/3：采购协议');
+    expect(api.story.enrichStep).toHaveBeenCalledWith(
       expect.objectContaining({ cacheOnly: true }),
     );
     const factsOnly = screen.getByRole('checkbox', { name: '仅模型事实' });
     fireEvent.click(factsOnly);
     expect(factsOnly).toBeChecked();
-    expect(api.story.startNarration).toHaveBeenCalledOnce();
+    expect(api.story.enrichStep).toHaveBeenCalledOnce();
     fireEvent.click(screen.getByRole('button', { name: '配置旁白模型' }));
     expect(
       screen.getByRole('dialog', { name: /AI Model Settings/ }),
