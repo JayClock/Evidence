@@ -32,10 +32,10 @@ import type {
 
 const exampleRef = (step: FlowStepTrace) =>
   `${step.entityId}#${step.exampleLabel}`;
-const actingRole = (step: FlowStepTrace) =>
-  step.actingRoleRef ?? step.responsibleRoleRef;
+// Only the example declares who acted. A request's responsibility names its right holder.
+const actingRole = (step: FlowStepTrace) => step.actingRoleRef;
 const uniqueRole = (refs: readonly (string | undefined)[]) => {
-  const ids = new Set(refs.filter((ref): ref is string => ref !== undefined));
+  const ids = new Set(refs);
   return ids.size === 1 ? ids.values().next().value : undefined;
 };
 
@@ -102,11 +102,6 @@ const nextExpectation = (
   const modeled = pair?.confirmations ?? [];
   const next =
     confirmations.length || modeled.length ? confirmations : successors;
-  const nextRole = uniqueRole(
-    next.length
-      ? next.map(actingRole)
-      : modeled.map(({ responsibleRoleRef }) => responsibleRoleRef),
-  );
   const missingConfirmation =
     step.entityKind === 'fulfillment_request' &&
     step.gaps.some((gap) =>
@@ -114,6 +109,15 @@ const nextExpectation = (
         gap,
       ),
     );
+  const needsConfirmation =
+    missingConfirmation && !confirmations.length && !modeled.length;
+  const nextRole = needsConfirmation
+    ? undefined
+    : uniqueRole(
+        next.length
+          ? next.map(actingRole)
+          : modeled.map(({ responsibleRoleRef }) => responsibleRoleRef),
+      );
   const workObjects = [
     ...new Set(
       next.length
@@ -129,19 +133,23 @@ const nextExpectation = (
   const deadline = deadlineField ? step.values[deadlineField.name] : undefined;
   const date =
     typeof deadline === 'string' ? businessDate(deadline) : undefined;
-  const expectedWorkObject =
-    missingConfirmation && !confirmations.length && !modeled.length
-      ? '配套确认单据'
-      : workObjects.length
-        ? workObjects.join('、')
-        : '单据依据与责任约定';
+  const expectedWorkObject = needsConfirmation
+    ? '配套确认单据'
+    : workObjects.length
+      ? workObjects.join('、')
+      : '单据依据与责任约定';
   return {
     nextRole,
     expectation: {
       assignedToRoleLabel: roleLabel(nextRole) ?? '责任方待明确',
       expectedWorkObject,
       ...(date &&
-      (confirmations.length || modeled.length || missingConfirmation)
+      (confirmations.length ||
+        modeled.length ||
+        needsConfirmation ||
+        (step.entityKind === 'rfp' &&
+          next.length &&
+          next.every(({ entityKind }) => entityKind === 'proposal')))
         ? { deadlineNotice: `于${date}前` }
         : {}),
       isControlGap: step.gaps.length > 0,
@@ -285,8 +293,8 @@ export const projectStoryFacts = (
     };
     const preceding = prerequisites
       .map(
-        ({ previousStepIndex, workObjectLabel }) =>
-          `第 ${previousStepIndex} 步的《${workObjectLabel}》`,
+        ({ previousStepIndex, fromActorLabel, workObjectLabel }) =>
+          `第 ${previousStepIndex} 步${fromActorLabel === '经办方待明确' ? '的' : `中${fromActorLabel}经手的`}《${workObjectLabel}》`,
       )
       .join('、');
     const headline = activitySentence(activity);

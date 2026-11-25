@@ -92,7 +92,9 @@ it('projects a deterministic DST handoff from both dependency forms, with locali
     },
     narrative: {
       headline: '供应商销售部向买方财务部提交《付款申请单》',
-      prose: expect.stringContaining('承接第 1 步的《采购合同》'),
+      prose: expect.stringContaining(
+        '承接第 1 步中供应商销售部经手的《采购合同》',
+      ),
       status: 'baseline',
     },
     ruleEvaluations: [],

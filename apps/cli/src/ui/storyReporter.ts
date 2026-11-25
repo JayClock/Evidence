@@ -10,6 +10,8 @@ const emptyMessage =
 const inline = (value: string): string =>
   value
     .replace(/\r\n?|\n/gu, ' / ')
+    // Strip control characters before adding our own terminal styling.
+    // eslint-disable-next-line no-control-regex
     .replace(/[\u0000-\u001f\u007f-\u009f]/gu, '');
 const markdown = (value: string): string =>
   inline(value)

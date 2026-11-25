@@ -17,7 +17,14 @@ export const storyHistoryItem = ({
       }
     : undefined;
 
-export const describeStoryExpectation = (
-  expectation: NextStepExpectation,
-): string =>
-  `${expectation.assignedToRoleLabel}待${expectation.deadlineNotice ?? ''}${expectation.isControlGap ? '落实' : '接续'}${expectation.expectedWorkObject}。`;
+export const describeStoryExpectation = ({
+  assignedToRoleLabel,
+  expectedWorkObject,
+  deadlineNotice,
+  isControlGap,
+}: NextStepExpectation): string => {
+  const action = `${isControlGap ? '落实' : '接续'}${expectedWorkObject}`;
+  return assignedToRoleLabel === '责任方待明确'
+    ? `待${deadlineNotice ?? ''}${action}，责任方待明确。`
+    : `待${assignedToRoleLabel}${deadlineNotice ?? ''}${action}。`;
+};
