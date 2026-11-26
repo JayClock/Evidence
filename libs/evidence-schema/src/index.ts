@@ -41,6 +41,7 @@ export {
   type BindingCardinality,
   type ValueType,
 } from './ast/values.js';
+export { HTTP_VALUE_SCHEMAS } from './ast/httpValues.js';
 
 export {
   CLAUSE_CATEGORIES,

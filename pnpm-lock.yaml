@@ -754,6 +754,9 @@ importers:
 
   libs/evidence-api:
     dependencies:
+      '@asteasolutions/zod-to-openapi':
+        specifier: 7.3.4
+        version: 7.3.4(zod@3.25.76)
       '@evidence-poc/evidence-model-core':
         specifier: workspace:*
         version: link:../evidence-model-core
@@ -769,9 +772,15 @@ importers:
       ajv:
         specifier: ^8.20.0
         version: 8.20.0
+      openapi3-ts:
+        specifier: 4.4.0
+        version: 4.4.0
       tslib:
         specifier: ^2.3.0
         version: 2.9.1
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
     devDependencies:
       openapi-typescript:
         specifier: 7.13.0
@@ -954,6 +963,11 @@ packages:
         optional: true
       react:
         optional: true
+
+  '@asteasolutions/zod-to-openapi@7.3.4':
+    resolution: {integrity: sha512-/2rThQ5zPi9OzVwes6U7lK1+Yvug0iXu25olp7S0XsYmOqnyMfxH7gdSQjn/+DSOHRg7wnotwGJSyL+fBKdnEA==}
+    peerDependencies:
+      zod: ^3.20.2
 
   '@aws-crypto/sha256-browser@5.2.0':
     resolution: {integrity: sha512-AXfN/lGotSQwu6HNcEsIASo7kWXZ5HYWvfOmSNKDsEqC4OashTp8alTmaz+F7TC2L083SFv5RdB+qU3Vs1kZqw==}
@@ -7458,6 +7472,9 @@ packages:
     peerDependencies:
       typescript: ^5.x
 
+  openapi3-ts@4.4.0:
+    resolution: {integrity: sha512-9asTNB9IkKEzWMcHmVZE7Ts3kC9G7AFHfs8i7caD8HbI76gEjdkId4z/AkP83xdZsH7PLAnnbl47qZkXuxpArw==}
+
   opener@1.5.2:
     resolution: {integrity: sha512-ur5UIdyw5Y7yEj9wLzhqXiy6GZ3Mwx0yGI+5sMn2r0N0v3cKJvUmFH5yPP+WXh9e0xfyzyJX95D8l088DNFj7A==}
     hasBin: true
@@ -9388,6 +9405,11 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.3.0
       react: 19.3.1
+
+  '@asteasolutions/zod-to-openapi@7.3.4(zod@3.25.76)':
+    dependencies:
+      openapi3-ts: 4.4.0
+      zod: 3.25.76
 
   '@aws-crypto/sha256-browser@5.2.0':
     dependencies:
@@ -18825,6 +18847,10 @@ snapshots:
       supports-color: 10.2.2
       typescript: 6.0.3
       yargs-parser: 21.1.1
+
+  openapi3-ts@4.4.0:
+    dependencies:
+      yaml: 2.9.1
 
   opener@1.5.2: {}
 

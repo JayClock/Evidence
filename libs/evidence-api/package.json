@@ -57,12 +57,15 @@
     }
   },
   "dependencies": {
+    "@asteasolutions/zod-to-openapi": "7.3.4",
     "@evidence-poc/evidence-model-core": "workspace:*",
     "@evidence-poc/evidence-model-io": "workspace:*",
     "@evidence-poc/evidence-schema": "workspace:*",
     "@seriousme/openapi-schema-validator": "2.11.0",
     "ajv": "^8.20.0",
-    "tslib": "^2.3.0"
+    "openapi3-ts": "4.4.0",
+    "tslib": "^2.3.0",
+    "zod": "3.25.76"
   },
   "devDependencies": {
     "openapi-typescript": "7.13.0",
