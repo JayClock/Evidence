@@ -1,7 +1,17 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { useState } from 'react';
 import { createDesktopFixture } from '@evidence-poc/desktop-testing';
-import { createEmptyDomainModel } from '@evidence-poc/evidence-schema';
+import {
+  createEmptyDomainModel,
+  type DomainModelDocument,
+  type RecordBreachOutcomeInput,
+} from '@evidence-poc/evidence-schema';
+import {
+  applyModelPatches,
+  createModelPatch,
+  recordBreachOutcomeMutator,
+} from '@evidence-poc/evidence-model-core';
 import { installDesktopApi } from '@evidence-poc/desktop-testing/desktopApi';
 import { storyFlow, storySnapshot } from '@evidence-poc/desktop-testing/story';
 import {
@@ -65,11 +75,25 @@ const setup = async ({
   const document = empty ? createEmptyDomainModel() : createDesktopFixture();
   if ((timed && !timedRules) || noRules) document.rules = [];
   const onClarifyGap = vi.fn();
+  const recordOutcome = vi.fn(
+    (input: RecordBreachOutcomeInput, base: DomainModelDocument) => {
+      const { patches } = createModelPatch(base, (draft) =>
+        recordBreachOutcomeMutator(draft, input),
+      );
+      return applyModelPatches(base, patches);
+    },
+  );
   const Harness = () => {
+    const [current, setCurrent] = useState(document);
     const playback = useStoryPlayback({
       api: window.evidenceAPI.story,
       rootPath: '/models/test',
-      document,
+      document: current,
+      onRecordBreachOutcome: (input, base) => {
+        const after = recordOutcome(input, base);
+        setCurrent(after);
+        return after;
+      },
       enabled: true,
       aiConfigured,
     });
@@ -90,7 +114,7 @@ const setup = async ({
   await act(async () => {
     await vi.advanceTimersByTimeAsync(STORY_REFRESH_DELAY);
   });
-  return { api, view, onClarifyGap };
+  return { api, view, onClarifyGap, recordOutcome };
 };
 afterEach(() => {
   vi.useRealTimers();
@@ -203,6 +227,7 @@ describe('StoryDrawer', () => {
       'allowSpeculative',
     );
     expect(screen.getByText('rule.payment：条件不成立')).toBeVisible();
+    expect(screen.queryByRole('form', { name: '固化违约分支' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /上一步/ }));
     expect(screen.queryByText('rule.payment：条件不成立')).toBeNull();
     expect(screen.getByRole('textbox', { name: '假设问题' })).toHaveValue('');
@@ -251,6 +276,58 @@ describe('StoryDrawer', () => {
     expect(api.story.whatIf).not.toHaveBeenCalled();
   });
 
+  it.each(['lawsuit', 'arbitration', 'contract_termination'] as const)(
+    'records the agreed %s handoff after speculation and stays on the confirmation',
+    async (remedy) => {
+      const { api, recordOutcome } = await setup({ noRules: true });
+      vi.mocked(api.story.whatIf).mockResolvedValue({
+        isSpeculative: true,
+        ruleOutcomes: [],
+        businessImpactExplanation: '双方可能需要移交处理。',
+      });
+      fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
+      fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
+      fireEvent.click(screen.getByRole('button', { name: '开启 AI 临时推想' }));
+      fireEvent.click(screen.getByRole('button', { name: '填入示例问题' }));
+      await act(async () =>
+        fireEvent.click(screen.getByRole('button', { name: '生成 AI 推想' })),
+      );
+      const form = within(screen.getByRole('form', { name: '固化违约分支' }));
+      fireEvent.click(form.getByRole('radio', { name: '争议终结' }));
+      const submit = form.getByRole('button', { name: '固化为争议终结' });
+      fireEvent.click(submit);
+      expect(recordOutcome).not.toHaveBeenCalled();
+      fireEvent.change(
+        form.getByRole('textbox', { name: '已确认的触发条件' }),
+        { target: { value: ' 到期未交付 ' } },
+      );
+      fireEvent.change(form.getByRole('combobox', { name: '争议终结方式' }), {
+        target: { value: remedy },
+      });
+      // A rejected edit must keep the user's agreement available for retry.
+      recordOutcome.mockImplementationOnce(() => {
+        throw new Error('请复核触发条件');
+      });
+      await act(async () => fireEvent.click(submit));
+      expect(form.getByRole('alert')).toHaveTextContent('请复核触发条件');
+      await act(async () => fireEvent.click(submit));
+      const updated = recordOutcome.mock.results.at(-1)!
+        .value as DomainModelDocument;
+      expect(updated.relationships).toContainEqual(
+        expect.objectContaining({
+          flowKind: 'escalation',
+          terminalRemedyKind: remedy,
+          targetRef: 'evidence.request',
+          notes: '到期未交付',
+        }),
+      );
+      expect(updated.rules).toEqual([]);
+      await act(async () => vi.advanceTimersByTimeAsync(STORY_REFRESH_DELAY));
+      expect(screen.getByText('步骤 3/3：交付确认')).toBeVisible();
+      expect(screen.queryByRole('form', { name: '固化违约分支' })).toBeNull();
+    },
+  );
+
   it('shows a recoverable business message rather than a raw IPC rejection', async () => {
     const { api } = await setup();
     vi.mocked(api.story.whatIf).mockRejectedValueOnce(
@@ -275,6 +352,7 @@ describe('StoryDrawer', () => {
       target: { value: String(105 * 60_000) },
     });
     expect(screen.getByText(/已过截止，未判定违约/)).toBeVisible();
+    expect(screen.queryByRole('form', { name: '固化违约分支' })).toBeNull();
     expect(screen.queryByRole('article', { name: '业务单据' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
     expect(screen.getByRole('article', { name: '业务单据' })).toHaveTextContent(

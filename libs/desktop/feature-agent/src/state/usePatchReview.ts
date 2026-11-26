@@ -18,6 +18,7 @@ import {
 
 /** Model snapshots around a transaction already committed by the host. */
 export interface AppliedPatch {
+  source?: 'agent' | 'story';
   rationale: string;
   commands: readonly string[];
   focusNodeId?: string;
@@ -27,6 +28,7 @@ export interface AppliedPatch {
 
 /** What one applied agent patch changed, kept until the modeler decides. */
 export interface PatchReview {
+  source?: AppliedPatch['source'];
   rationale: string;
   commands: readonly string[];
   focusNodeId?: string;
@@ -122,6 +124,7 @@ export const usePatchReview = (
     const diff = diffDomainModels(pending.before, pending.after);
 
     return {
+      source: pending.source,
       rationale: pending.rationale,
       commands: pending.commands,
       focusNodeId: pending.focusNodeId,

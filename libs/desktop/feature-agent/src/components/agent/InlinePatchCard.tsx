@@ -10,6 +10,7 @@ export interface InlinePatchCardProps {
   onRevert: () => void;
   enterToAccept?: boolean;
   busy?: boolean;
+  focusOnMount?: boolean;
   /** Pans the canvas to an object the patch touched. */
   onFocusEntity?: (entityId: string) => void;
 }
@@ -20,6 +21,8 @@ const Count = ({ label, count }: { label: string; count: number }) =>
       {label} {count}
     </span>
   );
+
+const focusReview = (section: HTMLElement | null) => section?.focus();
 
 /**
  * Review of a live, undoable patch. Each touched object can be located on the
@@ -32,6 +35,7 @@ export const InlinePatchCard = ({
   onFocusEntity,
   enterToAccept = false,
   busy = false,
+  focusOnMount = false,
 }: InlinePatchCardProps) => {
   const { addedCount, removedCount, modifiedCount, keyDataChangedCount } =
     review.counts;
@@ -44,7 +48,9 @@ export const InlinePatchCard = ({
 
   return (
     <section
-      aria-label="AI 补丁复核"
+      ref={focusOnMount ? focusReview : undefined}
+      tabIndex={focusOnMount ? -1 : undefined}
+      aria-label={review.source === 'story' ? '违约分支复核' : 'AI 补丁复核'}
       data-patch-review="pending"
       className="rounded-[10px] border border-evidence-accent/40 bg-white px-3 py-2 text-[11px] shadow-[0_6px_24px_#00000010]"
     >
@@ -54,7 +60,9 @@ export const InlinePatchCard = ({
             aria-hidden="true"
             className="h-3 w-3 text-evidence-accent"
           />
-          AI 补丁已更新画布
+          {review.source === 'story'
+            ? '违约分支已更新画布'
+            : 'AI 补丁已更新画布'}
         </span>
         <span className="flex shrink-0 items-center gap-1">
           {changed ? (

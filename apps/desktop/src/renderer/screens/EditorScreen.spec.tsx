@@ -9,17 +9,24 @@ import {
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { StoryInvalidatedEvent } from '@evidence-poc/desktop-contracts/story';
 import {
+  projectStoryFacts,
+  simulateWhatIf,
+} from '@evidence-poc/evidence-agent';
+import {
   createDesktopStoryFixture,
   storySnapshot,
 } from '@evidence-poc/desktop-testing/story';
 
 import {
   applyModelPatches,
+  assignFulfillmentContextMutator,
   batchAddEvidenceMutator,
+  bindBreachRuleMutator,
   collectFlowScenarios,
   createModelPatch,
   instantiateArchetypeMutator,
   recordBreachOutcomeMutator,
+  replaceScenarioExamples,
   splitEvidenceToPairMutator,
 } from '@evidence-poc/evidence-model-core';
 import { createEmptyDomainModel } from '@evidence-poc/evidence-schema';
@@ -455,7 +462,7 @@ describe('EditorScreen', () => {
     expect(api.calls.persistence.length).toBeGreaterThan(0);
   });
 
-  it('grows a saved-model canvas from stormed evidence into a clarified fulfillment pair', async () => {
+  it('grows stormed evidence into a pair and records an agreed compensation from its playback step', async () => {
     let document = createDesktopFixture();
     document.manifest.entryContextRefs = [];
     document.entities = [];
@@ -494,7 +501,41 @@ describe('EditorScreen', () => {
     const example =
       '买家发出询价，摊主报价 20 元，双方订立口头合同，买家完成付款。';
     const confirmedPayment =
-      '卖方向买方发起付款主张，到账回执确认完成。确认金额沿用请求上的金额，请补齐这项履约。';
+      '卖方向买方发起付款主张，到账回执确认完成。截止时刻前须到账，确认金额沿用请求上的金额，请补齐这项履约。';
+    const scenarioFacts =
+      '请为口头买卖合同记录示例。卖方 09:00 签约，10:00 发起付款请求，12:00 截止，逾期仍未收到付款凭证即视为违约。';
+    const flowId = '买卖付款';
+    const asOf = '2026-04-01T10:00:00Z';
+    const deadline = '2026-04-01T12:00:00Z';
+    const late = '2026-04-01T13:00:00Z';
+    api.story.load = vi.fn(async ({ document: model, preferredFlowId }) => {
+      const flows = collectFlowScenarios(model!);
+      const flow =
+        flows.find((flow) => flow.flowId === preferredFlowId) ?? flows[0]!;
+      return {
+        flows,
+        snapshotId: crypto.randomUUID(),
+        selected: { flow, projection: projectStoryFacts(flow, model) },
+      };
+    });
+    api.story.whatIf = vi.fn(async (input) =>
+      simulateWhatIf(
+        {
+          model: input.document!,
+          flow: collectFlowScenarios(input.document!)[0]!,
+          currentStepSequence: input.currentStepSequence,
+          hypothesisQuestion: input.question,
+          hypothesis: { asOf: late },
+        },
+        {
+          agent: {
+            generate: async () => ({
+              businessImpactExplanation: '截止后仍未收到付款凭证。',
+            }),
+          },
+        },
+      ),
+    );
     const prompt = api.agent.prompt;
     api.agent.prompt = async (input) => {
       const result = prompt(input);
@@ -532,6 +573,86 @@ describe('EditorScreen', () => {
             ],
           }),
         );
+      } else if (input.text === scenarioFacts) {
+        apply(
+          '记录已确认的付款示例',
+          (draft) => {
+            draft.entities.push(
+              {
+                type: 'entity',
+                category: 'context',
+                kind: 'contract',
+                id: 'context.sale',
+                label: '口头买卖合同',
+                rootRefs: ['evidence.sale'],
+              },
+              {
+                type: 'entity',
+                category: 'role',
+                kind: 'party',
+                id: 'role.seller',
+                label: '卖方',
+                contextRef: 'context.sale',
+              },
+            );
+            draft.manifest.entryContextRefs = ['context.sale'];
+            const sale = draft.entities.find(
+              ({ id }) => id === 'evidence.sale',
+            )!;
+            if (sale.category === 'evidence') sale.contextRef = 'context.sale';
+            assignFulfillmentContextMutator(draft, {
+              requestRef: 'request.payment',
+              contextRef: 'context.sale',
+            });
+            bindBreachRuleMutator(draft, {
+              requestRef: 'request.payment',
+              rule: {
+                id: 'rule.payment-late',
+                label: '逾期未到账',
+                description: '截止后仍未收到付款凭证。',
+                resultType: 'bool',
+                bindings: {
+                  now: { type: 'timestamp' },
+                  request: { ref: 'request.payment' },
+                  confirmations: {
+                    ref: 'evidence.payment',
+                    cardinality: 'many',
+                  },
+                },
+                expression:
+                  'now > request.expired_at && size(confirmations) == 0',
+              },
+            });
+            replaceScenarioExamples(draft, flowId, [
+              {
+                entityRef: sale.id,
+                example: {
+                  label: '签约',
+                  value: {},
+                  test: {
+                    flow: flowId,
+                    asOf: '2026-04-01T09:00:00Z',
+                    actingRoleRef: 'role.seller',
+                  },
+                },
+              },
+              {
+                entityRef: 'request.payment',
+                example: {
+                  label: '请款',
+                  value: { started_at: asOf, expired_at: deadline },
+                  test: {
+                    flow: flowId,
+                    asOf,
+                    actingRoleRef: 'role.seller',
+                    basedOn: ['evidence.sale#签约'],
+                  },
+                },
+              },
+            ]);
+          },
+          input.focus?.nodeId ?? undefined,
+        );
       } else if (
         input.focus?.inquiry === 'trace' &&
         input.text !== confirmedPayment
@@ -552,6 +673,7 @@ describe('EditorScreen', () => {
                 mode: 'create',
                 id: 'request.payment',
                 label: '付款申请',
+                deadlineMeaning: '应当到账的最后时刻。',
               },
               inputAttributes: [
                 {
@@ -642,14 +764,68 @@ describe('EditorScreen', () => {
     expect(within(sourcing).getByLabelText('AI 补丁复核')).toBeInTheDocument();
     fireEvent.keyDown(reply, { key: 'Enter' });
     expect(within(sourcing).queryByLabelText('AI 补丁复核')).toBeNull();
+    await answer(sourcing, scenarioFacts);
+    const keep = await within(sourcing).findByRole('button', { name: '保留' });
+    await waitFor(() => expect(keep).toBeEnabled());
+    fireEvent.click(keep);
     fireEvent.click(within(sourcing).getByRole('button', { name: '关闭' }));
-
-    expect(api.calls.prompt.map(({ focus }) => focus)).toEqual([
-      { nodeId: null },
-      { nodeId: 'evidence.payment', inquiry: 'trace' },
-      { nodeId: 'evidence.payment', inquiry: 'trace' },
-    ]);
-    expect(api.calls.persistence).toHaveLength(2);
+    fireEvent.click(screen.getByRole('button', { name: '放映业务流' }));
+    const story = within(
+      await screen.findByRole('region', { name: '业务故事' }),
+    );
+    fireEvent.click(
+      await story.findByRole('button', { name: '前往「付款申请」' }),
+    );
+    const question = '如果到 13:00 还没有收到付款凭证？';
+    fireEvent.change(story.getByRole('textbox', { name: '假设问题' }), {
+      target: { value: question },
+    });
+    fireEvent.click(story.getByRole('button', { name: '推演假设' }));
+    expect(await story.findByText('rule.payment-late：条件成立')).toBeVisible();
+    const form = within(story.getByRole('form', { name: '固化违约分支' }));
+    for (const [name, value] of [
+      ['已确认的触发条件', '逾期未到账'],
+      ['补偿请求名称', '退款请求'],
+      ['补偿确认名称', '退款确认'],
+    ]) {
+      fireEvent.change(form.getByRole('textbox', { name }), {
+        target: { value },
+      });
+    }
+    fireEvent.click(form.getByRole('button', { name: '固化为违约补偿履约' }));
+    const review = within(
+      await story.findByRole('region', { name: '违约分支复核' }),
+    );
+    expect(review.getByText('挂载违约补偿')).toBeVisible();
+    const after = api.calls.persistence.at(-1)!.document;
+    const refund = after.entities.find(({ label }) => label === '退款请求')!;
+    expect(after.relationships).toContainEqual(
+      expect.objectContaining({
+        flowKind: 'breach_compensation',
+        sourceRef: refund.id,
+        targetRef: 'request.payment',
+        notes: '逾期未到账',
+      }),
+    );
+    expect(after.rules).toEqual(document.rules);
+    expect(collectFlowScenarios(after)).toEqual(collectFlowScenarios(document));
+    expect(await screen.findByText('步骤 2/2：付款申请')).toBeVisible();
+    expect(
+      container.querySelector(`[data-overlay-node-id="${refund.id}"]`),
+    ).toHaveAttribute('data-overlay-change', 'added');
+    expect(
+      container.querySelector(
+        '[data-flow-kind="breach_compensation"][data-edge-id]',
+      ),
+    ).toHaveAttribute('opacity', '1');
+    fireEvent.click(review.getByRole('button', { name: '保留' }));
+    expect(story.queryByRole('region', { name: '违约分支复核' })).toBeNull();
+    expect(api.calls.prompt).toHaveLength(4);
+    fireEvent.keyDown(window, { key: 'z', metaKey: true });
+    await waitFor(() =>
+      expect(api.calls.persistence.at(-1)?.document).toEqual(document),
+    );
+    expect(await screen.findByText('步骤 2/2：付款申请')).toBeVisible();
   });
 
   it('shows the selected object’s source excerpt in the inspector', async () => {
@@ -868,7 +1044,7 @@ describe('EditorScreen', () => {
     expect(api.story.load).not.toHaveBeenCalled();
   });
 
-  it('rehearses a request without declared examples, AI or model writes', async () => {
+  it('rehearses a request locally, then preserves its clock when an explicit handoff is submitted for review', async () => {
     const document = createDesktopFixture();
     recordBreachOutcomeMutator(document, {
       requestRef: 'evidence.request',
@@ -919,6 +1095,32 @@ describe('EditorScreen', () => {
     ).not.toHaveAttribute('data-story-step');
     expect(api.story.enrichStep).not.toHaveBeenCalled();
     expect(api.calls.persistence).toHaveLength(0);
+    const expectedClock = slider.getAttribute('aria-valuetext');
+    const form = details.getByRole('form', { name: '固化违约分支' });
+    fireEvent.change(within(form).getByLabelText('已确认的触发条件'), {
+      target: { value: '到期仍未交付且协商失败' },
+    });
+    fireEvent.click(within(form).getByRole('radio', { name: '争议终结' }));
+    fireEvent.change(within(form).getByLabelText('争议终结方式'), {
+      target: { value: 'lawsuit' },
+    });
+    fireEvent.click(
+      within(form).getByRole('button', { name: '固化为争议终结' }),
+    );
+    const review = await details.findByRole('region', { name: '违约分支复核' });
+    expect(
+      await details.findByText(/模型中的处置选项.*诉讼移交凭证/),
+    ).toBeVisible();
+    expect(screen.getByRole('slider', { name: '业务时间' })).toHaveAttribute(
+      'aria-valuetext',
+      expectedClock,
+    );
+    expect(hours).toHaveValue(8);
+    fireEvent.click(within(review).getByRole('button', { name: '撤销补丁' }));
+    await waitFor(() =>
+      expect(api.calls.persistence.at(-1)?.document).toEqual(document),
+    );
+    expect(screen.getByRole('region', { name: '剧情详情' })).toBeVisible();
   });
 
   it('opens a collapsed rail from the command palette and exits from the rail with one Escape', async () => {

@@ -5,15 +5,18 @@ import {
   createScenarioTimeline,
   type FlowScenarioTrace,
   type FlowStepTrace,
-  type StoryTimeline,
 } from '@evidence-poc/evidence-model-core';
 import {
   isFulfillmentRequest,
   timeAttributeOf,
   type DomainModelDocument,
+  type RecordBreachOutcomeInput,
 } from '@evidence-poc/evidence-schema';
 import { previewJourneyStep } from './journeyPreview';
-import { evaluateWhatIfCapability } from './whatIfCapability';
+import {
+  evaluateWhatIfCapability,
+  promotableSceneRequests,
+} from './whatIfCapability';
 import type {
   StoryScene,
   WhatIfResult,
@@ -38,6 +41,11 @@ export interface StoryPlaybackOptions {
   refreshSavedSources?: boolean;
   /** Reload the canvas only when doing so cannot discard local edits. */
   onInvalidated?: () => Promise<void>;
+  /** Apply an agreed outcome as one reviewable edit and return the new live document. */
+  onRecordBreachOutcome?: (
+    input: RecordBreachOutcomeInput,
+    base: DomainModelDocument,
+  ) => DomainModelDocument;
 }
 
 const stepRef = (step: FlowStepTrace) =>
@@ -54,6 +62,7 @@ export const useStoryPlayback = ({
   aiConfigured = true,
   refreshSavedSources = false,
   onInvalidated,
+  onRecordBreachOutcome,
 }: StoryPlaybackOptions) => {
   const [preferredFlowId, setPreferredFlowId] = useState<string>();
   const [skipAi, setSkipAi] = useState(false);
@@ -89,7 +98,8 @@ export const useStoryPlayback = ({
     hours: string;
   }>();
   const [cursor, setCursor] = useState<{
-    timeline: StoryTimeline;
+    document: DomainModelDocument;
+    clock: string;
     time: number;
   }>();
   const flows = loaded?.result.flows ?? EMPTY_FLOWS;
@@ -160,8 +170,15 @@ export const useStoryPlayback = ({
     [document, rehearsing, selectedRequest, windowHours],
   );
   const timeline = rehearsing ? rehearsalTimeline : exampleTimeline;
+  const clock = rehearsing
+    ? `request:${selectedRequest?.id}:${windowHours}`
+    : `flow:${flow?.flowId}`;
   const seekTime =
-    timeline && cursor?.timeline === timeline ? cursor.time : undefined;
+    cursor?.document === document && cursor.clock === clock
+      ? timeline
+        ? Math.min(timeline.end, Math.max(timeline.start, cursor.time))
+        : cursor.time
+      : undefined;
   const keyframe = flow?.steps[index];
   const currentTime =
     seekTime ??
@@ -462,15 +479,18 @@ export const useStoryPlayback = ({
     );
     const timer = setInterval(() => {
       setCursor((prior) => ({
-        timeline,
+        document,
+        clock,
         time: Math.min(
           timeline.end,
-          (prior?.timeline === timeline ? prior.time : timeline.start) + delta,
+          (prior?.document === document && prior.clock === clock
+            ? prior.time
+            : timeline.start) + delta,
         ),
       }));
     }, interval);
     return () => clearInterval(timer);
-  }, [ready, isPlaying, rehearsing, timeline, speed]);
+  }, [ready, isPlaying, rehearsing, timeline, speed, document, clock]);
   useEffect(() => {
     if (rehearsing && timeline && currentTime === timeline.end)
       setIsPlaying(false);
@@ -505,8 +525,15 @@ export const useStoryPlayback = ({
 
   // Sandbox state is scoped to the entire displayed revision, not just its step.
   const sandboxKey = useMemo(
-    () => ({ requestKey, aiConfigured, narrationGeneration, step }),
-    [requestKey, aiConfigured, narrationGeneration, step],
+    () => ({
+      requestKey,
+      aiConfigured,
+      narrationGeneration,
+      step,
+      clock,
+      seekTime,
+    }),
+    [requestKey, aiConfigured, narrationGeneration, step, clock, seekTime],
   );
   const currentSandboxKey = useRef<typeof sandboxKey | null>(sandboxKey);
   currentSandboxKey.current = sandboxKey;
@@ -584,6 +611,89 @@ export const useStoryPlayback = ({
     [],
   );
 
+  const currentSandbox = sandbox?.key === sandboxKey ? sandbox : undefined;
+  const writable = onRecordBreachOutcome !== undefined;
+  const promotionRequests = useMemo(() => {
+    if (!ready || !writable || !whatIfGraph) return [];
+    if (!step) {
+      const ids = new Set(
+        obligations
+          .filter(({ status }) => status === 'breached')
+          .map(({ requestId }) => requestId),
+      );
+      return requestOptions.filter(({ id }) => ids.has(id));
+    }
+    const result = currentSandbox?.result;
+    return result && factScene
+      ? promotableSceneRequests(whatIfGraph, factScene, result)
+      : [];
+  }, [
+    ready,
+    writable,
+    whatIfGraph,
+    step,
+    obligations,
+    requestOptions,
+    currentSandbox,
+    factScene,
+  ]);
+
+  // A newly modeled branch is a possible response, not an event in the example.
+  const [promoted, setPromoted] = useState<{
+    document: DomainModelDocument;
+    focus: NonNullable<typeof canvasFocus>;
+    entityIds: string[];
+    relationshipIds: string[];
+  }>();
+  const promoteBreachOutcome = async (
+    input: RecordBreachOutcomeInput,
+  ): Promise<void> => {
+    if (
+      !onRecordBreachOutcome ||
+      !canvasFocus ||
+      currentSandboxKey.current !== sandboxKey ||
+      !promotionRequests.some(({ id }) => id === input.requestRef)
+    )
+      throw new Error('当前步骤或推演结果已变化，请重新核对。');
+    setIsPlaying(false);
+    const after = onRecordBreachOutcome(input, document);
+    if (step && flow)
+      setPosition({ flowId: flow.flowId, ref: stepRef(step), index });
+    if (rehearsing) {
+      setPreferRehearsal(true);
+      setAssumption({
+        document: after,
+        requestId: input.requestRef,
+        hours: windowHours,
+      });
+    }
+    if (seekTime !== undefined)
+      setCursor({ document: after, clock, time: seekTime });
+    const added =
+      input.outcome.kind === 'compensation_pair'
+        ? [input.outcome.request.id, input.outcome.confirmation.id]
+        : [input.outcome.handoff.id];
+    const branchEdges = after.relationships.filter(
+      (edge) =>
+        added.includes(edge.sourceRef) &&
+        (edge.targetRef === input.requestRef || added.includes(edge.targetRef)),
+    );
+    setPromoted({
+      document: after,
+      focus: canvasFocus,
+      entityIds: added,
+      relationshipIds: branchEdges.map(({ id }) => id),
+    });
+  };
+  const showPromotedFocus =
+    enabled &&
+    promoted?.document === document &&
+    (canvasFocus
+      ? canvasFocus.focusKey === promoted.focus.focusKey
+      : loading && !error);
+  const displayFocus =
+    canvasFocus ?? (showPromotedFocus ? promoted.focus : null);
+
   return {
     flows,
     activeFlowId: rehearsing ? undefined : activeFlowId,
@@ -633,11 +743,24 @@ export const useStoryPlayback = ({
             (stepIndex === undefined || mark.stepIndex === stepIndex),
         );
       if (mark && mark.stepIndex !== undefined) moveTo(mark.stepIndex);
-      else setCursor({ timeline, time: clamped });
+      else setCursor({ document, clock, time: clamped });
     },
     step,
     scene,
-    canvasFocus,
+    canvasFocus:
+      showPromotedFocus && displayFocus
+        ? {
+            ...displayFocus,
+            relatedEntityIds: [
+              ...displayFocus.relatedEntityIds,
+              ...promoted.entityIds,
+            ],
+            candidateRelationshipIds: [
+              ...(displayFocus.candidateRelationshipIds ?? []),
+              ...promoted.relationshipIds,
+            ],
+          }
+        : canvasFocus,
     journeyPreview,
     projection: rehearsing ? undefined : projection,
     loading: !rehearsing && loading,
@@ -724,7 +847,9 @@ export const useStoryPlayback = ({
     jumpToStep,
     askWhatIf,
     clearWhatIf,
-    sandbox: sandbox?.key === sandboxKey ? sandbox : undefined,
+    sandbox: currentSandbox,
+    promotionRequests,
+    promoteBreachOutcome,
   };
 };
 

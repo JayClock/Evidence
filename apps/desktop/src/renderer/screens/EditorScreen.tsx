@@ -10,6 +10,7 @@ import {
 import type { ImperativePanelHandle } from 'react-resizable-panels';
 
 import { computeContextScope } from '@evidence-poc/evidence-canvas-interaction';
+import { recordBreachOutcomeMutator } from '@evidence-poc/evidence-model-core';
 import type { SensorIssue } from '@evidence-poc/evidence-agent/browser';
 import {
   ENTITY_CATEGORY_LABELS,
@@ -246,13 +247,6 @@ const EditorWorkspace = ({
   const openStory = useCallback(() => {
     if (!ledgerActive && canPlayStory) setStoryOpen(true);
   }, [ledgerActive, canPlayStory]);
-  const story = useStoryPlayback({
-    api: window.evidenceAPI.story,
-    rootPath: project.rootPath,
-    document: state.document,
-    enabled: storyActive,
-    aiConfigured: ai?.aiConfigured,
-  });
   const manualSensors = useSensorsState(project.rootPath);
   const artifacts = useArtifactStatus(
     state.persistenceId,
@@ -350,6 +344,35 @@ const EditorWorkspace = ({
     project.rootPath,
     liveModel.prompt,
   );
+  const story = useStoryPlayback({
+    api: window.evidenceAPI.story,
+    rootPath: project.rootPath,
+    document: state.document,
+    enabled: storyActive,
+    aiConfigured: ai?.aiConfigured,
+    onRecordBreachOutcome:
+      agent.running || patchReview.review || externalConflict
+        ? undefined
+        : (input, before) => {
+            if (state.session.getDocument() !== before)
+              throw new Error('模型已变化，请重新推演后再提交。');
+            const rationale = `${input.outcome.kind === 'compensation_pair' ? '固化违约补偿履约' : '固化争议终结'}：${input.condition}`;
+            state.session.mutate(
+              (draft) => recordBreachOutcomeMutator(draft, input),
+              rationale,
+            );
+            const after = state.session.getDocument();
+            recordPatch({
+              source: 'story',
+              rationale,
+              commands: ['record_breach_outcome'],
+              before,
+              after,
+              focusNodeId: input.requestRef,
+            });
+            return after;
+          },
+  });
   // Findings must describe the exact live revision, including undo/redo.
   const diagnosticsStale =
     report === null || sensors.loading || sensors.error !== null;
@@ -996,6 +1019,22 @@ const EditorWorkspace = ({
     </div>
   );
 
+  const reviewInStory = storyActive && patchReview.review?.source === 'story';
+  const patchCard =
+    patchReview.review && !reviewInInquiry ? (
+      <InlinePatchCard
+        review={patchReview.review}
+        focusOnMount={reviewInStory}
+        busy={agent.running}
+        onAccept={acceptPatch}
+        onRevert={revertPatch}
+        onFocusEntity={(nodeId) => {
+          closeStory();
+          revealOnGraph(nodeId);
+        }}
+      />
+    ) : null;
+
   return (
     <LiveApiProvider analysis={delivery.analysis} stale={delivery.stale}>
       <div
@@ -1205,6 +1244,7 @@ const EditorWorkspace = ({
                               }
                         }
                         playback={story}
+                        review={reviewInStory ? patchCard : null}
                         pendingPersistence={pendingPersistence}
                         externalConflict={externalConflict}
                       />
@@ -1223,20 +1263,14 @@ const EditorWorkspace = ({
             </ResizablePanelGroup>
           </div>
 
-          {patchReview.review === null || reviewInInquiry ? null : (
+          {!patchCard || reviewInStory ? null : (
             <div
               data-canvas-control=""
               data-evidence-capture-hide=""
               className="pointer-events-none absolute inset-x-0 bottom-4 z-40 flex justify-center px-4"
             >
               <div className="pointer-events-auto max-h-64 w-full max-w-lg overflow-y-auto">
-                <InlinePatchCard
-                  review={patchReview.review}
-                  busy={agent.running}
-                  onAccept={acceptPatch}
-                  onRevert={revertPatch}
-                  onFocusEntity={revealOnGraph}
-                />
+                {patchCard}
               </div>
             </div>
           )}

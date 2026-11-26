@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { StoryPlaybackController } from '../../state/useStoryPlayback';
 import { durationLabel, timelineLabel } from './StoryTimelineControls';
 import { WhatIfSection } from './WhatIfSection';
@@ -10,6 +11,7 @@ interface StoryDrawerProps {
   aiConfigured?: boolean;
   onConfigureAi?: () => void;
   onClarifyGap?: ClarifyStoryGap;
+  review?: ReactNode;
 }
 
 const buttonClass =
@@ -87,7 +89,7 @@ const TimelineDetails = ({
         )}
       </ul>
       <p className="text-[11px] text-evidence-muted">
-        本地推演，不修改模型，也不执行补偿或救济。
+        假设时点与规则判定仅用于本次推演。
       </p>
     </section>
   );
@@ -100,6 +102,7 @@ export const StoryDrawer = ({
   aiConfigured = true,
   onConfigureAi,
   onClarifyGap,
+  review,
 }: StoryDrawerProps) => (
   <section
     aria-label="业务故事"
@@ -186,6 +189,7 @@ export const StoryDrawer = ({
       ) : null}
       {playback.ready ? <TimelineDetails playback={playback} /> : null}
       <WhatIfSection playback={playback} aiConfigured={aiConfigured} />
+      {review}
     </div>
   </section>
 );

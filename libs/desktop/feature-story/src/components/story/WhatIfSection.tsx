@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { Badge, Button } from '@evidence-poc/desktop-ui-kit';
 import type { StoryPlaybackController } from '../../state/useStoryPlayback';
+import { BreachOutcomeForm } from './BreachOutcomeForm';
 
 function friendlyWhatIfError(error: string): string {
   if (error.includes('No relevant completion/breach rule is modeled'))
@@ -32,13 +33,14 @@ const WhatIfForm = ({
   return (
     <>
       <form
+        aria-labelledby={`${id}-label`}
         className="flex flex-col gap-2"
         onSubmit={(event) => {
           event.preventDefault();
           void playback.askWhatIf(question, { allowSpeculative: speculative });
         }}
       >
-        <label htmlFor={id} className="font-medium">
+        <label id={`${id}-label`} htmlFor={id} className="font-medium">
           假设问题
         </label>
         <p id={`${id}-help`} className="text-evidence-muted">
@@ -48,6 +50,7 @@ const WhatIfForm = ({
         </p>
         <textarea
           id={id}
+          name="question"
           aria-describedby={`${id}-help`}
           value={question}
           onChange={(event) => setQuestion(event.target.value)}
@@ -185,7 +188,13 @@ export const WhatIfSection = ({
     jumpTarget.current = undefined;
     heading.current?.focus();
   }, [sequence]);
-  if (!capability || !step) return null;
+  if (!capability || !step)
+    return playback.promotionRequests.length ? (
+      <BreachOutcomeForm
+        key={`${playback.activeFlowId ?? playback.rehearsal.requestId}:${playback.currentTime}`}
+        playback={playback}
+      />
+    ) : null;
   const key = `${playback.activeFlowId}:${step.sequence}:${step.stepHash}:${aiConfigured}`;
 
   return (
@@ -241,6 +250,9 @@ export const WhatIfSection = ({
       ) : (
         <p>当前步骤已有判定规则。配置大模型后可输入假设并查看解释。</p>
       )}
+      {playback.promotionRequests.length ? (
+        <BreachOutcomeForm key={`outcome:${key}`} playback={playback} />
+      ) : null}
     </section>
   );
 };

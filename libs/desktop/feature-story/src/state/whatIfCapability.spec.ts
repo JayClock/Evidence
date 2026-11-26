@@ -1,12 +1,68 @@
 import { describe, expect, it } from 'vitest';
 import { createDomainGraph } from '@evidence-poc/evidence-model-core';
 import { createDesktopFixture } from '@evidence-poc/desktop-testing';
-import { storyFlow } from '@evidence-poc/desktop-testing/story';
-import { evaluateWhatIfCapability } from './whatIfCapability';
+import { storyFlow, storySnapshot } from '@evidence-poc/desktop-testing/story';
+import {
+  evaluateWhatIfCapability,
+  promotableSceneRequests,
+} from './whatIfCapability';
 
 const steps = storyFlow().steps;
 
 describe('What-If capability', () => {
+  it('offers only the breached request on a shared confirmation and never treats a completion as a breach', () => {
+    const model = createDesktopFixture();
+    const request = model.entities.find(({ id }) => id === 'evidence.request')!;
+    model.entities.push({ ...request, id: 'request.second' });
+    const completion = model.rules[0]!;
+    model.rules.push({
+      ...completion,
+      id: 'rule.second-breach',
+      kind: 'breach',
+      bindings: { request: { ref: 'request.second' } },
+    });
+    const graph = createDomainGraph(model);
+    const scene = storySnapshot().selected!.projection.scenes[2]!;
+    const obligation = scene.activity.fulfillment!.requests[0]!;
+    const shared = {
+      ...scene,
+      activity: {
+        ...scene.activity,
+        fulfillment: {
+          phase: 'confirmation' as const,
+          requests: [
+            obligation,
+            { ...obligation, requestId: 'request.second' },
+          ],
+        },
+      },
+    };
+    const ruleOutcome = { ruleId: completion.id, result: true };
+    const result = {
+      isSpeculative: false as const,
+      hypothesis: {},
+      ruleOutcome,
+      ruleOutcomes: [ruleOutcome],
+      businessImpactExplanation: '完成条件成立',
+    };
+    expect(promotableSceneRequests(graph, shared, result)).toEqual([]);
+    expect(
+      promotableSceneRequests(graph, shared, {
+        ...result,
+        ruleOutcomes: [
+          ...result.ruleOutcomes,
+          { ruleId: 'rule.second-breach', result: true },
+        ],
+      }).map((r) => r.id),
+    ).toEqual(['request.second']);
+    expect(
+      promotableSceneRequests(graph, shared, {
+        isSpeculative: true,
+        ruleOutcomes: [],
+        businessImpactExplanation: '待业务确认',
+      }).map((r) => r.id),
+    ).toEqual([request.id, 'request.second']);
+  });
   it('requires direct bindings or a modeled confirmation-to-request pair', () => {
     const model = createDesktopFixture();
     model.rules[0]!.bindings = { request: { ref: 'evidence.request' } };

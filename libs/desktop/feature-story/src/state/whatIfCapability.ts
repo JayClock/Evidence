@@ -5,6 +5,37 @@ import {
   type DomainGraph,
   type FlowStepTrace,
 } from '@evidence-poc/evidence-model-core';
+import { isFulfillmentRequest } from '@evidence-poc/evidence-schema';
+import type {
+  StoryScene,
+  WhatIfResult,
+} from '@evidence-poc/evidence-agent/browser';
+
+/** Only the current scene's causal requests can own a modeled outcome. */
+export function promotableSceneRequests(
+  graph: DomainGraph,
+  scene: StoryScene,
+  result: WhatIfResult,
+) {
+  const requests = (scene.activity.fulfillment?.requests ?? [])
+    .map(({ requestId }) => graph.getEntity(requestId))
+    .filter(isFulfillmentRequest);
+  if (!requests.length || result.isSpeculative) return requests;
+  const eligible = new Set<string>();
+  for (const outcome of result.ruleOutcomes) {
+    const rule = graph.getRule(outcome.ruleId);
+    if (!outcome.result || rule?.kind !== 'breach') continue;
+    const bound = Object.values(rule.bindings).flatMap((binding) =>
+      'ref' in binding && isFulfillmentRequest(graph.getEntity(binding.ref))
+        ? [binding.ref]
+        : [],
+    );
+    // A confirmation-only decision applies to the requests this confirmation covers.
+    if (!bound.length) return requests;
+    for (const id of bound) eligible.add(id);
+  }
+  return requests.filter(({ id }) => eligible.has(id));
+}
 
 type WhatIfTarget = Pick<FlowStepTrace, 'sequence' | 'entityLabel'> & {
   readonly hasRules: boolean;
