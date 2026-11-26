@@ -103,7 +103,7 @@ export const StoryPlayerBar = ({
       {playback.loading
         ? '正在读取业务流…'
         : playback.error
-          ? '放映失败，请查看剧情详情'
+          ? '放映失败，请查看右侧故事面板'
           : playback.rehearsal.active
             ? '履约时钟假设 · 临时时点'
             : playback.stepNumber > 0

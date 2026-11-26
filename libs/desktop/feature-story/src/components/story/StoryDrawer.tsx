@@ -1,196 +1,204 @@
-import type { ReactNode } from 'react';
+import * as Tabs from '@radix-ui/react-tabs';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Badge, Button } from '@evidence-poc/desktop-ui-kit';
 import type { StoryPlaybackController } from '../../state/useStoryPlayback';
-import { durationLabel, timelineLabel } from './StoryTimelineControls';
-import { WhatIfSection } from './WhatIfSection';
+import { StoryOutlineSpine } from './StoryOutlineSpine';
+import { StorySandboxPane, TimelineDetails } from './StorySandboxPane';
 import { StorySceneSheet, type ClarifyStoryGap } from './StorySceneSheet';
+
+export type StoryView = 'script' | 'sandbox';
 
 interface StoryDrawerProps {
   playback: StoryPlaybackController;
+  initialView?: StoryView;
+  collapsed?: boolean;
   pendingPersistence?: boolean;
   externalConflict?: boolean;
   aiConfigured?: boolean;
-  onConfigureAi?: () => void;
+  onReturnToCanvas: () => void;
   onClarifyGap?: ClarifyStoryGap;
+  onOpenBranchEntity?: (nodeId: string) => void;
   review?: ReactNode;
 }
 
-const buttonClass =
-  'rounded border border-evidence-line px-2 py-1 text-[11px] hover:bg-evidence-hover disabled:opacity-40';
-
-const statusLabel = {
-  waiting: '窗口内等待',
-  completed: '完成条件成立',
-  overdue: '已过截止，未判定违约',
-  breached: '违约条件成立',
-  unknown: '待定：缺少可求值的约定或输入',
-} as const;
-
-const TimelineDetails = ({
-  playback,
-}: {
-  playback: StoryPlaybackController;
-}) => {
-  const { timeline, currentTime, focusedObligations: obligations } = playback;
-  if (!timeline || currentTime === undefined) return null;
-  return (
-    <section
-      aria-label="时点履约状态"
-      className="flex flex-col gap-2 rounded border border-evidence-line p-3"
-    >
-      <h3 className="font-medium">
-        时点履约状态 · {timelineLabel(timeline, currentTime)}
-      </h3>
-      <p className="text-[11px] text-evidence-muted">
-        {timeline.kind === 'rehearsal'
-          ? '假设在 T0 发起且尚无确认，按输入的实际经过小时推演，不推断工作日或合同条款。'
-          : '仅用当前示例中在该时点可见的数据预演；缺失或未求出的输入不作推断。'}
-      </p>
-      {obligations.length === 0 ? <p>该时点没有可预演的履约请求。</p> : null}
-      <ul className="flex flex-col gap-2">
-        {obligations.map(
-          ({ key, label, deadline, status, ruleResults, responses }) => (
-            <li key={key} className="border-t border-evidence-line pt-2">
-              <p>
-                <strong>{label}</strong> · {statusLabel[status]}
-              </p>
-              {deadline === undefined ? null : (
-                <p>截止：{timelineLabel(timeline, deadline)}</p>
-              )}
-              {status === 'waiting' && deadline !== undefined ? (
-                <p>
-                  距截止：{durationLabel(Math.max(0, deadline - currentTime))}
-                </p>
-              ) : null}
-              {ruleResults.length ? (
-                <ul
-                  aria-label="当前时点规则结果"
-                  className="mt-1 flex flex-col gap-0.5 ps-3"
-                >
-                  {ruleResults.map(({ id, label: rule, status }) => (
-                    <li key={id}>
-                      {rule}：
-                      {status === 'satisfied'
-                        ? '条件成立'
-                        : status === 'unsatisfied'
-                          ? '条件不成立'
-                          : '输入不足，未能求值'}
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-              {responses.length ? (
-                <p>
-                  模型中的处置选项（未发生）：
-                  {responses.map(({ label }) => label).join('、')}
-                </p>
-              ) : null}
-            </li>
-          ),
-        )}
-      </ul>
-      <p className="text-[11px] text-evidence-muted">
-        假设时点与规则判定仅用于本次推演。
-      </p>
-    </section>
-  );
-};
+const tabClass =
+  'relative min-h-8 flex-1 whitespace-nowrap px-2 text-evidence-muted hover:bg-evidence-hover aria-selected:text-evidence-ink aria-selected:after:absolute aria-selected:after:inset-x-2 aria-selected:after:bottom-0 aria-selected:after:border-b-2 aria-selected:after:border-evidence-accent disabled:opacity-40';
 
 export const StoryDrawer = ({
   playback,
+  initialView = 'script',
+  collapsed = false,
   pendingPersistence = false,
   externalConflict = false,
   aiConfigured = true,
-  onConfigureAi,
+  onReturnToCanvas,
   onClarifyGap,
+  onOpenBranchEntity,
   review,
-}: StoryDrawerProps) => (
-  <section
-    aria-label="业务故事"
-    aria-busy={playback.loading}
-    className="min-h-0 flex-1 overflow-auto overscroll-contain p-4 text-[12px] text-evidence-ink"
-  >
-    <div className="mx-auto flex max-w-2xl flex-col gap-4">
-      <header>
-        <h2 className="text-base font-semibold">
-          {playback.rehearsal.active
-            ? '履约时钟假设'
-            : (playback.projection?.storyTitle ?? '业务流放映')}
-        </h2>
-        <p className="mt-1 text-[11px] text-evidence-muted">
-          {playback.rehearsal.active
-            ? '在播放条选择请求并输入假设窗口，不会保存输入。'
-            : (playback.projection?.businessGoal ??
-              '选择一条业务流，逐步核对单据、责任与业务依据。')}
-        </p>
-        {pendingPersistence ? (
-          <p className="mt-2 text-amber-800">
-            当前剧情基于尚未同步到磁盘的画布版本。
-          </p>
-        ) : null}
-        {externalConflict ? (
-          <p role="alert" className="mt-2 text-amber-800">
-            磁盘模型已变化；当前剧情仍基于画布版本。可从状态栏重新加载。
-          </p>
-        ) : null}
-      </header>
-      {!aiConfigured && !playback.rehearsal.active ? (
-        <aside className="rounded border border-evidence-line p-3">
-          <p>
-            当前为离线放映，可阅读业务事实和本地故事草稿。配置大模型后可润色当前故事并使用
-            AI 推演。
-          </p>
-          <button type="button" className={buttonClass} onClick={onConfigureAi}>
-            配置 Pi 模型
-          </button>
-        </aside>
-      ) : null}
-      {playback.loading ? (
-        <p role="status" className="text-evidence-muted">
-          正在读取业务流…
-          {playback.scene ? '暂显示上一版本。' : ''}
-        </p>
-      ) : null}
-      {playback.error ? (
-        <div
-          role="alert"
-          className="rounded border border-red-200 bg-red-50 p-3 text-red-800"
-        >
-          <p className="whitespace-pre-wrap">{playback.error}</p>
-          <p className="mt-1 text-[11px]">请检查业务示例和模型后重试。</p>
-          <button
-            type="button"
-            className={`${buttonClass} mt-2`}
-            onClick={playback.retry}
-          >
-            重试放映
-          </button>
+}: StoryDrawerProps) => {
+  const [view, setView] = useState<StoryView>(initialView);
+  const sandboxTab = useRef<HTMLButtonElement>(null);
+  const {
+    anchoredScene,
+    anchoredChecklist,
+    anchoredStep,
+    isBetweenSteps,
+    rehearsal,
+    whatIfCapability,
+  } = playback;
+  const result = playback.sandbox?.result;
+  useEffect(() => {
+    if (result) setView('sandbox');
+  }, [result]);
+  const activeView = rehearsal.active ? 'sandbox' : view;
+  const context = isBetweenSteps
+    ? anchoredStep
+      ? `已推进至第 ${anchoredStep.sequence} 步，等待后续时点。`
+      : '第一步尚未发生，等待业务开始。'
+    : undefined;
+  const showTabs = rehearsal.active || playback.scenes.length > 0;
+  return (
+    <section
+      aria-label="业务故事"
+      aria-busy={playback.loading}
+      inert={collapsed}
+      lang="zh-CN"
+      className="flex h-full min-h-0 min-w-0 flex-col bg-evidence-panel text-[12px] text-evidence-ink"
+    >
+      <header className="flex min-h-11 shrink-0 flex-wrap items-center justify-between gap-2 border-b border-workbench-border bg-workbench-background px-3 py-2">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+          <h2 className="break-words text-sm font-semibold">
+            {rehearsal.active
+              ? '履约时钟假设'
+              : (playback.projection?.storyTitle ?? '业务流放映')}
+          </h2>
+          {playback.scenes.length ? (
+            <Badge>
+              {anchoredStep
+                ? `第 ${anchoredStep.sequence}/${playback.stepCount} 步`
+                : `共 ${playback.stepCount} 步`}
+            </Badge>
+          ) : null}
         </div>
-      ) : null}
-      {!playback.loading &&
-      !playback.error &&
-      !playback.rehearsal.active &&
-      playback.flows.length === 0 ? (
-        <p>
-          暂无业务流。请为实体的业务示例声明
-          test.flow、业务时点和单据依据后再开始放映。
-        </p>
-      ) : null}
-      {playback.scene && playback.checklist ? (
-        <StorySceneSheet
-          key={`${playback.projection?.flowId}:${playback.step?.entityId}:${playback.step?.exampleLabel}`}
-          scene={playback.scene}
-          checklist={playback.checklist}
-          ready={playback.ready}
-          stale={playback.stale}
-          stepNumber={playback.stepNumber}
-          stepCount={playback.stepCount}
-          onJumpToStep={playback.jumpToStep}
-          onClarifyGap={onClarifyGap}
-        />
-      ) : null}
-      {playback.ready ? <TimelineDetails playback={playback} /> : null}
-      <WhatIfSection playback={playback} aiConfigured={aiConfigured} />
-      {review}
-    </div>
-  </section>
-);
+        <Button
+          type="button"
+          size="xs"
+          variant="ghost"
+          onClick={onReturnToCanvas}
+        >
+          返回画布
+        </Button>
+      </header>
+      <StoryOutlineSpine
+        key={playback.projection?.flowId}
+        playback={playback}
+      />
+      <Tabs.Root
+        value={activeView}
+        onValueChange={(value) =>
+          setView(value === 'sandbox' ? 'sandbox' : 'script')
+        }
+        className="flex min-h-0 flex-1 flex-col"
+      >
+        {showTabs ? (
+          <Tabs.List
+            aria-label="故事视图"
+            className="flex shrink-0 border-b border-workbench-border px-2"
+          >
+            <Tabs.Trigger
+              value="script"
+              disabled={rehearsal.active}
+              className={tabClass}
+            >
+              故事剧本
+            </Tabs.Trigger>
+            <Tabs.Trigger value="sandbox" ref={sandboxTab} className={tabClass}>
+              推演与分支
+            </Tabs.Trigger>
+          </Tabs.List>
+        ) : null}
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          <div className="mx-auto flex max-w-2xl flex-col gap-3 p-3">
+            {pendingPersistence ? (
+              <p className="text-workbench-muted">
+                当前故事基于尚未同步到磁盘的画布版本。
+              </p>
+            ) : null}
+            {externalConflict ? (
+              <p role="alert" className="text-evidence-role">
+                磁盘模型已变化，当前故事仍基于画布版本。可从状态栏重新加载。
+              </p>
+            ) : null}
+            {playback.loading ? (
+              <p role="status" className="text-evidence-muted">
+                正在读取业务流…{anchoredScene ? '暂显示上一版本。' : ''}
+              </p>
+            ) : null}
+            {playback.error ? (
+              <div
+                role="alert"
+                className="flex flex-wrap items-center gap-2 text-evidence-evidence"
+              >
+                <p className="break-words whitespace-pre-wrap">
+                  {playback.error}
+                </p>
+                <Button onClick={playback.retry}>重试放映</Button>
+              </div>
+            ) : null}
+            {!playback.loading &&
+            !playback.error &&
+            !rehearsal.active &&
+            !playback.scenes.length ? (
+              <p>
+                暂无可放映的步骤。请为实体的业务示例声明所属业务流、业务时点和单据依据。
+              </p>
+            ) : null}
+            {showTabs ? (
+              <>
+                <Tabs.Content value="script">
+                  <div className="flex flex-col gap-3">
+                    {context ? (
+                      <p className="text-evidence-muted">{context}</p>
+                    ) : null}
+                    {anchoredScene && anchoredChecklist ? (
+                      <StorySceneSheet
+                        key={`${playback.projection?.flowId}:${anchoredStep?.entityId}:${anchoredStep?.exampleLabel}`}
+                        scene={anchoredScene}
+                        checklist={anchoredChecklist}
+                        ready={playback.ready}
+                        onClarifyGap={onClarifyGap}
+                        onExplore={
+                          whatIfCapability &&
+                          whatIfCapability.status !== 'non_fulfillment_stage'
+                            ? () => {
+                                setView('sandbox');
+                                sandboxTab.current?.focus();
+                              }
+                            : undefined
+                        }
+                      />
+                    ) : null}
+                    {isBetweenSteps && playback.ready ? (
+                      <TimelineDetails playback={playback} />
+                    ) : null}
+                  </div>
+                </Tabs.Content>
+                <Tabs.Content value="sandbox">
+                  <StorySandboxPane
+                    playback={playback}
+                    aiConfigured={aiConfigured}
+                    context={context}
+                    reviewPending={Boolean(review)}
+                    onOpenBranchEntity={onOpenBranchEntity}
+                    onPlayBranch={() => setView('script')}
+                  />
+                </Tabs.Content>
+              </>
+            ) : null}
+            {review}
+          </div>
+        </div>
+      </Tabs.Root>
+    </section>
+  );
+};

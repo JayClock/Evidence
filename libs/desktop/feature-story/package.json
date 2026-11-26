@@ -25,6 +25,7 @@
     ]
   },
   "dependencies": {
+    "@radix-ui/react-tabs": "^1.2.1",
     "react": "^19.2.8",
     "tslib": "^2.3.0",
     "@evidence-poc/desktop-contracts": "workspace:*",

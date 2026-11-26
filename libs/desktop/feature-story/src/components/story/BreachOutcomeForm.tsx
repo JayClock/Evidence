@@ -15,9 +15,11 @@ const remedies: Record<TerminalRemedyKind, string> = {
 const fieldClass =
   'w-full rounded border border-evidence-line bg-evidence-surface px-2 py-1';
 
-export const BreachOutcomeForm = ({
+const BreachOutcomeForm = ({
+  formId,
   playback,
 }: {
+  formId: string;
   playback: StoryPlaybackController;
 }) => {
   const id = useId();
@@ -30,8 +32,9 @@ export const BreachOutcomeForm = ({
   const compensation = kind === 'compensation_pair';
   return (
     <form
+      id={formId}
       aria-labelledby={id}
-      className="flex flex-col gap-2 rounded-lg border border-evidence-line p-3"
+      className="flex w-full flex-col gap-2 rounded-lg border border-evidence-line p-3"
       onFocus={() => {
         if (playback.isPlaying) playback.togglePlaying();
       }}
@@ -199,5 +202,31 @@ export const BreachOutcomeForm = ({
         </p>
       ) : null}
     </form>
+  );
+};
+
+export const BreachOutcomeDisclosure = ({
+  playback,
+}: {
+  playback: StoryPlaybackController;
+}) => {
+  const id = useId();
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className="flex flex-col items-start gap-2 border-t border-evidence-line pt-3">
+      <p>当前推演已触发违约条件，可记录双方约定的处置方式。</p>
+      <Button
+        type="button"
+        aria-expanded={expanded}
+        aria-controls={expanded ? id : undefined}
+        onClick={() => {
+          if (!expanded && playback.isPlaying) playback.togglePlaying();
+          setExpanded(!expanded);
+        }}
+      >
+        {expanded ? '收起分支表单' : '固化违约分支…'}
+      </Button>
+      {expanded ? <BreachOutcomeForm formId={id} playback={playback} /> : null}
+    </div>
   );
 };

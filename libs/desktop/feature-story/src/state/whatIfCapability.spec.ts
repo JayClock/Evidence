@@ -46,8 +46,8 @@ describe('What-If capability', () => {
         isSpeculative: true,
         ruleOutcomes: [],
         businessImpactExplanation: '待业务确认',
-      }).map((r) => r.id),
-    ).toEqual([request.id, 'request.second']);
+      }),
+    ).toEqual([]);
   });
   it('requires direct bindings or a modeled confirmation-to-request pair', () => {
     const model = createDesktopFixture();

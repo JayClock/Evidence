@@ -1,7 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { Badge, Button } from '@evidence-poc/desktop-ui-kit';
 import type { StoryPlaybackController } from '../../state/useStoryPlayback';
-import { BreachOutcomeForm } from './BreachOutcomeForm';
 
 function friendlyWhatIfError(error: string): string {
   if (error.includes('No relevant completion/breach rule is modeled'))
@@ -132,7 +131,11 @@ const MissingRulesPanel = ({
   playback: StoryPlaybackController;
   aiConfigured: boolean;
 }) => {
-  const [exploring, setExploring] = useState(false);
+  const [exploring, setExploring] = useState(
+    Boolean(
+      playback.sandbox?.loading || playback.sandbox?.result?.isSpeculative,
+    ),
+  );
   const controlsId = useId();
   return (
     <>
@@ -177,7 +180,7 @@ export const WhatIfSection = ({
   const headingId = useId();
   const heading = useRef<HTMLHeadingElement>(null);
   const jumpTarget = useRef<number | undefined>(undefined);
-  const { whatIfCapability: capability, step } = playback;
+  const { whatIfCapability: capability, anchoredStep: step } = playback;
   const sequence = step?.sequence;
   useEffect(() => {
     if (jumpTarget.current === undefined || jumpTarget.current !== sequence)
@@ -185,13 +188,7 @@ export const WhatIfSection = ({
     jumpTarget.current = undefined;
     heading.current?.focus();
   }, [sequence]);
-  if (!capability || !step)
-    return playback.promotionRequests.length ? (
-      <BreachOutcomeForm
-        key={`${playback.activeFlowId ?? playback.rehearsal.requestId}:${playback.currentTime}`}
-        playback={playback}
-      />
-    ) : null;
+  if (!capability || !step) return null;
   const key = `${playback.activeFlowId}:${step.sequence}:${step.stepHash}:${aiConfigured}`;
 
   return (
@@ -247,9 +244,6 @@ export const WhatIfSection = ({
       ) : (
         <p>当前步骤已有判定规则。配置大模型后可输入假设并查看解释。</p>
       )}
-      {playback.promotionRequests.length ? (
-        <BreachOutcomeForm key={`outcome:${key}`} playback={playback} />
-      ) : null}
     </section>
   );
 };

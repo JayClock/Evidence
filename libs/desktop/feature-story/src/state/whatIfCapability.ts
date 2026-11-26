@@ -17,7 +17,7 @@ export function promotableSceneRequests(
   requests: readonly Pick<EntityAST, 'id' | 'label'>[],
   result: WhatIfResult,
 ) {
-  if (!requests.length || result.isSpeculative) return requests;
+  if (!requests.length || result.isSpeculative) return [];
   const eligible = new Set<string>();
   for (const outcome of result.ruleOutcomes) {
     const rule = graph.getRule(outcome.ruleId);

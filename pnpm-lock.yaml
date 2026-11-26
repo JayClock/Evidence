@@ -611,6 +611,9 @@ importers:
       '@evidence-poc/evidence-schema':
         specifier: workspace:*
         version: link:../../evidence-schema
+      '@radix-ui/react-tabs':
+        specifier: ^1.2.1
+        version: 1.2.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       react:
         specifier: ^19.2.8
         version: 19.3.1

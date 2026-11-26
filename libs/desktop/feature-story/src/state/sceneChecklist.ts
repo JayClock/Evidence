@@ -75,7 +75,7 @@ export function sceneChecklist(
           label: pair.request.label,
           isGap:
             !contractContext ||
-            !pair.request.contextRef ||
+            !pair.contract ||
             !facts.rightHolder ||
             !facts.obligor ||
             pair.completionRules.length === 0,
