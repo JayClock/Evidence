@@ -3,6 +3,8 @@ import openapiTS, { astToString } from 'openapi-typescript';
 import ts from 'typescript';
 
 import { procurementEvolution } from '../testing/procurement.js';
+import { sharedConfirmationModel } from '../testing/fulfillment.js';
+import { compileSchema } from '../schemas/jsonSchema.js';
 import { contractProblems } from '../testing/openapi.js';
 import {
   operationFor,
@@ -282,6 +284,36 @@ it('publishes distinct HAL collection schemas with linked summaries', () => {
       total: 1,
     },
   });
+  const embedded = schema.properties!._embedded!.properties!.agreements!;
+  const { items } = embedded as { items?: Parameters<typeof resolveSchema>[1] };
+  const summary = resolveSchema(snapshot.openapi, items!);
+  expect(summary.required).toEqual(['_links', 'id']);
+  expect(summary.properties!.signed_at).toMatchObject({ readOnly: true });
+  expect(summary.additionalProperties).toBe(false);
   expect(snapshot.schemaVersion).toBe('7.0');
   expect(snapshot.openapi.info.version).toBe(snapshot.modelVersion);
+});
+
+it('preserves shared-confirmation input constraints and async acceptance headers', async () => {
+  const model = await sharedConfirmationModel();
+  const request = model.entities.find(({ id }) => id === 'request.payment');
+  if (request?.category !== 'evidence') throw new Error('Missing request');
+  request.asyncAcceptance = true;
+  const snapshot = buildDelivery(model);
+  const confirm = operationFor(snapshot, 'route.confirm.confirmation.payment');
+  const input = confirm.requestBody!.content['application/json']!.schema;
+  expect(input.required).toContain('request_ids');
+  const { validate } = compileSchema(input.properties!.request_ids);
+  expect(validate(['request-1', 'request-2'])).toBe(true);
+  for (const rejected of [[], [''], ['request-1', 'request-1']])
+    expect(validate(rejected)).toBe(false);
+
+  const submit = operationFor(snapshot, 'route.request.request.payment');
+  expect(submit.responses['201']).toBeUndefined();
+  expect(submit.responses['202']?.headers?.['Location']).toMatchObject({
+    required: true,
+    schema: { type: 'string', format: 'uri-reference' },
+    'x-evidence-uri-template': expect.any(String),
+  });
+  expect(contractProblems(snapshot.openapi)).toEqual([]);
 });
