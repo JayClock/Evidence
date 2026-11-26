@@ -14,6 +14,8 @@ import {
 import { readModelRoot } from '@evidence-poc/evidence-model-io';
 import { fullLifecycle } from '../testing/fixtures.js';
 import { buildDelivery } from '../projector.js';
+import { buildDeliveryContract } from '../delivery/modelDelivery.js';
+import { componentName } from '../delivery/schemaName.js';
 
 const compileTypes = (source: string): readonly ts.Diagnostic[] => {
   const filename = '/virtual/contract.ts';
@@ -292,6 +294,28 @@ it('publishes distinct HAL collection schemas with linked summaries', () => {
   expect(summary.additionalProperties).toBe(false);
   expect(snapshot.schemaVersion).toBe('7.0');
   expect(snapshot.openapi.info.version).toBe(snapshot.modelVersion);
+});
+
+it('registers schemas even when an entity ID would shadow an object prototype key', () => {
+  const model = stages[1]!;
+  const snapshot = buildDelivery(model);
+  const entityRef = 'constructor';
+  const route = snapshot.routes.find(
+    ({ id }) => id === 'route.read.contract.agreement',
+  );
+  if (!route) throw new Error('Missing item route');
+  const contract = buildDeliveryContract(model, [
+    {
+      ...route,
+      id: `route.read.${entityRef}`,
+      entityRef,
+      responses: [{ status: 200, description: route.summary, entityRef }],
+    },
+  ]);
+  expect(
+    Object.hasOwn(contract.components.schemas, componentName(entityRef)),
+  ).toBe(true);
+  expect(contractProblems(contract)).toEqual([]);
 });
 
 it('preserves shared-confirmation input constraints and async acceptance headers', async () => {

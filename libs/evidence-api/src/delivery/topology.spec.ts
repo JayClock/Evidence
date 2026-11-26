@@ -5,6 +5,7 @@ import { API_FIXTURES } from '../testing/fixtures.js';
 import { sharedConfirmationModel } from '../testing/fulfillment.js';
 import { buildModelDelivery, serviceContractsOf } from './modelDelivery.js';
 import { assertOpenApiContract } from '../openapi/validateContract.js';
+import { contractProblems } from '../testing/openapi.js';
 
 import { buildDeliveryTopology } from './topology.js';
 
@@ -106,8 +107,11 @@ it('exports valid service contracts whose unchanged operations partition the pub
   const seen = new Set<string>();
   for (const { serviceId, contract } of serviceContractsOf(delivery)) {
     await assertOpenApiContract(contract);
+    expect(contractProblems(contract)).toEqual([]);
     for (const [path, entry] of Object.entries(contract.paths)) {
       for (const [method, operation] of Object.entries(entry)) {
+        if (method !== 'get' && method !== 'post')
+          throw new Error(`Unexpected method: ${method}`);
         expect(seen.has(method + path)).toBe(false);
         seen.add(method + path);
         expect(operation).toEqual(delivery.openapi.paths[path]![method]);

@@ -148,11 +148,7 @@ it('uses final overlay paths, keeps templates explicit, and never fabricates lin
   const empty = buildDelivery({ ...document, relationships: [] });
   expect(empty.hypermedia.every((link) => link.rel === 'self')).toBe(true);
   for (const route of result.routes) {
-    const responses = (
-      result.openapi.paths[route.path]![route.method.toLowerCase()] as {
-        responses: Record<string, { content?: Record<string, unknown> }>;
-      }
-    ).responses;
+    const { responses } = operationFor(result, route.id);
     for (const response of Object.values(responses))
       if (response.content !== undefined)
         expect(response.content['application/hal+json']).toBeDefined();

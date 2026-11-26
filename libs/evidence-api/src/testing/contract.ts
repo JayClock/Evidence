@@ -1,4 +1,4 @@
-import type { DeliveryContract } from '../../src/delivery/modelDelivery.js';
+import { methodOf, type DeliveryContract } from '../openapi/contractBuilder.js';
 import type { EvidenceApiSnapshot } from '../../src/types.js';
 
 export interface Schema {
@@ -35,7 +35,7 @@ export const operationFor = (
   const route = snapshot.routes.find((item) => item.id === routeId);
   if (route === undefined) throw new Error(`Missing route: ${routeId}`);
   const operation =
-    snapshot.openapi.paths[route.path]?.[route.method.toLowerCase()];
+    snapshot.openapi.paths[route.path]?.[methodOf(route.method)];
   if (operation === undefined) throw new Error(`Missing operation: ${routeId}`);
   return operation as unknown as Operation;
 };
