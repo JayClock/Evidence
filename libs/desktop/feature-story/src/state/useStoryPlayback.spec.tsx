@@ -278,6 +278,74 @@ describe('story playback', () => {
     expect(hook.result.current.canNext).toBe(false);
   });
 
+  it('anchors a seek to the last elapsed scene and uses its example for What-If', async () => {
+    const { api, hook, load, flow, tick, finish } = setup();
+    const timed = {
+      ...flow,
+      steps: flow.steps.map((step, index) => ({
+        ...step,
+        asOf: `2026-11-11T0${index + 1}:00:00Z`,
+      })),
+    };
+    load.mockResolvedValue(storySnapshot([timed]));
+    await tick();
+    expect(
+      hook.result.current.scenes.map(({ stepIndex }) => stepIndex),
+    ).toEqual([1, 2, 3]);
+    act(() => hook.result.current.jumpToStep(2));
+    await finish(1, '已登记交付请求。');
+    const requestScene = hook.result.current.scene;
+    const requestChecklist = hook.result.current.checklist;
+    expect(requestChecklist?.requests[0]?.isGap).toBe(false);
+    const second = Date.parse(timed.steps[1]!.asOf);
+    act(() => hook.result.current.seek(second + 1));
+    expect(hook.result.current).toMatchObject({
+      isBetweenSteps: true,
+      currentTime: second + 1,
+      step: undefined,
+      scene: undefined,
+      checklist: undefined,
+      anchoredStep: timed.steps[1],
+      anchoredScene: requestScene,
+      anchoredChecklist: requestChecklist,
+      whatIfCapability: { status: 'eligible' },
+    });
+    await act(() => hook.result.current.askWhatIf('如果现在才交付？'));
+    expect(api.story.whatIf).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currentStepSequence: 2,
+        stepHash: timed.steps[1]!.stepHash,
+      }),
+    );
+    act(() => hook.result.current.seek(second));
+    expect(hook.result.current.isBetweenSteps).toBe(false);
+    expect(hook.result.current.step).toBe(hook.result.current.anchoredStep);
+    expect(hook.result.current.scene).toBe(hook.result.current.anchoredScene);
+
+    act(() => hook.result.current.seek(Date.parse(timed.steps[0]!.asOf) - 1));
+    expect(hook.result.current).toMatchObject({
+      isBetweenSteps: true,
+      step: undefined,
+      anchoredStep: undefined,
+      anchoredScene: undefined,
+      anchoredChecklist: undefined,
+      whatIfCapability: undefined,
+      obligations: [],
+      canPrevious: false,
+      canNext: true,
+    });
+    act(() => hook.result.current.next());
+    expect(hook.result.current.step?.sequence).toBe(1);
+    act(() => hook.result.current.rehearsal.select());
+    expect(hook.result.current).toMatchObject({
+      rehearsal: { active: true },
+      anchoredStep: undefined,
+      anchoredScene: undefined,
+      isBetweenSteps: false,
+      scenes: [],
+    });
+  });
+
   it('targets the requested clock when that request has no example in any flow', async () => {
     const { hook, tick } = setup(false);
     const document = createDesktopFixture();

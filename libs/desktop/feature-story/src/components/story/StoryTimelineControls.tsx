@@ -62,9 +62,10 @@ export const StoryTimelineControls = ({
 }: {
   playback: StoryPlaybackController;
 }) => {
-  const { timeline, currentTime } = playback;
-  if (!timeline || currentTime === undefined) return null;
+  const { timeline, currentTime, seekStart } = playback;
+  if (!timeline || currentTime === undefined || seekStart === null) return null;
   const range = timeline.end - timeline.start;
+  const sliderRange = timeline.end - seekStart;
   const label = timelineLabel(timeline, currentTime);
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
@@ -80,7 +81,7 @@ export const StoryTimelineControls = ({
                   : 'absolute top-1 size-1.5 -translate-x-1/2 rounded-full bg-evidence-accent'
               }
               style={{
-                left: `${range === 0 ? 0 : (100 * (mark.time - timeline.start)) / range}%`,
+                left: `${range === 0 ? 0 : (100 * (mark.time - seekStart)) / sliderRange}%`,
               }}
             />
           ))}
@@ -88,7 +89,7 @@ export const StoryTimelineControls = ({
         <input
           type="range"
           aria-valuetext={label}
-          min={0}
+          min={seekStart - timeline.start}
           max={range}
           step="any"
           value={currentTime - timeline.start}

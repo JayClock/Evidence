@@ -20,6 +20,9 @@ export function sceneChecklist(
     entity && 'contextRef' in entity && entity.contextRef
       ? graph.getEntity(entity.contextRef)
       : undefined;
+  const contractContext = isContractContext(context)
+    ? context.label
+    : undefined;
   const fields = new Map(
     scene.documentCard.keyAttributes.map((field) => [field.name, field]),
   );
@@ -70,6 +73,12 @@ export function sceneChecklist(
           obligor: facts.obligor?.roleLabel,
           id: pair.request.id,
           label: pair.request.label,
+          isGap:
+            !contractContext ||
+            !pair.request.contextRef ||
+            !facts.rightHolder ||
+            !facts.obligor ||
+            pair.completionRules.length === 0,
           subjectMatters: [...new Set(subjects)],
           completionRules: pair.completionRules.map(({ label }) => label),
         },
@@ -77,7 +86,7 @@ export function sceneChecklist(
     },
   );
   return {
-    contractContext: isContractContext(context) ? context.label : undefined,
+    contractContext,
     requests,
     keyData: [...fields.values()],
   };

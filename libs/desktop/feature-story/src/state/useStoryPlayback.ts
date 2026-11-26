@@ -32,6 +32,7 @@ import { useStoryNarration } from './useStoryNarration';
 export const STORY_REFRESH_DELAY = 180;
 export const STORY_STEP_DURATION = 4500;
 const EMPTY_FLOWS: readonly FlowScenarioTrace[] = [];
+const EMPTY_SCENES: readonly StoryScene[] = [];
 
 export interface StoryPlaybackOptions {
   api: EvidenceStoryApi;
@@ -173,13 +174,15 @@ export const useStoryPlayback = ({
     [document, rehearsing, selectedRequest, windowHours],
   );
   const timeline = rehearsing ? rehearsalTimeline : exampleTimeline;
+  // The left endpoint can represent the instant before the first example.
+  const seekStart = timeline && timeline.start - (rehearsing ? 0 : 1);
   const clock = rehearsing
     ? `request:${selectedRequest?.id}:${windowHours}`
     : `flow:${flow?.flowId}`;
   const seekTime =
     cursor?.document === document && cursor.clock === clock
-      ? timeline
-        ? Math.min(timeline.end, Math.max(timeline.start, cursor.time))
+      ? timeline && seekStart !== null
+        ? Math.min(timeline.end, Math.max(seekStart, cursor.time))
         : cursor.time
       : undefined;
   const keyframe = flow?.steps[index];
@@ -194,22 +197,32 @@ export const useStoryPlayback = ({
     !rehearsing && seekTime === undefined ? index : undefined;
   const obligations = useMemo(
     () =>
-      timeline && currentTime !== undefined
+      timeline && currentTime !== undefined && currentTime >= timeline.start
         ? timeline.at(currentTime, keyframeIndex)
         : [],
     [timeline, currentTime, keyframeIndex],
   );
-  const step = rehearsing || seekTime !== undefined ? undefined : keyframe;
-  const factScene =
-    step &&
-    projection?.scenes.find(({ stepIndex }) => stepIndex === step.sequence);
+  const isBetweenSteps = seekTime !== undefined && !rehearsing;
+  const anchoredIndex = isBetweenSteps
+    ? (flow?.steps.findLastIndex(({ asOf }) => Date.parse(asOf) <= seekTime) ??
+      -1)
+    : index;
+  const anchoredStep = rehearsing ? undefined : flow?.steps[anchoredIndex];
+  const step = isBetweenSteps ? undefined : anchoredStep;
+  const scenes = rehearsing
+    ? EMPTY_SCENES
+    : (projection?.scenes ?? EMPTY_SCENES);
+  const anchoredFacts =
+    anchoredStep &&
+    scenes.find(({ stepIndex }) => stepIndex === anchoredStep.sequence);
+  const factScene = step && anchoredFacts;
   const graph = loaded?.graph;
-  const checklist = useMemo(
+  const anchoredChecklist = useMemo(
     () =>
-      graph && flow && factScene
-        ? sceneChecklist(graph, flow, factScene)
+      graph && flow && anchoredFacts
+        ? sceneChecklist(graph, flow, anchoredFacts)
         : undefined,
-    [graph, flow, factScene],
+    [graph, flow, anchoredFacts],
   );
   const focusedObligations = useMemo(() => {
     const fulfillment = factScene?.activity.fulfillment;
@@ -235,21 +248,21 @@ export const useStoryPlayback = ({
     api,
     rootPath,
     snapshotId:
-      ready && factScene && !skipAi ? loaded?.result.snapshotId : undefined,
-    scenes: projection?.scenes,
-    index,
+      ready && anchoredFacts && !skipAi ? loaded?.result.snapshotId : undefined,
+    scenes,
+    index: anchoredIndex,
     generation: narrationGeneration,
     cacheOnly: !aiConfigured,
   });
-  const scene: StoryScene | undefined =
-    factScene && narration.draft
-      ? { ...factScene, narrative: { ...narration.draft, status: 'ready' } }
-      : factScene && narration.running
+  const anchoredScene: StoryScene | undefined =
+    anchoredFacts && narration.draft
+      ? { ...anchoredFacts, narrative: { ...narration.draft, status: 'ready' } }
+      : anchoredFacts && narration.running
         ? {
-            ...factScene,
-            narrative: { ...factScene.narrative, status: 'enriching' },
+            ...anchoredFacts,
+            narrative: { ...anchoredFacts.narrative, status: 'enriching' },
           }
-        : factScene;
+        : anchoredFacts;
   const nextIndex =
     seekTime === undefined || rehearsing
       ? index + 1
@@ -521,10 +534,10 @@ export const useStoryPlayback = ({
 
   const whatIfCapability = useMemo(
     () =>
-      ready && graph && flow && step
-        ? evaluateWhatIfCapability(graph, flow.steps, step)
+      ready && graph && flow && anchoredStep
+        ? evaluateWhatIfCapability(graph, flow.steps, anchoredStep)
         : undefined,
-    [ready, graph, flow, step],
+    [ready, graph, flow, anchoredStep],
   );
   const jumpToStep = (sequence: number) => {
     if (!ready || rehearsing || !flow) return;
@@ -566,7 +579,7 @@ export const useStoryPlayback = ({
         !aiConfigured ||
         whatIfCapability?.status !== requiredStatus ||
         !flow ||
-        !step ||
+        !anchoredStep ||
         !question.trim() ||
         pendingSandbox.current?.key === sandboxKey
       )
@@ -580,8 +593,8 @@ export const useStoryPlayback = ({
           rootPath,
           document,
           flowId: flow.flowId,
-          currentStepSequence: step.sequence,
-          stepHash: step.stepHash,
+          currentStepSequence: anchoredStep.sequence,
+          stepHash: anchoredStep.stepHash,
           question,
           ...(allowSpeculative ? { allowSpeculative: true } : {}),
         });
@@ -609,7 +622,7 @@ export const useStoryPlayback = ({
       aiConfigured,
       whatIfCapability?.status,
       flow,
-      step,
+      anchoredStep,
       sandboxKey,
       rootPath,
       document,
@@ -626,18 +639,22 @@ export const useStoryPlayback = ({
   const writable = onRecordBreachOutcome !== undefined;
   const promotionRequests = useMemo(() => {
     if (!ready || !writable) return [];
-    if (!step) {
-      const ids = new Set(
-        obligations
-          .filter(({ status }) => status === 'breached')
-          .map(({ requestId }) => requestId),
-      );
-      return requestOptions.filter(({ id }) => ids.has(id));
-    }
     const result = currentSandbox?.result;
-    return result && checklist && graph
-      ? promotableSceneRequests(graph, checklist.requests, result)
-      : [];
+    const ids = new Set(
+      result && anchoredChecklist && graph
+        ? promotableSceneRequests(
+            graph,
+            anchoredChecklist.requests,
+            result,
+          ).map(({ id }) => id)
+        : [],
+    );
+    if (!step) {
+      for (const obligation of obligations) {
+        if (obligation.status === 'breached') ids.add(obligation.requestId);
+      }
+    }
+    return requestOptions.filter(({ id }) => ids.has(id));
   }, [
     ready,
     writable,
@@ -646,13 +663,13 @@ export const useStoryPlayback = ({
     obligations,
     requestOptions,
     currentSandbox,
-    checklist,
+    anchoredChecklist,
   ]);
 
   // A newly modeled branch is a possible response, not an event in the example.
   const [promoted, setPromoted] = useState<{
     document: DomainModelDocument;
-    focus: NonNullable<typeof canvasFocus>;
+    focus: typeof canvasFocus;
     entityIds: string[];
     relationshipIds: string[];
   }>();
@@ -661,7 +678,6 @@ export const useStoryPlayback = ({
   ): Promise<void> => {
     if (
       !onRecordBreachOutcome ||
-      !canvasFocus ||
       currentSandboxKey.current !== sandboxKey ||
       !promotionRequests.some(({ id }) => id === input.requestRef)
     )
@@ -696,9 +712,23 @@ export const useStoryPlayback = ({
       relationshipIds: branchEdges.map(({ id }) => id),
     });
   };
+  const promotedBranch = useMemo(() => {
+    if (!enabled || !promoted || promoted.document !== document || stale)
+      return undefined;
+    const entity = graph?.getEntity(promoted.entityIds[0]!);
+    if (!entity) return undefined;
+    for (const candidate of flows) {
+      const target = candidate.steps.find(({ entityId }) =>
+        promoted.entityIds.includes(entityId),
+      );
+      if (target) return { entity, flow: candidate, step: target };
+    }
+    return { entity };
+  }, [enabled, promoted, document, stale, graph, flows]);
   const showPromotedFocus =
     enabled &&
     promoted?.document === document &&
+    promoted.focus !== null &&
     (canvasFocus
       ? canvasFocus.focusKey === promoted.focus.focusKey
       : loading && !error);
@@ -712,6 +742,7 @@ export const useStoryPlayback = ({
     snapshotId: ready && !rehearsing ? loaded?.result.snapshotId : undefined,
     currentTime,
     timeline,
+    seekStart,
     obligations,
     focusedObligations,
     clockUnavailable: !rehearsing && ready && timeline === null,
@@ -739,10 +770,11 @@ export const useStoryPlayback = ({
     speed,
     setSpeed,
     seek: (time: number, stepIndex?: number) => {
-      if (!ready || !timeline || !Number.isFinite(time)) return;
+      if (!ready || !timeline || seekStart === null || !Number.isFinite(time))
+        return;
       setIsPlaying(false);
       const clamped = Math.max(
-        timeline.start,
+        seekStart,
         Math.min(timeline.end, Math.round(time)),
       );
       const mark =
@@ -757,8 +789,14 @@ export const useStoryPlayback = ({
       else setCursor({ document, clock, time: clamped });
     },
     step,
-    scene,
-    checklist,
+    scene: step && anchoredScene,
+    checklist: step && anchoredChecklist,
+    scenes,
+    isBetweenSteps,
+    anchoredStep,
+    anchoredScene,
+    anchoredChecklist,
+    promotedBranch,
     canvasFocus:
       showPromotedFocus && displayFocus
         ? {
@@ -792,10 +830,10 @@ export const useStoryPlayback = ({
       nextIndex < (flow?.steps.length ?? 0),
     canPlay:
       ready && (rehearsing ? timeline !== null : (flow?.steps.length ?? 0) > 1),
-    selectFlow: (flowId: string) => {
+    selectFlow: (flowId: string, atStep?: FlowStepTrace) => {
       setIsPlaying(false);
       setCursor(undefined);
-      setPosition({ index: 0 });
+      setPosition({ flowId, ref: atStep && stepRef(atStep), index: 0 });
       setPreferRehearsal(false);
       setPreferredFlowId(flowId);
     },
