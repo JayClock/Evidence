@@ -3,10 +3,7 @@ import type {
   FlowStepTrace,
 } from '@evidence-poc/evidence-model-core';
 import {
-  classifyKeyDataSource,
   compactCanonicalJson,
-  isContractContext,
-  KEY_DATA_SOURCE_LABELS,
   type AttributeAST,
 } from '@evidence-poc/evidence-schema';
 import type { DocumentCardField, StoryScene } from './types.js';
@@ -74,11 +71,6 @@ export const buildStoryDocument = (
   graph: DomainGraph | undefined,
   referenceLabel: (ref: string) => string | undefined,
 ): StoryScene['documentCard'] => {
-  const entity = graph?.getEntity(step.entityId);
-  const context =
-    entity && 'contextRef' in entity && entity.contextRef
-      ? graph?.getEntity(entity.contextRef)
-      : undefined;
   const attributes = new Map(
     graph
       ?.attributesOf(step.entityId)
@@ -119,11 +111,7 @@ export const buildStoryDocument = (
       );
     return /^[a-f0-9]{32,}$/iu.test(value) ? '未提供业务编号' : value;
   };
-  const fieldNames = new Set(Object.keys(step.values));
-  for (const attribute of attributes.values()) {
-    if (attribute.keyData) fieldNames.add(attribute.name);
-  }
-  for (const name of [...fieldNames].sort()) {
+  for (const name of Object.keys(step.values).sort()) {
     const attribute = attributes.get(name);
     const source = attribute?.source;
     const sourceEntity =
@@ -136,33 +124,20 @@ export const buildStoryDocument = (
             ({ name }) => name === source.attribute,
           )
         : undefined;
-    const reference =
-      sourceEntity && sourceAttribute
-        ? `《${sourceEntity.label}》 · ${sourceAttribute.label}`
-        : undefined;
-    if (source?.kind === 'contract-term' && reference) clauses.add(reference);
-    const sourceOrigin =
-      reference ??
-      (source && 'entityRef' in source
-        ? '引用字段待核对'
-        : attribute?.derivedByRuleRef
-          ? (graph?.getRule(attribute.derivedByRuleRef)?.label ??
-            '派生规则待核对')
-          : entity && attribute?.keyData
-            ? KEY_DATA_SOURCE_LABELS[classifyKeyDataSource(entity, attribute)]
-            : undefined);
+    const sourceOrigin = sourceEntity
+      ? `《${sourceEntity.label}》${sourceAttribute ? ` · ${sourceAttribute.label}` : ''}`
+      : undefined;
+    if (source?.kind === 'contract-term' && sourceOrigin)
+      clauses.add(sourceOrigin);
     (attribute?.keyData ? keyAttributes : generalAttributes).push({
       name,
       label: attribute?.label ?? name,
-      value: Object.hasOwn(step.values, name)
-        ? displayValue(step.values[name], attribute, name)
-        : '示例未提供',
+      value: displayValue(step.values[name], attribute, name),
       ...(sourceOrigin ? { sourceOrigin } : {}),
     });
   }
   return {
     title: step.entityLabel,
-    ...(isContractContext(context) && { contractContext: context.label }),
     keyAttributes,
     generalAttributes,
     ...(clauses.size ? { clauseRef: [...clauses].join('、') } : {}),

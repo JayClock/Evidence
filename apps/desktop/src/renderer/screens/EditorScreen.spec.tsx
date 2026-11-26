@@ -776,6 +776,12 @@ describe('EditorScreen', () => {
     fireEvent.click(
       await story.findByRole('button', { name: '前往「付款申请」' }),
     );
+    expect(
+      story.getByRole('region', { name: '步骤权责核对' }),
+    ).toHaveTextContent('合同归属：口头买卖合同');
+    const card = story.getByRole('article', { name: '业务单据' });
+    expect(card).toHaveTextContent('依据：请求形成事实');
+    expect(card).toHaveTextContent('示例未提供');
     const question = '如果到 13:00 还没有收到付款凭证？';
     fireEvent.change(story.getByRole('textbox', { name: '假设问题' }), {
       target: { value: question },

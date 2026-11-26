@@ -5,21 +5,18 @@ import {
   type DomainGraph,
   type FlowStepTrace,
 } from '@evidence-poc/evidence-model-core';
-import { isFulfillmentRequest } from '@evidence-poc/evidence-schema';
-import type {
-  StoryScene,
-  WhatIfResult,
-} from '@evidence-poc/evidence-agent/browser';
+import {
+  isFulfillmentRequest,
+  type EntityAST,
+} from '@evidence-poc/evidence-schema';
+import type { WhatIfResult } from '@evidence-poc/evidence-agent/browser';
 
 /** Only the current scene's causal requests can own a modeled outcome. */
 export function promotableSceneRequests(
   graph: DomainGraph,
-  scene: StoryScene,
+  requests: readonly Pick<EntityAST, 'id' | 'label'>[],
   result: WhatIfResult,
 ) {
-  const requests = (scene.activity.fulfillment?.requests ?? [])
-    .map(({ requestId }) => graph.getEntity(requestId))
-    .filter(isFulfillmentRequest);
   if (!requests.length || result.isSpeculative) return requests;
   const eligible = new Set<string>();
   for (const outcome of result.ruleOutcomes) {
@@ -43,7 +40,7 @@ type WhatIfTarget = Pick<FlowStepTrace, 'sequence' | 'entityLabel'> & {
 
 export type WhatIfCapability =
   | { readonly status: 'non_fulfillment_stage'; readonly next?: WhatIfTarget }
-  | { readonly status: 'missing_rules'; readonly entityId: string }
+  | { readonly status: 'missing_rules' }
   | { readonly status: 'eligible'; readonly suggestedQuestion?: string };
 
 function suggestQuestion(graph: DomainGraph, step: FlowStepTrace) {
@@ -107,7 +104,7 @@ export function evaluateWhatIfCapability(
     return { status: 'non_fulfillment_stage', next: firstFulfillment };
   }
   if (whatIfDecisionRules(graph, step.entityId).length === 0) {
-    return { status: 'missing_rules', entityId: step.entityId };
+    return { status: 'missing_rules' };
   }
   return {
     status: 'eligible',

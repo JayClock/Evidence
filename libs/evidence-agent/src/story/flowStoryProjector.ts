@@ -231,23 +231,9 @@ export const projectStoryFacts = (
     pair: FulfillmentPair | undefined,
   ): StoryFulfillmentRequest => ({
     stepIndex: step.sequence,
-    requestId: step.entityId,
-    label: step.entityLabel,
     action: pair?.request.fulfillmentAction,
     rightHolder: storyRole(pair?.request.responsibleRoleRef),
     obligor: storyRole(pair && obligorOf(pair)),
-    subjectMatters: [
-      ...new Set(
-        (pair
-          ? [pair.request, ...pair.confirmations, ...pair.proofs]
-          : []
-        ).flatMap(
-          ({ id }) =>
-            graph?.subjectMattersOf(id).map(({ label }) => label) ?? [],
-        ),
-      ),
-    ],
-    completionRules: pair?.completionRules.map(({ label }) => label) ?? [],
   });
   const storyRole = (roleId: string | undefined) => {
     const label = roleLabel(roleId);

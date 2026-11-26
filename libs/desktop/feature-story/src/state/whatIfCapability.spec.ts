@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createDomainGraph } from '@evidence-poc/evidence-model-core';
 import { createDesktopFixture } from '@evidence-poc/desktop-testing';
-import { storyFlow, storySnapshot } from '@evidence-poc/desktop-testing/story';
+import { storyFlow } from '@evidence-poc/desktop-testing/story';
 import {
   evaluateWhatIfCapability,
   promotableSceneRequests,
@@ -22,21 +22,7 @@ describe('What-If capability', () => {
       bindings: { request: { ref: 'request.second' } },
     });
     const graph = createDomainGraph(model);
-    const scene = storySnapshot().selected!.projection.scenes[2]!;
-    const obligation = scene.activity.fulfillment!.requests[0]!;
-    const shared = {
-      ...scene,
-      activity: {
-        ...scene.activity,
-        fulfillment: {
-          phase: 'confirmation' as const,
-          requests: [
-            obligation,
-            { ...obligation, requestId: 'request.second' },
-          ],
-        },
-      },
-    };
+    const shared = [request, { ...request, id: 'request.second' }];
     const ruleOutcome = { ruleId: completion.id, result: true };
     const result = {
       isSpeculative: false as const,

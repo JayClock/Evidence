@@ -27,6 +27,7 @@ const setup = async ({
   timed = false,
   timedRules = false,
   noRules = false,
+  unassignedConfirmation = false,
   aiConfigured = true,
 } = {}) => {
   vi.useFakeTimers();
@@ -73,6 +74,12 @@ const setup = async ({
     businessImpactExplanation: '付款不足，未满足结清条件。',
   }));
   const document = empty ? createEmptyDomainModel() : createDesktopFixture();
+  if (unassignedConfirmation) {
+    const confirmation = document.entities.find(
+      ({ id }) => id === 'evidence.confirmation',
+    );
+    if (confirmation?.category === 'evidence') delete confirmation.contextRef;
+  }
   if ((timed && !timedRules) || noRules) document.rules = [];
   const onClarifyGap = vi.fn();
   const recordOutcome = vi.fn(
@@ -154,7 +161,10 @@ describe('StoryDrawer', () => {
   });
 
   it('checks the causal request on a confirmation and directs each gap to its own evidence', async () => {
-    const { onClarifyGap } = await setup({ noRules: true });
+    const { onClarifyGap } = await setup({
+      noRules: true,
+      unassignedConfirmation: true,
+    });
     fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
     fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
     const checklist = within(

@@ -4,6 +4,7 @@ import {
   type StoryScene,
 } from '@evidence-poc/evidence-agent/browser';
 import { Button, Card } from '@evidence-poc/desktop-ui-kit';
+import type { SceneChecklist } from '../../state/sceneChecklist';
 
 export type ClarifyStoryGap = (
   nodeId: string,
@@ -47,6 +48,7 @@ const AttributeGroup = ({
 
 export const StorySceneSheet = ({
   scene,
+  checklist,
   ready,
   stale,
   stepNumber,
@@ -55,6 +57,7 @@ export const StorySceneSheet = ({
   onClarifyGap,
 }: {
   scene: StoryScene;
+  checklist: SceneChecklist;
   ready: boolean;
   stale: boolean;
   stepNumber: number;
@@ -160,8 +163,8 @@ export const StorySceneSheet = ({
             <section aria-label="步骤权责核对" className="flex flex-col gap-2">
               <h4 className="font-medium">步骤权责核对</h4>
               <p>
-                合同归属：{documentCard.contractContext ?? '待明确'}{' '}
-                {!documentCard.contractContext && onClarifyGap ? (
+                合同归属：{checklist.contractContext ?? '待明确'}{' '}
+                {!checklist.contractContext && onClarifyGap ? (
                   <Button
                     size="xs"
                     variant="outline"
@@ -174,14 +177,14 @@ export const StorySceneSheet = ({
                   </Button>
                 ) : null}
               </p>
-              {activity.fulfillment.requests.map((request) => (
+              {checklist.requests.map((request) => (
                 <div
                   key={request.stepIndex}
                   className="flex flex-col gap-1 border-s-2 border-workbench-border ps-3"
                 >
                   <p className="font-medium">{request.label}</p>
-                  <p>权利方：{request.rightHolder?.roleLabel ?? '待明确'}</p>
-                  <p>义务方：{request.obligor?.roleLabel ?? '待明确'}</p>
+                  <p>权利方：{request.rightHolder ?? '待明确'}</p>
+                  <p>义务方：{request.obligor ?? '待明确'}</p>
                   <p>约定交付：{request.action ?? '待明确'}</p>
                   <p>标的物：{request.subjectMatters.join('、') || '待明确'}</p>
                   <p>
@@ -191,9 +194,7 @@ export const StorySceneSheet = ({
                         size="xs"
                         variant="outline"
                         disabled={!ready}
-                        onClick={() =>
-                          onClarifyGap(request.requestId, 'completion')
-                        }
+                        onClick={() => onClarifyGap(request.id, 'completion')}
                       >
                         补齐完成规则
                       </Button>
@@ -201,7 +202,7 @@ export const StorySceneSheet = ({
                   </p>
                 </div>
               ))}
-              {!activity.fulfillment.requests.length ? (
+              {!checklist.requests.length ? (
                 <p>
                   本步骤未能定位对应的履约请求。{' '}
                   {onClarifyGap ? (
@@ -220,10 +221,7 @@ export const StorySceneSheet = ({
               ) : null}
             </section>
           ) : null}
-          <AttributeGroup
-            heading="核心商业要素"
-            fields={documentCard.keyAttributes}
-          />
+          <AttributeGroup heading="核心商业要素" fields={checklist.keyData} />
           <AttributeGroup
             heading="业务归档要素"
             fields={documentCard.generalAttributes}
@@ -231,7 +229,7 @@ export const StorySceneSheet = ({
           {documentCard.clauseRef ? (
             <p>条款依据：{documentCard.clauseRef}</p>
           ) : null}
-          {!documentCard.keyAttributes.length &&
+          {!checklist.keyData.length &&
           !documentCard.generalAttributes.length ? (
             <p className="text-evidence-muted">该示例没有列出单据明细。</p>
           ) : null}

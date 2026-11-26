@@ -175,10 +175,11 @@ export const StoryDrawer = ({
           test.flow、业务时点和单据依据后再开始放映。
         </p>
       ) : null}
-      {playback.scene ? (
+      {playback.scene && playback.checklist ? (
         <StorySceneSheet
           key={`${playback.projection?.flowId}:${playback.step?.entityId}:${playback.step?.exampleLabel}`}
           scene={playback.scene}
+          checklist={playback.checklist}
           ready={playback.ready}
           stale={playback.stale}
           stepNumber={playback.stepNumber}

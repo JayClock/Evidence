@@ -137,9 +137,6 @@ const MissingRulesPanel = ({
   return (
     <>
       <p>当前步骤尚未建模相关的完成或违约规则，无法进行规则判定。</p>
-      <p className="text-evidence-muted">
-        可在步骤权责核对中补齐约定，或先讨论交付延迟的影响。
-      </p>
       <div className="flex flex-wrap gap-2">
         {aiConfigured ? (
           <Button

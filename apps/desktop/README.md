@@ -32,8 +32,12 @@ nx make desktop         # installers in apps/desktop/out/make
 - Use **Cmd/Ctrl+Shift+K** to search for commands or jump to business objects.
 - Use **放映业务流** at the right of the top canvas bar to walk through a declared
   scenario on the same canvas. The right pane expands if needed and switches
-  from **实体属性检视** to **剧情详情**, showing narration, sample documents and
-  What-If questions for the current step. **退出放映** (or **Esc** when not
+  from **实体属性检视** to **剧情详情**. **步骤权责核对** shows the right holder,
+  obligor, delivery evidence and completion rules. Use the inline actions to
+  clarify missing contract or completion details. After a What-If breach or
+  an AI exploration, enter the agreed condition and record a compensation
+  pair or a dispute handoff. Review the change in the drawer while the canvas
+  highlights the branch. **退出放映** (or **Esc** when not
   editing a field or using a dialog) restores the inspector without clearing
   the selection. Opening the ledger also stops playback; returning does not
   resume it.
@@ -198,11 +202,11 @@ Type a business example on an empty canvas or press **Cmd/Ctrl+K** to open
 lifecycle order and the viewport frames the new cards. Command search is still
 available from the header or **Cmd/Ctrl+Shift+K**.
 
-Use **溯源** directly on an evidence card to ask where its unknown fields come
-from. A paired request or confirmation also offers **What-If**. The opening
-question is read-only; follow-up answers stay pinned to the initiating evidence
-and can commit model patches. The right inspector only shows model properties,
-key data and rules, or an overview when nothing is selected.
+Use **澄清权责** on an evidence card to establish who owes what to whom and
+which receipt confirms delivery. Follow-up answers stay pinned to that card
+and can update the model. For a breach finding in **体检**, choose
+**在放映中推演** to open the request's scenario step. Requests without a declared
+scenario open in **履约时钟假设** with the affected request selected.
 
 ## Agent and sensors (phase 3)
 

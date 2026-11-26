@@ -16,13 +16,9 @@ interface StoryRole {
 
 export interface StoryFulfillmentRequest {
   readonly stepIndex: number;
-  readonly requestId: string;
-  readonly label: string;
   readonly action?: string;
   readonly rightHolder?: StoryRole;
   readonly obligor?: StoryRole;
-  readonly subjectMatters: readonly string[];
-  readonly completionRules: readonly string[];
 }
 
 export interface DomainActivity {
@@ -83,7 +79,6 @@ export interface StoryScene {
   };
   readonly documentCard: {
     readonly title: string;
-    readonly contractContext?: string;
     readonly keyAttributes: readonly DocumentCardField[];
     readonly generalAttributes: readonly DocumentCardField[];
     readonly clauseRef?: string;

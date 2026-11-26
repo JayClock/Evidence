@@ -3,6 +3,7 @@ import {
   createDomainGraph,
   createRequestRehearsal,
   createScenarioTimeline,
+  type DomainGraph,
   type FlowScenarioTrace,
   type FlowStepTrace,
 } from '@evidence-poc/evidence-model-core';
@@ -13,6 +14,7 @@ import {
   type RecordBreachOutcomeInput,
 } from '@evidence-poc/evidence-schema';
 import { previewJourneyStep } from './journeyPreview';
+import { sceneChecklist } from './sceneChecklist';
 import {
   evaluateWhatIfCapability,
   promotableSceneRequests,
@@ -83,6 +85,7 @@ export const useStoryPlayback = ({
   const [loaded, setLoaded] = useState<{
     key: object;
     result: StorySnapshot;
+    graph: DomainGraph;
   }>();
   const [position, setPosition] = useState<{
     flowId?: string;
@@ -200,6 +203,14 @@ export const useStoryPlayback = ({
   const factScene =
     step &&
     projection?.scenes.find(({ stepIndex }) => stepIndex === step.sequence);
+  const graph = loaded?.graph;
+  const checklist = useMemo(
+    () =>
+      graph && flow && factScene
+        ? sceneChecklist(graph, flow, factScene)
+        : undefined,
+    [graph, flow, factScene],
+  );
   const focusedObligations = useMemo(() => {
     const fulfillment = factScene?.activity.fulfillment;
     if (!flow || !fulfillment) return obligations;
@@ -366,7 +377,11 @@ export const useStoryPlayback = ({
               current.flowId === flowId ? current : { index: 0 },
             );
           projectedFlowId.current = flowId;
-          setLoaded({ key: requestKey, result });
+          setLoaded({
+            key: requestKey,
+            result,
+            graph: createDomainGraph(document),
+          });
           setStatus({ key: requestKey, loading: false });
         } catch (cause) {
           if (active)
@@ -504,16 +519,12 @@ export const useStoryPlayback = ({
     }
   }, [enabled]);
 
-  const whatIfGraph = useMemo(
-    () => (enabled ? createDomainGraph(document) : null),
-    [document, enabled],
-  );
   const whatIfCapability = useMemo(
     () =>
-      ready && whatIfGraph && flow && step
-        ? evaluateWhatIfCapability(whatIfGraph, flow.steps, step)
+      ready && graph && flow && step
+        ? evaluateWhatIfCapability(graph, flow.steps, step)
         : undefined,
-    [ready, whatIfGraph, flow, step],
+    [ready, graph, flow, step],
   );
   const jumpToStep = (sequence: number) => {
     if (!ready || rehearsing || !flow) return;
@@ -614,7 +625,7 @@ export const useStoryPlayback = ({
   const currentSandbox = sandbox?.key === sandboxKey ? sandbox : undefined;
   const writable = onRecordBreachOutcome !== undefined;
   const promotionRequests = useMemo(() => {
-    if (!ready || !writable || !whatIfGraph) return [];
+    if (!ready || !writable) return [];
     if (!step) {
       const ids = new Set(
         obligations
@@ -624,18 +635,18 @@ export const useStoryPlayback = ({
       return requestOptions.filter(({ id }) => ids.has(id));
     }
     const result = currentSandbox?.result;
-    return result && factScene
-      ? promotableSceneRequests(whatIfGraph, factScene, result)
+    return result && checklist && graph
+      ? promotableSceneRequests(graph, checklist.requests, result)
       : [];
   }, [
     ready,
     writable,
-    whatIfGraph,
+    graph,
     step,
     obligations,
     requestOptions,
     currentSandbox,
-    factScene,
+    checklist,
   ]);
 
   // A newly modeled branch is a possible response, not an event in the example.
@@ -747,6 +758,7 @@ export const useStoryPlayback = ({
     },
     step,
     scene,
+    checklist,
     canvasFocus:
       showPromotedFocus && displayFocus
         ? {
