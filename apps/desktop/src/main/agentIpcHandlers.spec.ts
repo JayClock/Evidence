@@ -89,6 +89,12 @@ describe('agent transaction IPC', () => {
       await expect(
         invoke(channels.prompt, other, input),
       ).resolves.toMatchObject({ success: false });
+      await expect(
+        invoke(channels.prompt, owner, {
+          ...input,
+          focus: { nodeId: 'evidence.request', inquiry: 'what-if' },
+        }),
+      ).resolves.toMatchObject({ success: false, transactions: [] });
       expect(owner.send).not.toHaveBeenCalled();
       const payload = { rootPath, editorId: initial.editorId, transaction };
       await expect(invoke(channels.prompt, owner, input)).resolves.toEqual({

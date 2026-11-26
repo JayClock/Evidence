@@ -1,14 +1,14 @@
 import { createContext, useContext } from 'react';
 
 import type { CanvasViewMode } from '@evidence-poc/evidence-canvas-interaction';
-import type { CanvasEvidenceInquiry } from './EvidenceInquiryPopover';
+import type { CanvasEvidenceClarification } from './EvidenceInquiryPopover';
 
 export interface CanvasInteraction {
   viewMode: CanvasViewMode;
   onHoverNode: (nodeId: string | null) => void;
   onHoverContext: (contextId: string | null) => void;
   onHoverEdge: (edgeId: string | null) => void;
-  evidenceInquiry?: CanvasEvidenceInquiry;
+  clarification?: CanvasEvidenceClarification;
   onSelect: (nodeId: string) => void;
 }
 

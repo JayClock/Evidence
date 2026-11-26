@@ -8,7 +8,6 @@ const mount = (messages: PiConversation['messages']) => {
   const view = render(
     <EvidenceAgentThread
       nodeId="evidence.payment"
-      inquiry="trace"
       canExploreVariation
       conversation={{
         messages,

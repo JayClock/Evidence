@@ -51,7 +51,7 @@ import {
 } from './CanvasInteractionContext';
 import { applyStoryFocus, type CanvasStoryFocus } from './storyFocus';
 import { LifecycleSwimlaneOverlay } from './LifecycleSwimlaneOverlay';
-import type { CanvasEvidenceInquiry } from './EvidenceInquiryPopover';
+import type { CanvasEvidenceClarification } from './EvidenceInquiryPopover';
 import { BusinessLegend } from './BusinessLegend';
 import {
   CanvasStormingBar,
@@ -113,7 +113,7 @@ interface CanvasViewportProps {
   diagnostics?: DiagnosticIndex;
   onOpenIssues?: (issues: readonly SensorIssue[]) => void;
   scope?: ContextScope | null;
-  evidenceInquiry?: CanvasEvidenceInquiry;
+  clarification?: CanvasEvidenceClarification;
   storming?: CanvasStormingControls;
   /** Newly grown evidence to frame once the next layout is ready. */
   frameRequest?: readonly string[] | null;
@@ -238,7 +238,7 @@ const CanvasSurface = ({
   scope = null,
   onScopeChange,
   onUserZoom,
-  evidenceInquiry,
+  clarification,
   storming,
   frameRequest,
   onFrameComplete,
@@ -376,8 +376,8 @@ const CanvasSurface = ({
         fitToContent();
         return;
       }
-      const inquiryId = evidenceInquiry?.target?.nodeId;
-      if (inquiryId !== undefined) {
+      const inquiryId = clarification?.nodeId;
+      if (inquiryId != null) {
         const oldBox = previous.layout.nodeById.get(inquiryId)?.worldBox;
         const newBox = layout.nodeById.get(inquiryId)?.worldBox;
         if (
@@ -447,7 +447,7 @@ const CanvasSurface = ({
     setCenter,
     selection.nodeId,
     hoveredNodeId,
-    evidenceInquiry?.target?.nodeId,
+    clarification?.nodeId,
     setViewport,
     viewportWidth,
     viewportHeight,
@@ -630,10 +630,10 @@ const CanvasSurface = ({
       onHoverNode: setHoveredNodeId,
       onHoverContext: setHoveredContextId,
       onHoverEdge: setHoveredEdgeId,
-      evidenceInquiry,
+      clarification,
       onSelect,
     }),
-    [evidenceInquiry, onSelect, viewMode],
+    [clarification, onSelect, viewMode],
   );
 
   const changeRings = useMemo(

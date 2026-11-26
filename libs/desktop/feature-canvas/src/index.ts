@@ -1,8 +1,5 @@
 export type { CanvasStormingControls } from './CanvasStormingBar.js';
-export type {
-  CanvasEvidenceInquiry,
-  EvidenceInquiryKind,
-} from './EvidenceInquiryPopover.js';
+export type { CanvasEvidenceClarification } from './EvidenceInquiryPopover.js';
 export {
   CanvasViewport,
   type CanvasGridStyle,

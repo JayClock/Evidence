@@ -347,144 +347,48 @@ describe('EditorScreen', () => {
     expect(api.calls.persistence).toHaveLength(0);
   });
 
-  it('locates a radar finding and starts a focused read-only clarification only on request', async () => {
-    const document = createDesktopFixture();
-    document.entities.push({
-      type: 'entity',
-      category: 'evidence',
-      kind: 'fulfillment_request',
-      id: 'request.radar',
-      label: '待澄清的稿件交付',
-      attributes: [
-        {
-          name: 'due_at',
-          label: '交稿期限',
-          meaning: '最后交稿时刻',
-          timeRole: 'deadline',
-          valueType: 'timestamp',
-        },
-      ],
-    });
+  it('opens the affected playback step from a breach finding and keeps ordinary clarification read-only', async () => {
+    const document = createDesktopStoryFixture();
+    const request = document.entities.find(
+      ({ id }) => id === 'evidence.request',
+    )!;
+    if ('responsibleRoleRef' in request) delete request.responsibleRoleRef;
     const api = readyProject(document);
-    const answer = '按约定，逾期未交稿则移交仲裁，请记录。';
-    const patch = createModelPatch(document, (draft) =>
-      recordBreachOutcomeMutator(draft, {
-        requestRef: 'request.radar',
-        condition: '逾期未交稿',
-        outcome: {
-          kind: 'terminal_escalation',
-          remedyKind: 'arbitration',
-          handoff: { id: 'evidence.arbitration', label: '仲裁移交' },
-        },
-      }),
+    api.story.load = vi.fn(async ({ document, preferredFlowId }) =>
+      storySnapshot(collectFlowScenarios(document!), preferredFlowId),
     );
-    const submit = api.agent.prompt;
-    api.agent.prompt = async (input) => {
-      const result = submit(input);
-      if (input.text === answer)
-        api.agentMock.commitPatch(
-          { rationale: '记录仲裁移交', patches: patch.patches },
-          input.focus?.nodeId ?? undefined,
-        );
-      return result;
-    };
-    const { container } = render(
-      <EditorScreen rootPath="/models/procurement" />,
-    );
+    render(<EditorScreen rootPath="/models/procurement" />);
     await readyCanvas();
-    const trigger = screen.getByRole('button', { name: /^体检 \d+ 分/ });
-    const initialSummary = trigger.textContent;
     const radar = async () => {
-      fireEvent.click(trigger);
+      fireEvent.click(screen.getByRole('button', { name: /^体检 \d+ 分/ }));
       return within(
         await screen.findByRole('dialog', { name: '8X Flow 模型体检' }),
       );
     };
     let drawer = await radar();
-    fireEvent.click(drawer.getByRole('button', { name: '履约与异常处置' }));
-    expect(drawer.queryByText(/待澄清的稿件交付.*责任角色/)).toBeNull();
     fireEvent.click(
-      drawer.getByRole('button', { name: /定位.*稿件交付.*异常处置/ }),
+      drawer.getByRole('button', { name: /在放映中推演.*交付请求.*异常处置/ }),
     );
-    await waitFor(() =>
-      expect(
-        container.querySelector('[data-node-id="request.radar"]'),
-      ).toHaveAttribute('aria-pressed', 'true'),
+    const story = within(
+      await screen.findByRole('region', { name: '业务故事' }),
+    );
+    expect(
+      await story.findByRole('heading', { name: 'What-If 业务沙盘' }),
+    ).toBeVisible();
+    expect(story.getByRole('article', { name: '业务单据' })).toHaveTextContent(
+      '交付请求',
     );
     expect(api.calls.prompt).toEqual([]);
+    fireEvent.click(screen.getByRole('button', { name: '退出放映' }));
     drawer = await radar();
     fireEvent.click(
-      drawer.getByRole('button', { name: /引导澄清.*稿件交付.*异常处置/ }),
+      drawer.getByRole('button', { name: /引导澄清.*交付请求.*责任角色/ }),
     );
-    const inquiry = within(
-      await screen.findByRole('dialog', {
-        name: 'What-If 异常推演：待澄清的稿件交付',
-      }),
-    );
+    await screen.findByRole('dialog', { name: /权责与交付澄清：交付请求/ });
     await waitFor(() =>
       expect(api.calls.prompt[0]).toMatchObject({
-        focus: { nodeId: 'request.radar', inquiry: 'what-if', readOnly: true },
-        text: expect.stringContaining('dead_end_request:request.radar'),
-      }),
-    );
-    fireEvent.change(inquiry.getByLabelText('访谈内容'), {
-      target: { value: answer },
-    });
-    await waitFor(() =>
-      expect(inquiry.getByRole('button', { name: '发送' })).toBeEnabled(),
-    );
-    fireEvent.click(inquiry.getByRole('button', { name: '发送' }));
-    await waitFor(() =>
-      expect(api.calls.prompt[1]?.focus).toEqual({
-        nodeId: 'request.radar',
-        inquiry: 'what-if',
-      }),
-    );
-    const undo = await inquiry.findByRole('button', { name: '撤销补丁' });
-    await waitFor(() => expect(undo).toBeEnabled());
-    expect(trigger.textContent).not.toBe(initialSummary);
-    fireEvent.click(undo);
-    await waitFor(() => expect(trigger.textContent).toBe(initialSummary));
-    expect(api.calls.persistence.length).toBeGreaterThan(0);
-  });
-
-  it('opens What-If from an unpaired card and pins the follow-up to that evidence', async () => {
-    const document = createDesktopFixture();
-    document.entities.push({
-      type: 'entity',
-      category: 'evidence',
-      kind: 'other_evidence',
-      id: 'evidence.unpaired',
-      label: '到货记录',
-    });
-    const api = readyProject(document);
-    render(<EditorScreen rootPath="/models/procurement" />);
-    await readyCanvas();
-    fireEvent.click(
-      await screen.findByRole('button', { name: '推演异常：到货记录' }),
-    );
-    const dialog = within(
-      await screen.findByRole('dialog', { name: 'What-If 异常推演：到货记录' }),
-    );
-    await waitFor(() =>
-      expect(api.calls.prompt[0]).toEqual(
-        expect.objectContaining({
-          focus: { nodeId: 'evidence.unpaired', inquiry: 'what-if' },
-          text: expect.stringContaining('尚未识别请求'),
-        }),
-      ),
-    );
-    fireEvent.change(dialog.getByLabelText('访谈内容'), {
-      target: { value: '超时则通知采购方。' },
-    });
-    await waitFor(() =>
-      expect(dialog.getByRole('button', { name: '发送' })).toBeEnabled(),
-    );
-    fireEvent.click(dialog.getByRole('button', { name: '发送' }));
-    await waitFor(() =>
-      expect(api.calls.prompt[1]?.focus).toEqual({
-        nodeId: 'evidence.unpaired',
-        inquiry: 'what-if',
+        focus: { nodeId: 'evidence.request', inquiry: 'trace', readOnly: true },
+        text: expect.stringContaining('vacant_responsibility:evidence.request'),
       }),
     );
     expect(api.calls.persistence).toHaveLength(0);
@@ -521,10 +425,10 @@ describe('EditorScreen', () => {
     render(<EditorScreen rootPath="/models/procurement" />);
     await readyCanvas();
     fireEvent.click(
-      screen.getByRole('button', { name: /^推演异常：交付确认/ }),
+      screen.getByRole('button', { name: /^澄清权责：交付确认/ }),
     );
     const dialog = await screen.findByRole('dialog', {
-      name: /^What-If 异常推演：交付确认/,
+      name: /^权责与交付澄清：交付确认/,
     });
     const input = within(dialog).getByLabelText('访谈内容');
     fireEvent.change(input, { target: { value: '请补记复核通知' } });
@@ -551,7 +455,7 @@ describe('EditorScreen', () => {
     expect(api.calls.persistence.length).toBeGreaterThan(0);
   });
 
-  it('grows a saved-model canvas from stormed evidence through a real pair and a compensation branch', async () => {
+  it('grows a saved-model canvas from stormed evidence into a clarified fulfillment pair', async () => {
     let document = createDesktopFixture();
     document.manifest.entryContextRefs = [];
     document.entities = [];
@@ -591,7 +495,6 @@ describe('EditorScreen', () => {
       '买家发出询价，摊主报价 20 元，双方订立口头合同，买家完成付款。';
     const confirmedPayment =
       '卖方向买方发起付款主张，到账回执确认完成。确认金额沿用请求上的金额，请补齐这项履约。';
-    const remedyCondition = '超时之后按约定启动退款。';
     const prompt = api.agent.prompt;
     api.agent.prompt = async (input) => {
       const result = prompt(input);
@@ -639,15 +542,6 @@ describe('EditorScreen', () => {
           parts: [{ type: 'text', text: '**谁向谁主张付款**？' }],
           done: true,
         });
-      } else if (
-        input.focus?.inquiry === 'what-if' &&
-        input.text !== remedyCondition
-      ) {
-        api.agentMock.emitEvent({
-          type: 'assistant-message',
-          parts: [{ type: 'text', text: '如果买方超时未付款怎么办？' }],
-          done: true,
-        });
       } else if (input.text === confirmedPayment) {
         apply(
           '已确认业务事实',
@@ -668,21 +562,6 @@ describe('EditorScreen', () => {
             }),
           input.focus?.nodeId ?? undefined,
         );
-      } else if (input.text === remedyCondition) {
-        apply(
-          '已确认业务事实',
-          (draft) =>
-            recordBreachOutcomeMutator(draft, {
-              requestRef: 'request.payment',
-              condition: remedyCondition,
-              outcome: {
-                kind: 'compensation_pair',
-                request: { id: 'request.refund', label: '退款请求' },
-                confirmation: { id: 'evidence.refund', label: '退款确认' },
-              },
-            }),
-          input.focus?.nodeId ?? undefined,
-        );
       }
       return result;
     };
@@ -696,9 +575,7 @@ describe('EditorScreen', () => {
     const trace = await screen.findByRole('button', {
       name: '澄清权责：付款凭证',
     });
-    expect(
-      screen.getByRole('button', { name: '推演异常：付款凭证' }),
-    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /推演异常/ })).toBeNull();
     expect(api.calls.prompt).toHaveLength(1);
     expect(api.calls.persistence.length).toBeGreaterThan(0);
     await waitFor(() => expect(screen.queryByLabelText('业务场景')).toBeNull());
@@ -767,52 +644,12 @@ describe('EditorScreen', () => {
     expect(within(sourcing).queryByLabelText('AI 补丁复核')).toBeNull();
     fireEvent.click(within(sourcing).getByRole('button', { name: '关闭' }));
 
-    fireEvent.click(screen.getByRole('button', { name: '推演异常：付款凭证' }));
-    const whatIf = await screen.findByRole('dialog', {
-      name: 'What-If 异常推演：付款凭证',
-    });
-    expect(
-      screen.queryByRole('button', { name: '澄清权责：退款确认' }),
-    ).toBeNull();
-    expect(
-      await within(whatIf).findByText('如果买方超时未付款怎么办？'),
-    ).toBeVisible();
-    await answer(whatIf, remedyCondition);
-
-    expect(
-      await screen.findByRole('button', { name: '澄清权责：退款确认' }),
-    ).toBeInTheDocument();
-    expect(
-      container.querySelector('[data-corridor-kind="remedy_corridor"]'),
-    ).not.toBeNull();
-    expect(
-      document.relationships.some(
-        (edge) =>
-          edge.flowKind === 'breach_compensation' &&
-          edge.sourceRef === 'request.refund' &&
-          edge.targetRef === 'request.payment',
-      ),
-    ).toBe(true);
     expect(api.calls.prompt.map(({ focus }) => focus)).toEqual([
       { nodeId: null },
       { nodeId: 'evidence.payment', inquiry: 'trace' },
       { nodeId: 'evidence.payment', inquiry: 'trace' },
-      { nodeId: 'evidence.payment', inquiry: 'what-if' },
-      { nodeId: 'evidence.payment', inquiry: 'what-if' },
     ]);
-    expect(api.calls.persistence).toHaveLength(3);
-    expect(within(whatIf).getByLabelText('AI 补丁复核')).toHaveTextContent(
-      '挂载违约补偿',
-    );
-    fireEvent.click(within(whatIf).getByRole('button', { name: '关闭' }));
-    expect(whatIf).not.toBeInTheDocument();
-    expect(screen.getByLabelText('AI 补丁复核')).toHaveTextContent(
-      '挂载违约补偿',
-    );
-    fireEvent.click(screen.getByRole('button', { name: '保留' }));
-    expect(api.calls.persistence.at(-1)?.document.relationships).toEqual(
-      document.relationships,
-    );
+    expect(api.calls.persistence).toHaveLength(2);
   });
 
   it('shows the selected object’s source excerpt in the inspector', async () => {
@@ -988,29 +825,6 @@ describe('EditorScreen', () => {
     expect(screen.getByLabelText('聚焦范围')).toHaveValue('context.catalog');
   });
 
-  it('returns from an unmodeled What-If step to the selected credential on the canvas', async () => {
-    const document = createDesktopStoryFixture();
-    document.rules = [];
-    const api = readyProject(document);
-    api.story.load = vi.fn(async () => storySnapshot());
-    const { container } = render(
-      <EditorScreen rootPath="/models/procurement" />,
-    );
-    await readyCanvas();
-    fireEvent.click(screen.getByRole('button', { name: '放映业务流' }));
-    const details = within(screen.getByRole('region', { name: '剧情详情' }));
-    fireEvent.click(
-      await details.findByRole('button', { name: '前往「交付请求」' }),
-    );
-    fireEvent.click(details.getByRole('button', { name: '在画布定位凭证' }));
-    expect(screen.queryByRole('region', { name: '剧情详情' })).toBeNull();
-    expect(screen.getByRole('region', { name: '实体属性检视' })).toBeVisible();
-    expect(screen.getByRole('button', { name: '放映业务流' })).toBeVisible();
-    expect(
-      container.querySelector('[data-node-id="evidence.request"]'),
-    ).toHaveAttribute('aria-pressed', 'true');
-  });
-
   it('loads the adopted disk version for a new walkthrough', async () => {
     const api = readyProject();
     api.story.load = vi.fn(async () => storySnapshot());
@@ -1050,7 +864,7 @@ describe('EditorScreen', () => {
     render(<EditorScreen rootPath="/models/procurement" />);
     await readyCanvas();
     expect(screen.getByRole('button', { name: '放映业务流' })).toBeDisabled();
-    expect(screen.getByText('当前模型暂无业务流或履约请求')).toBeVisible();
+    expect(screen.getByText(/当前模型暂无业务流或履约请求/)).toBeVisible();
     expect(api.story.load).not.toHaveBeenCalled();
   });
 

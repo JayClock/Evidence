@@ -7,12 +7,10 @@ import {
   PopoverContent,
 } from '@evidence-poc/desktop-ui-kit';
 
-export type EvidenceInquiryKind = 'trace' | 'what-if';
-
-export interface CanvasEvidenceInquiry {
-  target: { nodeId: string; kind: EvidenceInquiryKind } | null;
+export interface CanvasEvidenceClarification {
+  nodeId: string | null;
   busy: boolean;
-  onOpen: (nodeId: string, kind: EvidenceInquiryKind) => void;
+  onOpen: (nodeId: string) => void;
   onClose: (nodeId: string) => void;
   onAcceptPatch?: () => void;
   onRevertPatch?: () => void;
@@ -31,52 +29,45 @@ export const EvidenceInquiryPopover = ({
   label: string;
   width: number;
   height: number;
-  inquiry: CanvasEvidenceInquiry;
+  inquiry: CanvasEvidenceClarification;
   children: ReactNode;
 }) => {
   const panelId = useId();
   const titleId = useId();
   const trigger = useRef<HTMLButtonElement | null>(null);
-  const active = inquiry.target?.nodeId === nodeId ? inquiry.target.kind : null;
-  const action = (kind: EvidenceInquiryKind, title: string) => (
-    <Button
-      type="button"
-      size="xs"
-      variant="outline"
-      aria-label={`${title}：${label}`}
-      aria-haspopup="dialog"
-      aria-expanded={active === kind}
-      aria-controls={active === kind ? panelId : undefined}
-      disabled={inquiry.busy && active !== kind}
-      onClick={(event) => {
-        event.stopPropagation();
-        trigger.current = event.currentTarget;
-        if (active === kind) inquiry.onClose(nodeId);
-        else inquiry.onOpen(nodeId, kind);
-      }}
-    >
-      {title}
-    </Button>
-  );
+  const active = inquiry.nodeId === nodeId;
   return (
     <Popover
-      open={active !== null}
+      open={active}
       onOpenChange={(open) => !open && inquiry.onClose(nodeId)}
     >
       <PopoverAnchor asChild>
         <div className="relative" style={{ width, height }}>
           {children}
-          <div
+          <Button
+            ref={trigger}
+            type="button"
+            size="xs"
+            variant="outline"
+            aria-label={`澄清权责：${label}`}
+            aria-haspopup="dialog"
+            aria-expanded={active}
+            aria-controls={active ? panelId : undefined}
+            disabled={inquiry.busy && !active}
             data-canvas-control=""
             data-evidence-capture-hide=""
-            className="nodrag nopan absolute right-2 bottom-1 flex gap-1"
+            className="nodrag nopan absolute right-2 bottom-1"
+            onClick={(event) => {
+              event.stopPropagation();
+              if (active) inquiry.onClose(nodeId);
+              else inquiry.onOpen(nodeId);
+            }}
           >
-            {action('trace', '澄清权责')}
-            {action('what-if', '推演异常')}
-          </div>
+            澄清权责
+          </Button>
         </div>
       </PopoverAnchor>
-      {active !== null ? (
+      {active ? (
         <PopoverContent
           id={panelId}
           aria-labelledby={titleId}
@@ -136,8 +127,7 @@ export const EvidenceInquiryPopover = ({
         >
           <div className="flex shrink-0 items-center justify-between gap-2 border-b border-workbench-border px-3 py-1.5">
             <span id={titleId} className="truncate text-xs font-semibold">
-              {active === 'trace' ? '权责与交付澄清' : 'What-If 异常推演'}：
-              {label}
+              权责与交付澄清：{label}
             </span>
             <PopoverClose asChild>
               <Button type="button" variant="ghost" size="xs">

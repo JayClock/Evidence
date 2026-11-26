@@ -127,8 +127,11 @@ describe('8X Flow health advisories', () => {
       'context.contract',
     );
     const first = [request, result];
-    expect(ids(scan(first, [binding]))).toContain(
-      'dead_end_request:request.work',
+    expect(scan(first, [binding]).issues).toContainEqual(
+      expect.objectContaining({
+        id: 'dead_end_request:request.work',
+        inquiry: { kind: 'story', nodeId: request.id },
+      }),
     );
     const chain = [...first, comp, handoff];
     const edges = [

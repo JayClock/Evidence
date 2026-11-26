@@ -167,13 +167,15 @@ export const ModelHealthRadar = ({
                         type="button"
                         size="xs"
                         variant="outline"
-                        aria-label={`引导澄清：${issue.message}`}
+                        aria-label={`${issue.inquiry.kind === 'story' ? '在放映中推演' : '引导澄清'}：${issue.message}`}
                         disabled={inquiryBusy}
                         onClick={() =>
                           jump({ kind: 'guide', issueId: issue.id })
                         }
                       >
-                        引导澄清
+                        {issue.inquiry.kind === 'story'
+                          ? '在放映中推演'
+                          : '引导澄清'}
                       </Button>
                     ) : null}
                   </div>

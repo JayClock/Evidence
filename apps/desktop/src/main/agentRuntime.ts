@@ -308,9 +308,7 @@ export const createAgentRuntime = ({
           ? '本轮任务：只读体检探问，不提交模型变更。'
           : focus?.inquiry === 'trace'
             ? '本轮任务：节点澄清与权责确认。达成共识后可调用算子工具更新模型。'
-            : focus?.inquiry === 'what-if'
-              ? '本轮任务：异常推演与违约分析。达成共识后可调用算子工具更新模型。'
-              : '';
+            : '';
         await active.prompt(
           prefix + (inquiry === '' ? '' : `${inquiry}\n`) + text,
         );

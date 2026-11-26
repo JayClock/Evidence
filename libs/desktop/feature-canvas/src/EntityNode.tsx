@@ -6,12 +6,12 @@ import { EvidenceInquiryPopover } from './EvidenceInquiryPopover';
 import type { ContextFlowNode, EntityFlowNode } from './useReactFlowAdapter';
 
 export const EntityNode = ({ data }: NodeProps<EntityFlowNode>) => {
-  const { viewMode, onHoverNode, onSelect, evidenceInquiry } =
+  const { viewMode, onHoverNode, onSelect, clarification } =
     useCanvasInteraction();
   const { entity, box } = data.node;
   const inquiry =
     !data.outOfScope && entity.category === 'evidence'
-      ? evidenceInquiry
+      ? clarification
       : undefined;
   const card = (
     <NodeCard
@@ -25,7 +25,7 @@ export const EntityNode = ({ data }: NodeProps<EntityFlowNode>) => {
       highlighted={data.highlighted}
       dimmed={data.dimmed}
       outOfScope={data.outOfScope}
-      hasInquiryActions={inquiry !== undefined}
+      hasClarification={inquiry !== undefined}
       onHover={onHoverNode}
       onSelect={onSelect}
     />

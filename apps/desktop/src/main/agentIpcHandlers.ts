@@ -101,6 +101,11 @@ export const registerAgentIpc = ({
           !Number.isSafeInteger(input.revision)
         )
           throw new Error('当前画布尚未同步。');
+        if (
+          input.focus?.inquiry !== undefined &&
+          input.focus.inquiry !== 'trace'
+        )
+          throw new Error('画布访谈仅支持澄清权责。');
         await owner.runtime.prompt(
           input.text,
           input.focus,

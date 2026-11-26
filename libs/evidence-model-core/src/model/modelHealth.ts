@@ -25,14 +25,14 @@ const RULES = {
   dead_end_request: [
     'fulfillment',
     'priority',
-    '有时限的履约未记录异常处置',
-    '逾期但未履约时，现有约定如何处理？也可以确认没有额外履约义务。',
+    '履约请求未记录异常处置',
+    '请在放映中核对违约条件成立时的处置约定，也可以确认没有额外履约义务。',
   ],
   unhedged_breach_chain: [
     'fulfillment',
     'review',
     '补偿失败的处置未记录',
-    '这项补偿也未按约完成时，现有约定如何处理？',
+    '请在放映中推演这项补偿也未按约完成时的处置。',
   ],
   unpaired_fulfillment_stub: [
     'fulfillment',
@@ -94,8 +94,8 @@ export interface ModelHealthIssue {
   readonly question: string;
   readonly targetNodeId: string;
   readonly relatedNodeIds: readonly string[];
-  /** Evidence anchor for the existing node inquiry; not every finding has one. */
-  readonly inquiry?: { nodeId: string; kind: 'trace' | 'what-if' };
+  /** Open a clarification on the evidence or rehearse the request in playback. */
+  readonly inquiry?: { nodeId: string; kind: 'trace' | 'story' };
 }
 
 export interface HealthDimensionSummary {
@@ -192,10 +192,15 @@ export const inspectModelHealth = (graph: DomainGraph): ModelHealthReport => {
   }
 
   const linkedConfirmations = new Set<string>();
-  for (const { request, confirmations, proofs } of graph.fulfillmentPairs()) {
+  for (const {
+    request,
+    confirmations,
+    proofs,
+    breachRules,
+  } of graph.fulfillmentPairs()) {
     const trace = { inquiry: { nodeId: request.id, kind: 'trace' } } as const;
-    const whatIf = {
-      inquiry: { nodeId: request.id, kind: 'what-if' },
+    const story = {
+      inquiry: { nodeId: request.id, kind: 'story' },
     } as const;
     const hasOutcome =
       graph.breachOutcomesOf(request.id).length > 0 ||
@@ -216,9 +221,9 @@ export const inspectModelHealth = (graph: DomainGraph): ModelHealthReport => {
           isFulfillmentRequest(graph.getEntity(edge.targetRef)),
       );
     if (isCompensation)
-      check('unhedged_breach_chain', request, !hasOutcome, whatIf);
-    else if (timeAttributeOf(request, 'deadline'))
-      check('dead_end_request', request, !hasOutcome, whatIf);
+      check('unhedged_breach_chain', request, !hasOutcome, story);
+    else if (timeAttributeOf(request, 'deadline') || breachRules.length)
+      check('dead_end_request', request, !hasOutcome, story);
     for (const confirmation of confirmations)
       linkedConfirmations.add(confirmation.id);
     if (confirmations.length > 0 && evidenceInContract(request))

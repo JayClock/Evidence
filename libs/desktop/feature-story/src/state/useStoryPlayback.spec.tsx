@@ -278,6 +278,27 @@ describe('story playback', () => {
     expect(hook.result.current.canNext).toBe(false);
   });
 
+  it('targets the requested clock when that request has no example in any flow', async () => {
+    const { hook, tick } = setup(false);
+    const document = createDesktopFixture();
+    document.entities.push({
+      type: 'entity',
+      category: 'evidence',
+      kind: 'fulfillment_request',
+      id: 'request.second',
+      label: '第二项交付',
+    });
+    hook.rerender({ document, enabled: false });
+    act(() => hook.result.current.openAtRequest('request.second'));
+    hook.rerender({ document, enabled: true });
+    await tick();
+    expect(hook.result.current.rehearsal).toMatchObject({
+      active: true,
+      requestId: 'request.second',
+    });
+    expect(hook.result.current.flows).toHaveLength(1);
+  });
+
   it('resolves canonical and alias-based document dependencies for canvas focus', async () => {
     const { hook, flow, load, tick } = setup();
     const steps = flow.steps.map((step, index) => ({

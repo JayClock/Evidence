@@ -481,90 +481,80 @@ describe('agent patch transport', () => {
     }
   });
 
-  it.each(['trace', 'what-if'] as const)(
-    'pins focus and enables live patch writes and operator execution during a %s inquiry',
-    async (inquiry) => {
-      const { transport, patches } = createTransport();
-      const fake = createFakeSession();
-      const runtime = runtimeWith({ transport, fake });
-      const document = createDesktopFixture();
-      runtime.notifyModelChanged({
-        rootPath: runtime.rootPath,
-        revision: 1,
-        document,
-        baseDocument: document,
+  it('pins focus and enables live patch writes and operator execution during clarification', async () => {
+    const { transport, patches } = createTransport();
+    const fake = createFakeSession();
+    const runtime = runtimeWith({ transport, fake });
+    const document = createDesktopFixture();
+    runtime.notifyModelChanged({
+      rootPath: runtime.rootPath,
+      revision: 1,
+      document,
+      baseDocument: document,
+    });
+    const modelPatch = {
+      rationale: '补齐付款',
+      patches: [
+        { op: 'replace', path: '/manifest/name', value: '采购模型-已澄清' },
+      ],
+    };
+    fake.session.prompt = async (text) => {
+      fake.prompts.push(text);
+      const apply = registeredTool('apply_model_patch');
+      runtime.setCanvasContext({
+        projectRoot: runtime.rootPath,
+        selection: { nodeId: 'evidence.contract', attributeName: null },
       });
-      const modelPatch = {
-        rationale: '补齐付款',
-        patches: [
-          { op: 'replace', path: '/manifest/name', value: '采购模型-已澄清' },
-        ],
-      };
-      fake.session.prompt = async (text) => {
-        fake.prompts.push(text);
-        const apply = registeredTool('apply_model_patch');
-        runtime.setCanvasContext({
-          projectRoot: runtime.rootPath,
-          selection: { nodeId: 'evidence.contract', attributeName: null },
-        });
-        const focus = await registeredTool('get_focused_node_context').execute(
-          'read',
-          {},
-        );
-        expect(focus.isError).toBeUndefined();
-        expect(focus.details).toMatchObject({
-          entity: { id: 'evidence.confirmation' },
-        });
-        expect(
-          (await apply.execute('write', modelPatch)).isError,
-        ).toBeUndefined();
-        expect(
-          (
-            await registeredTool('batch_add_evidence_stubs').execute(
-              'operator',
+      const focus = await registeredTool('get_focused_node_context').execute(
+        'read',
+        {},
+      );
+      expect(focus.isError).toBeUndefined();
+      expect(focus.details).toMatchObject({
+        entity: { id: 'evidence.confirmation' },
+      });
+      expect(
+        (await apply.execute('write', modelPatch)).isError,
+      ).toBeUndefined();
+      expect(
+        (
+          await registeredTool('batch_add_evidence_stubs').execute('operator', {
+            evidences: [
               {
-                evidences: [
-                  {
-                    id: 'evidence.refund',
-                    label: '退款确认',
-                    stage: 'fulfillment',
-                  },
-                ],
+                id: 'evidence.refund',
+                label: '退款确认',
+                stage: 'fulfillment',
               },
-            )
-          ).isError,
-        ).toBeUndefined();
-      };
-      try {
-        const committed: PatchTransaction[] = [];
-        await runtime.prompt(
-          '打开凭证',
-          {
-            nodeId: 'evidence.confirmation',
-            inquiry,
-          },
-          1,
-          committed,
-        );
-        expect(fake.prompts[0]).toContain(
-          '【凭证焦点：evidence.confirmation】',
-        );
-        expect(fake.prompts[0]).toContain(
-          inquiry === 'trace' ? '节点澄清与权责确认' : '异常推演与违约分析',
-        );
-        expect(patches).toHaveLength(2);
-        expect(committed).toHaveLength(2);
-        expect(patches[0].focusNodeId).toBe('evidence.confirmation');
-        expect(patches[1].focusNodeId).toBe('evidence.confirmation');
-        expect(patches[0].baseRevision).toBe(1);
-        expect(patches[0].revision).toBe(2);
-        expect(patches[1].baseRevision).toBe(2);
-        expect(patches[1].revision).toBe(3);
-      } finally {
-        runtime.dispose();
-      }
-    },
-  );
+            ],
+          })
+        ).isError,
+      ).toBeUndefined();
+    };
+    try {
+      const committed: PatchTransaction[] = [];
+      await runtime.prompt(
+        '打开凭证',
+        {
+          nodeId: 'evidence.confirmation',
+          inquiry: 'trace',
+        },
+        1,
+        committed,
+      );
+      expect(fake.prompts[0]).toContain('【凭证焦点：evidence.confirmation】');
+      expect(fake.prompts[0]).toContain('节点澄清与权责确认');
+      expect(patches).toHaveLength(2);
+      expect(committed).toHaveLength(2);
+      expect(patches[0].focusNodeId).toBe('evidence.confirmation');
+      expect(patches[1].focusNodeId).toBe('evidence.confirmation');
+      expect(patches[0].baseRevision).toBe(1);
+      expect(patches[0].revision).toBe(2);
+      expect(patches[1].baseRevision).toBe(2);
+      expect(patches[1].revision).toBe(3);
+    } finally {
+      runtime.dispose();
+    }
+  });
 
   it('allows scanning but rejects both raw and semantic writes during a read-only probe', async () => {
     const { transport, patches } = createTransport();
@@ -605,7 +595,7 @@ describe('agent patch transport', () => {
     try {
       await runtime.prompt(
         '复核发现项',
-        { nodeId: 'evidence.request', inquiry: 'what-if', readOnly: true },
+        { nodeId: 'evidence.request', inquiry: 'trace', readOnly: true },
         1,
       );
       expect(patches).toEqual([]);

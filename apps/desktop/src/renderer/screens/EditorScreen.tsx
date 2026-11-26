@@ -64,8 +64,6 @@ import {
   createDiagnosticIndex,
   type CanvasViewMode,
   type CanvasViewportMemory,
-  type CanvasEvidenceInquiry,
-  type EvidenceInquiryKind,
   type ZoomDirection,
 } from '@evidence-poc/desktop-feature-canvas';
 import { RightInspector } from '@evidence-poc/desktop-feature-inspector';
@@ -300,7 +298,7 @@ const EditorWorkspace = ({
   // The palette replaces a row of header buttons with one chord; every action
   // it runs is the same handler the header used to call.
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const [inquiry, setInquiry] = useState<CanvasEvidenceInquiry['target']>(null);
+  const [inquiry, setInquiry] = useState<string | null>(null);
   const [stormingOpen, setStormingOpen] = useState(false);
   const [stormingFocus, setStormingFocus] = useState(0);
   const [stormingBusy, setStormingBusy] = useState(false);
@@ -558,14 +556,13 @@ const EditorWorkspace = ({
     !storyActive &&
     !ledgerActive &&
     inquiry !== null &&
-    state.selection.nodeId === inquiry.nodeId &&
-    isEvidenceEntity(state.graph.getEntity(inquiry.nodeId)) &&
-    (scope === null || scope.nodeIds.has(inquiry.nodeId))
+    state.selection.nodeId === inquiry &&
+    isEvidenceEntity(state.graph.getEntity(inquiry)) &&
+    (scope === null || scope.nodeIds.has(inquiry))
       ? inquiry
       : null;
   const reviewInInquiry =
-    inquiryTarget !== null &&
-    patchReview.review?.focusNodeId === inquiryTarget.nodeId;
+    inquiryTarget !== null && patchReview.review?.focusNodeId === inquiryTarget;
   const canKeepPatch = patchReview.review !== null && !agent.running;
   const canRevertPatch =
     canKeepPatch && patchReview.review?.revertable === true;
@@ -574,30 +571,24 @@ const EditorWorkspace = ({
   }, [inquiry, inquiryTarget]);
 
   const closeInquiry = useCallback((nodeId: string) => {
-    setInquiry((current) => (current?.nodeId === nodeId ? null : current));
+    setInquiry((current) => (current === nodeId ? null : current));
   }, []);
 
-  const openInquiry = (
-    nodeId: string,
-    kind: EvidenceInquiryKind,
-    issueId?: string,
-  ) => {
+  const openInquiry = (nodeId: string, issueId?: string) => {
     if (agent.running || patchReview.review !== null) return;
     if (!isEvidenceEntity(state.graph.getEntity(nodeId))) return;
     state.session.select(nodeId);
     setStormingOpen(false);
-    setInquiry({ nodeId, kind });
+    setInquiry(nodeId);
     agent.reset();
     if (ai?.aiConfigured === false) return;
     const question =
       issueId !== undefined
         ? `请用 scan_model_health 复核体检发现项 ${issueId}。若它仍存在，针对这项发现问我一个澄清问题；若已消失则停止。本轮不修改模型。`
-        : kind === 'trace'
-          ? '请先读这张凭证，按它所在的业务阶段，问我一个最关键的澄清问题：这张凭证回应了什么、谁向谁主张什么、交付什么或什么算完成？不要重复问已知信息，本轮只提问，不修改模型。'
-          : '请先读这张凭证，提出一个与现有约定最相关的异常问题。若有多个请求，先问我推演哪一项；若尚未识别请求，先问哪项交付没有发生、何时算未按约发生。合同前只探问渠道响应，不假定违约或补偿。本轮只提问，不修改模型。';
+        : '请先读这张凭证，按它所在的业务阶段，问我一个最关键的澄清问题：这张凭证回应了什么、谁向谁主张什么、交付什么或什么算完成？不要重复问已知信息，本轮只提问，不修改模型。';
     void agent.submit(question, {
       nodeId,
-      inquiry: kind,
+      inquiry: 'trace',
       ...(issueId === undefined ? {} : { readOnly: true }),
     });
   };
@@ -948,11 +939,11 @@ const EditorWorkspace = ({
                   onStop: () => void agent.stop(),
                 }
           }
-          evidenceInquiry={
+          clarification={
             storyActive
               ? undefined
               : {
-                  target: inquiryTarget,
+                  nodeId: inquiryTarget,
                   busy: agent.running || patchReview.review !== null,
                   onAcceptPatch:
                     reviewInInquiry && canKeepPatch ? acceptPatch : undefined,
@@ -963,11 +954,10 @@ const EditorWorkspace = ({
                   content:
                     inquiryTarget === null ? null : (
                       <EvidenceAgentThread
-                        key={`${inquiryTarget.nodeId}:${inquiryTarget.kind}`}
-                        nodeId={inquiryTarget.nodeId}
-                        inquiry={inquiryTarget.kind}
+                        key={inquiryTarget}
+                        nodeId={inquiryTarget}
                         canExploreVariation={
-                          state.graph.getEntity(inquiryTarget.nodeId)?.kind ===
+                          state.graph.getEntity(inquiryTarget)?.kind ===
                           'fulfillment_confirmation'
                         }
                         conversation={agent}
@@ -1041,8 +1031,10 @@ const EditorWorkspace = ({
                     return false;
                   canvasStageRef.current?.focus();
                   revealOnGraph(target);
-                  if (kind === 'guide' && issue.inquiry)
-                    openInquiry(target, issue.inquiry.kind, issue.id);
+                  if (kind === 'guide' && issue.inquiry?.kind === 'story') {
+                    story.openAtRequest(target);
+                    openStory();
+                  } else if (kind === 'guide') openInquiry(target, issue.id);
                   return true;
                 }}
               />

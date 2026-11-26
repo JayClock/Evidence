@@ -75,9 +75,11 @@ export const useStoryPlayback = ({
     key: object;
     result: StorySnapshot;
   }>();
-  const [position, setPosition] = useState<{ ref?: string; index: number }>({
-    index: 0,
-  });
+  const [position, setPosition] = useState<{
+    flowId?: string;
+    ref?: string;
+    index: number;
+  }>({ index: 0 });
   const [isPlaying, setIsPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [preferRehearsal, setPreferRehearsal] = useState(false);
@@ -327,8 +329,7 @@ export const useStoryPlayback = ({
 
   const projectedFlowId = useRef<string | undefined>(undefined);
   useEffect(() => {
-    if (!enabled || invalidating || invalidationError || manualRehearsal)
-      return;
+    if (!enabled || invalidating || invalidationError) return;
     let active = true;
     setIsPlaying(false);
     setStatus({ key: requestKey, loading: true });
@@ -343,7 +344,10 @@ export const useStoryPlayback = ({
           if (!active) return;
           // If a flow disappeared, its old cursor must not leak into the fallback.
           const flowId = result.selected?.flow.flowId;
-          if (projectedFlowId.current !== flowId) setPosition({ index: 0 });
+          if (projectedFlowId.current !== flowId)
+            setPosition((current) =>
+              current.flowId === flowId ? current : { index: 0 },
+            );
           projectedFlowId.current = flowId;
           setLoaded({ key: requestKey, result });
           setStatus({ key: requestKey, loading: false });
@@ -370,7 +374,6 @@ export const useStoryPlayback = ({
     preferredFlowId,
     invalidating,
     invalidationError,
-    manualRehearsal,
   ]);
 
   useEffect(() => {
@@ -425,7 +428,11 @@ export const useStoryPlayback = ({
       const next = flow?.steps[nextIndex];
       if (next) {
         setCursor(undefined);
-        setPosition({ ref: stepRef(next), index: nextIndex });
+        setPosition({
+          flowId: flow.flowId,
+          ref: stepRef(next),
+          index: nextIndex,
+        });
       }
     },
     [flow],
@@ -656,6 +663,25 @@ export const useStoryPlayback = ({
       setPosition({ index: 0 });
       setPreferRehearsal(false);
       setPreferredFlowId(flowId);
+    },
+    openAtRequest: (requestId: string) => {
+      const request = requestOptions.find(({ id }) => id === requestId);
+      if (!request) return;
+      setIsPlaying(false);
+      setCursor(undefined);
+      const examples = request.examples?.filter(({ test }) => test?.flow);
+      const example =
+        examples?.find(({ test }) => test?.flow === activeFlowId) ??
+        examples?.[0];
+      if (example?.test) {
+        const flowId = example.test.flow;
+        setPreferredFlowId(flowId);
+        setPosition({ flowId, ref: `${requestId}#${example.label}`, index: 0 });
+        setPreferRehearsal(false);
+      } else {
+        setAssumption({ document, requestId, hours: '' });
+        setPreferRehearsal(true);
+      }
     },
     previous: () => {
       if (ready && !rehearsing && previousIndex >= 0) {
