@@ -31,16 +31,19 @@ nx make desktop         # installers in apps/desktop/out/make
   edit fields or rules.
 - Use **Cmd/Ctrl+Shift+K** to search for commands or jump to business objects.
 - Use **放映业务流** at the right of the top canvas bar to walk through a declared
-  scenario on the same canvas. The right pane expands if needed and switches
-  from **实体属性检视** to **剧情详情**. **步骤权责核对** shows the right holder,
-  obligor, delivery evidence and completion rules. Use the inline actions to
-  clarify missing contract or completion details. After a What-If breach or
-  an AI exploration, enter the agreed condition and record a compensation
-  pair or a dispute handoff. Review the change in the drawer while the canvas
-  highlights the branch. **退出放映** (or **Esc** when not
-  editing a field or using a dialog) restores the inspector without clearing
-  the selection. Opening the ledger also stops playback; returning does not
-  resume it.
+  scenario on the same canvas. The entity directory folds away and **业务故事**
+  opens on the right. In **故事剧本**, expand the numbered outline to jump to a
+  scene. **本步注解** shows who owes what, how completion is decided and which
+  details need clarification. Open **单据归档与字段依据** to inspect the sources.
+  Between steps the script keeps the last document alongside the clock status.
+- Open **推演与分支** to inspect the clock or ask a What-If question. A breach
+  finding in the health radar opens this tab at the affected request. Once a
+  rule finds a breach, choose **固化违约分支…** to record an agreed compensation
+  pair or dispute handoff. Keep or revert the change in the panel. After keeping
+  it, you can play a scenario containing the new branch or locate its evidence
+  on the canvas. **返回画布** and **退出放映** restore the inspector and the
+  previous directory state. **Esc** reverts a pending patch or exits playback
+  when used outside an input or dialog. Opening **总台账** ends playback.
 - The canvas HUD controls zoom, fit and density; its **更多画布工具** contains
   grid and scenario actions.
 - Use **实体属性检查** in the right pane to edit the selected object. **返回画布**

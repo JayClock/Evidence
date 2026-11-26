@@ -256,7 +256,7 @@ describe('EditorScreen', () => {
     );
     expect(screen.queryByRole('dialog', { name: '业务场景推演' })).toBeNull();
     expect(screen.getByLabelText('选择业务流')).toHaveValue('正常签约案例');
-    const details = screen.getByRole('region', { name: '剧情详情' });
+    const details = screen.getByRole('region', { name: '业务故事' });
     expect(
       await within(details).findByRole('heading', { name: '正常签约案例' }),
     ).toBeVisible();
@@ -382,9 +382,13 @@ describe('EditorScreen', () => {
     expect(
       await story.findByRole('heading', { name: 'What-If 业务沙盘' }),
     ).toBeVisible();
-    expect(story.getByRole('article', { name: '业务单据' })).toHaveTextContent(
-      '交付请求',
-    );
+    expect(
+      story.getByRole('tab', { name: '推演与分支', selected: true }),
+    ).toBeVisible();
+    expect(
+      story.getByRole('navigation', { name: '故事步骤' }),
+    ).toHaveTextContent('交付请求');
+    expect(story.getByRole('textbox', { name: '假设问题' })).toBeVisible();
     expect(api.calls.prompt).toEqual([]);
     fireEvent.click(screen.getByRole('button', { name: '退出放映' }));
     drawer = await radar();
@@ -774,20 +778,27 @@ describe('EditorScreen', () => {
       await screen.findByRole('region', { name: '业务故事' }),
     );
     fireEvent.click(
-      await story.findByRole('button', { name: '前往「付款申请」' }),
+      await story.findByRole('button', { name: /展开全部 2 幕/ }),
     );
-    expect(
-      story.getByRole('region', { name: '步骤权责核对' }),
-    ).toHaveTextContent('合同归属：口头买卖合同');
+    fireEvent.click(
+      within(story.getByRole('list')).getByRole('button', { name: /付款申请/ }),
+    );
+    expect(story.getByRole('region', { name: '本步注解' })).toHaveTextContent(
+      '合同归属：口头买卖合同',
+    );
     const card = story.getByRole('article', { name: '业务单据' });
-    expect(card).toHaveTextContent('依据：请求形成事实');
+    fireEvent.click(within(card).getByText('单据归档与字段依据'));
+    expect(within(card).getAllByText(/请求形成事实/)[0]).toBeVisible();
     expect(card).toHaveTextContent('示例未提供');
+    fireEvent.click(story.getByRole('button', { name: '推演此步异常 →' }));
     const question = '如果到 13:00 还没有收到付款凭证？';
     fireEvent.change(story.getByRole('textbox', { name: '假设问题' }), {
       target: { value: question },
     });
     fireEvent.click(story.getByRole('button', { name: '推演假设' }));
     expect(await story.findByText('rule.payment-late：条件成立')).toBeVisible();
+    expect(story.queryByRole('form', { name: '固化违约分支' })).toBeNull();
+    fireEvent.click(story.getByRole('button', { name: '固化违约分支…' }));
     const form = within(story.getByRole('form', { name: '固化违约分支' }));
     for (const [name, value] of [
       ['已确认的触发条件', '逾期未到账'],
@@ -824,14 +835,38 @@ describe('EditorScreen', () => {
         '[data-flow-kind="breach_compensation"][data-edge-id]',
       ),
     ).toHaveAttribute('opacity', '1');
+    expect(
+      story.queryByRole('button', { name: '在画布查看「退款请求」' }),
+    ).toBeNull();
+    fireEvent.mouseDown(story.getByRole('tab', { name: '故事剧本' }), {
+      button: 0,
+    });
+    expect(story.getByRole('region', { name: '违约分支复核' })).toBeVisible();
     fireEvent.click(review.getByRole('button', { name: '保留' }));
     expect(story.queryByRole('region', { name: '违约分支复核' })).toBeNull();
+    fireEvent.mouseDown(story.getByRole('tab', { name: '推演与分支' }), {
+      button: 0,
+    });
+    fireEvent.click(
+      story.getByRole('button', { name: '在画布查看「退款请求」' }),
+    );
+    expect(screen.queryByRole('region', { name: '业务故事' })).toBeNull();
+    expect(
+      container.querySelector(`[data-node-id="${refund.id}"]`),
+    ).toHaveAttribute('aria-pressed', 'true');
     expect(api.calls.prompt).toHaveLength(4);
     fireEvent.keyDown(window, { key: 'z', metaKey: true });
     await waitFor(() =>
       expect(api.calls.persistence.at(-1)?.document).toEqual(document),
     );
+    fireEvent.click(screen.getByRole('button', { name: '放映业务流' }));
     expect(await screen.findByText('步骤 2/2：付款申请')).toBeVisible();
+    fireEvent.mouseDown(screen.getByRole('tab', { name: '推演与分支' }), {
+      button: 0,
+    });
+    expect(
+      screen.queryByRole('button', { name: '在画布查看「退款请求」' }),
+    ).toBeNull();
   });
 
   it('shows the selected object’s source excerpt in the inspector', async () => {
@@ -915,6 +950,9 @@ describe('EditorScreen', () => {
     });
     const canvas = container.querySelector('[data-region="canvas-viewport"]');
     const launch = screen.getByRole('button', { name: '放映业务流' });
+    expect(
+      screen.getByRole('complementary', { name: '实体目录' }),
+    ).toBeVisible();
     expect(launch).not.toHaveAttribute('aria-pressed');
     fireEvent.click(launch);
     expect(screen.getByText('业务旅程画布')).toBeInTheDocument();
@@ -922,11 +960,16 @@ describe('EditorScreen', () => {
       canvas,
     );
     expect(screen.queryByLabelText('副视口')).toBeNull();
-    const details = screen.getByRole('region', { name: '剧情详情' });
+    const details = screen.getByRole('region', { name: '业务故事' });
     expect(details).toBeVisible();
+    expect(
+      screen.queryByRole('complementary', { name: '实体目录' }),
+    ).toBeNull();
+    expect(screen.getByRole('button', { name: '实体目录' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
     expect(screen.queryByRole('region', { name: '实体属性检视' })).toBeNull();
-    expect(screen.queryByRole('button', { name: '剧情详情' })).toBeNull();
-    expect(screen.queryByRole('dialog', { name: '剧情详情' })).toBeNull();
     expect(
       await within(details).findByText('采购方签署《采购协议》。'),
     ).toBeVisible();
@@ -992,16 +1035,18 @@ describe('EditorScreen', () => {
       '.react-flow__viewport',
     )!;
     const transform = camera.style.transform;
-    fireEvent.click(screen.getByRole('button', { name: '退出放映' }));
+    fireEvent.click(within(details).getByRole('button', { name: '返回画布' }));
     expect(camera.style.transform).toBe(transform);
     expect(container.querySelector('[data-region="canvas-viewport"]')).toBe(
       canvas,
     );
     expect(screen.getByRole('button', { name: '放映业务流' })).toHaveFocus();
     expect(screen.queryByLabelText('业务流放映控制')).toBeNull();
-    expect(screen.queryByRole('region', { name: '剧情详情' })).toBeNull();
     expect(screen.queryByRole('region', { name: '业务故事' })).toBeNull();
     expect(screen.getByRole('region', { name: '实体属性检视' })).toBeVisible();
+    expect(
+      screen.getByRole('complementary', { name: '实体目录' }),
+    ).toBeVisible();
     expect(unsubscribe).toHaveBeenCalled();
     expect(container.querySelector('.evidence-story-active')).toBeNull();
     expect(screen.getByLabelText('聚焦范围')).toHaveValue('context.catalog');
@@ -1090,7 +1135,10 @@ describe('EditorScreen', () => {
     const slider = screen.getByRole('slider', { name: '业务时间' });
     expect(slider).toHaveAccessibleName('业务时间');
     fireEvent.change(slider, { target: { value: String(8 * 3_600_000 + 1) } });
-    const details = within(screen.getByRole('region', { name: '剧情详情' }));
+    const details = within(screen.getByRole('region', { name: '业务故事' }));
+    expect(
+      details.getByRole('tab', { name: '推演与分支', selected: true }),
+    ).toBeVisible();
     expect(details.getByText(/违约条件成立/)).toBeVisible();
     expect(
       details.getByText('模型中的处置选项（未发生）：仲裁移交'),
@@ -1102,6 +1150,8 @@ describe('EditorScreen', () => {
     expect(api.story.enrichStep).not.toHaveBeenCalled();
     expect(api.calls.persistence).toHaveLength(0);
     const expectedClock = slider.getAttribute('aria-valuetext');
+    expect(details.queryByRole('form', { name: '固化违约分支' })).toBeNull();
+    fireEvent.click(details.getByRole('button', { name: '固化违约分支…' }));
     const form = details.getByRole('form', { name: '固化违约分支' });
     fireEvent.change(within(form).getByLabelText('已确认的触发条件'), {
       target: { value: '到期仍未交付且协商失败' },
@@ -1126,7 +1176,10 @@ describe('EditorScreen', () => {
     await waitFor(() =>
       expect(api.calls.persistence.at(-1)?.document).toEqual(document),
     );
-    expect(screen.getByRole('region', { name: '剧情详情' })).toBeVisible();
+    expect(screen.getByRole('region', { name: '业务故事' })).toBeVisible();
+    expect(
+      details.queryByRole('button', { name: '在画布查看「诉讼移交凭证」' }),
+    ).toBeNull();
   });
 
   it('opens a collapsed rail from the command palette and exits from the rail with one Escape', async () => {
@@ -1137,23 +1190,27 @@ describe('EditorScreen', () => {
     );
     await readyCanvas();
     const node = container.querySelector('[data-node-id="evidence.contract"]')!;
+    fireEvent.click(screen.getByRole('button', { name: '实体目录' }));
     fireEvent.click(node);
     const inspector = screen.getByRole('region', { name: '实体属性检视' });
     fireEvent.keyDown(node, { key: 'i', metaKey: true });
     expect(inspector).toHaveAttribute('inert');
     fireEvent.click(screen.getByRole('button', { name: '打开快速命令' }));
     fireEvent.click(await screen.findByRole('option', { name: /放映业务流/ }));
-    const details = screen.getByRole('region', { name: '剧情详情' });
+    const details = screen.getByRole('region', { name: '业务故事' });
     expect(details).not.toHaveAttribute('inert');
     expect(
-      await within(details).findByRole('article', { name: '领域故事' }),
+      await within(details).findByRole('article', { name: '本幕叙事' }),
     ).toBeVisible();
     const back = within(details).getByRole('button', { name: '返回画布' });
     act(() => back.focus());
     fireEvent.keyDown(back, { key: 'Escape' });
     expect(screen.queryByLabelText('业务流放映控制')).toBeNull();
-    expect(screen.queryByRole('region', { name: '剧情详情' })).toBeNull();
+    expect(screen.queryByRole('region', { name: '业务故事' })).toBeNull();
     expect(screen.getByRole('region', { name: '实体属性检视' })).toBeVisible();
+    expect(
+      screen.queryByRole('complementary', { name: '实体目录' }),
+    ).toBeNull();
     expect(node).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: '放映业务流' })).toHaveFocus();
     expect(api.calls.persistence).toHaveLength(0);
@@ -1168,14 +1225,14 @@ describe('EditorScreen', () => {
     render(<EditorScreen rootPath="/models/procurement" />);
     await readyCanvas();
     fireEvent.click(screen.getByRole('button', { name: '放映业务流' }));
-    const details = within(screen.getByRole('region', { name: '剧情详情' }));
+    const details = within(screen.getByRole('region', { name: '业务故事' }));
     expect(details.getByRole('status')).toHaveTextContent('正在读取业务流');
     expect(await details.findByRole('alert')).toHaveTextContent(
       '故事快照暂不可用',
     );
     fireEvent.click(details.getByRole('button', { name: '重试放映' }));
     expect(
-      await details.findByRole('article', { name: '领域故事' }),
+      await details.findByRole('article', { name: '本幕叙事' }),
     ).toBeVisible();
     expect(details.queryByRole('alert')).toBeNull();
     expect(api.story.load).toHaveBeenCalledTimes(2);
@@ -1192,10 +1249,10 @@ describe('EditorScreen', () => {
     await screen.findByRole('slider', { name: '业务时间' });
     fireEvent.click(screen.getByRole('button', { name: '自动播放' }));
     expect(screen.getByRole('button', { name: '暂停放映' })).toBeVisible();
-    expect(screen.getByRole('region', { name: '剧情详情' })).toBeVisible();
+    expect(screen.getByRole('region', { name: '业务故事' })).toBeVisible();
     fireEvent.keyDown(window, { key: '1', metaKey: true });
     expect(screen.getByLabelText('领域模型总台账')).toBeVisible();
-    expect(screen.queryByRole('region', { name: '剧情详情' })).toBeNull();
+    expect(screen.queryByRole('region', { name: '业务故事' })).toBeNull();
     expect(unsubscribe).toHaveBeenCalledOnce();
     fireEvent.keyDown(window, { code: 'Digit1', altKey: true });
     expect(screen.queryByLabelText('业务流放映控制')).toBeNull();

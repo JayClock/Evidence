@@ -57,9 +57,8 @@ const isEditable = (target: EventTarget | null): boolean => {
  */
 export const useWorkspaceLayoutState = (
   toggleLedger: () => void,
-  ledger?: { active: boolean; returnToGraph: () => void },
+  returnToDirectory?: () => void,
 ): WorkspaceLayoutController => {
-  const leaveLedger = ledger?.active ? ledger.returnToGraph : undefined;
   const [isDirectoryOpen, setDirectoryOpen] = useState(true);
   const [isProblemsPanelOpen, setProblemsPanelOpen] = useState(false);
   const [activeIssueId, setActiveIssueId] = useState<string | null>(null);
@@ -74,8 +73,8 @@ export const useWorkspaceLayoutState = (
       }
 
       if (tab === 'directory') {
-        if (leaveLedger !== undefined) {
-          leaveLedger();
+        if (returnToDirectory !== undefined) {
+          returnToDirectory();
           setDirectoryOpen(true);
         } else {
           setDirectoryOpen((open) => !open);
@@ -86,7 +85,7 @@ export const useWorkspaceLayoutState = (
       setActiveIssueId(null);
       setProblemsPanelOpen((open) => !open);
     },
-    [leaveLedger, toggleLedger],
+    [returnToDirectory, toggleLedger],
   );
 
   const toggleProblemsPanel = useCallback(() => {

@@ -51,6 +51,7 @@ import { ScenarioStudioModal } from '../components/scenario/ScenarioStudioModal'
 import {
   StoryPlayerBar,
   StoryDrawer,
+  type StoryView,
   useStoryPlayback,
 } from '@evidence-poc/desktop-feature-story';
 import {
@@ -190,9 +191,9 @@ const EditorWorkspace = ({
   const canvasMemory = useRef<CanvasViewportMemory['current']>(null);
   const workspaceView = useWorkspaceViewMode();
   const ledgerActive = workspaceView.surface === 'table';
-  const [storyOpen, setStoryOpen] = useState(false);
-  const storyActive = storyOpen && !ledgerActive;
-  const closeStory = useCallback(() => setStoryOpen(false), []);
+  const [storyEntry, setStoryEntry] = useState<StoryView | null>(null);
+  const storyActive = storyEntry !== null && !ledgerActive;
+  const closeStory = useCallback(() => setStoryEntry(null), []);
   const toggleLedger = useCallback(() => {
     closeStory();
     workspaceView.toggleLedger();
@@ -221,10 +222,16 @@ const EditorWorkspace = ({
   useLayoutEffect(() => {
     if (storyActive) expandRightRail();
   }, [storyActive, expandRightRail]);
-  const layout = useWorkspaceLayoutState(toggleLedger, {
-    active: ledgerActive,
-    returnToGraph: workspaceView.returnToGraph,
-  });
+  const returnToDirectory = useCallback(() => {
+    closeStory();
+    workspaceView.returnToGraph();
+  }, [closeStory, workspaceView.returnToGraph]);
+  const layout = useWorkspaceLayoutState(
+    toggleLedger,
+    ledgerActive || storyActive ? returnToDirectory : undefined,
+  );
+  const directoryVisible =
+    !ledgerActive && !storyActive && layout.isDirectoryOpen;
   const { state, flush, reloadFromDisk } = useEditorSession(
     project,
     initialDocument,
@@ -245,7 +252,7 @@ const EditorWorkspace = ({
   );
   const canPlayStory = hasPlaybackInput;
   const openStory = useCallback(() => {
-    if (!ledgerActive && canPlayStory) setStoryOpen(true);
+    if (!ledgerActive && canPlayStory) setStoryEntry('script');
   }, [ledgerActive, canPlayStory]);
   const manualSensors = useSensorsState(project.rootPath);
   const artifacts = useArtifactStatus(
@@ -806,6 +813,10 @@ const EditorWorkspace = ({
     },
     [focusNode, workspaceView.returnToGraph],
   );
+  const revealFromStory = (nodeId: string) => {
+    closeStory();
+    revealOnGraph(nodeId);
+  };
 
   const problemsPanel = layout.isProblemsPanelOpen ? (
     <ProblemsPanel
@@ -1028,10 +1039,7 @@ const EditorWorkspace = ({
         busy={agent.running}
         onAccept={acceptPatch}
         onRevert={revertPatch}
-        onFocusEntity={(nodeId) => {
-          closeStory();
-          revealOnGraph(nodeId);
-        }}
+        onFocusEntity={revealFromStory}
       />
     ) : null;
 
@@ -1072,7 +1080,7 @@ const EditorWorkspace = ({
                   revealOnGraph(target);
                   if (kind === 'guide' && issue.inquiry?.kind === 'story') {
                     story.openAtRequest(target);
-                    openStory();
+                    setStoryEntry('sandbox');
                   } else if (kind === 'guide')
                     openInquiry(
                       target,
@@ -1131,7 +1139,7 @@ const EditorWorkspace = ({
             pressed={{
               ledger: ledgerActive,
               diagnostics: layout.isProblemsPanelOpen,
-              directory: !ledgerActive && layout.isDirectoryOpen,
+              directory: directoryVisible,
             }}
             onSelect={layout.toggleRailTab}
             badges={{
@@ -1152,7 +1160,7 @@ const EditorWorkspace = ({
             }}
           />
 
-          {!ledgerActive && layout.isDirectoryOpen ? (
+          {directoryVisible ? (
             <EntityDrawer
               graph={state.graph}
               selectedNodeId={state.selection.nodeId}
@@ -1195,68 +1203,60 @@ const EditorWorkspace = ({
                 order={2}
                 defaultSize={30}
                 minSize={18}
-                maxSize={40}
+                maxSize={storyActive ? 45 : 40}
                 collapsible
                 collapsedSize={0}
                 onCollapse={() => setRightRailCollapsed(true)}
                 onExpand={() => setRightRailCollapsed(false)}
                 ref={rightRail}
               >
-                {!ledgerActive ? (
-                  <InspectorShell
-                    title={storyActive ? '剧情详情' : '实体属性检视'}
-                    badge={
-                      storyActive
-                        ? story.rehearsal.active
-                          ? '履约时钟假设'
-                          : '放映中'
-                        : '只读'
+                {storyActive ? (
+                  <StoryDrawer
+                    aiConfigured={ai?.aiConfigured}
+                    initialView={storyEntry}
+                    collapsed={rightRailCollapsed}
+                    onReturnToCanvas={closeStory}
+                    onOpenBranchEntity={revealFromStory}
+                    onClarifyGap={
+                      agent.running || patchReview.review
+                        ? undefined
+                        : (nodeId, gap) => {
+                            revealFromStory(nodeId);
+                            openInquiry(
+                              nodeId,
+                              {
+                                contract:
+                                  '请读取这张凭证，和我核对它属于哪份合同，确认后再补齐合同归属。',
+                                completion:
+                                  '请读取这项履约请求，和我核对哪些交付事实能证明完成，确认后再补齐完成规则。',
+                                request:
+                                  '请读取这张凭证，和我核对它回应的履约请求及其示例依据。',
+                              }[gap],
+                            );
+                          }
                     }
+                    playback={story}
+                    review={reviewInStory ? patchCard : null}
+                    pendingPersistence={pendingPersistence}
+                    externalConflict={externalConflict}
+                  />
+                ) : !ledgerActive ? (
+                  <InspectorShell
+                    title="实体属性检视"
+                    badge="只读"
                     collapsed={rightRailCollapsed}
                     onReturnToCanvas={returnToCanvas}
                     returnOnEscape={
-                      !storyActive &&
-                      patchReview.review === null &&
-                      !stormingOpen
+                      patchReview.review === null && !stormingOpen
                     }
                   >
-                    {storyActive ? (
-                      <StoryDrawer
-                        aiConfigured={ai?.aiConfigured}
-                        onConfigureAi={ai?.openSettings}
-                        onClarifyGap={
-                          agent.running || patchReview.review
-                            ? undefined
-                            : (nodeId, gap) => {
-                                closeStory();
-                                revealOnGraph(nodeId);
-                                openInquiry(
-                                  nodeId,
-                                  {
-                                    contract:
-                                      '请读取这张凭证，和我核对它属于哪份合同，确认后再补齐合同归属。',
-                                    completion:
-                                      '请读取这项履约请求，和我核对哪些交付事实能证明完成，确认后再补齐完成规则。',
-                                    request:
-                                      '请读取这张凭证，和我核对它回应的履约请求及其示例依据。',
-                                  }[gap],
-                                );
-                              }
-                        }
-                        playback={story}
-                        review={reviewInStory ? patchCard : null}
-                        pendingPersistence={pendingPersistence}
-                        externalConflict={externalConflict}
-                      />
-                    ) : (
-                      <RightInspector
-                        graph={state.graph}
-                        selection={state.selection}
-                        showHeading={false}
-                        active={!rightRailCollapsed}
-                        gateReport={diagnosticsStale ? null : sensors.report}
-                      />
-                    )}
+                    <RightInspector
+                      graph={state.graph}
+                      selection={state.selection}
+                      showHeading={false}
+                      active={!rightRailCollapsed}
+                      gateReport={diagnosticsStale ? null : sensors.report}
+                    />
                   </InspectorShell>
                 ) : null}
               </ResizablePanel>
@@ -1332,7 +1332,7 @@ const EditorWorkspace = ({
               story.selectFlow(flow);
               story.setSkipAi(true);
               workspaceView.returnToGraph();
-              setStoryOpen(true);
+              setStoryEntry('script');
               setScenarioOpen(false);
             }}
           />
