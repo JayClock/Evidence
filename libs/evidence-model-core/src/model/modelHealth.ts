@@ -34,6 +34,12 @@ const RULES = {
     '补偿失败的处置未记录',
     '请在放映中推演这项补偿也未按约完成时的处置。',
   ],
+  missing_breach_rule: [
+    'fulfillment',
+    'notice',
+    '已记录处置，违约触发条件尚无判定规则',
+    '请在放映中核对哪项事实会触发这条分支；只有约定明确后才补充判定规则。',
+  ],
   unpaired_fulfillment_stub: [
     'fulfillment',
     'review',
@@ -224,6 +230,8 @@ export const inspectModelHealth = (graph: DomainGraph): ModelHealthReport => {
       check('unhedged_breach_chain', request, !hasOutcome, story);
     else if (timeAttributeOf(request, 'deadline') || breachRules.length)
       check('dead_end_request', request, !hasOutcome, story);
+    if (hasOutcome)
+      check('missing_breach_rule', request, !breachRules.length, story);
     for (const confirmation of confirmations)
       linkedConfirmations.add(confirmation.id);
     if (confirmations.length > 0 && evidenceInContract(request))

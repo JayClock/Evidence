@@ -141,17 +141,25 @@ describe('8X Flow health advisories', () => {
     const findings = ids(scan(chain, edges));
     expect(findings).not.toContain('dead_end_request:request.work');
     expect(findings).toContain('unhedged_breach_chain:request.compensation');
+    const closed = scan(chain, [
+      ...edges,
+      edge(handoff.id, comp.id, {
+        flowKind: 'escalation',
+        terminalRemedyKind: 'lawsuit',
+      }),
+    ]);
     expect(
-      ids(
-        scan(chain, [
-          ...edges,
-          edge(handoff.id, comp.id, {
-            flowKind: 'escalation',
-            terminalRemedyKind: 'lawsuit',
-          }),
-        ]),
-      ),
-    ).toEqual([]);
+      closed.issues.map(({ code, inquiry }) => ({ code, inquiry })),
+    ).toEqual([
+      {
+        code: 'missing_breach_rule',
+        inquiry: { kind: 'story', nodeId: comp.id },
+      },
+      {
+        code: 'missing_breach_rule',
+        inquiry: { kind: 'story', nodeId: request.id },
+      },
+    ]);
   });
 
   it('finds party, responsibility, time and pairing gaps without treating auxiliary proof as a confirmation', () => {
