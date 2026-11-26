@@ -111,6 +111,17 @@ it('projects a deterministic DST handoff from both dependency forms, with locali
     timing: { displayDate: '2026年4月1日 10:00 UTC' },
     activity: {
       recipient: { roleLabel: '买方财务部' },
+      fulfillment: {
+        requests: [
+          {
+            requestId: request.entityId,
+            label: request.entityLabel,
+            rightHolder: { roleLabel: '供应商销售部' },
+            obligor: { roleLabel: '买方财务部' },
+            completionRules: [],
+          },
+        ],
+      },
       workObject: { referenceCode: 'PAY-1' },
     },
     prerequisites: [
@@ -127,7 +138,15 @@ it('projects a deterministic DST handoff from both dependency forms, with locali
       isControlGap: false,
     },
     documentCard: {
-      keyAttributes: [{ name: 'amount', label: '金额', value: '¥100,000.25' }],
+      contractContext: '采购合同',
+      keyAttributes: [
+        {
+          name: 'amount',
+          label: '金额',
+          value: '¥100,000.25',
+          sourceOrigin: '待决（Decision Owed）',
+        },
+      ],
       generalAttributes: expect.arrayContaining([
         {
           name: 'agreement',

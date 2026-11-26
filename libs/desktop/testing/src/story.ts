@@ -102,9 +102,13 @@ const storyResult = (flow = storyFlow()): StoryProjectResult => ({
               requests: [
                 {
                   stepIndex: request.sequence,
+                  requestId: request.entityId,
+                  label: request.entityLabel,
                   action: '验收交付成果',
                   rightHolder: holder,
                   obligor,
+                  subjectMatters: [],
+                  completionRules: [],
                 },
               ],
             } as const)

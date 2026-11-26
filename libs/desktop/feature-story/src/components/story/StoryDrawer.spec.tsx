@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createDesktopFixture } from '@evidence-poc/desktop-testing';
 import { createEmptyDomainModel } from '@evidence-poc/evidence-schema';
@@ -64,7 +64,7 @@ const setup = async ({
   }));
   const document = empty ? createEmptyDomainModel() : createDesktopFixture();
   if ((timed && !timedRules) || noRules) document.rules = [];
-  const onRevealOnCanvas = vi.fn();
+  const onClarifyGap = vi.fn();
   const Harness = () => {
     const playback = useStoryPlayback({
       api: window.evidenceAPI.story,
@@ -79,7 +79,7 @@ const setup = async ({
         <StoryDrawer
           playback={playback}
           aiConfigured={aiConfigured}
-          onRevealOnCanvas={onRevealOnCanvas}
+          onClarifyGap={onClarifyGap}
           pendingPersistence
           externalConflict
         />
@@ -90,7 +90,7 @@ const setup = async ({
   await act(async () => {
     await vi.advanceTimersByTimeAsync(STORY_REFRESH_DELAY);
   });
-  return { api, view, onRevealOnCanvas };
+  return { api, view, onClarifyGap };
 };
 afterEach(() => {
   vi.useRealTimers();
@@ -127,6 +127,24 @@ describe('StoryDrawer', () => {
     expect(screen.getByText('距截止：0 小时 30 分 0 秒')).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
     expect(screen.queryByText(/距截止/)).toBeNull();
+  });
+
+  it('checks the causal request on a confirmation and directs each gap to its own evidence', async () => {
+    const { onClarifyGap } = await setup({ noRules: true });
+    fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
+    fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
+    const checklist = within(
+      screen.getByRole('region', { name: '步骤权责核对' }),
+    );
+    expect(checklist.getByText('权利方：供货方')).toBeVisible();
+    expect(checklist.getByText('义务方：采购方')).toBeVisible();
+    expect(checklist.getByText('约定交付：验收交付成果')).toBeVisible();
+    fireEvent.click(checklist.getByRole('button', { name: '补齐合同归属' }));
+    fireEvent.click(checklist.getByRole('button', { name: '补齐完成规则' }));
+    expect(onClarifyGap.mock.calls).toEqual([
+      ['evidence.confirmation', 'contract'],
+      ['evidence.request', 'completion'],
+    ]);
   });
 
   it('distinguishes a missing result from a confirmation that fails a rule', async () => {
@@ -191,7 +209,7 @@ describe('StoryDrawer', () => {
   });
 
   it('requires explicit AI opt-in without rules and displays no verdict for the result', async () => {
-    const { api, onRevealOnCanvas } = await setup({ noRules: true });
+    const { api } = await setup({ noRules: true });
     vi.mocked(api.story.whatIf).mockResolvedValue({
       isSpeculative: true,
       ruleOutcomes: [],
@@ -200,8 +218,6 @@ describe('StoryDrawer', () => {
     fireEvent.click(screen.getByRole('button', { name: '前往「交付请求」' }));
     expect(screen.getByText(/尚未建模相关的完成或违约规则/)).toBeVisible();
     expect(screen.queryByRole('textbox', { name: '假设问题' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: '在画布定位凭证' }));
-    expect(onRevealOnCanvas).toHaveBeenCalledWith('evidence.request');
     fireEvent.click(screen.getByRole('button', { name: '开启 AI 临时推想' }));
     fireEvent.click(screen.getByRole('button', { name: '填入示例问题' }));
     expect(api.story.whatIf).not.toHaveBeenCalled();

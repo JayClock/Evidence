@@ -5,6 +5,11 @@ import {
 } from '@evidence-poc/evidence-agent/browser';
 import { Button, Card } from '@evidence-poc/desktop-ui-kit';
 
+export type ClarifyStoryGap = (
+  nodeId: string,
+  gap: 'contract' | 'completion' | 'request',
+) => void;
+
 const narrativeStatus: Record<StoryScene['narrative']['status'], string> = {
   authored: '已确认的业务解释',
   ready: '智能连贯叙事 · 待核对',
@@ -47,6 +52,7 @@ export const StorySceneSheet = ({
   stepNumber,
   stepCount,
   onJumpToStep,
+  onClarifyGap,
 }: {
   scene: StoryScene;
   ready: boolean;
@@ -54,6 +60,7 @@ export const StorySceneSheet = ({
   stepNumber: number;
   stepCount: number;
   onJumpToStep: (sequence: number) => void;
+  onClarifyGap?: ClarifyStoryGap;
 }) => {
   const {
     activity,
@@ -70,7 +77,7 @@ export const StorySceneSheet = ({
           第 {stepNumber} 步 / 共 {stepCount} 步 · 单据流转
         </p>
         <time dateTime={timing.rawIso}>
-          {timing.displayDate}
+          业务时点：{timing.displayDate}
           {timing.relativeTime ? ` · ${timing.relativeTime}` : ''}
         </time>
       </header>
@@ -137,24 +144,82 @@ export const StorySceneSheet = ({
             <h3 className="text-sm font-semibold">《{documentCard.title}》</h3>
             <p>
               经办方：{activity.actor.roleLabel}
-              {activity.recipient ? (
+              {activity.recipient && !activity.fulfillment ? (
                 <>
                   {' '}
-                  <span aria-hidden="true">
-                    {activity.fulfillment ? '·' : '→'}
-                  </span>{' '}
-                  {activity.fulfillment?.phase === 'request'
-                    ? '义务方'
-                    : activity.fulfillment?.phase === 'confirmation'
-                      ? '权利方'
-                      : activity.workObject.entityKind === 'contract'
-                        ? '签约方'
-                        : '接收方'}
+                  <span aria-hidden="true">→</span>{' '}
+                  {activity.workObject.entityKind === 'contract'
+                    ? '签约方'
+                    : '接收方'}
                   ：{activity.recipient.roleLabel}
                 </>
               ) : null}
             </p>
           </header>
+          {activity.fulfillment ? (
+            <section aria-label="步骤权责核对" className="flex flex-col gap-2">
+              <h4 className="font-medium">步骤权责核对</h4>
+              <p>
+                合同归属：{documentCard.contractContext ?? '待明确'}{' '}
+                {!documentCard.contractContext && onClarifyGap ? (
+                  <Button
+                    size="xs"
+                    variant="outline"
+                    disabled={!ready}
+                    onClick={() =>
+                      onClarifyGap(activity.workObject.entityId, 'contract')
+                    }
+                  >
+                    补齐合同归属
+                  </Button>
+                ) : null}
+              </p>
+              {activity.fulfillment.requests.map((request) => (
+                <div
+                  key={request.stepIndex}
+                  className="flex flex-col gap-1 border-s-2 border-workbench-border ps-3"
+                >
+                  <p className="font-medium">{request.label}</p>
+                  <p>权利方：{request.rightHolder?.roleLabel ?? '待明确'}</p>
+                  <p>义务方：{request.obligor?.roleLabel ?? '待明确'}</p>
+                  <p>约定交付：{request.action ?? '待明确'}</p>
+                  <p>标的物：{request.subjectMatters.join('、') || '待明确'}</p>
+                  <p>
+                    完成规则：{request.completionRules.join('、') || '待明确'}{' '}
+                    {!request.completionRules.length && onClarifyGap ? (
+                      <Button
+                        size="xs"
+                        variant="outline"
+                        disabled={!ready}
+                        onClick={() =>
+                          onClarifyGap(request.requestId, 'completion')
+                        }
+                      >
+                        补齐完成规则
+                      </Button>
+                    ) : null}
+                  </p>
+                </div>
+              ))}
+              {!activity.fulfillment.requests.length ? (
+                <p>
+                  本步骤未能定位对应的履约请求。{' '}
+                  {onClarifyGap ? (
+                    <Button
+                      size="xs"
+                      variant="outline"
+                      disabled={!ready}
+                      onClick={() =>
+                        onClarifyGap(activity.workObject.entityId, 'request')
+                      }
+                    >
+                      澄清关联请求
+                    </Button>
+                  ) : null}
+                </p>
+              ) : null}
+            </section>
+          ) : null}
           <AttributeGroup
             heading="核心商业要素"
             fields={documentCard.keyAttributes}

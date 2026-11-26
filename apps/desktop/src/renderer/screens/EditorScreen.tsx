@@ -574,7 +574,11 @@ const EditorWorkspace = ({
     setInquiry((current) => (current === nodeId ? null : current));
   }, []);
 
-  const openInquiry = (nodeId: string, issueId?: string) => {
+  const openInquiry = (
+    nodeId: string,
+    question = '请先读这张凭证，按它所在的业务阶段，问我一个最关键的澄清问题：这张凭证回应了什么、谁向谁主张什么、交付什么或什么算完成？不要重复问已知信息，本轮只提问，不修改模型。',
+    readOnly = false,
+  ) => {
     if (agent.running || patchReview.review !== null) return;
     if (!isEvidenceEntity(state.graph.getEntity(nodeId))) return;
     state.session.select(nodeId);
@@ -582,14 +586,10 @@ const EditorWorkspace = ({
     setInquiry(nodeId);
     agent.reset();
     if (ai?.aiConfigured === false) return;
-    const question =
-      issueId !== undefined
-        ? `请用 scan_model_health 复核体检发现项 ${issueId}。若它仍存在，针对这项发现问我一个澄清问题；若已消失则停止。本轮不修改模型。`
-        : '请先读这张凭证，按它所在的业务阶段，问我一个最关键的澄清问题：这张凭证回应了什么、谁向谁主张什么、交付什么或什么算完成？不要重复问已知信息，本轮只提问，不修改模型。';
     void agent.submit(question, {
       nodeId,
       inquiry: 'trace',
-      ...(issueId === undefined ? {} : { readOnly: true }),
+      ...(readOnly && { readOnly: true }),
     });
   };
 
@@ -1034,7 +1034,12 @@ const EditorWorkspace = ({
                   if (kind === 'guide' && issue.inquiry?.kind === 'story') {
                     story.openAtRequest(target);
                     openStory();
-                  } else if (kind === 'guide') openInquiry(target, issue.id);
+                  } else if (kind === 'guide')
+                    openInquiry(
+                      target,
+                      `请用 scan_model_health 复核体检发现项 ${issue.id}。若它仍存在，针对这项发现问我一个澄清问题；若已消失则停止。本轮不修改模型。`,
+                      true,
+                    );
                   return true;
                 }}
               />
@@ -1180,10 +1185,25 @@ const EditorWorkspace = ({
                       <StoryDrawer
                         aiConfigured={ai?.aiConfigured}
                         onConfigureAi={ai?.openSettings}
-                        onRevealOnCanvas={(nodeId) => {
-                          closeStory();
-                          revealOnGraph(nodeId);
-                        }}
+                        onClarifyGap={
+                          agent.running || patchReview.review
+                            ? undefined
+                            : (nodeId, gap) => {
+                                closeStory();
+                                revealOnGraph(nodeId);
+                                openInquiry(
+                                  nodeId,
+                                  {
+                                    contract:
+                                      '请读取这张凭证，和我核对它属于哪份合同，确认后再补齐合同归属。',
+                                    completion:
+                                      '请读取这项履约请求，和我核对哪些交付事实能证明完成，确认后再补齐完成规则。',
+                                    request:
+                                      '请读取这张凭证，和我核对它回应的履约请求及其示例依据。',
+                                  }[gap],
+                                );
+                              }
+                        }
                         playback={story}
                         pendingPersistence={pendingPersistence}
                         externalConflict={externalConflict}

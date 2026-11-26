@@ -125,11 +125,9 @@ const WhatIfForm = ({
 const MissingRulesPanel = ({
   playback,
   aiConfigured,
-  onReveal,
 }: {
   playback: StoryPlaybackController;
   aiConfigured: boolean;
-  onReveal?: () => void;
 }) => {
   const [exploring, setExploring] = useState(false);
   const controlsId = useId();
@@ -137,14 +135,9 @@ const MissingRulesPanel = ({
     <>
       <p>当前步骤尚未建模相关的完成或违约规则，无法进行规则判定。</p>
       <p className="text-evidence-muted">
-        可回到画布确认履约约定并补充规则。临时推想不会改动模型。
+        可在步骤权责核对中补齐约定，或先讨论交付延迟的影响。
       </p>
       <div className="flex flex-wrap gap-2">
-        {onReveal ? (
-          <Button type="button" onClick={onReveal}>
-            在画布定位凭证
-          </Button>
-        ) : null}
         {aiConfigured ? (
           <Button
             type="button"
@@ -177,11 +170,9 @@ const MissingRulesPanel = ({
 export const WhatIfSection = ({
   playback,
   aiConfigured,
-  onRevealOnCanvas,
 }: {
   playback: StoryPlaybackController;
   aiConfigured: boolean;
-  onRevealOnCanvas?: (nodeId: string) => void;
 }) => {
   const headingId = useId();
   const heading = useRef<HTMLHeadingElement>(null);
@@ -240,9 +231,6 @@ export const WhatIfSection = ({
           key={key}
           playback={playback}
           aiConfigured={aiConfigured}
-          onReveal={
-            onRevealOnCanvas && (() => onRevealOnCanvas(capability.entityId))
-          }
         />
       ) : aiConfigured ? (
         <WhatIfForm

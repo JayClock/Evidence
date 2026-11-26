@@ -1,7 +1,7 @@
 import type { StoryPlaybackController } from '../../state/useStoryPlayback';
 import { durationLabel, timelineLabel } from './StoryTimelineControls';
 import { WhatIfSection } from './WhatIfSection';
-import { StorySceneSheet } from './StorySceneSheet';
+import { StorySceneSheet, type ClarifyStoryGap } from './StorySceneSheet';
 
 interface StoryDrawerProps {
   playback: StoryPlaybackController;
@@ -9,7 +9,7 @@ interface StoryDrawerProps {
   externalConflict?: boolean;
   aiConfigured?: boolean;
   onConfigureAi?: () => void;
-  onRevealOnCanvas?: (nodeId: string) => void;
+  onClarifyGap?: ClarifyStoryGap;
 }
 
 const buttonClass =
@@ -99,7 +99,7 @@ export const StoryDrawer = ({
   externalConflict = false,
   aiConfigured = true,
   onConfigureAi,
-  onRevealOnCanvas,
+  onClarifyGap,
 }: StoryDrawerProps) => (
   <section
     aria-label="业务故事"
@@ -174,21 +174,18 @@ export const StoryDrawer = ({
       ) : null}
       {playback.scene ? (
         <StorySceneSheet
-          key={`${playback.snapshotId}:${playback.scene.stepIndex}:${playback.scene.stepHash}`}
+          key={`${playback.projection?.flowId}:${playback.step?.entityId}:${playback.step?.exampleLabel}`}
           scene={playback.scene}
           ready={playback.ready}
           stale={playback.stale}
           stepNumber={playback.stepNumber}
           stepCount={playback.stepCount}
           onJumpToStep={playback.jumpToStep}
+          onClarifyGap={onClarifyGap}
         />
       ) : null}
       {playback.ready ? <TimelineDetails playback={playback} /> : null}
-      <WhatIfSection
-        playback={playback}
-        aiConfigured={aiConfigured}
-        onRevealOnCanvas={onRevealOnCanvas}
-      />
+      <WhatIfSection playback={playback} aiConfigured={aiConfigured} />
     </div>
   </section>
 );
