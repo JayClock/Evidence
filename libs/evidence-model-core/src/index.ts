@@ -151,6 +151,7 @@ export {
 } from './trace/whatIfRules.js';
 export {
   buildDeterministicFallbackChallenges,
+  isWhatIfDeadline,
   type WhatIfChallenge,
   type WhatIfChallengeCategory,
 } from './trace/whatIfChallenges.js';

@@ -220,6 +220,29 @@ describe('story IPC', () => {
         enrich({ ...edited, cacheOnly: true }, window),
       ).resolves.toBeNull();
       expect(createAgent).not.toHaveBeenCalled();
+      rule.expression = 'asOf > request.expired_at';
+      createAgent.mockImplementationOnce(() => {
+        throw new Error('offline');
+      });
+      await expect(
+        invoke(
+          STORY_IPC_CHANNELS.WHAT_IF,
+          {
+            rootPath,
+            document,
+            flowId: restored.selected!.flow.flowId,
+            currentStepSequence: scene.stepIndex,
+            stepHash: scene.stepHash,
+            question: card.question,
+            hypothesisDraft: card.hypothesisDraft,
+            targetedRuleId: rule.id,
+          },
+          window,
+        ),
+      ).resolves.toMatchObject({
+        ruleOutcome: { ruleId: rule.id, result: true },
+        businessImpactExplanation: '按「付款逾期」判定，违约条件成立。',
+      });
     } finally {
       ipc.dispose();
       await rm(rootPath, { recursive: true, force: true });

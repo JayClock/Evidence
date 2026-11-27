@@ -5,7 +5,7 @@ import {
   WHAT_IF_CHALLENGE_SUGGESTION_PROMPT,
 } from './prompts.js';
 import { NarrationSchema, responseObject } from './responseSchemas.js';
-import { createStoryAgent } from './storyAgent.js';
+import { abortable, createStoryAgent } from './storyAgent.js';
 import {
   storyChallengeContext,
   suggestStoryChallenges,
@@ -31,25 +31,6 @@ export interface StoryNarrationStore {
   read(signal: AbortSignal): Promise<ReadonlyMap<string, StoryDraft>>;
   write(entries: ReadonlyMap<string, StoryDraft>): Promise<void>;
 }
-
-// Return promptly even if a transport ignores cancellation. The worker checks
-// the same signal before validating or committing any late response.
-const abortable = async <T>(
-  signal: AbortSignal,
-  work: () => Promise<T>,
-): Promise<T> => {
-  signal.throwIfAborted();
-  let onAbort: () => void = () => undefined;
-  const cancelled = new Promise<never>((_, reject) => {
-    onAbort = () => reject(signal.reason);
-    signal.addEventListener('abort', onAbort, { once: true });
-  });
-  try {
-    return await Promise.race([cancelled, work()]);
-  } finally {
-    signal.removeEventListener('abort', onAbort);
-  }
-};
 
 /** Enrich one scene, preserving authored prose and the exact causal context. */
 export const createStoryNarrator = ({
@@ -141,14 +122,13 @@ export const createStoryNarrator = ({
           ]),
         )
         .digest('hex');
-      const saved =
-        cache.get(key) ??
-        (store &&
-          (
-            await abortable(signal, () =>
-              store.read(signal).catch(() => undefined),
-            )
-          )?.get(key));
+      let saved = cache.get(key);
+      if (store && (!saved || (context && saved.challenges === undefined))) {
+        const entries = await abortable(signal, () =>
+          store.read(signal).catch(() => undefined),
+        );
+        saved = entries?.get(key) ?? saved;
+      }
       signal.throwIfAborted();
       if (saved) remember(key, saved);
       const existingProse = authored

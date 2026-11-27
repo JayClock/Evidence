@@ -40,7 +40,7 @@ type BoundField = {
   money?: Record<string, unknown>;
 };
 
-const isDeadline = ({ timeRole, name, valueType }: AttributeAST) =>
+export const isWhatIfDeadline = ({ timeRole, name, valueType }: AttributeAST) =>
   timeRole === 'deadline' ||
   (valueType === 'timestamp' && (name === 'deadline' || name === 'expired_at'));
 
@@ -168,12 +168,26 @@ function overdueChallenge(
 ): Candidate | undefined {
   if (typeof deadline !== 'string' || validateTypedValue(deadline, 'timestamp'))
     return;
-  const late = new Date(Date.parse(deadline) + 86_400_000).toISOString();
+  const day = 86_400_000;
+  const observed = occurrence && step.values[occurrence.name];
+  const latest = Math.max(
+    Date.parse(step.asOf),
+    typeof observed === 'string' ? Date.parse(observed) : -Infinity,
+  );
+  const nextDay = Date.parse(deadline) + day;
+  const alreadyLate = latest >= nextDay;
+  const instant = new Date(alreadyLate ? latest + day : nextDay);
+  if (!Number.isFinite(instant.getTime())) return;
+  const late = instant.toISOString();
+  if (validateTypedValue(late, 'timestamp')) return;
   const change = occurrence ? `将「${occurrence.label}」推迟到` : '到';
+  const when = alreadyLate
+    ? `已超过「${field.label}」的 ${late}`
+    : `「${field.label}」后一天（${late}）`;
   return {
     category: 'overdue',
     label: '超过约定期限',
-    question: `如果${change}「${field.label}」后一天（${late}）${occurrence ? '' : '仍未履约'}，《${step.entityLabel}》的判定结果会怎样？`,
+    question: `如果${change}${when}${occurrence ? '' : '仍未履约'}，《${step.entityLabel}》的判定结果会怎样？`,
     hypothesisDraft: {
       asOf: late,
       ...(occurrence ? { values: { [occurrence.name]: late } } : {}),
@@ -228,11 +242,11 @@ export function buildDeterministicFallbackChallenges(
         boundField(graph, rule, bindings, operand, scope);
       if (!found.has('overdue')) {
         const bound = read(node);
-        if (bound && isDeadline(bound.field))
+        if (bound && isWhatIfDeadline(bound.field))
           offer(overdueChallenge(step, bound.field, bound.value, occurrence));
       }
-      if (found.has('deficit')) return;
       const shortfall = (actual: ASTNode, threshold: ASTNode) => {
+        if (found.has('deficit')) return;
         const source = read(actual);
         const limit = read(threshold);
         if (
@@ -254,6 +268,28 @@ export function buildDeterministicFallbackChallenges(
         node.op === '>='
       ) {
         const [left, right] = node.args;
+        if (!found.has('overdue') && !occurrence) {
+          const a = read(left);
+          const b = read(right);
+          const cutoff = a && isWhatIfDeadline(a.field) ? a : b;
+          const submitted = cutoff === a ? b : a;
+          if (
+            cutoff &&
+            isWhatIfDeadline(cutoff.field) &&
+            submitted?.entityId === step.entityId &&
+            submitted.field.valueType === 'timestamp' &&
+            !submitted.field.timeRole &&
+            scenario.inputAttributes.includes(submitted.field)
+          )
+            offer(
+              overdueChallenge(
+                step,
+                cutoff.field,
+                cutoff.value,
+                submitted.field,
+              ),
+            );
+        }
         if (breach === (node.op === '<' || node.op === '<='))
           shortfall(left, right);
         else shortfall(right, left);
@@ -266,8 +302,11 @@ export function buildDeterministicFallbackChallenges(
       }
     });
     if (!found.has('overdue')) {
-      const deadline = graph.attributesOf(step.entityId).find(isDeadline);
-      if (deadline)
+      const deadline = graph.attributesOf(step.entityId).find(isWhatIfDeadline);
+      if (
+        deadline &&
+        whenEvaluable(() => baseline.decide(rule).result) === !breach
+      )
         offer(
           overdueChallenge(
             step,

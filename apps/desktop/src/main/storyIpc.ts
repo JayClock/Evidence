@@ -126,24 +126,21 @@ export const registerStoryIpc = ({
     pending?.controller.abort();
   };
 
-  const newNarrator = (rootPath: string) => {
+  const lazyAgent = (): StoryAgent => {
     let agent: Promise<StoryAgent> | undefined;
-    return createStoryNarrator({
-      store: storeFor(rootPath),
-      agent: {
-        async generate(request) {
-          agent ??= Promise.resolve()
-            .then(async () => createAgent(await getModelOptions?.()))
-            .catch((error: unknown) => {
-              agent = undefined;
-              throw error;
-            });
-          const active = await agent;
-          request.signal?.throwIfAborted();
-          return active.generate(request);
-        },
+    return {
+      async generate(request) {
+        agent ??= Promise.resolve()
+          .then(async () => createAgent(await getModelOptions?.()))
+          .catch((error: unknown) => {
+            agent = undefined;
+            throw error;
+          });
+        const active = await agent;
+        request.signal?.throwIfAborted();
+        return active.generate(request);
       },
-    });
+    };
   };
 
   const load = async (input: StoryModelInput) => {
@@ -266,7 +263,10 @@ export const registerStoryIpc = ({
       state.pending = pending;
       const signal = pending.controller.signal;
       try {
-        const narrator = (state.narrator ??= newNarrator(state.rootPath));
+        const narrator = (state.narrator ??= createStoryNarrator({
+          store: storeFor(state.rootPath),
+          agent: lazyAgent(),
+        }));
         const result = await narrator.enrichStep(scene, history, {
           flowId: flow.flowId,
           challengeSource: { steps: flow.steps, current, graph },
@@ -351,8 +351,11 @@ export const registerStoryIpc = ({
             : {}),
         },
         input.localOnly
-          ? { localOnly: true }
-          : { agent: createAgent(await getModelOptions?.()) },
+          ? { explanation: 'local' }
+          : {
+              agent: lazyAgent(),
+              explanation: input.hypothesisDraft ? 'optional' : 'required',
+            },
       );
     },
   );

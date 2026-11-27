@@ -90,3 +90,29 @@ it('bounds each project and treats corrupt, stale-version, and oversized files a
     new Map([[key(3), draft('恢复后的草稿')]]),
   );
 });
+
+it('retains verified challenges across partial retries and trims large UTF-8 entries to a readable file', async () => {
+  const cache = createStoryNarrationCache()(a);
+  const full = {
+    ...draft('已润色'),
+    challenges: [
+      {
+        id: 'late',
+        category: 'overdue' as const,
+        label: '逾期',
+        question: '延'.repeat(4000),
+      },
+    ],
+  };
+  await cache.write(
+    new Map(Array.from({ length: 110 }, (_, i) => [key(i), full])),
+  );
+  await cache.write(new Map([[key(109), draft('另一窗口的解说')]]));
+  const saved = await cache.read(signal);
+  expect(saved.size).toBeGreaterThan(0);
+  expect(saved.size).toBeLessThan(110);
+  expect(saved.get(key(109))).toEqual({
+    ...draft('另一窗口的解说'),
+    challenges: full.challenges,
+  });
+});

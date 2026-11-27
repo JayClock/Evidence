@@ -103,7 +103,7 @@ export interface StoryAgent {
     readonly systemPrompt: string;
     readonly userPrompt: string;
     readonly signal?: AbortSignal;
-    readonly purpose?: 'narration';
+    readonly purpose?: 'narration' | 'challenges';
   }): Promise<unknown>;
 }
 

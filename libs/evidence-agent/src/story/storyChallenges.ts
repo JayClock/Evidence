@@ -1,5 +1,6 @@
 import {
   createWhatIfScenario,
+  isWhatIfDeadline,
   whatIfDecisionRules,
   type DomainGraph,
   type FlowStepTrace,
@@ -24,8 +25,25 @@ export function storyChallengeContext({
   try {
     const scenario = createWhatIfScenario(graph, steps, current);
     const baseline = scenario.apply();
+    const entities = new Set([
+      current.entityId,
+      ...scenario.upstream.map((step) => step.entityId),
+    ]);
+    const deadlines = [current, ...scenario.upstream].flatMap((step) =>
+      graph
+        .attributesOf(step.entityId)
+        .filter(isWhatIfDeadline)
+        .flatMap((field) => {
+          const value = baseline.valuesOf(step)[field.name];
+          return typeof value === 'string'
+            ? [{ entityId: step.entityId, time: Date.parse(value) }]
+            : [];
+        }),
+    );
     return {
       scenario,
+      baseline,
+      deadlines,
       rules,
       facts: {
         asOf: current.asOf,
@@ -39,6 +57,20 @@ export function storyChallengeContext({
           attributes: graph.attributesOf(step.entityId),
           values: baseline.valuesOf(step),
         })),
+        derivations: graph
+          .rules()
+          .filter(
+            (rule) =>
+              rule.kind === 'derivation' &&
+              rule.target &&
+              entities.has(rule.target.entityRef),
+          )
+          .map(({ id, expression, target, bindings }) => ({
+            id,
+            expression,
+            target,
+            bindings,
+          })),
         decisionRules: rules.map(
           ({ id, label, kind, description, bindings, expression }) => ({
             id,
@@ -67,6 +99,7 @@ export async function suggestStoryChallenges(
     systemPrompt: WHAT_IF_CHALLENGE_SUGGESTION_PROMPT,
     userPrompt,
     signal,
+    purpose: 'challenges',
   });
   signal.throwIfAborted();
   const { challenges } = WhatIfChallengesSchema.parse(responseObject(response));
@@ -89,9 +122,32 @@ export async function suggestStoryChallenges(
     }
     try {
       const trial = context.scenario.apply(card.hypothesisDraft);
+      // An open request may already be incomplete. Advancing only the clock/occurrence
+      // can still test overdue fulfillment, but lowering a target cannot establish a shortfall.
+      const laterOccurrence =
+        card.category === 'overdue' &&
+        Date.parse(trial.asOf) > Date.parse(context.baseline.asOf) &&
+        Object.keys(card.hypothesisDraft.values ?? {}).every((name) =>
+          context.scenario.inputAttributes.some(
+            (field) => field.name === name && field.timeRole === 'occurrence',
+          ),
+        );
       const target = candidates.find((rule) => {
         try {
-          return trial.decide(rule).result === (rule.kind === 'breach');
+          const adverse = rule.kind === 'breach';
+          if (trial.decide(rule).result !== adverse) return false;
+          if (context.baseline.decide(rule).result !== adverse) return true;
+          return (
+            laterOccurrence &&
+            context.deadlines.some(
+              ({ entityId, time }) =>
+                Date.parse(context.baseline.asOf) <= time &&
+                time < Date.parse(trial.asOf) &&
+                Object.values(rule.bindings).some(
+                  (binding) => 'ref' in binding && binding.ref === entityId,
+                ),
+            )
+          );
         } catch {
           return false;
         }

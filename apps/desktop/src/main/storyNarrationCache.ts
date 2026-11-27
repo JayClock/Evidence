@@ -87,8 +87,10 @@ export const createStoryNarrationCache = () => {
           for (const [key, draft] of generated) {
             const parsed = StoryDraftSchema.safeParse(draft);
             if (!validKey(key) || !parsed.success) continue;
+            // A late partial retry in another window must not erase a successful result.
+            const combined = { ...merged.get(key), ...parsed.data };
             merged.delete(key);
-            merged.set(key, parsed.data);
+            merged.set(key, combined);
           }
           // Longer challenge questions can exhaust the byte budget before the entry limit.
           const entries: [string, StoryDraft][] = [];

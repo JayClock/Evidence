@@ -16,7 +16,7 @@ import {
   ImpactExplanationSchema,
   responseObject,
 } from './responseSchemas.js';
-import { createStoryAgent } from './storyAgent.js';
+import { abortable, createStoryAgent } from './storyAgent.js';
 import type {
   RuleBasedWhatIfResult,
   StoryAgent,
@@ -26,7 +26,7 @@ import type {
 
 export interface WhatIfSimulatorOptions {
   readonly agent?: StoryAgent;
-  readonly localOnly?: boolean;
+  readonly explanation?: 'local' | 'optional' | 'required';
 }
 
 /**
@@ -76,11 +76,12 @@ export async function simulateWhatIf(
     ruleId === undefined
       ? candidates
       : candidates.filter((rule) => rule.id === ruleId);
-  if (options.localOnly && !suppliedHypothesis)
+  const localOnly = options.explanation === 'local';
+  if (localOnly && !suppliedHypothesis)
     throw new Error('Local What-If requires a structured hypothesis.');
   if (
     rules.length === 0 &&
-    (allowSpeculative !== true || ruleId !== undefined || options.localOnly)
+    (allowSpeculative !== true || ruleId !== undefined || localOnly)
   )
     throw new Error(
       'No relevant completion/breach rule is modeled for this step.',
@@ -150,34 +151,42 @@ export async function simulateWhatIf(
     description: rule.description,
     notes: rule.notes,
   }));
-  const explanation = options.localOnly
-    ? {
-        businessImpactExplanation: decisions
-          .map(
-            ({ label, kind, result }) =>
-              `按「${label}」判定，${kind === 'breach' ? (result ? '已触发违约条件' : '未触发违约条件') : result ? '已满足完成条件' : '未满足完成条件'}。`,
-          )
-          .join('\n'),
-      }
-    : ImpactExplanationSchema.parse(
-        responseObject(
-          await agent.generate({
-            systemPrompt: WHAT_IF_EXPLANATION_PROMPT,
-            userPrompt: compactCanonicalJson({
-              hypothesisQuestion,
-              hypothesis,
-              asOf: trial.asOf,
-              currentValues: trial.valuesOf(current),
-              ruleOutcomes: decisions,
-            }),
+  const localExplanation = () =>
+    decisions
+      .map(({ label, kind, result }) => {
+        const condition = kind === 'breach' ? '违约条件' : '完成条件';
+        return `按「${label}」判定，${condition}${result ? '成立' : '不成立'}。`;
+      })
+      .join('\n');
+  const explain = async (signal?: AbortSignal) =>
+    ImpactExplanationSchema.parse(
+      responseObject(
+        await agent.generate({
+          systemPrompt: WHAT_IF_EXPLANATION_PROMPT,
+          signal,
+          userPrompt: compactCanonicalJson({
+            hypothesisQuestion,
+            hypothesis,
+            asOf: trial.asOf,
+            currentValues: trial.valuesOf(current),
+            ruleOutcomes: decisions,
           }),
-        ),
-      );
+        }),
+      ),
+    ).businessImpactExplanation;
+  let businessImpactExplanation: string;
+  if (localOnly) businessImpactExplanation = localExplanation();
+  else if (options.explanation === 'optional') {
+    const signal = AbortSignal.timeout(15_000);
+    businessImpactExplanation = await abortable(signal, () =>
+      explain(signal),
+    ).catch(localExplanation);
+  } else businessImpactExplanation = await explain();
   return {
     isSpeculative: false,
     hypothesis,
     ruleOutcome: ruleOutcomes[0]!,
     ruleOutcomes,
-    businessImpactExplanation: explanation.businessImpactExplanation,
+    businessImpactExplanation,
   };
 }

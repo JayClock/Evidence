@@ -40,6 +40,25 @@ const resolveModel = async (options: StoryAgentOptions) => {
   };
 };
 
+// Return promptly even if a transport ignores cancellation. The worker checks
+// the same signal before validating or committing any late response.
+export const abortable = async <T>(
+  signal: AbortSignal,
+  work: () => Promise<T>,
+): Promise<T> => {
+  signal.throwIfAborted();
+  let onAbort: () => void = () => undefined;
+  const cancelled = new Promise<never>((_, reject) => {
+    onAbort = () => reject(signal.reason);
+    signal.addEventListener('abort', onAbort, { once: true });
+  });
+  try {
+    return await Promise.race([cancelled, work()]);
+  } finally {
+    signal.removeEventListener('abort', onAbort);
+  }
+};
+
 /** Stateless model completion. Offline and cached projections never resolve a model. */
 export const createStoryAgent = (
   options: StoryAgentOptions = {},
@@ -64,8 +83,8 @@ export const createStoryAgent = (
         },
         {
           ...(signal === undefined ? {} : { signal }),
-          ...(purpose === 'narration'
-            ? { maxTokens: 384 }
+          ...(purpose
+            ? { maxTokens: purpose === 'narration' ? 384 : 1024 }
             : thinkingLevel && thinkingLevel !== 'off'
               ? { reasoning: thinkingLevel }
               : {}),

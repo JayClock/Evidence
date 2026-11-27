@@ -98,6 +98,10 @@ describe('stateless story completion', () => {
       name: 'AbortError',
     });
     expect(completeSimple).toHaveBeenCalledOnce();
+    await agent.generate({ ...request, purpose: 'challenges' });
+    expect(completeSimple).toHaveBeenLastCalledWith(model, expect.anything(), {
+      maxTokens: 1024,
+    });
     await agent.generate(request);
     expect(completeSimple).toHaveBeenLastCalledWith(model, expect.anything(), {
       reasoning: 'high',

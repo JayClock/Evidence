@@ -10,7 +10,13 @@ import {
 import { readModelDirectory } from '@evidence-poc/evidence-model-io';
 import { describe, expect, it, vi } from 'vitest';
 
-import { createFlowStoryProjector, simulateWhatIf } from '../index.js';
+import {
+  createFlowStoryProjector,
+  createStoryNarrator,
+  projectStoryFacts,
+  simulateWhatIf,
+  WHAT_IF_CHALLENGE_SUGGESTION_PROMPT,
+} from '../index.js';
 
 const acceptanceModel = async (name: string) => {
   const { document, issues } = await readModelDirectory(
@@ -64,6 +70,55 @@ describe('M1 trace to M2 story integration', () => {
       },
     ]);
     expect(requestCards[0]?.hypothesisDraft?.values).toBeUndefined();
+    const request = flow.steps.find(
+      (step) => step.entityId === 'request.annual-target',
+    )!;
+    const scene = projectStoryFacts(flow, model).scenes.find(
+      (scene) => scene.stepIndex === request.sequence,
+    )!;
+    const suggestion = {
+      id: 'lower',
+      category: 'deficit',
+      label: '下调指标',
+      question: '如果年度指标降到 2500 万，会怎样？',
+      targetedRuleId: annual.id,
+      hypothesisDraft: { values: { target_amount_minor: 25_000_000 } },
+    };
+    const overdue = {
+      id: 'overdue',
+      category: 'overdue',
+      label: '逾期三天',
+      question: '如果年度指标到期三天后仍未入账，会怎样？',
+      targetedRuleId: annual.id,
+      hypothesisDraft: { asOf: '2027-01-05T09:00:00Z' },
+    };
+    const narrator = createStoryNarrator({
+      agent: {
+        generate: async ({ systemPrompt }) =>
+          systemPrompt === WHAT_IF_CHALLENGE_SUGGESTION_PROMPT
+            ? {
+                challenges: [
+                  suggestion,
+                  {
+                    ...overdue,
+                    id: 'early',
+                    question: '如果明天仍未入账？',
+                    hypothesisDraft: { asOf: '2026-01-03T09:00:00Z' },
+                  },
+                  overdue,
+                ],
+              }
+            : { headline: '年度收入考核', prose: '约定年度收入指标。' },
+      },
+    });
+    expect(
+      (
+        await narrator.enrichStep(scene, [], {
+          flowId: flow.flowId,
+          challengeSource: { graph, steps: flow.steps, current: request },
+        })
+      )?.challenges,
+    ).toEqual([overdue]);
     const receipt = flow.steps.find(
       (step) => step.entityId === 'confirmation.revenue',
     )!;
