@@ -9,6 +9,7 @@ export const badgeVariants = cva(
     variants: {
       variant: {
         default: 'border-transparent bg-evidence-accent text-white',
+        destructive: 'border-transparent bg-destructive text-white',
         secondary:
           'border-evidence-line bg-evidence-surface text-evidence-muted',
         outline: 'border-evidence-line bg-white text-evidence-muted',

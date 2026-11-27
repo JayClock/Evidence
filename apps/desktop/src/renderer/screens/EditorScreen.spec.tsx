@@ -796,7 +796,7 @@ describe('EditorScreen', () => {
       target: { value: question },
     });
     fireEvent.click(story.getByRole('button', { name: '推演假设' }));
-    expect(await story.findByText('rule.payment-late：条件成立')).toBeVisible();
+    expect(await story.findByText('逾期未到账 · 触发违约')).toBeVisible();
     const form = within(story.getByRole('form', { name: '固化违约分支' }));
     for (const [name, value] of [
       ['已确认的触发条件', '逾期未到账'],

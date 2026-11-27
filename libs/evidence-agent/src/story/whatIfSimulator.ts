@@ -19,10 +19,10 @@ import {
   responseObject,
 } from './responseSchemas.js';
 import { abortable, createStoryAgent } from './storyAgent.js';
+import { describeWhatIfOutcome } from './storyContinuity.js';
 import { businessDate } from './storyDocument.js';
 import {
   buildLocalStoryExplanation,
-  businessVerdict,
   whatIfBusinessFacts,
   whatIfCommitment,
   whatIfStoryContext,
@@ -188,7 +188,7 @@ export async function simulateWhatIf(
           label: outcome.label,
           description: outcome.description,
           kind: outcome.kind === 'breach' ? '违约约定' : '完成条件',
-          result: businessVerdict(outcome),
+          result: describeWhatIfOutcome(outcome),
         })),
       }),
     });

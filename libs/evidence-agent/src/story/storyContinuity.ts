@@ -2,7 +2,16 @@ import type {
   NextStepExpectation,
   StoryScene,
   StoryStepHistoryItem,
+  WhatIfRuleOutcome,
 } from './types.js';
+
+export function describeWhatIfOutcome({
+  kind,
+  result,
+}: WhatIfRuleOutcome): string {
+  if (kind === 'breach') return result ? '触发违约' : '未触发违约';
+  return result ? '完成条件已达成' : '完成条件未达成';
+}
 
 /** Only accepted local explanations and completed drafts become prompt history. */
 export const storyHistoryItem = ({

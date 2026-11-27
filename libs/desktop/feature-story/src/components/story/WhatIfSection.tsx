@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { Badge, Button } from '@evidence-poc/desktop-ui-kit';
+import { describeWhatIfOutcome } from '@evidence-poc/evidence-agent/browser';
 import type {
   WhatIfChallenge,
   WhatIfChallengeCategory,
@@ -100,9 +101,9 @@ const WhatIfForm = ({
         </label>
         <p id={`${id}-help`} className="text-evidence-muted">
           {speculative
-            ? 'AI 只讨论可能的影响；不判定完成或违约，不作为验收依据。'
+            ? '写下想了解的履约情况，看看它可能影响谁的下一步工作。'
             : aiConfigured
-              ? '更改当前凭证的输入值或判定时点。模型规则负责判定，AI 负责解释；假设不会保存。'
+              ? '写明想改变的业务事实，例如实际交付时间、到账金额或核对日期。'
               : '选择推荐问题可在本地推演。配置大模型后可推演自行编写的问题。'}
         </p>
         <textarea
@@ -151,25 +152,30 @@ const WhatIfForm = ({
         {result ? (
           <div className="flex flex-col gap-2 border-t border-evidence-line pt-3">
             {result.isSpeculative ? (
-              <Badge variant="role">AI 临时推想 · 非规则判定</Badge>
+              <Badge variant="role">AI 临时推想</Badge>
             ) : null}
             <p className="whitespace-pre-wrap break-words leading-6">
               {result.businessImpactExplanation}
             </p>
             {!result.isSpeculative ? (
-              <>
-                <ul className="flex flex-col gap-1 text-evidence-muted">
-                  {result.ruleOutcomes.map((outcome) => (
-                    <li key={outcome.ruleId}>
-                      {outcome.ruleId}：
-                      {outcome.result ? '条件成立' : '条件不成立'}
-                    </li>
-                  ))}
-                </ul>
-                <p className="text-evidence-muted">
-                  推演不是审批或发布授权；条件成立也可能表示触发违约。
-                </p>
-              </>
+              <ul aria-label="履约推演结论" className="flex flex-wrap gap-1.5">
+                {result.ruleOutcomes.map((outcome) => (
+                  <li key={outcome.ruleId} className="min-w-0 max-w-full">
+                    <Badge
+                      variant={
+                        !outcome.result
+                          ? 'outline'
+                          : outcome.kind === 'breach'
+                            ? 'destructive'
+                            : 'default'
+                      }
+                      className="max-w-full wrap-anywhere whitespace-normal text-xs"
+                    >
+                      {outcome.label} · {describeWhatIfOutcome(outcome)}
+                    </Badge>
+                  </li>
+                ))}
+              </ul>
             ) : null}
           </div>
         ) : null}
@@ -193,7 +199,7 @@ const MissingRulesPanel = ({
   const controlsId = useId();
   return (
     <>
-      <p>当前步骤尚未建模相关的完成或违约规则，无法进行规则判定。</p>
+      <p>这份凭证还没有可用于判断履约完成或违约的约定。</p>
       <div className="flex flex-wrap gap-2">
         {aiConfigured ? (
           <Button

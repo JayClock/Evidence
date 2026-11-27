@@ -123,11 +123,6 @@ export function whatIfCommitment(
   return deadline;
 }
 
-export function businessVerdict({ kind, result }: WhatIfRuleOutcome): string {
-  if (kind === 'breach') return result ? '触发违约' : '未触发违约';
-  return result ? '完成条件已达成' : '完成条件未达成';
-}
-
 /** Use the Chinese part of bilingual document and role labels in running prose. */
 const shortTitle = (label: string) =>
   label.replace(/（[A-Za-z][^（）]*）/gu, '').trim() || label;

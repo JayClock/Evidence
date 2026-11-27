@@ -36,5 +36,6 @@ export type {
 } from './story/types.js';
 export {
   describeStoryExpectation,
+  describeWhatIfOutcome,
   storyHistoryItem,
 } from './story/storyContinuity.js';

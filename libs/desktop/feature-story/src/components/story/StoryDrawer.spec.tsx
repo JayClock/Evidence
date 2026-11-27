@@ -347,15 +347,18 @@ describe('StoryDrawer', () => {
     expect(vi.mocked(api.story.whatIf).mock.calls[0]![0]).not.toHaveProperty(
       'allowSpeculative',
     );
+    const outcomes = screen.getByRole('list', { name: '履约推演结论' });
     expect(
-      screen.getByText('rule.delivery-completion：条件不成立'),
+      within(outcomes).getByText(
+        '交付完成（Delivery Completion） · 完成条件未达成',
+      ),
     ).toBeVisible();
+    expect(outcomes).not.toHaveTextContent('rule.delivery-completion');
+    expect(screen.queryByText(/审批或发布授权/u)).toBeNull();
     expect(screen.queryByRole('form', { name: '固化违约分支' })).toBeNull();
     expect(screen.queryByRole('button', { name: '固化违约分支…' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /上一步/ }));
-    expect(
-      screen.queryByText('rule.delivery-completion：条件不成立'),
-    ).toBeNull();
+    expect(screen.queryByRole('list', { name: '履约推演结论' })).toBeNull();
     expect(screen.getByRole('textbox', { name: '假设问题' })).toHaveValue('');
   });
 
@@ -368,7 +371,9 @@ describe('StoryDrawer', () => {
     });
     selectTab('推演与分支');
     fireEvent.click(screen.getByRole('button', { name: '前往「交付请求」' }));
-    expect(screen.getByText(/尚未建模相关的完成或违约规则/)).toBeVisible();
+    expect(
+      screen.getByText(/还没有可用于判断履约完成或违约的约定/),
+    ).toBeVisible();
     expect(screen.queryByRole('textbox', { name: '假设问题' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: '开启 AI 临时推想' }));
     fireEvent.change(screen.getByRole('textbox', { name: '假设问题' }), {
@@ -384,7 +389,8 @@ describe('StoryDrawer', () => {
         allowSpeculative: true,
       }),
     );
-    expect(screen.getByText('AI 临时推想 · 非规则判定')).toBeVisible();
+    expect(screen.getByText('AI 临时推想')).toBeVisible();
+    expect(screen.queryByRole('list', { name: '履约推演结论' })).toBeNull();
     expect(screen.getByText('后续入库可能延迟。')).toBeVisible();
     expect(screen.queryByRole('button', { name: '固化违约分支…' })).toBeNull();
     expect(screen.queryByText(/条件不成立|条件成立/)).toBeNull();
@@ -394,6 +400,45 @@ describe('StoryDrawer', () => {
     expect(screen.getByRole('textbox', { name: '假设问题' })).toHaveValue('');
     fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
     expect(screen.queryByRole('textbox', { name: '假设问题' })).toBeNull();
+  });
+
+  it('shows a met completion and an untriggered breach as distinct outcomes', async () => {
+    const { api } = await setup({ breach: true });
+    const ruleOutcome = {
+      ruleId: 'rule.delivery-completion',
+      label: '按期交付',
+      kind: 'completion' as const,
+      result: true,
+    };
+    vi.mocked(api.story.whatIf).mockResolvedValueOnce({
+      isSpeculative: false,
+      hypothesis: { values: { confirmed_at: '2026-11-11T08:00:00Z' } },
+      ruleOutcome,
+      ruleOutcomes: [
+        ruleOutcome,
+        {
+          ruleId: 'rule.late',
+          label: '交付逾期',
+          kind: 'breach',
+          result: false,
+        },
+      ],
+      businessImpactExplanation: '若按期交付，采购方可继续核对交付确认。',
+    });
+    fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
+    fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
+    fireEvent.click(screen.getByRole('button', { name: '推演此步异常 →' }));
+    fireEvent.change(screen.getByRole('textbox', { name: '假设问题' }), {
+      target: { value: '如果提前交付呢？' },
+    });
+    await act(async () =>
+      fireEvent.click(screen.getByRole('button', { name: '推演假设' })),
+    );
+    const outcomes = within(screen.getByRole('list', { name: '履约推演结论' }));
+    expect(
+      outcomes.getAllByRole('listitem').map((item) => item.textContent),
+    ).toEqual(['按期交付 · 完成条件已达成', '交付逾期 · 未触发违约']);
+    expect(screen.queryByRole('form', { name: '固化违约分支' })).toBeNull();
   });
 
   it('upgrades local cards in place, keeps typed text and drops the selected draft when the question is edited', async () => {
@@ -489,7 +534,9 @@ describe('StoryDrawer', () => {
     expect(screen.getByRole('button', { name: '配置旁白模型' })).toBeVisible();
     selectTab('推演与分支');
     fireEvent.click(screen.getByRole('button', { name: '前往「交付请求」' }));
-    expect(screen.getByText(/尚未建模相关的完成或违约规则/)).toBeVisible();
+    expect(
+      screen.getByText(/还没有可用于判断履约完成或违约的约定/),
+    ).toBeVisible();
     expect(
       screen.queryByRole('button', { name: '开启 AI 临时推想' }),
     ).toBeNull();
@@ -512,7 +559,10 @@ describe('StoryDrawer', () => {
       await act(async () =>
         fireEvent.click(screen.getByRole('button', { name: '推演假设' })),
       );
-      expect(screen.getByText('rule.late：条件成立')).toBeVisible();
+      expect(screen.getByText('逾期未交付 · 触发违约')).toBeVisible();
+      expect(
+        screen.getByRole('region', { name: 'What-If 业务沙盘' }),
+      ).not.toHaveTextContent('rule.late');
       const form = within(screen.getByRole('form', { name: '固化违约分支' }));
       fireEvent.click(form.getByRole('radio', { name: '争议终结' }));
       const submit = form.getByRole('button', { name: '固化为争议终结' });
