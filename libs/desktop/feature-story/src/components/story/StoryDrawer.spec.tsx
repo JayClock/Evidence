@@ -10,10 +10,13 @@ import {
 import {
   applyModelPatches,
   createModelPatch,
+  createDomainGraph,
+  createWhatIfScenario,
   recordBreachOutcomeMutator,
 } from '@evidence-poc/evidence-model-core';
 import { installDesktopApi } from '@evidence-poc/desktop-testing/desktopApi';
 import { storyFlow, storySnapshot } from '@evidence-poc/desktop-testing/story';
+import type { StoryEnrichStepResult } from '@evidence-poc/desktop-contracts/story';
 import {
   STORY_REFRESH_DELAY,
   useStoryPlayback,
@@ -42,7 +45,15 @@ const setup = async ({
             ...step,
             values: { ...step.values, confirmed_at: '2026-11-11T08:00:00Z' },
           }
-        : step,
+        : step.entityKind === 'fulfillment_request'
+          ? {
+              ...step,
+              values: {
+                ...step.values,
+                expired_at: '2026-11-11T18:00:00+08:00',
+              },
+            }
+          : step,
     ),
   };
   const timedFlow = {
@@ -68,13 +79,27 @@ const setup = async ({
     api.story.enrichStep = async () => {
       throw new Error('AI 未配置');
     };
-  api.story.whatIf = vi.fn(async () => ({
-    isSpeculative: false as const,
-    hypothesis: { values: { amount: 300 } },
-    ruleOutcome: { ruleId: 'rule.payment', result: false },
-    ruleOutcomes: [{ ruleId: 'rule.payment', result: false }],
-    businessImpactExplanation: '付款不足，未满足结清条件。',
-  }));
+  api.story.whatIf = vi.fn<typeof api.story.whatIf>(async (input) => {
+    if (!input.document || !input.targetedRuleId || !input.hypothesisDraft)
+      throw new Error('Expected a structured challenge');
+    const graph = createDomainGraph(input.document);
+    const step = selected.steps.find(
+      (step) => step.sequence === input.currentStepSequence,
+    );
+    const rule = graph.getRule(input.targetedRuleId);
+    if (!step || !rule)
+      throw new Error('Expected the challenge’s scene and rule');
+    const ruleOutcome = createWhatIfScenario(graph, selected.steps, step)
+      .apply(input.hypothesisDraft)
+      .decide(rule);
+    return {
+      isSpeculative: false,
+      hypothesis: input.hypothesisDraft,
+      ruleOutcome,
+      ruleOutcomes: [ruleOutcome],
+      businessImpactExplanation: rule.label,
+    };
+  });
   const document = empty ? createEmptyDomainModel() : createDesktopFixture();
   if (unassignedConfirmation) {
     const confirmation = document.entities.find(
@@ -290,9 +315,11 @@ describe('StoryDrawer', () => {
     fireEvent.click(screen.getByRole('button', { name: '推演此步异常 →' }));
     expect(screen.getByRole('tab', { name: '推演与分支' })).toHaveFocus();
     expect(screen.getByRole('button', { name: '推演假设' })).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: '填入示例问题' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: /时效逾期 · 超过约定期限/ }),
+    );
     const question =
-      '如果「确认时间」比该示例晚一小时，改为 2026-11-11T09:00:00.000Z，判定结果会怎样？';
+      '如果将「确认时间」推迟到「截止时间」后一天（2026-11-12T10:00:00.000Z），《交付确认》的判定结果会怎样？';
     expect(screen.getByRole('textbox', { name: '假设问题' })).toHaveValue(
       question,
     );
@@ -305,16 +332,24 @@ describe('StoryDrawer', () => {
         currentStepSequence: 3,
         stepHash: 'step-2',
         question,
+        hypothesisDraft: {
+          asOf: '2026-11-12T10:00:00.000Z',
+          values: { confirmed_at: '2026-11-12T10:00:00.000Z' },
+        },
       }),
     );
     expect(vi.mocked(api.story.whatIf).mock.calls[0]![0]).not.toHaveProperty(
       'allowSpeculative',
     );
-    expect(screen.getByText('rule.payment：条件不成立')).toBeVisible();
+    expect(
+      screen.getByText('rule.delivery-completion：条件不成立'),
+    ).toBeVisible();
     expect(screen.queryByRole('form', { name: '固化违约分支' })).toBeNull();
     expect(screen.queryByRole('button', { name: '固化违约分支…' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /上一步/ }));
-    expect(screen.queryByText('rule.payment：条件不成立')).toBeNull();
+    expect(
+      screen.queryByText('rule.delivery-completion：条件不成立'),
+    ).toBeNull();
     expect(screen.getByRole('textbox', { name: '假设问题' })).toHaveValue('');
   });
 
@@ -330,7 +365,9 @@ describe('StoryDrawer', () => {
     expect(screen.getByText(/尚未建模相关的完成或违约规则/)).toBeVisible();
     expect(screen.queryByRole('textbox', { name: '假设问题' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: '开启 AI 临时推想' }));
-    fireEvent.click(screen.getByRole('button', { name: '填入示例问题' }));
+    fireEvent.change(screen.getByRole('textbox', { name: '假设问题' }), {
+      target: { value: '如果未能按约交付，会影响后续入库吗？' },
+    });
     expect(api.story.whatIf).not.toHaveBeenCalled();
     await act(async () =>
       fireEvent.click(screen.getByRole('button', { name: '生成 AI 推想' })),
@@ -353,6 +390,87 @@ describe('StoryDrawer', () => {
     expect(screen.queryByRole('textbox', { name: '假设问题' })).toBeNull();
   });
 
+  it('upgrades local cards in place, keeps typed text and drops the selected draft when the question is edited', async () => {
+    const { api } = await setup({ breach: true });
+    let finish!: (reply: StoryEnrichStepResult) => void;
+    api.story.enrichStep = vi.fn(
+      () =>
+        new Promise<StoryEnrichStepResult>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
+    fireEvent.click(screen.getByRole('button', { name: '推演此步异常 →' }));
+    expect(
+      screen.getByRole('button', { name: /时效逾期 · 超过约定期限/ }),
+    ).toBeVisible();
+    const editor = screen.getByRole('textbox', { name: '假设问题' });
+    fireEvent.change(editor, { target: { value: '我正在写的假设' } });
+    const card = {
+      id: 'late',
+      category: 'overdue' as const,
+      label: '逾期三天',
+      question: '如果采购方逾期三天仍未验收，会怎样？',
+      targetedRuleId: 'rule.late',
+      hypothesisDraft: { asOf: '2026-11-14T10:00:00Z' },
+    };
+    await act(async () =>
+      finish({
+        stepIndex: 2,
+        stepHash: 'step-1',
+        narrative: { headline: '交付请求', prose: '请求验收。' },
+        cached: false,
+        challenges: [card],
+      }),
+    );
+    expect(editor).toHaveValue('我正在写的假设');
+    expect(screen.queryByRole('button', { name: /超过约定期限/ })).toBeNull();
+    fireEvent.click(
+      screen.getByRole('button', { name: /时效逾期 · 逾期三天/ }),
+    );
+    expect(editor).toHaveValue(card.question);
+    expect(editor).toHaveFocus();
+    const edited = '如果采购方逾期五天仍未验收，会怎样？';
+    fireEvent.change(editor, { target: { value: edited } });
+    const ruleOutcome = { ruleId: 'rule.late', result: true };
+    vi.mocked(api.story.whatIf).mockResolvedValueOnce({
+      isSpeculative: false,
+      hypothesis: { asOf: '2026-11-16T10:00:00Z' },
+      ruleOutcome,
+      ruleOutcomes: [ruleOutcome],
+      businessImpactExplanation: '已超过约定期限五天。',
+    });
+    await act(async () =>
+      fireEvent.click(screen.getByRole('button', { name: '推演假设' })),
+    );
+    const [input] = vi.mocked(api.story.whatIf).mock.calls[0]!;
+    expect(input.question).toBe(edited);
+    expect(input).not.toHaveProperty('hypothesisDraft');
+    expect(input).not.toHaveProperty('targetedRuleId');
+    expect(screen.getByText('已超过约定期限五天。')).toBeVisible();
+  });
+
+  it('evaluates an offline deadline challenge and opens the breach form only on submission', async () => {
+    const { api } = await setup({ breach: true, aiConfigured: false });
+    selectTab('推演与分支');
+    fireEvent.click(screen.getByRole('button', { name: '前往「交付请求」' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: /时效逾期 · 超过约定期限/ }),
+    );
+    expect(screen.queryByRole('form', { name: '固化违约分支' })).toBeNull();
+    await act(async () =>
+      fireEvent.click(screen.getByRole('button', { name: '推演假设' })),
+    );
+    expect(api.story.whatIf).toHaveBeenCalledWith(
+      expect.objectContaining({
+        localOnly: true,
+        targetedRuleId: 'rule.late',
+        hypothesisDraft: { asOf: '2026-11-12T10:00:00.000Z' },
+      }),
+    );
+    expect(screen.getByRole('form', { name: '固化违约分支' })).toBeVisible();
+  });
+
   it('shows guidance but no speculative form while AI is unconfigured', async () => {
     const { api } = await setup({ noRules: true, aiConfigured: false });
     const drawer = within(screen.getByRole('region', { name: '业务故事' }));
@@ -373,22 +491,17 @@ describe('StoryDrawer', () => {
       const { api, recordOutcome, onOpenBranchEntity } = await setup({
         breach: true,
       });
-      vi.mocked(api.story.whatIf).mockResolvedValue({
-        isSpeculative: false,
-        hypothesis: {},
-        ruleOutcome: { ruleId: 'rule.late', result: true },
-        ruleOutcomes: [{ ruleId: 'rule.late', result: true }],
-        businessImpactExplanation: '逾期未交付。',
-      });
       fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
       fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
       fireEvent.click(screen.getByRole('button', { name: '推演此步异常 →' }));
-      fireEvent.click(screen.getByRole('button', { name: '填入示例问题' }));
+      fireEvent.click(
+        screen.getByRole('button', { name: /时效逾期 · 超过约定期限/ }),
+      );
+      expect(api.story.whatIf).not.toHaveBeenCalled();
       await act(async () =>
         fireEvent.click(screen.getByRole('button', { name: '推演假设' })),
       );
-      expect(screen.queryByRole('form', { name: '固化违约分支' })).toBeNull();
-      fireEvent.click(screen.getByRole('button', { name: '固化违约分支…' }));
+      expect(screen.getByText('rule.late：条件成立')).toBeVisible();
       const form = within(screen.getByRole('form', { name: '固化违约分支' }));
       fireEvent.click(form.getByRole('radio', { name: '争议终结' }));
       const submit = form.getByRole('button', { name: '固化为争议终结' });

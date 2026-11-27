@@ -1,5 +1,5 @@
 import {
-  isTimestampText,
+  buildDeterministicFallbackChallenges,
   isWhatIfFulfillmentEvidence,
   whatIfDecisionRules,
   type DomainGraph,
@@ -9,7 +9,10 @@ import {
   isFulfillmentRequest,
   type EntityAST,
 } from '@evidence-poc/evidence-schema';
-import type { WhatIfResult } from '@evidence-poc/evidence-agent/browser';
+import type {
+  WhatIfChallenge,
+  WhatIfResult,
+} from '@evidence-poc/evidence-agent/browser';
 
 /** Only the current scene's causal requests can own a modeled outcome. */
 export function promotableSceneRequests(
@@ -41,44 +44,10 @@ type WhatIfTarget = Pick<FlowStepTrace, 'sequence' | 'entityLabel'> & {
 export type WhatIfCapability =
   | { readonly status: 'non_fulfillment_stage'; readonly next?: WhatIfTarget }
   | { readonly status: 'missing_rules' }
-  | { readonly status: 'eligible'; readonly suggestedQuestion?: string };
-
-function suggestQuestion(graph: DomainGraph, step: FlowStepTrace) {
-  for (const attribute of graph.attributesOf(step.entityId)) {
-    const { name, label, timeRole, derivedByRuleRef } = attribute;
-    if (
-      derivedByRuleRef !== undefined ||
-      graph
-        .rules()
-        .some(
-          ({ kind, target }) =>
-            kind === 'derivation' &&
-            target?.entityRef === step.entityId &&
-            target.attribute === name,
-        )
-    )
-      continue;
-    const value = step.values[name];
-    if (
-      /amount|price/i.test(name) &&
-      typeof value === 'number' &&
-      Number.isSafeInteger(value) &&
-      value >= 2
-    ) {
-      return `如果把「${label}」从 ${value} 改为 ${Math.floor(value / 2)}，判定结果会怎样？`;
-    }
-    if (
-      (timeRole === 'occurrence' || timeRole === 'deadline') &&
-      isTimestampText(value)
-    ) {
-      const later = new Date(Date.parse(value) + 60 * 60_000);
-      if (Number.isFinite(later.getTime())) {
-        return `如果「${label}」比该示例晚一小时，改为 ${later.toISOString()}，判定结果会怎样？`;
-      }
-    }
-  }
-  return undefined;
-}
+  | {
+      readonly status: 'eligible';
+      readonly challenges: readonly WhatIfChallenge[];
+    };
 
 export function evaluateWhatIfCapability(
   graph: DomainGraph,
@@ -103,11 +72,12 @@ export function evaluateWhatIfCapability(
     }
     return { status: 'non_fulfillment_stage', next: firstFulfillment };
   }
-  if (whatIfDecisionRules(graph, step.entityId).length === 0) {
+  const rules = whatIfDecisionRules(graph, step.entityId);
+  if (rules.length === 0) {
     return { status: 'missing_rules' };
   }
   return {
     status: 'eligible',
-    suggestedQuestion: suggestQuestion(graph, step),
+    challenges: buildDeterministicFallbackChallenges(graph, steps, step, rules),
   };
 }

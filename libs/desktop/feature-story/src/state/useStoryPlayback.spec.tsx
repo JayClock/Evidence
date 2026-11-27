@@ -125,8 +125,8 @@ describe('story playback', () => {
     expect(enrichStep).toHaveBeenCalledOnce();
   });
 
-  it('does not enrich an authored scene', async () => {
-    const { hook, load, flow, enrichStep, tick } = setup();
+  it('prefetches challenges for an authored fulfillment step without changing its prose or authorship', async () => {
+    const { hook, load, flow, pending, tick } = setup();
     load.mockResolvedValue(
       storySnapshot([
         {
@@ -143,7 +143,33 @@ describe('story playback', () => {
       prose: '人工确认的业务说明。',
       status: 'authored',
     });
-    expect(enrichStep).not.toHaveBeenCalled();
+    expect(pending.map(({ input }) => input.stepIndex)).toEqual([2]);
+    const { input, resolve } = pending[0]!;
+    const card = {
+      id: 'overdue',
+      category: 'overdue' as const,
+      label: '逾期确认',
+      question: '如果逾期三天才确认，会怎样？',
+    };
+    await act(async () =>
+      resolve({
+        ...input,
+        narrative: { headline: '覆盖', prose: '生成草稿' },
+        challenges: [card],
+        cached: true,
+      }),
+    );
+    act(() => hook.result.current.next());
+    expect(hook.result.current.scene?.narrative).toMatchObject({
+      status: 'authored',
+      prose: '人工确认的业务说明。',
+    });
+    expect(hook.result.current.whatIfCapability).toMatchObject({
+      challenges: [card],
+    });
+    expect(pending[1]?.input.storyHistory[1]?.summary).toBe(
+      '人工确认的业务说明。',
+    );
   });
 
   it('prefetches exactly one next step with the confirmed current story as history', async () => {

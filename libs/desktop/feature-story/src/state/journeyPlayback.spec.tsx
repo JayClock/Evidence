@@ -43,15 +43,15 @@ it('walks across responsibility lanes, resets branch focus when switching scenar
       await vi.advanceTimersByTimeAsync(STORY_REFRESH_DELAY);
     });
   await load();
-  const advanceTo = (id: string) => {
+  const advanceTo = async (id: string) => {
     for (let i = 0; i < 30 && hook.result.current.step?.entityId !== id; i++)
-      act(() => hook.result.current.next());
+      await act(async () => hook.result.current.next());
     expect(hook.result.current.step?.entityId).toBe(id);
   };
   act(() => hook.result.current.selectFlow('late-delivery'));
   expect(hook.result.current.canvasFocus).toBeNull();
   await load();
-  advanceTo('conf-equipment-delivery');
+  await advanceTo('conf-equipment-delivery');
   expect(hook.result.current.canvasFocus?.flowKind).toBe('breach_compensation');
   expect(hook.result.current.canvasFocus?.triggeredRuleIds).toContain(
     'rule-breach-detection-overdue',
@@ -62,7 +62,7 @@ it('walks across responsibility lanes, resets branch focus when switching scenar
   act(() => hook.result.current.selectFlow('defect-escalation'));
   expect(hook.result.current.canvasFocus).toBeNull();
   await load();
-  advanceTo('req-escrow-freeze');
+  await advanceTo('req-escrow-freeze');
   expect(hook.result.current.canvasFocus?.relatedEntityIds).toContain(
     'role-collateral-voucher',
   );
@@ -72,7 +72,7 @@ it('walks across responsibility lanes, resets branch focus when switching scenar
   );
   act(() => hook.result.current.selectFlow('happy-path'));
   await load();
-  advanceTo('conf-escrow-release');
+  await advanceTo('conf-escrow-release');
   bar.rerender(<StoryPlayerBar playback={hook.result.current} />);
   expect(screen.getByLabelText('当前旅程分支')).toHaveTextContent('正常履约');
   expect(hook.result.current.canvasFocus?.triggeredRuleIds).toEqual([]);

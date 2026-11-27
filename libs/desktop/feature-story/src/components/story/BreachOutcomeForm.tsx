@@ -211,7 +211,7 @@ export const BreachOutcomeDisclosure = ({
   playback: StoryPlaybackController;
 }) => {
   const id = useId();
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(playback.hasSandboxBreach);
   return (
     <div className="flex flex-col items-start gap-2 border-t border-evidence-line pt-3">
       <p>当前推演已触发违约条件，可记录双方约定的处置方式。</p>

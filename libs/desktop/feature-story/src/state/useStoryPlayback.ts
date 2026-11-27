@@ -21,6 +21,7 @@ import {
 } from './whatIfCapability';
 import type {
   StoryScene,
+  WhatIfChallenge,
   WhatIfResult,
 } from '@evidence-poc/evidence-agent/browser';
 import type {
@@ -250,6 +251,7 @@ export const useStoryPlayback = ({
     snapshotId:
       ready && anchoredFacts && !skipAi ? loaded?.result.snapshotId : undefined,
     scenes,
+    graph,
     index: anchoredIndex,
     generation: narrationGeneration,
     cacheOnly: !aiConfigured,
@@ -532,13 +534,31 @@ export const useStoryPlayback = ({
     }
   }, [enabled]);
 
-  const whatIfCapability = useMemo(
+  const localCapability = useMemo(
     () =>
       ready && graph && flow && anchoredStep
         ? evaluateWhatIfCapability(graph, flow.steps, anchoredStep)
         : undefined,
     [ready, graph, flow, anchoredStep],
   );
+  const whatIfCapability = useMemo(() => {
+    if (localCapability?.status !== 'eligible') return localCapability;
+    const enriched = narration.challenges?.filter(
+      (card) => aiConfigured || card.hypothesisDraft,
+    );
+    if (!enriched?.length) return localCapability;
+    const fallback = localCapability.challenges.filter(
+      (local) =>
+        !enriched.some(
+          (card) =>
+            card.id === local.id ||
+            card.question === local.question ||
+            (card.category === local.category &&
+              card.targetedRuleId === local.targetedRuleId),
+        ),
+    );
+    return { ...localCapability, challenges: [...enriched, ...fallback] };
+  }, [localCapability, narration.challenges, aiConfigured]);
   const jumpToStep = (sequence: number) => {
     if (!ready || rehearsing || !flow) return;
     const target = flow.steps.findIndex((step) => step.sequence === sequence);
@@ -573,10 +593,20 @@ export const useStoryPlayback = ({
     setSandbox(undefined);
   }, []);
   const askWhatIf = useCallback(
-    async (question: string, { allowSpeculative = false } = {}) => {
+    async (
+      question: string,
+      {
+        allowSpeculative = false,
+        challenge,
+      }: { allowSpeculative?: boolean; challenge?: WhatIfChallenge } = {},
+    ) => {
+      const picked =
+        !allowSpeculative && challenge?.question === question
+          ? challenge
+          : undefined;
       const requiredStatus = allowSpeculative ? 'missing_rules' : 'eligible';
       if (
-        !aiConfigured ||
+        (!aiConfigured && !picked?.hypothesisDraft) ||
         whatIfCapability?.status !== requiredStatus ||
         !flow ||
         !anchoredStep ||
@@ -596,6 +626,13 @@ export const useStoryPlayback = ({
           currentStepSequence: anchoredStep.sequence,
           stepHash: anchoredStep.stepHash,
           question,
+          ...(picked?.hypothesisDraft
+            ? { hypothesisDraft: picked.hypothesisDraft }
+            : {}),
+          ...(picked?.targetedRuleId
+            ? { targetedRuleId: picked.targetedRuleId }
+            : {}),
+          ...(!aiConfigured ? { localOnly: true } : {}),
           ...(allowSpeculative ? { allowSpeculative: true } : {}),
         });
         if (
@@ -637,34 +674,27 @@ export const useStoryPlayback = ({
 
   const currentSandbox = sandbox?.key === sandboxKey ? sandbox : undefined;
   const writable = onRecordBreachOutcome !== undefined;
-  const promotionRequests = useMemo(() => {
-    if (!ready || !writable) return [];
-    const result = currentSandbox?.result;
-    const ids = new Set(
-      result && anchoredChecklist && graph
+  const sandboxRequests = useMemo(
+    () =>
+      currentSandbox?.result && anchoredChecklist && graph
         ? promotableSceneRequests(
             graph,
             anchoredChecklist.requests,
-            result,
-          ).map(({ id }) => id)
+            currentSandbox.result,
+          )
         : [],
-    );
+    [currentSandbox?.result, anchoredChecklist, graph],
+  );
+  const promotionRequests = useMemo(() => {
+    if (!ready || !writable) return [];
+    const ids = new Set(sandboxRequests.map(({ id }) => id));
     if (!step) {
       for (const obligation of obligations) {
         if (obligation.status === 'breached') ids.add(obligation.requestId);
       }
     }
     return requestOptions.filter(({ id }) => ids.has(id));
-  }, [
-    ready,
-    writable,
-    graph,
-    step,
-    obligations,
-    requestOptions,
-    currentSandbox,
-    anchoredChecklist,
-  ]);
+  }, [ready, writable, step, obligations, requestOptions, sandboxRequests]);
 
   // A newly modeled branch is a possible response, not an event in the example.
   const [promoted, setPromoted] = useState<{
@@ -899,6 +929,7 @@ export const useStoryPlayback = ({
     clearWhatIf,
     sandbox: currentSandbox,
     promotionRequests,
+    hasSandboxBreach: sandboxRequests.length > 0,
     promoteBreachOutcome,
   };
 };

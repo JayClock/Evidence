@@ -36,12 +36,14 @@ nx make desktop         # installers in apps/desktop/out/make
   scene. **本步注解** shows who owes what, how completion is decided and which
   details need clarification. Open **单据归档与字段依据** to inspect the sources.
   Between steps the script keeps the last document alongside the clock status.
-- Open **推演与分支** to inspect the clock or ask a What-If question. A breach
-  finding in the health radar opens this tab at the affected request. Once a
-  rule finds a breach, choose **固化违约分支…** to record an agreed compensation
-  pair or dispute handoff. Keep or revert the change in the panel. After keeping
-  it, you can play a scenario containing the new branch or locate its evidence
-  on the canvas. **返回画布** and **退出放映** restore the inspector and the
+- Open **推演与分支** to inspect the clock or select a What-If challenge. Local
+  deadline and shortfall challenges use the scene’s rules and work offline.
+  With AI configured, playback also suggests scenarios based on the story and
+  accepts free-form questions. A breach finding in the health radar opens this
+  tab at the affected request. A simulated breach opens **固化违约分支** to
+  record an agreed compensation pair or dispute handoff. Keep or revert the
+  change in the panel. After keeping it, you can play a scenario containing the
+  new branch or locate its evidence on the canvas. **返回画布** and **退出放映** restore the inspector and the
   previous directory state. **Esc** reverts a pending patch or exits playback
   when used outside an input or dialog. Opening **总台账** ends playback.
 - The canvas HUD controls zoom, fit and density; its **更多画布工具** contains

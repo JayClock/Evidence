@@ -1,5 +1,9 @@
 import { useEffect, useEffectEvent, useMemo, useState } from 'react';
 import {
+  whatIfDecisionRules,
+  type DomainGraph,
+} from '@evidence-poc/evidence-model-core';
+import {
   storyHistoryItem,
   type StoryScene,
 } from '@evidence-poc/evidence-agent/browser';
@@ -10,7 +14,10 @@ import type {
 } from '@evidence-poc/desktop-contracts/story';
 
 type Entry = { historyKey: string } & (
-  | { kind: 'ready'; narrative: StoryEnrichStepResult['narrative'] }
+  | ({ kind: 'ready' } & Pick<
+      StoryEnrichStepResult,
+      'narrative' | 'challenges'
+    >)
   | { kind: 'miss' | 'failed' }
 );
 const EMPTY_ENTRIES: ReadonlyMap<number, Entry> = new Map();
@@ -20,7 +27,14 @@ const planWindow = (
   scenes: readonly StoryScene[],
   index: number,
   entries: ReadonlyMap<number, Entry>,
+  graph: DomainGraph | undefined,
 ) => {
+  const canEnrich = (scene: StoryScene) =>
+    scene.narrative.status === 'baseline' ||
+    (scene.narrative.status === 'authored' &&
+      graph &&
+      whatIfDecisionRules(graph, scene.activity.workObject.entityId).length >
+        0);
   const history: NonNullable<ReturnType<typeof storyHistoryItem>>[] = [];
   let historyKey = '';
   const entryFor = (scene: StoryScene) => {
@@ -30,7 +44,7 @@ const planWindow = (
   for (const scene of scenes.slice(0, index)) {
     const draft = entryFor(scene);
     const item = storyHistoryItem(
-      draft?.kind === 'ready'
+      draft?.kind === 'ready' && scene.narrative.status !== 'authored'
         ? { ...scene, narrative: { ...draft.narrative, status: 'ready' } }
         : scene,
     );
@@ -42,10 +56,10 @@ const planWindow = (
   const current = scenes[index];
   const entry = current && entryFor(current);
   if (!current) return { history, historyKey, entry };
-  if (current.narrative.status === 'baseline' && !entry)
+  if (canEnrich(current) && !entry)
     return { history, historyKey, entry, target: current };
   const confirmed = storyHistoryItem(
-    entry?.kind === 'ready'
+    entry?.kind === 'ready' && current.narrative.status !== 'authored'
       ? { ...current, narrative: { ...entry.narrative, status: 'ready' } }
       : current,
   );
@@ -57,10 +71,7 @@ const planWindow = (
     history,
     historyKey,
     entry,
-    target:
-      next?.narrative.status === 'baseline' && !entryFor(next)
-        ? next
-        : undefined,
+    target: next && canEnrich(next) && !entryFor(next) ? next : undefined,
   };
 };
 
@@ -69,6 +80,7 @@ export const useStoryNarration = ({
   rootPath,
   snapshotId,
   scenes,
+  graph,
   index,
   generation,
   cacheOnly,
@@ -77,6 +89,7 @@ export const useStoryNarration = ({
   rootPath: string;
   snapshotId: string | undefined;
   scenes: readonly StoryScene[] | undefined;
+  graph: DomainGraph | undefined;
   index: number;
   generation: number;
   cacheOnly: boolean;
@@ -92,8 +105,10 @@ export const useStoryNarration = ({
   const entries = settled?.scope === scope ? settled.entries : EMPTY_ENTRIES;
   const plan = useMemo(
     () =>
-      snapshotId && scenes ? planWindow(scenes, index, entries) : undefined,
-    [snapshotId, scenes, index, entries],
+      snapshotId && scenes
+        ? planWindow(scenes, index, entries, graph)
+        : undefined,
+    [snapshotId, scenes, index, entries, graph],
   );
   const target = plan?.target;
   const historyKey = plan?.historyKey ?? '';
@@ -134,7 +149,12 @@ export const useStoryNarration = ({
             result.stepIndex === identity.stepIndex &&
             result.stepHash === identity.stepHash
           )
-            commit({ kind: 'ready', historyKey, narrative: result.narrative });
+            commit({
+              kind: 'ready',
+              historyKey,
+              narrative: result.narrative,
+              challenges: result.challenges,
+            });
           else
             commit({
               kind: scope.cacheOnly && !result ? 'miss' : 'failed',
@@ -154,12 +174,14 @@ export const useStoryNarration = ({
   }, [scope, target, historyKey]);
 
   const current = scenes?.[index];
-  const draft =
-    plan?.entry?.kind === 'ready' ? plan.entry.narrative : undefined;
+  const confirmed = plan?.entry?.kind === 'ready' ? plan.entry : undefined;
+  const authored = current?.narrative.status === 'authored';
   return {
-    draft,
-    running: !cacheOnly && target !== undefined && target === current,
-    incomplete: plan?.entry?.kind === 'failed',
+    draft: authored ? undefined : confirmed?.narrative,
+    challenges: confirmed?.challenges,
+    running:
+      !authored && !cacheOnly && target !== undefined && target === current,
+    incomplete: !authored && plan?.entry?.kind === 'failed',
     retry: () => {
       if (!current || plan?.entry?.kind !== 'failed') return;
       setSettled((prior) => {

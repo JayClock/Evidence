@@ -119,7 +119,7 @@ export const StorySandboxPane = ({
       <WhatIfSection playback={playback} aiConfigured={aiConfigured} />
       {playback.promotionRequests.length ? (
         <BreachOutcomeDisclosure
-          key={`${playback.snapshotId ?? playback.rehearsal.requestId}:${anchoredStep?.stepHash}:${playback.currentTime}`}
+          key={`${playback.snapshotId ?? playback.rehearsal.requestId}:${anchoredStep?.stepHash}:${playback.currentTime}:${playback.hasSandboxBreach}`}
           playback={playback}
         />
       ) : null}

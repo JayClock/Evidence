@@ -1,5 +1,9 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { Badge, Button } from '@evidence-poc/desktop-ui-kit';
+import type {
+  WhatIfChallenge,
+  WhatIfChallengeCategory,
+} from '@evidence-poc/desktop-contracts/story';
 import type { StoryPlaybackController } from '../../state/useStoryPlayback';
 
 function friendlyWhatIfError(error: string): string {
@@ -16,17 +20,42 @@ function friendlyWhatIfError(error: string): string {
   return '未能完成推演。请明确假设后重试，或检查 AI 配置。';
 }
 
+const categories = {
+  overdue: {
+    label: '时效逾期',
+    style: 'border-amber-300 bg-amber-50 text-amber-900',
+  },
+  deficit: {
+    label: '交付缺额',
+    style: 'border-red-300 bg-red-50 text-red-900',
+  },
+  condition_gap: {
+    label: '前提缺失',
+    style: 'border-blue-300 bg-blue-50 text-blue-900',
+  },
+  actor_mismatch: {
+    label: '主体不符',
+    style: 'border-violet-300 bg-violet-50 text-violet-900',
+  },
+} satisfies Record<WhatIfChallengeCategory, { label: string; style: string }>;
+
 const WhatIfForm = ({
   playback,
   speculative = false,
-  suggestion,
+  challenges,
+  aiConfigured = true,
 }: {
   playback: StoryPlaybackController;
   speculative?: boolean;
-  suggestion?: string;
+  challenges?: readonly WhatIfChallenge[];
+  aiConfigured?: boolean;
 }) => {
   const id = useId();
-  const [question, setQuestion] = useState('');
+  const textarea = useRef<HTMLTextAreaElement>(null);
+  const [{ question, picked }, setQuestion] = useState<{
+    question: string;
+    picked?: WhatIfChallenge;
+  }>({ question: '' });
   const { sandbox } = playback;
   const result = sandbox?.result;
   return (
@@ -36,45 +65,70 @@ const WhatIfForm = ({
         className="flex flex-col gap-2"
         onSubmit={(event) => {
           event.preventDefault();
-          void playback.askWhatIf(question, { allowSpeculative: speculative });
+          void playback.askWhatIf(question, {
+            allowSpeculative: speculative,
+            challenge: picked,
+          });
         }}
       >
+        {challenges?.length ? (
+          <fieldset className="min-w-0">
+            <legend className="mb-1 font-medium">推荐异常推演</legend>
+            <div className="flex flex-wrap gap-2">
+              {challenges.map((card) => (
+                <Button
+                  key={card.id}
+                  type="button"
+                  className={`h-auto min-h-12 min-w-0 flex-auto flex-col items-start gap-1 whitespace-normal break-words px-2 py-1.5 text-left ${categories[card.category].style}`}
+                  onClick={() => {
+                    playback.clearWhatIf();
+                    setQuestion({ question: card.question, picked: card });
+                    textarea.current?.focus();
+                  }}
+                >
+                  <span className="font-semibold">
+                    {categories[card.category].label} · {card.label}
+                  </span>
+                  <span className="text-evidence-ink">{card.question}</span>
+                </Button>
+              ))}
+            </div>
+          </fieldset>
+        ) : null}
         <label id={`${id}-label`} htmlFor={id} className="font-medium">
           假设问题
         </label>
         <p id={`${id}-help`} className="text-evidence-muted">
           {speculative
             ? 'AI 只讨论可能的影响；不判定完成或违约，不作为验收依据。'
-            : '更改当前凭证的输入值或判定时点。模型规则负责判定，AI 负责解释；假设不会保存。'}
+            : aiConfigured
+              ? '更改当前凭证的输入值或判定时点。模型规则负责判定，AI 负责解释；假设不会保存。'
+              : '选择推荐问题可在本地推演。配置大模型后可推演自行编写的问题。'}
         </p>
         <textarea
           id={id}
+          ref={textarea}
           name="question"
           aria-describedby={`${id}-help`}
           value={question}
-          onChange={(event) => setQuestion(event.target.value)}
+          onChange={(event) => {
+            playback.clearWhatIf();
+            setQuestion({ question: event.target.value });
+          }}
           maxLength={4000}
           rows={3}
           required
           className="w-full resize-y rounded border border-evidence-line bg-white p-2"
         />
-        {suggestion ? (
-          <div className="flex flex-col items-start gap-1">
-            <p className="text-evidence-muted">示例：{suggestion}</p>
-            <Button
-              type="button"
-              disabled={Boolean(question.trim())}
-              onClick={() => setQuestion(suggestion)}
-            >
-              填入示例问题
-            </Button>
-          </div>
-        ) : null}
         <div>
           <Button
             type="submit"
             variant="default"
-            disabled={sandbox?.loading || !question.trim()}
+            disabled={
+              sandbox?.loading ||
+              !question.trim() ||
+              (!aiConfigured && !picked?.hypothesisDraft)
+            }
           >
             {speculative ? '生成 AI 推想' : '推演假设'}
           </Button>
@@ -158,11 +212,7 @@ const MissingRulesPanel = ({
       <div id={controlsId} hidden={!exploring || !aiConfigured}>
         {exploring && aiConfigured ? (
           <div className="flex flex-col gap-2">
-            <WhatIfForm
-              playback={playback}
-              speculative
-              suggestion="如果这项交付没有按约发生，哪些业务安排可能受影响？"
-            />
+            <WhatIfForm playback={playback} speculative />
           </div>
         ) : null}
       </div>
@@ -235,11 +285,12 @@ export const WhatIfSection = ({
           playback={playback}
           aiConfigured={aiConfigured}
         />
-      ) : aiConfigured ? (
+      ) : aiConfigured || capability.challenges.length ? (
         <WhatIfForm
           key={key}
           playback={playback}
-          suggestion={capability.suggestedQuestion}
+          challenges={capability.challenges}
+          aiConfigured={aiConfigured}
         />
       ) : (
         <p>当前步骤已有判定规则。配置大模型后可输入假设并查看解释。</p>
