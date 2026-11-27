@@ -38,6 +38,12 @@ export const StoryDrawer = ({
 }: StoryDrawerProps) => {
   const [view, setView] = useState<StoryView>(initialView);
   const sandboxTab = useRef<HTMLButtonElement>(null);
+  const scriptTab = useRef<HTMLButtonElement>(null);
+  const playBranch: StoryPlaybackController['selectFlow'] = (flowId, step) => {
+    playback.selectFlow(flowId, step);
+    setView('script');
+    scriptTab.current?.focus();
+  };
   const {
     anchoredScene,
     anchoredChecklist,
@@ -86,6 +92,8 @@ export const StoryDrawer = ({
       <StoryOutlineSpine
         key={playback.projection?.flowId}
         playback={playback}
+        onPlayBranch={playBranch}
+        onOpenBranchEntity={review ? undefined : onOpenBranchEntity}
         onExploreStep={(sequence) => {
           playback.jumpToStep(sequence);
           setView('sandbox');
@@ -104,7 +112,7 @@ export const StoryDrawer = ({
             aria-label="故事视图"
             className="flex shrink-0 border-b border-workbench-border px-2"
           >
-            <Tabs.Trigger value="script" className={tabClass}>
+            <Tabs.Trigger ref={scriptTab} value="script" className={tabClass}>
               故事剧本
             </Tabs.Trigger>
             <Tabs.Trigger value="sandbox" ref={sandboxTab} className={tabClass}>
@@ -181,7 +189,7 @@ export const StoryDrawer = ({
                     context={context}
                     reviewPending={Boolean(review)}
                     onOpenBranchEntity={onOpenBranchEntity}
-                    onPlayBranch={() => setView('script')}
+                    onPlayBranch={playBranch}
                   />
                 </Tabs.Content>
               </>

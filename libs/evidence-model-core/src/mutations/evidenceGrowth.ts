@@ -329,8 +329,9 @@ export const recordBreachOutcomeMutator = (
   draft: DomainModelDocument,
   input: RecordBreachOutcomeInput,
 ): OperatorResult => {
-  const { requestRef, condition, outcome, breachRule } =
+  const { requestRef, condition, outcome, breachRule, forkExampleRef } =
     RecordBreachOutcomeInputSchema.parse(input);
+  const fork = forkExampleRef === undefined ? {} : { forkExampleRef };
   const original = requireEntity(draft, requestRef);
   if (!isFulfillmentRequest(original)) throw new Error('请选择原履约请求。');
   const { contextRef } = original;
@@ -372,6 +373,7 @@ export const recordBreachOutcomeMutator = (
       kind: 'references',
       flowKind: 'escalation',
       terminalRemedyKind: outcome.remedyKind,
+      ...fork,
       sourceRef: handoff.id,
       targetRef: requestRef,
       label: '移交争议处理',
@@ -415,6 +417,7 @@ export const recordBreachOutcomeMutator = (
     id: `relation.${request.id}-compensates-${requestRef}`,
     kind: 'references',
     flowKind: 'breach_compensation',
+    ...fork,
     sourceRef: request.id,
     targetRef: requestRef,
     label: '补偿原履约请求',

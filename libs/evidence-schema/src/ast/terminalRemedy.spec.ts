@@ -50,6 +50,25 @@ const terminalIntent = {
 };
 
 describe('terminal breach outcomes', () => {
+  it('allows an example to anchor compensation or terminal relief', () => {
+    const forkExampleRef = 'confirmation.payment#第二次收款';
+    expect(
+      RelationshipASTSchema.parse({ ...edge, forkExampleRef }).forkExampleRef,
+    ).toBe(forkExampleRef);
+    expect(
+      RelationshipASTSchema.safeParse({ ...edge, forkExampleRef: '3' }).success,
+    ).toBe(false);
+    for (const flowKind of ['primary', 'escalation', 'breach_compensation']) {
+      expect(
+        RelationshipASTSchema.safeParse({
+          ...edge,
+          flowKind,
+          terminalRemedyKind: undefined,
+          forkExampleRef,
+        }).success,
+      ).toBe(flowKind === 'breach_compensation');
+    }
+  });
   it('accepts a hand-off record without requiring a litigation fulfillment pair', () => {
     const model = modelWithHandoff();
     expect(DomainModelDocumentSchema.parse(model)).toEqual(model);

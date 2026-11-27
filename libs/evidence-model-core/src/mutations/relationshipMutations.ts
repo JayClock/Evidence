@@ -104,6 +104,8 @@ export const setRelationshipFlowMutator = (
   if (flowKind === 'primary') delete edge.flowKind;
   else edge.flowKind = flowKind;
   if (flowKind !== 'escalation') delete edge.terminalRemedyKind;
+  if (flowKind !== 'breach_compensation' && !edge.terminalRemedyKind)
+    delete edge.forkExampleRef;
 };
 
 export const deleteRelationshipMutator = (

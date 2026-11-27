@@ -15,6 +15,7 @@ import {
 } from '@evidence-poc/evidence-schema';
 import { previewJourneyStep } from './journeyPreview';
 import { sceneChecklist } from './sceneChecklist';
+import { branchDestinations, stepRef, storyForks } from './storyForks';
 import {
   blockedStoryScenes,
   evaluateWhatIfCapability,
@@ -53,8 +54,6 @@ export interface StoryPlaybackOptions {
   ) => DomainModelDocument;
 }
 
-const stepRef = (step: FlowStepTrace) =>
-  `${step.entityId}#${step.exampleLabel}`;
 const messageOf = (error: unknown) =>
   error instanceof Error ? error.message : String(error);
 
@@ -219,6 +218,10 @@ export const useStoryPlayback = ({
     scenes.find(({ stepIndex }) => stepIndex === anchoredStep.sequence);
   const factScene = step && anchoredFacts;
   const graph = loaded?.graph;
+  const forksByStep = useMemo(
+    () => (graph && flow ? storyForks(graph, flows, flow) : undefined),
+    [graph, flows, flow],
+  );
   const anchoredChecklist = useMemo(
     () =>
       graph && flow && anchoredFacts
@@ -779,10 +782,12 @@ export const useStoryPlayback = ({
   // A newly modeled branch is a possible response, not an event in the example.
   const [promoted, setPromoted] = useState<{
     document: DomainModelDocument;
+    parent: string;
     focus: typeof canvasFocus;
     entityIds: string[];
     relationshipIds: string[];
   }>();
+  const parent = anchoredStep ? stepRef(anchoredStep) : clock;
   const promoteBreachOutcome = async (
     input: RecordBreachOutcomeInput,
   ): Promise<void> => {
@@ -793,7 +798,12 @@ export const useStoryPlayback = ({
     )
       throw new Error('当前步骤或推演结果已变化，请重新核对。');
     setIsPlaying(false);
-    const after = onRecordBreachOutcome(input, document);
+    const after = onRecordBreachOutcome(
+      anchoredStep
+        ? { ...input, forkExampleRef: stepRef(anchoredStep) }
+        : input,
+      document,
+    );
     if (step && flow)
       setPosition({ flowId: flow.flowId, ref: stepRef(step), index });
     if (rehearsing) {
@@ -817,24 +827,41 @@ export const useStoryPlayback = ({
     );
     setPromoted({
       document: after,
+      parent,
       focus: canvasFocus,
       entityIds: added,
       relationshipIds: branchEdges.map(({ id }) => id),
     });
   };
   const promotedBranch = useMemo(() => {
-    if (!enabled || !promoted || promoted.document !== document || stale)
+    if (
+      !enabled ||
+      !promoted ||
+      promoted.parent !== parent ||
+      promoted.document !== document ||
+      stale
+    )
       return undefined;
     const entity = graph?.getEntity(promoted.entityIds[0]!);
     if (!entity) return undefined;
-    for (const candidate of flows) {
-      const target = candidate.steps.find(({ entityId }) =>
-        promoted.entityIds.includes(entityId),
-      );
-      if (target) return { entity, flow: candidate, step: target };
-    }
-    return { entity };
-  }, [enabled, promoted, document, stale, graph, flows]);
+    const destination = branchDestinations(
+      flows,
+      promoted.entityIds,
+      flow?.flowId,
+      anchoredStep?.sequence,
+    ).at(0);
+    return { entity, ...destination };
+  }, [
+    enabled,
+    promoted,
+    parent,
+    document,
+    stale,
+    graph,
+    flows,
+    flow,
+    anchoredStep,
+  ]);
   const showPromotedFocus =
     enabled &&
     promoted?.document === document &&
@@ -919,6 +946,7 @@ export const useStoryPlayback = ({
     anchoredStep,
     anchoredScene,
     anchoredChecklist,
+    forksByStep,
     promotedBranch,
     canvasFocus:
       showPromotedFocus && displayFocus

@@ -6,7 +6,10 @@ import {
   TimeRoleSchema,
 } from '../ast/entity.js';
 import { AttributeNameSchema, DomainIdSchema } from '../ast/id.js';
-import { TerminalRemedyKindSchema } from '../ast/relationship.js';
+import {
+  ForkExampleRefSchema,
+  TerminalRemedyKindSchema,
+} from '../ast/relationship.js';
 import { RuleBindingSchema } from '../ast/rule.js';
 import { ValueTypeSchema } from '../ast/values.js';
 
@@ -152,6 +155,7 @@ export const RecordBreachOutcomeInputSchema = z
   .object({
     requestRef: DomainIdSchema.describe('原履约请求，也可以是既有补偿请求。'),
     condition: condition.describe('经业务确认的违约触发条件。'),
+    forkExampleRef: ForkExampleRefSchema.optional(),
     outcome: z.discriminatedUnion('kind', [
       z
         .object({ kind: z.literal('compensation_pair'), request, confirmation })

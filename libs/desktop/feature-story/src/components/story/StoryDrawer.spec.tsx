@@ -34,6 +34,7 @@ const setup = async ({
   noRules = false,
   unassignedConfirmation = false,
   aiConfigured = true,
+  model = createDesktopFixture(),
 } = {}) => {
   vi.useFakeTimers();
   const api = installDesktopApi();
@@ -107,7 +108,7 @@ const setup = async ({
       businessImpactExplanation: rule.label,
     };
   });
-  const document = empty ? createEmptyDomainModel() : createDesktopFixture();
+  const document = empty ? createEmptyDomainModel() : model;
   if (unassignedConfirmation) {
     const confirmation = document.entities.find(
       ({ id }) => id === 'evidence.confirmation',
@@ -609,7 +610,7 @@ describe('StoryDrawer', () => {
   it.each(['lawsuit', 'arbitration', 'contract_termination'] as const)(
     'records the agreed %s handoff after a breach and links to its evidence',
     async (remedy) => {
-      const { api, recordOutcome, onOpenBranchEntity } = await setup({
+      const { api, recordOutcome, onOpenBranchEntity, view } = await setup({
         breach: true,
       });
       fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
@@ -653,6 +654,7 @@ describe('StoryDrawer', () => {
           terminalRemedyKind: remedy,
           targetRef: 'evidence.request',
           notes: '到期未交付',
+          forkExampleRef: 'evidence.confirmation#example-2',
         }),
       );
       expect(updated.rules.map(({ id }) => id)).toEqual([
@@ -666,6 +668,17 @@ describe('StoryDrawer', () => {
       expect(onOpenBranchEntity).toHaveBeenCalledWith(
         updated.relationships.at(-1)?.sourceRef,
       );
+      view.unmount();
+      await setup({ model: structuredClone(updated) });
+      fireEvent.click(screen.getByRole('button', { name: /展开全部 3 幕/ }));
+      const forks = within(
+        screen.getByRole('list', { name: '第 3 幕的违约分支' }),
+      );
+      fireEvent.click(forks.getByText(/终极救济 · /));
+      expect(forks.getByText('触发条件：到期未交付')).toBeVisible();
+      expect(
+        screen.queryByRole('list', { name: '第 2 幕的违约分支' }),
+      ).toBeNull();
     },
   );
 
@@ -721,9 +734,11 @@ describe('StoryDrawer', () => {
       fireEvent.click(form.getByRole('button', { name: '固化为争议终结' })),
     );
     await act(async () => vi.advanceTimersByTimeAsync(STORY_REFRESH_DELAY));
-    fireEvent.click(
-      screen.getByRole('button', { name: '放映分支「争议移交」' }),
+    fireEvent.click(screen.getByRole('button', { name: /展开全部 3 幕/ }));
+    const forks = within(
+      screen.getByRole('list', { name: '第 2 幕的违约分支' }),
     );
+    fireEvent.click(forks.getByRole('button', { name: '放映「争议移交」' }));
     await act(async () => vi.advanceTimersByTimeAsync(STORY_REFRESH_DELAY));
     expect(screen.getByRole('combobox', { name: '选择业务流' })).toHaveValue(
       'dispute',

@@ -844,6 +844,11 @@ describe('EditorScreen', () => {
     expect(story.getByRole('region', { name: '违约分支复核' })).toBeVisible();
     fireEvent.click(review.getByRole('button', { name: '保留' }));
     expect(story.queryByRole('region', { name: '违约分支复核' })).toBeNull();
+    const forks = within(
+      story.getByRole('list', { name: '第 2 幕的违约分支' }),
+    );
+    fireEvent.click(forks.getByText('约定履约补救 · 退款请求'));
+    expect(forks.getByText('履约确认：《退款确认》')).toBeVisible();
     fireEvent.mouseDown(story.getByRole('tab', { name: '推演与分支' }), {
       button: 0,
     });

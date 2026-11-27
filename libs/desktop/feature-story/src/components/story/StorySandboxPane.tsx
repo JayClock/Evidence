@@ -120,9 +120,10 @@ export const StorySandboxPane = ({
   context?: string;
   reviewPending: boolean;
   onOpenBranchEntity?: (nodeId: string) => void;
-  onPlayBranch: () => void;
+  onPlayBranch: StoryPlaybackController['selectFlow'];
 }) => {
   const { promotedBranch, anchoredStep, rehearsal } = playback;
+  const branchFlow = promotedBranch?.flow;
   const request =
     rehearsal.active &&
     rehearsal.requests.find(({ id }) => id === rehearsal.requestId);
@@ -151,18 +152,12 @@ export const StorySandboxPane = ({
         />
       ) : null}
       {!reviewPending && promotedBranch ? (
-        promotedBranch.flow ? (
+        branchFlow ? (
           <Button
             className="self-start"
-            onClick={() => {
-              playback.selectFlow(
-                promotedBranch.flow.flowId,
-                promotedBranch.step,
-              );
-              onPlayBranch();
-            }}
+            onClick={() => onPlayBranch(branchFlow.flowId, promotedBranch.step)}
           >
-            放映分支「{promotedBranch.flow.flowTitle}」
+            放映分支「{branchFlow.flowTitle}」
           </Button>
         ) : onOpenBranchEntity ? (
           <Button
