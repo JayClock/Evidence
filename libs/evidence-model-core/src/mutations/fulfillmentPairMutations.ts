@@ -6,7 +6,7 @@ import {
   isFulfillmentConfirmation,
   isFulfillmentRequest,
 } from '@evidence-poc/evidence-schema';
-import { completionExpressionFor } from '../model/fulfillmentTime.js';
+import { completionExpressionFor } from '@evidence-poc/evidence-cel';
 
 import { fail, requireContractContext, requireEntity } from './guards.js';
 import { createRelationshipMutator } from './relationshipMutations.js';

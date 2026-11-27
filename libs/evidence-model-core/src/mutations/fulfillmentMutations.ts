@@ -5,7 +5,7 @@ import {
   type RelationshipAST,
   type RuleAST,
 } from '@evidence-poc/evidence-schema';
-import { completionExpressionFor } from '../model/fulfillmentTime.js';
+import { completionExpressionFor } from '@evidence-poc/evidence-cel';
 
 import { assertMandatoryTime } from './derivationMutations.js';
 import { createEntityMutator } from './entityMutations.js';

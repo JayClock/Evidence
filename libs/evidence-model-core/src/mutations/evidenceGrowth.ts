@@ -18,7 +18,7 @@ import {
   type TimeRole,
 } from '@evidence-poc/evidence-schema';
 
-import { completionExpressionFor } from '../model/fulfillmentTime.js';
+import { completionExpressionFor } from '@evidence-poc/evidence-cel';
 import { createDomainGraph } from '../model/graph.js';
 import { addAttributeMutator } from './attributeMutations.js';
 import { bindDerivedRuleMutator } from './derivationMutations.js';

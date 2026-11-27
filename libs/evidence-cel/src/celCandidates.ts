@@ -1,10 +1,23 @@
-import type { RuleBinding, RuleAST } from '@evidence-poc/evidence-schema';
+import type {
+  AttributeAST,
+  EntityAST,
+  RuleBinding,
+  RuleAST,
+} from '@evidence-poc/evidence-schema';
 
-import type { DomainGraph } from '../model/graph.js';
 import type { CelCandidate } from './celAnalysis.js';
 
+/** The read-only graph operations needed to suggest and resolve bindings. */
+interface CandidateGraph {
+  getEntity(id: string): EntityAST | undefined;
+  getRule(id: string): RuleAST | undefined;
+  attributesOf(id: string): readonly AttributeAST[];
+  entitiesInContext(id: string): readonly EntityAST[];
+  derivationRule(id: string, attribute: string): RuleAST | undefined;
+}
+
 const attributesOf = (
-  graph: DomainGraph,
+  graph: CandidateGraph,
   entityId: string,
 ): CelCandidate['attributes'] =>
   graph.attributesOf(entityId).map((attribute) => ({
@@ -14,7 +27,7 @@ const attributesOf = (
   }));
 
 const candidateFor = (
-  graph: DomainGraph,
+  graph: CandidateGraph,
   alias: string,
   binding: RuleBinding,
 ): CelCandidate => {
@@ -52,7 +65,7 @@ export const collectCelCandidates = ({
   entityRef,
   ruleId,
 }: {
-  graph: DomainGraph;
+  graph: CandidateGraph;
   entityRef: string;
   ruleId?: string;
 }): readonly CelCandidate[] => {
@@ -121,7 +134,9 @@ export const aliasFor = (entityId: string, category: string): string => {
     : entityId;
   const normalized = head.replace(/[^A-Za-z0-9_]/g, '_');
 
-  return /^[A-Za-z_]/.test(normalized) ? normalized : `${category}_${normalized}`;
+  return /^[A-Za-z_]/.test(normalized)
+    ? normalized
+    : `${category}_${normalized}`;
 };
 
 /** Bindings a derivation rule needs to read the candidates it mentions. */
@@ -129,7 +144,9 @@ export const bindingsForAliases = (
   candidates: readonly CelCandidate[],
   aliases: readonly string[],
 ): Record<string, RuleBinding> => {
-  const byAlias = new Map(candidates.map((candidate) => [candidate.alias, candidate]));
+  const byAlias = new Map(
+    candidates.map((candidate) => [candidate.alias, candidate]),
+  );
   const bindings: Record<string, RuleBinding> = {};
 
   for (const alias of aliases) {
@@ -150,8 +167,7 @@ export const bindingsForAliases = (
 
 /** Reads the derivation rule bound to one attribute, if any. */
 export const derivationRuleOf = (
-  graph: DomainGraph,
+  graph: CandidateGraph,
   entityRef: string,
   attributeName: string,
-): RuleAST | undefined =>
-  graph.derivationRule(entityRef, attributeName);
+): RuleAST | undefined => graph.derivationRule(entityRef, attributeName);

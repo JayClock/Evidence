@@ -5,7 +5,7 @@ import { bracketMatching } from '@codemirror/language';
 import {
   analyzeCelExpression,
   type CelCandidate,
-} from '@evidence-poc/evidence-model-core';
+} from '@evidence-poc/evidence-cel';
 import { celHighlighting, celLanguage } from './celLanguage';
 
 const theme = EditorView.theme({

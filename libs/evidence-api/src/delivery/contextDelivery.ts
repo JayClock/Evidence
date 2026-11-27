@@ -2,6 +2,8 @@ import type { DomainModelDocument } from '@evidence-poc/evidence-schema';
 import {
   analyzeCelExpression,
   collectCelCandidates,
+} from '@evidence-poc/evidence-cel';
+import {
   completenessFindings,
   createDomainGraph,
 } from '@evidence-poc/evidence-model-core';

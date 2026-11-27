@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'node:url';
 import { buildFmCheckReport } from './fmCheck.js';
 import { readModelRoot } from '../../tests/support/modelRoot.js';
-import { compileCelExpression } from '../cel/celEvaluator.js';
+import { compileCelExpression } from '@evidence-poc/evidence-cel';
 
 it('keeps the full-spectrum example schema-valid, traceable and CEL-compilable', async () => {
   const parsed = await readModelRoot(

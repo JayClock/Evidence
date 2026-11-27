@@ -2,8 +2,8 @@ import { useMemo } from 'react';
 import {
   collectCelCandidates,
   type CelCandidate,
-  type DomainGraph,
-} from '@evidence-poc/evidence-model-core';
+} from '@evidence-poc/evidence-cel';
+import { type DomainGraph } from '@evidence-poc/evidence-model-core';
 
 /** Read declared rule bindings for diagnostics and business-formula labels. */
 export const useCelRuleCandidates = ({

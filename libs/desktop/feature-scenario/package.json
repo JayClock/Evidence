@@ -28,6 +28,7 @@
     "@evidence-poc/desktop-ui-kit": "workspace:*",
     "@evidence-poc/evidence-acceptance": "workspace:*",
     "@evidence-poc/evidence-api": "workspace:*",
+    "@evidence-poc/evidence-cel": "workspace:*",
     "@evidence-poc/evidence-model-core": "workspace:*",
     "@evidence-poc/evidence-schema": "workspace:*",
     "react": "^19.2.8",

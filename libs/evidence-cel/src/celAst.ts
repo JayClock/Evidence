@@ -1,4 +1,5 @@
 import type { ASTNode } from '@marcbachmann/cel-js';
+export { ParseError, type ASTNode } from '@marcbachmann/cel-js';
 
 export const CEL_COLLECTION_MACROS = new Set([
   'all',

@@ -9,10 +9,10 @@ import {
   evaluateScenario,
   replaceScenarioExamples,
   scenarioExamples,
-  validateTypedValue,
   type ScenarioExample,
   type ModelSession,
 } from '@evidence-poc/evidence-model-core';
+import { validateTypedValue } from '@evidence-poc/evidence-cel';
 import type { ModelExampleAST } from '@evidence-poc/evidence-schema';
 import {
   Dialog,

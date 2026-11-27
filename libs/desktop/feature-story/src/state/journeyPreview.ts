@@ -1,5 +1,5 @@
+import { evaluateRuleOnExample } from '@evidence-poc/evidence-cel';
 import {
-  evaluateRuleOnExample,
   type FlowScenarioTrace,
   type FlowStepTrace,
 } from '@evidence-poc/evidence-model-core';

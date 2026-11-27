@@ -2,13 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import type { DomainModelDocument } from '@evidence-poc/evidence-schema';
 
-import { createDomainGraph } from '../model/graph.js';
-import {
-  aliasFor,
-  bindingsForAliases,
-  collectCelCandidates,
-  derivationRuleOf,
-} from './celCandidates.js';
+import { createDomainGraph } from './graph.js';
+import { aliasFor, bindingsForAliases, collectCelCandidates, derivationRuleOf } from '@evidence-poc/evidence-cel';
 
 const document = (): DomainModelDocument => ({
   manifest: {

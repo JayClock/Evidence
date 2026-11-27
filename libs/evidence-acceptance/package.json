@@ -82,6 +82,7 @@
   },
   "dependencies": {
     "@evidence-poc/evidence-api": "workspace:*",
+    "@evidence-poc/evidence-cel": "workspace:*",
     "@evidence-poc/evidence-model-core": "workspace:*",
     "@evidence-poc/evidence-model-io": "workspace:*",
     "@evidence-poc/evidence-schema": "workspace:*",

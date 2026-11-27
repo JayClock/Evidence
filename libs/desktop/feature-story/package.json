@@ -25,14 +25,15 @@
     ]
   },
   "dependencies": {
-    "@radix-ui/react-tabs": "^1.2.1",
-    "react": "^19.2.8",
-    "tslib": "^2.3.0",
     "@evidence-poc/desktop-contracts": "workspace:*",
     "@evidence-poc/desktop-ui-kit": "workspace:*",
-    "@evidence-poc/evidence-schema": "workspace:*",
+    "@evidence-poc/evidence-agent": "workspace:*",
+    "@evidence-poc/evidence-cel": "workspace:*",
     "@evidence-poc/evidence-model-core": "workspace:*",
-    "@evidence-poc/evidence-agent": "workspace:*"
+    "@evidence-poc/evidence-schema": "workspace:*",
+    "@radix-ui/react-tabs": "^1.2.1",
+    "react": "^19.2.8",
+    "tslib": "^2.3.0"
   },
   "devDependencies": {
     "@evidence-poc/desktop-testing": "workspace:*"

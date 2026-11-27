@@ -1,7 +1,7 @@
 import { Environment, type ParseResult } from '@marcbachmann/cel-js';
 import { Duration, UnsignedInt } from '@marcbachmann/cel-js/evaluator';
 
-import { isTimestampText } from '../validation/typedValues.js';
+import { isTimestampText } from './typedValues.js';
 import { walkCelAst } from './celAst.js';
 
 const environment = new Environment({ unlistedVariablesAreDyn: true });

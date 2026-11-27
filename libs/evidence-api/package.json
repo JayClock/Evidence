@@ -58,6 +58,7 @@
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "7.3.4",
+    "@evidence-poc/evidence-cel": "workspace:*",
     "@evidence-poc/evidence-model-core": "workspace:*",
     "@evidence-poc/evidence-model-io": "workspace:*",
     "@evidence-poc/evidence-schema": "workspace:*",

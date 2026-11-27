@@ -359,6 +359,9 @@ importers:
       '@evidence-poc/evidence-canvas-interaction':
         specifier: workspace:*
         version: link:../../libs/evidence-canvas-interaction
+      '@evidence-poc/evidence-cel':
+        specifier: workspace:*
+        version: link:../../libs/evidence-cel
       '@evidence-poc/evidence-mcp':
         specifier: workspace:*
         version: link:../../libs/evidence-mcp
@@ -613,6 +616,9 @@ importers:
       '@evidence-poc/evidence-api':
         specifier: workspace:*
         version: link:../../evidence-api
+      '@evidence-poc/evidence-cel':
+        specifier: workspace:*
+        version: link:../../evidence-cel
       '@evidence-poc/evidence-model-core':
         specifier: workspace:*
         version: link:../../evidence-model-core
@@ -668,6 +674,9 @@ importers:
       '@evidence-poc/evidence-api':
         specifier: workspace:*
         version: link:../../evidence-api
+      '@evidence-poc/evidence-cel':
+        specifier: workspace:*
+        version: link:../../evidence-cel
       '@evidence-poc/evidence-model-core':
         specifier: workspace:*
         version: link:../../evidence-model-core
@@ -696,6 +705,9 @@ importers:
       '@evidence-poc/evidence-agent':
         specifier: workspace:*
         version: link:../../evidence-agent
+      '@evidence-poc/evidence-cel':
+        specifier: workspace:*
+        version: link:../../evidence-cel
       '@evidence-poc/evidence-model-core':
         specifier: workspace:*
         version: link:../../evidence-model-core
@@ -820,6 +832,9 @@ importers:
       '@evidence-poc/evidence-api':
         specifier: workspace:*
         version: link:../evidence-api
+      '@evidence-poc/evidence-cel':
+        specifier: workspace:*
+        version: link:../evidence-cel
       '@evidence-poc/evidence-model-core':
         specifier: workspace:*
         version: link:../evidence-model-core
@@ -893,6 +908,9 @@ importers:
       '@asteasolutions/zod-to-openapi':
         specifier: 7.3.4
         version: 7.3.4(zod@3.25.76)
+      '@evidence-poc/evidence-cel':
+        specifier: workspace:*
+        version: link:../evidence-cel
       '@evidence-poc/evidence-model-core':
         specifier: workspace:*
         version: link:../evidence-model-core
@@ -937,6 +955,18 @@ importers:
         specifier: ^2.3.0
         version: 2.9.1
 
+  libs/evidence-cel:
+    dependencies:
+      '@evidence-poc/evidence-schema':
+        specifier: workspace:*
+        version: link:../evidence-schema
+      '@marcbachmann/cel-js':
+        specifier: ^8.0.0
+        version: 8.0.0
+      tslib:
+        specifier: ^2.3.0
+        version: 2.9.1
+
   libs/evidence-mcp:
     dependencies:
       '@evidence-poc/evidence-schema':
@@ -957,12 +987,12 @@ importers:
 
   libs/evidence-model-core:
     dependencies:
+      '@evidence-poc/evidence-cel':
+        specifier: workspace:*
+        version: link:../evidence-cel
       '@evidence-poc/evidence-schema':
         specifier: workspace:*
         version: link:../evidence-schema
-      '@marcbachmann/cel-js':
-        specifier: ^8.0.0
-        version: 8.0.0
       '@noble/hashes':
         specifier: ^2.4.0
         version: 2.4.0

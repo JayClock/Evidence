@@ -71,6 +71,9 @@
     },
     {
       "path": "./libs/desktop/feature-ledger"
+    },
+    {
+      "path": "./libs/evidence-cel"
     }
   ]
 }

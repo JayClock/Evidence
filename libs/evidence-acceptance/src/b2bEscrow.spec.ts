@@ -1,10 +1,8 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  buildFmCheckReport,
-  evaluateRuleOnExample,
-} from '@evidence-poc/evidence-model-core';
+import { buildFmCheckReport } from '@evidence-poc/evidence-model-core';
+import { evaluateRuleOnExample } from '@evidence-poc/evidence-cel';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { projectAcceptanceTests } from './delivery/scenarioProjector.js';
 import { renderDeliverables } from './renderDeliverables.js';

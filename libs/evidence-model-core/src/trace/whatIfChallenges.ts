@@ -1,13 +1,16 @@
-import type { ASTNode } from '@marcbachmann/cel-js';
+import type { ASTNode } from '@evidence-poc/evidence-cel/ast';
 import type { AttributeAST, RuleAST } from '@evidence-poc/evidence-schema';
 import {
   resolveCelReference,
   walkCelAst,
   type CelScope,
-} from '../cel/celAst.js';
-import { celValueToJson, compileCelExpression } from '../cel/celEvaluator.js';
+} from '@evidence-poc/evidence-cel/ast';
+import {
+  celValueToJson,
+  compileCelExpression,
+} from '@evidence-poc/evidence-cel';
 import type { DomainGraph } from '../model/graph.js';
-import { validateTypedValue } from '../validation/typedValues.js';
+import { validateTypedValue } from '@evidence-poc/evidence-cel';
 import { formatBusinessQuantity } from './businessQuantity.js';
 import type { FlowStepTrace } from './types.js';
 import {

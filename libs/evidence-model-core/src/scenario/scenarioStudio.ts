@@ -5,11 +5,11 @@ import {
   type ModelExampleAST,
 } from '@evidence-poc/evidence-schema';
 import { collectFlowScenarios } from '../trace/flowAggregator.js';
-import { evaluateRuleOnExample } from '../cel/transientSandbox.js';
+import { evaluateRuleOnExample } from '@evidence-poc/evidence-cel';
 import {
   validateTypedValue,
   jsonValuesEqual,
-} from '../validation/typedValues.js';
+} from '@evidence-poc/evidence-cel';
 
 export interface ScenarioExample {
   entityRef: string;

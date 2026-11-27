@@ -16,7 +16,7 @@ import {
 } from '@evidence-poc/evidence-schema';
 
 import { evidenceIdPrefix, uniqueId } from './draftSupport.js';
-import { completionExpressionFor } from '../model/fulfillmentTime.js';
+import { completionExpressionFor } from '@evidence-poc/evidence-cel';
 
 export interface CompileDraftOptions {
   /** Manifest id; must already satisfy the schema id pattern. */

@@ -7,7 +7,7 @@ import { UnsignedInt, parse } from '@marcbachmann/cel-js/evaluator';
 import {
   isTimestampText,
   validateTypedValue,
-} from '../validation/typedValues.js';
+} from './typedValues.js';
 
 const parseDuration = parse('duration(value)');
 

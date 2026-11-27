@@ -3,9 +3,9 @@ import {
   type DomainModelDocument,
   type RuleAST,
 } from '@evidence-poc/evidence-schema';
-import { evaluateRuleOnExample } from '../cel/transientSandbox.js';
+import { evaluateRuleOnExample } from '@evidence-poc/evidence-cel';
 import { createDomainGraph, type DomainGraph } from '../model/graph.js';
-import { isTimestampText } from '../validation/typedValues.js';
+import { isTimestampText } from '@evidence-poc/evidence-cel';
 import type { FlowScenarioTrace, FlowStepTrace } from './types.js';
 
 const HOUR_MS = 3_600_000;

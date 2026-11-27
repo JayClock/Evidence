@@ -3,7 +3,7 @@ import type { AttributeAST } from '@evidence-poc/evidence-schema';
 import {
   translateBusinessFormula,
   type CelCandidate,
-} from '@evidence-poc/evidence-model-core';
+} from '@evidence-poc/evidence-cel';
 import { CelCodeMirrorViewer } from './CelCodeMirrorViewer';
 
 export interface CelFormulaBarProps {

@@ -1,3 +1,30 @@
+// Compatibility for callers using the model-core entry.
+export {
+  analyzeCelExpression,
+  type CelAnalysis,
+  type CelCandidate,
+  type CelDiagnostic,
+  type CelDiagnosticCode,
+  translateBusinessFormula,
+  replaceBusinessFormulaToken,
+  type BusinessFormula,
+  type BusinessFormulaToken,
+  evaluateRuleOnExample,
+  type ExampleRuleInputs,
+  celValueToJson,
+  compileCelExpression,
+  evaluateCelExpression,
+  type CompiledCel,
+  aliasFor,
+  bindingsForAliases,
+  collectCelCandidates,
+  derivationRuleOf,
+  timeoutExpressionFor,
+  isTimestampText,
+  jsonValuesEqual,
+  normalizeJsonValue,
+  validateTypedValue,
+} from '@evidence-poc/evidence-cel';
 export {
   scenarioExamples,
   cloneScenarioExamples,
@@ -17,18 +44,7 @@ export {
   deriveContextMapGraph,
   type ContextMapGraph,
 } from './model/contextMap.js';
-export {
-  translateBusinessFormula,
-  replaceBusinessFormulaToken,
-  type BusinessFormula,
-  type BusinessFormulaToken,
-} from './cel/celFormulaTranslator.js';
-export {
-  evaluateRuleOnExample,
-  type ExampleRuleInputs,
-} from './cel/transientSandbox.js';
 
-export { timeoutExpressionFor } from './model/fulfillmentTime.js';
 export {
   createDomainGraph,
   type BreachChainNode,
@@ -81,28 +97,6 @@ export {
 } from './keyData/keyDataLedger.js';
 
 export {
-  analyzeCelExpression,
-  type CelAnalysis,
-  type CelCandidate,
-  type CelDiagnostic,
-  type CelDiagnosticCode,
-} from './cel/celAnalysis.js';
-
-export {
-  celValueToJson,
-  compileCelExpression,
-  evaluateCelExpression,
-  type CompiledCel,
-} from './cel/celEvaluator.js';
-
-export {
-  aliasFor,
-  bindingsForAliases,
-  collectCelCandidates,
-  derivationRuleOf,
-} from './cel/celCandidates.js';
-
-export {
   ModelSessionValidationError,
   createModelSession,
   type ModelSession,
@@ -124,13 +118,6 @@ export {
   type ParseOptions,
   type SerializeOptions,
 } from './adapters/modelSourceFiles.js';
-
-export {
-  isTimestampText,
-  jsonValuesEqual,
-  normalizeJsonValue,
-  validateTypedValue,
-} from './validation/typedValues.js';
 
 export { digestOf } from './validation/modelDigest.js';
 

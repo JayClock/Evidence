@@ -2,10 +2,10 @@ import {
   buildFmCheckReport,
   collectFlowScenarios,
   createModelSession,
-  evaluateRuleOnExample,
   parseModelSourceFiles,
   serializeDomainModel,
 } from '@evidence-poc/evidence-model-core';
+import { evaluateRuleOnExample } from '@evidence-poc/evidence-cel';
 import { computeSwimlaneLayout } from '@evidence-poc/evidence-canvas-interaction';
 import { strictValidateDomainModel } from '@evidence-poc/evidence-schema';
 import { renderDeliverables } from './renderDeliverables.js';

@@ -16,9 +16,9 @@ import {
   buildFmCheckReport,
   collectFlowScenarios,
   createDomainGraph,
-  isTimestampText,
   type DomainGraph,
 } from '@evidence-poc/evidence-model-core';
+import { isTimestampText } from '@evidence-poc/evidence-cel';
 import {
   openWorkspace,
   readModelDirectory,

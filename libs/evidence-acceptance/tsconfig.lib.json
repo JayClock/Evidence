@@ -22,6 +22,9 @@
       "path": "../evidence-model-core/tsconfig.lib.json"
     },
     {
+      "path": "../evidence-cel/tsconfig.lib.json"
+    },
+    {
       "path": "../evidence-api/tsconfig.lib.json"
     },
     {

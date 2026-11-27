@@ -5,7 +5,7 @@ import {
   type ExampleTestAST,
   type RuleAST,
 } from '@evidence-poc/evidence-schema';
-import { evaluateRuleOnExample } from '@evidence-poc/evidence-model-core';
+import { evaluateRuleOnExample } from '@evidence-poc/evidence-cel';
 import {
   buildDeliveryRoutes,
   type DeliveryRoute,

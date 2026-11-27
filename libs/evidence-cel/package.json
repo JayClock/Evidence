@@ -1,0 +1,38 @@
+{
+  "name": "@evidence-poc/evidence-cel",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@evidence-poc/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./ast": {
+      "@evidence-poc/source": "./src/celAst.ts",
+      "types": "./dist/celAst.d.ts",
+      "import": "./dist/celAst.js",
+      "default": "./dist/celAst.js"
+    }
+  },
+  "nx": {
+    "name": "evidence-cel",
+    "tags": [
+      "type:lib",
+      "layer:domain",
+      "platform:universal",
+      "scope:model"
+    ]
+  },
+  "dependencies": {
+    "@evidence-poc/evidence-schema": "workspace:*",
+    "@marcbachmann/cel-js": "^8.0.0",
+    "tslib": "^2.3.0"
+  }
+}
