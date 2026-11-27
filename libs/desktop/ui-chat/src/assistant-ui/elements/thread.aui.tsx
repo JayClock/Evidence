@@ -166,7 +166,12 @@ const taskAwareGroupBy = (
     : path;
 };
 
-export type ThreadProps = {
+type ComposerLabels = {
+  composerLabel?: string;
+  composerPlaceholder?: string;
+};
+
+export type ThreadProps = ComposerLabels & {
   components?: ThreadComponents | undefined;
   autoFocus?: boolean | undefined;
 };
@@ -213,20 +218,20 @@ const ThreadHistorySkeleton: FC = () => (
 export const Thread: FC<ThreadProps> = ({
   components = EMPTY_COMPONENTS,
   autoFocus = true,
+  ...composerLabels
 }) => {
   const isEmpty = useAuiState(isNewChatView);
 
   return (
     <ThreadComponentsContext.Provider value={components}>
-      <ThreadRoot isEmpty={isEmpty} autoFocus={autoFocus} />
+      <ThreadRoot isEmpty={isEmpty} autoFocus={autoFocus} {...composerLabels} />
     </ThreadComponentsContext.Provider>
   );
 };
 
-const ThreadRoot: FC<{ isEmpty: boolean; autoFocus: boolean }> = ({
-  isEmpty,
-  autoFocus,
-}) => {
+const ThreadRoot: FC<
+  { isEmpty: boolean; autoFocus: boolean } & ComposerLabels
+> = ({ isEmpty, autoFocus, ...composerLabels }) => {
   const { Welcome = ThreadWelcome } = useContext(ThreadComponentsContext);
 
   return (
@@ -278,7 +283,7 @@ const ThreadRoot: FC<{ isEmpty: boolean; autoFocus: boolean }> = ({
           >
             <ThreadScrollToBottom />
             <ThreadFollowupSuggestions />
-            <Composer autoFocus={autoFocus} />
+            <Composer autoFocus={autoFocus} {...composerLabels} />
             <AuiIf condition={(s) => isNewChatView(s) && s.composer.isEmpty}>
               <ThreadSuggestions />
             </AuiIf>
@@ -529,7 +534,11 @@ const ThreadSuggestionItem: FC = () => {
   );
 };
 
-const Composer: FC<{ autoFocus: boolean }> = ({ autoFocus }) => {
+const Composer: FC<{ autoFocus: boolean } & ComposerLabels> = ({
+  autoFocus,
+  composerLabel = '消息内容',
+  composerPlaceholder = '输入消息',
+}) => {
   return (
     <ComposerPrimitive.Root className="aui-composer-root relative flex w-full flex-col">
       <ComposerPrimitive.AttachmentDropzone asChild>
@@ -539,12 +548,12 @@ const Composer: FC<{ autoFocus: boolean }> = ({ autoFocus }) => {
         >
           <ComposerAttachments />
           <ComposerPrimitive.Input
-            placeholder="回答业务问题，或补充已有约定"
+            placeholder={composerPlaceholder}
             className="aui-composer-input caret-primary placeholder:text-muted-foreground/60 max-h-48 min-h-10 w-full resize-none bg-transparent px-2.5 py-1 text-base leading-6 outline-none"
             rows={1}
             autoFocus={autoFocus}
             enterKeyHint="send"
-            aria-label="访谈内容"
+            aria-label={composerLabel}
           />
           <ComposerAction />
         </div>

@@ -1,4 +1,4 @@
-import type { ThreadMessageLike } from '@assistant-ui/react';
+import type { ThreadMessageLike } from '@evidence-poc/desktop-ui-chat';
 import type { AgentStreamEvent } from '@evidence-poc/desktop-contracts/agentIpc';
 
 type Part = Exclude<ThreadMessageLike['content'], string>[number];

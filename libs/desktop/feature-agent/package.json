@@ -25,7 +25,6 @@
     ]
   },
   "dependencies": {
-    "@assistant-ui/react": "0.15.37",
     "@evidence-poc/desktop-contracts": "workspace:*",
     "@evidence-poc/desktop-feature-canvas": "workspace:*",
     "@evidence-poc/desktop-ui-chat": "workspace:*",

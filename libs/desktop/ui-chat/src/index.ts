@@ -12,3 +12,8 @@ export {
 } from './assistant-ui/elements/attachment.aui.js';
 export { Reasoning } from './assistant-ui/elements/reasoning.aui.js';
 export { ToolFallback } from './assistant-ui/elements/tool-fallback.aui.js';
+export {
+  ExternalThreadProvider,
+  type ExternalThreadAdapter,
+} from './ExternalThreadProvider.js';
+export type { ThreadMessageLike } from '@assistant-ui/react';

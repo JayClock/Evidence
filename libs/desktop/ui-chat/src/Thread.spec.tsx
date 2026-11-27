@@ -1,27 +1,23 @@
-import {
-  AssistantRuntimeProvider,
-  useExternalStoreRuntime,
-  type ThreadMessageLike,
-} from '@assistant-ui/react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { Thread } from './index';
+import {
+  Thread,
+  ExternalThreadProvider,
+  type ThreadMessageLike,
+} from './index';
 
-const mount = (messages: ThreadMessageLike[]) => {
-  const Conversation = () => {
-    const runtime = useExternalStoreRuntime({
-      messages,
-      convertMessage: (message: ThreadMessageLike) => message,
-      onNew: vi.fn(),
-    });
-    return (
-      <AssistantRuntimeProvider runtime={runtime}>
-        <Thread />
-      </AssistantRuntimeProvider>
-    );
-  };
-  return render(<Conversation />);
-};
+const mount = (messages: ThreadMessageLike[]) =>
+  render(
+    <ExternalThreadProvider
+      adapter={{
+        messages,
+        convertMessage: (message: ThreadMessageLike) => message,
+        onNew: vi.fn(),
+      }}
+    >
+      <Thread />
+    </ExternalThreadProvider>,
+  );
 
 describe('Thread', () => {
   it('renders Markdown and official reasoning/tool disclosures without activating model HTML or URLs', async () => {
