@@ -150,6 +150,11 @@ export {
   whatIfDecisionRules,
 } from './trace/whatIfRules.js';
 export {
+  buildDeterministicFallbackChallenges,
+  type WhatIfChallenge,
+  type WhatIfChallengeCategory,
+} from './trace/whatIfChallenges.js';
+export {
   createWhatIfScenario,
   type WhatIfHypothesis,
 } from './trace/whatIfScenario.js';

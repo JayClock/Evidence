@@ -107,7 +107,11 @@ export interface StoryAgent {
   }): Promise<unknown>;
 }
 
-export type { WhatIfHypothesis } from '@evidence-poc/evidence-model-core';
+export type {
+  WhatIfChallenge,
+  WhatIfChallengeCategory,
+  WhatIfHypothesis,
+} from '@evidence-poc/evidence-model-core';
 
 export interface WhatIfInput {
   readonly model: DomainModelDocument;

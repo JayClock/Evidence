@@ -4,7 +4,14 @@ import type {
   BusinessStoryProjection,
   StoryNarrativeText,
   StoryStepHistoryItem,
+  WhatIfChallenge,
+  WhatIfHypothesis,
   WhatIfResult,
+} from '@evidence-poc/evidence-agent';
+
+export type {
+  WhatIfChallenge,
+  WhatIfChallengeCategory,
 } from '@evidence-poc/evidence-agent';
 
 export const STORY_IPC_CHANNELS = {
@@ -55,6 +62,7 @@ export interface StoryEnrichStepResult {
   readonly stepIndex: number;
   readonly stepHash: string;
   readonly narrative: StoryNarrativeText;
+  readonly challenges?: readonly WhatIfChallenge[];
   readonly cached: boolean;
 }
 
@@ -64,6 +72,10 @@ export interface StoryWhatIfInput extends StoryModelInput {
   /** Refuse to answer against a step that changed since it was displayed. */
   readonly stepHash: string;
   readonly question: string;
+  readonly hypothesisDraft?: WhatIfHypothesis;
+  readonly targetedRuleId?: string;
+  /** Evaluate a selected, structured challenge without resolving a provider. */
+  readonly localOnly?: boolean;
   /** Allow speculative freeform AI inference when no CEL completion/breach rules exist. */
   readonly allowSpeculative?: boolean;
 }

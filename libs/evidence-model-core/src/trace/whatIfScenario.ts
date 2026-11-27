@@ -193,16 +193,18 @@ export function createWhatIfScenario(
       return values;
     };
 
+    const bindingsOf = (rule: RuleAST) =>
+      bindingsFor(rule, current, materialize(current));
     const decide = (rule: RuleAST) => {
       const result = evaluateRuleOnExample(graph.document, rule, {
         asOf,
-        bindings: bindingsFor(rule, current, materialize(current)),
+        bindings: bindingsOf(rule),
       });
       if (typeof result !== 'boolean')
         throw new Error(`${rule.id}: a decision rule must return boolean.`);
       return { ruleId: rule.id, result };
     };
-    return { asOf, valuesOf: materialize, decide };
+    return { asOf, valuesOf: materialize, bindingsOf, decide };
   };
   return { upstream, inputAttributes, apply };
 }

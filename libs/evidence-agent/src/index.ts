@@ -39,6 +39,8 @@ export type {
   StoryNarrativeText,
   StoryScene,
   StoryStepHistoryItem,
+  WhatIfChallenge,
+  WhatIfChallengeCategory,
   WhatIfHypothesis,
   WhatIfInput,
   WhatIfResult,

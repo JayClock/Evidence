@@ -27,6 +27,9 @@ export type { AgentStreamEvent } from './session/streamEvents.js';
 export type {
   StoryScene,
   DocumentCardField,
+  WhatIfChallenge,
+  WhatIfChallengeCategory,
+  WhatIfHypothesis,
   WhatIfResult,
   NextStepExpectation,
 } from './story/types.js';

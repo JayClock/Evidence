@@ -3,6 +3,9 @@ import { fileURLToPath } from 'node:url';
 import {
   buildFmCheckReport,
   collectFlowScenarios,
+  buildDeterministicFallbackChallenges,
+  createDomainGraph,
+  whatIfDecisionRules,
 } from '@evidence-poc/evidence-model-core';
 import { readModelDirectory } from '@evidence-poc/evidence-model-io';
 import { describe, expect, it, vi } from 'vitest';
@@ -23,18 +26,90 @@ const acceptanceModel = async (name: string) => {
 };
 
 describe('M1 trace to M2 story integration', () => {
+  it('keeps the annual target fixed and tests the actual receipt and derived deadline using CEL', async () => {
+    const { document: model } = await readModelDirectory(
+      fileURLToPath(
+        new URL(
+          '../../../../examples/shared-settlement/.evidence/model',
+          import.meta.url,
+        ),
+      ),
+    );
+    const annual = model.rules.find(
+      ({ id }) => id === 'rule.request.annual-target-completed',
+    )!;
+    model.rules.push({
+      ...annual,
+      id: 'rule.annual-shortfall',
+      kind: 'breach',
+      expression:
+        'results.exists(c, request.target_amount_minor > c.amount_minor)',
+    });
+    const graph = createDomainGraph(model);
+    const flow = collectFlowScenarios(model)[0]!;
+    const cardsFor = (entityId: string) => {
+      const step = flow.steps.find((step) => step.entityId === entityId)!;
+      return buildDeterministicFallbackChallenges(
+        graph,
+        flow.steps,
+        step,
+        whatIfDecisionRules(graph, entityId),
+      );
+    };
+    const requestCards = cardsFor('request.annual-target');
+    expect(requestCards).toMatchObject([
+      {
+        category: 'overdue',
+        hypothesisDraft: { asOf: '2027-01-03T09:00:00.000Z' },
+      },
+    ]);
+    expect(requestCards[0]?.hypothesisDraft?.values).toBeUndefined();
+    const receipt = flow.steps.find(
+      (step) => step.entityId === 'confirmation.revenue',
+    )!;
+    const cards = cardsFor(receipt.entityId);
+    const deficit = cards.find((card) => card.category === 'deficit')!;
+    expect(deficit).toMatchObject({
+      targetedRuleId: 'rule.annual-shortfall',
+      isFallback: true,
+      hypothesisDraft: { values: { amount_minor: 49_999_999 } },
+    });
+    expect(
+      cards.find((card) => card.category === 'overdue')?.hypothesisDraft
+        ?.values,
+    ).toEqual({ confirmed_at: '2027-01-03T09:00:00.000Z' });
+    const result = await simulateWhatIf(
+      {
+        model,
+        flow,
+        currentStepSequence: receipt.sequence,
+        hypothesisQuestion: deficit.question,
+        hypothesis: deficit.hypothesisDraft,
+        ruleId: deficit.targetedRuleId,
+      },
+      {
+        agent: {
+          generate: async () => ({
+            businessImpactExplanation: '年度入账金额未达标。',
+          }),
+        },
+      },
+    );
+    expect(result.ruleOutcome).toEqual({
+      ruleId: 'rule.annual-shortfall',
+      result: true,
+    });
+  });
   it.each(['procurement', 'procurement-deposit'])(
     'projects %s and regenerates the edited request against its history',
     async (name) => {
       const model = await acceptanceModel(name);
       const { report } = buildFmCheckReport({ model });
       const flows = collectFlowScenarios(model, report);
-      const generate = vi
-        .fn()
-        .mockResolvedValue({
-          headline: '核对业务凭证',
-          prose: '核对业务凭证。',
-        });
+      const generate = vi.fn().mockResolvedValue({
+        headline: '核对业务凭证',
+        prose: '核对业务凭证。',
+      });
       const projector = createFlowStoryProjector({ agent: { generate } });
       for (const flow of flows) {
         const projection = await projector.project(flow, model);
