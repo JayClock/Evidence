@@ -20,6 +20,7 @@ import {
   blockedStoryScenes,
   evaluateWhatIfCapability,
   promotableSceneRequests,
+  requestsForProof,
 } from './whatIfCapability';
 import type {
   StoryScene,
@@ -229,16 +230,19 @@ export const useStoryPlayback = ({
         : undefined,
     [graph, flow, anchoredFacts],
   );
+  const sceneRequests = useMemo(() => {
+    if (!anchoredFacts || !graph) return undefined;
+    return anchoredFacts.activity.workObject.entityKind === 'other_evidence'
+      ? requestsForProof(graph, scenes, anchoredFacts)
+      : anchoredFacts.activity.fulfillment && anchoredChecklist?.requests;
+  }, [graph, scenes, anchoredFacts, anchoredChecklist]);
   const sceneRequestKeys = useMemo(() => {
-    const fulfillment = anchoredFacts?.activity.fulfillment;
-    if (!flow || !fulfillment) return undefined;
-    const steps = new Set(
-      fulfillment.requests.map(({ stepIndex }) => stepIndex),
-    );
+    if (!flow || !sceneRequests) return undefined;
+    const steps = new Set(sceneRequests.map(({ stepIndex }) => stepIndex));
     return new Set(
       flow.steps.filter(({ sequence }) => steps.has(sequence)).map(stepRef),
     );
-  }, [anchoredFacts, flow]);
+  }, [sceneRequests, flow]);
   const focusedObligations = useMemo(
     () =>
       step && sceneRequestKeys
@@ -651,9 +655,7 @@ export const useStoryPlayback = ({
       anchoredIndex,
       stepRef(anchoredStep),
     );
-    const obligations = sceneRequestKeys
-      ? visible.filter(({ key }) => sceneRequestKeys.has(key))
-      : [];
+    const obligations = visible.filter(({ key }) => sceneRequestKeys?.has(key));
     const end = obligations.reduce(
       (last, { deadline }) =>
         deadline === undefined ? last : Math.max(last, deadline + 3_600_000),
@@ -775,14 +777,10 @@ export const useStoryPlayback = ({
   const writable = onRecordBreachOutcome !== undefined;
   const sandboxRequests = useMemo(
     () =>
-      currentSandbox?.result && anchoredChecklist && graph
-        ? promotableSceneRequests(
-            graph,
-            anchoredChecklist.requests,
-            currentSandbox.result,
-          )
+      currentSandbox?.result && sceneRequests && graph
+        ? promotableSceneRequests(graph, sceneRequests, currentSandbox.result)
         : [],
-    [currentSandbox?.result, anchoredChecklist, graph],
+    [currentSandbox?.result, sceneRequests, graph],
   );
   const clockBreaches = useMemo(() => {
     if (

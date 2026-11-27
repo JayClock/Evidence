@@ -6,6 +6,7 @@ import {
   blockedStoryScenes,
   evaluateWhatIfCapability,
   promotableSceneRequests,
+  requestsForProof,
 } from './whatIfCapability';
 
 const steps = storyFlow().steps;
@@ -28,6 +29,71 @@ describe('What-If capability', () => {
       },
     ];
     expect([...blockedStoryScenes(scenes, 2).keys()]).toEqual([3, 5]);
+  });
+
+  it('locates the causal request instance behind a supporting receipt', () => {
+    const model = createDesktopFixture();
+    const receipt = {
+      type: 'entity',
+      category: 'evidence',
+      kind: 'other_evidence',
+      id: 'evidence.receipt',
+      label: '签收回执',
+    } as const;
+    model.entities.push(receipt);
+    model.relationships.push({
+      type: 'relationship',
+      kind: 'references',
+      id: 'relation.receipt',
+      label: '签收依据',
+      sourceRef: receipt.id,
+      targetRef: 'evidence.confirmation',
+    });
+    const graph = createDomainGraph(model);
+    const projection = storySnapshot().selected?.projection;
+    if (!projection) throw new Error('Missing story fixture');
+    const [contract, request, confirmation] = projection.scenes;
+    const proof = {
+      ...confirmation,
+      stepIndex: 5,
+      activity: {
+        ...confirmation.activity,
+        fulfillment: undefined,
+        workObject: {
+          entityId: receipt.id,
+          entityKind: receipt.kind,
+          entityLabel: receipt.label,
+        },
+      },
+      prerequisites: [
+        { ...confirmation.prerequisites[0], previousStepIndex: 3 },
+      ],
+    };
+    const scenes = [
+      contract,
+      request,
+      confirmation,
+      { ...request, stepIndex: 4 },
+      proof,
+    ];
+    expect(requestsForProof(graph, scenes, proof)).toEqual([
+      {
+        id: 'evidence.request',
+        label: '交付请求（Delivery Request）',
+        stepIndex: 2,
+      },
+    ]);
+    const trial = {
+      ...steps[2],
+      sequence: 5,
+      entityId: receipt.id,
+      entityKind: receipt.kind,
+      entityLabel: receipt.label,
+      basedOn: ['evidence.confirmation#example-2'],
+    };
+    expect(
+      evaluateWhatIfCapability(graph, [...steps, trial], trial).status,
+    ).toBe('eligible');
   });
   it('uses the causal deadline and keeps the currency on a one-subunit shortfall', () => {
     const model = createDesktopFixture();

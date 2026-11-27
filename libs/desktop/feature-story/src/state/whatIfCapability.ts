@@ -36,6 +36,33 @@ export function blockedStoryScenes(
   return blocked;
 }
 
+/** A proof can support a request directly or through a confirmation. */
+export function requestsForProof(
+  graph: DomainGraph,
+  scenes: readonly StoryScene[],
+  proof: StoryScene,
+) {
+  const requests: { id: string; label: string; stepIndex: number }[] = [];
+  const ancestors = new Set(
+    proof.prerequisites.map(({ previousStepIndex }) => previousStepIndex),
+  );
+  for (let i = scenes.length - 1; i >= 0; i--) {
+    const { stepIndex, activity, prerequisites } = scenes[i];
+    if (!ancestors.has(stepIndex) || activity.rejectedExample) continue;
+    for (const parent of prerequisites) ancestors.add(parent.previousStepIndex);
+    const pair = graph.fulfillmentPair(activity.workObject.entityId);
+    if (
+      pair?.proofs.some(({ id }) => id === proof.activity.workObject.entityId)
+    )
+      requests.push({
+        id: pair.request.id,
+        label: pair.request.label,
+        stepIndex,
+      });
+  }
+  return requests;
+}
+
 /** Only the current scene's causal requests can own a modeled outcome. */
 export function promotableSceneRequests(
   graph: DomainGraph,

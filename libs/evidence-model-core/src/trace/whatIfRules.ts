@@ -21,7 +21,10 @@ export function whatIfDecisionRules(
   if (!isWhatIfFulfillmentEvidence(graph.getEntity(entityId))) return [];
   const related = new Set([entityId]);
   for (const pair of graph.fulfillmentPairs()) {
-    if (pair.confirmations.some(({ id }) => id === entityId)) {
+    if (
+      pair.confirmations.some(({ id }) => id === entityId) ||
+      pair.proofs.some(({ id }) => id === entityId)
+    ) {
       related.add(pair.request.id);
     }
   }
