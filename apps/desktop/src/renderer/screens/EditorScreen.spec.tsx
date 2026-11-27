@@ -790,7 +790,9 @@ describe('EditorScreen', () => {
     fireEvent.click(within(card).getByText('单据归档与字段依据'));
     expect(within(card).getAllByText(/请求形成事实/)[0]).toBeVisible();
     expect(card).toHaveTextContent('示例未提供');
-    fireEvent.click(story.getByRole('button', { name: '推演此步异常 →' }));
+    fireEvent.mouseDown(story.getByRole('tab', { name: '推演与分支' }), {
+      button: 0,
+    });
     const question = '如果到 13:00 还没有收到付款凭证？';
     fireEvent.change(story.getByRole('textbox', { name: '假设问题' }), {
       target: { value: question },
@@ -971,7 +973,9 @@ describe('EditorScreen', () => {
     expect(
       await within(details).findByText('采购方签署《采购协议》。'),
     ).toBeVisible();
-    fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
+    fireEvent.click(
+      container.querySelector('[data-node-id="evidence.request"]')!,
+    );
     expect(
       within(details).getByText(
         '供货方要求采购方验收交付成果（《交付请求》）。',
@@ -1134,6 +1138,12 @@ describe('EditorScreen', () => {
     expect(slider).toHaveAccessibleName('业务时间');
     fireEvent.change(slider, { target: { value: String(8 * 3_600_000 + 1) } });
     const details = within(screen.getByRole('region', { name: '业务故事' }));
+    expect(
+      details.getByRole('tab', { name: '故事剧本', selected: true }),
+    ).toBeVisible();
+    fireEvent.mouseDown(details.getByRole('tab', { name: '推演与分支' }), {
+      button: 0,
+    });
     expect(
       details.getByRole('tab', { name: '推演与分支', selected: true }),
     ).toBeVisible();

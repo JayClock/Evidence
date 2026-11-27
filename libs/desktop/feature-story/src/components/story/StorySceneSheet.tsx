@@ -37,13 +37,11 @@ export const StorySceneSheet = ({
   checklist,
   ready,
   onClarifyGap,
-  onExplore,
 }: {
   scene: StoryScene;
   checklist: SceneChecklist;
   ready: boolean;
   onClarifyGap?: ClarifyStoryGap;
-  onExplore?: () => void;
 }) => {
   const { activity, documentCard, timing, expectation, narrative } = scene;
   const requests = activity.fulfillment?.requests;
@@ -119,7 +117,7 @@ export const StorySceneSheet = ({
           ) : null}
         </article>
       </Card>
-      {activity.fulfillment || contractContext || expectation || onExplore ? (
+      {activity.fulfillment || contractContext || expectation ? (
         <section aria-label="本步注解" className="flex flex-col gap-2">
           <h3 className="font-semibold">本步注解</h3>
           {contractContext || activity.fulfillment ? (
@@ -189,17 +187,6 @@ export const StorySceneSheet = ({
             </p>
           ) : null}
           {expectation ? <p>{describeStoryExpectation(expectation)}</p> : null}
-          {onExplore ? (
-            <Button
-              type="button"
-              variant="outline"
-              className="self-start"
-              disabled={!ready}
-              onClick={onExplore}
-            >
-              推演此步异常 →
-            </Button>
-          ) : null}
         </section>
       ) : null}
     </div>

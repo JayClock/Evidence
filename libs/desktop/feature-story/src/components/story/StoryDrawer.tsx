@@ -1,5 +1,5 @@
 import * as Tabs from '@radix-ui/react-tabs';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { Badge, Button } from '@evidence-poc/desktop-ui-kit';
 import type { StoryPlaybackController } from '../../state/useStoryPlayback';
 import { StoryOutlineSpine } from './StoryOutlineSpine';
@@ -44,13 +44,7 @@ export const StoryDrawer = ({
     anchoredStep,
     isBetweenSteps,
     rehearsal,
-    whatIfCapability,
   } = playback;
-  const result = playback.sandbox?.result;
-  useEffect(() => {
-    if (result) setView('sandbox');
-  }, [result]);
-  const activeView = rehearsal.active ? 'sandbox' : view;
   const context = isBetweenSteps
     ? anchoredStep
       ? `已推进至第 ${anchoredStep.sequence} 步，等待后续时点。`
@@ -92,9 +86,14 @@ export const StoryDrawer = ({
       <StoryOutlineSpine
         key={playback.projection?.flowId}
         playback={playback}
+        onExploreStep={(sequence) => {
+          playback.jumpToStep(sequence);
+          setView('sandbox');
+          sandboxTab.current?.focus();
+        }}
       />
       <Tabs.Root
-        value={activeView}
+        value={view}
         onValueChange={(value) =>
           setView(value === 'sandbox' ? 'sandbox' : 'script')
         }
@@ -105,11 +104,7 @@ export const StoryDrawer = ({
             aria-label="故事视图"
             className="flex shrink-0 border-b border-workbench-border px-2"
           >
-            <Tabs.Trigger
-              value="script"
-              disabled={rehearsal.active}
-              className={tabClass}
-            >
+            <Tabs.Trigger value="script" className={tabClass}>
               故事剧本
             </Tabs.Trigger>
             <Tabs.Trigger value="sandbox" ref={sandboxTab} className={tabClass}>
@@ -157,6 +152,11 @@ export const StoryDrawer = ({
               <>
                 <Tabs.Content value="script">
                   <div className="flex flex-col gap-3">
+                    {rehearsal.active ? (
+                      <p>
+                        履约时钟假设暂无剧本。可在「推演与分支」查看履约状态。
+                      </p>
+                    ) : null}
                     {context ? (
                       <p className="text-evidence-muted">{context}</p>
                     ) : null}
@@ -167,15 +167,6 @@ export const StoryDrawer = ({
                         checklist={anchoredChecklist}
                         ready={playback.ready}
                         onClarifyGap={onClarifyGap}
-                        onExplore={
-                          whatIfCapability &&
-                          whatIfCapability.status !== 'non_fulfillment_stage'
-                            ? () => {
-                                setView('sandbox');
-                                sandboxTab.current?.focus();
-                              }
-                            : undefined
-                        }
                       />
                     ) : null}
                     {isBetweenSteps && playback.ready ? (

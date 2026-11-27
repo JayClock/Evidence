@@ -17,6 +17,7 @@ import {
 import { installDesktopApi } from '@evidence-poc/desktop-testing/desktopApi';
 import { storyFlow, storySnapshot } from '@evidence-poc/desktop-testing/story';
 import type { StoryEnrichStepResult } from '@evidence-poc/desktop-contracts/story';
+import type { WhatIfResult } from '@evidence-poc/evidence-agent/browser';
 import {
   STORY_REFRESH_DELAY,
   useStoryPlayback,
@@ -208,7 +209,9 @@ describe('StoryDrawer', () => {
     const spine = within(screen.getByRole('navigation', { name: '故事步骤' }));
     expect(spine.queryByRole('list')).toBeNull();
     fireEvent.click(spine.getByRole('button', { name: /展开全部 3 幕/ }));
-    const steps = within(spine.getByRole('list')).getAllByRole('button');
+    const steps = within(spine.getByRole('list')).getAllByRole('button', {
+      name: /^[123]/,
+    });
     expect(steps.map((step) => step.textContent)).toEqual([
       '1采购方签署《采购协议》当前幕',
       '2供货方要求采购方验收交付成果（《交付请求》）',
@@ -243,6 +246,34 @@ describe('StoryDrawer', () => {
       screen.getByRole('tab', { name: '推演与分支', selected: true }),
     ).toHaveFocus();
     expect(screen.getByRole('tabpanel', { name: '推演与分支' })).toBeVisible();
+  });
+
+  it('keeps the script selected when a sandbox reply arrives in the background', async () => {
+    const { api } = await setup({ noRules: true });
+    let finish!: (result: WhatIfResult) => void;
+    vi.mocked(api.story.whatIf).mockReturnValueOnce(
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: /展开全部 3 幕/ }));
+    fireEvent.click(screen.getByRole('button', { name: '推演第 2 幕' }));
+    fireEvent.click(screen.getByRole('button', { name: '开启 AI 临时推想' }));
+    fireEvent.change(screen.getByRole('textbox', { name: '假设问题' }), {
+      target: { value: '如果延迟交付，会影响验收吗？' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '生成 AI 推想' }));
+    selectTab('故事剧本');
+    await act(async () =>
+      finish({
+        isSpeculative: true,
+        ruleOutcomes: [],
+        businessImpactExplanation: '验收可能延迟。',
+      }),
+    );
+    expect(screen.getByRole('tabpanel', { name: '故事剧本' })).toBeVisible();
+    selectTab('推演与分支');
+    expect(screen.getByText('验收可能延迟。')).toBeVisible();
   });
 
   it('keeps core values visible and discloses the archive and source of each field on demand', async () => {
@@ -316,9 +347,8 @@ describe('StoryDrawer', () => {
 
   it('submits a strict question about the confirmation and clears the answer after stepping', async () => {
     const { api } = await setup();
-    fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
-    fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
-    fireEvent.click(screen.getByRole('button', { name: '推演此步异常 →' }));
+    fireEvent.click(screen.getByRole('button', { name: /展开全部 3 幕/ }));
+    fireEvent.click(screen.getByRole('button', { name: '推演第 3 幕' }));
     expect(screen.getByRole('tab', { name: '推演与分支' })).toHaveFocus();
     expect(screen.getByRole('button', { name: '推演假设' })).toBeDisabled();
     fireEvent.click(
@@ -427,7 +457,7 @@ describe('StoryDrawer', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
     fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
-    fireEvent.click(screen.getByRole('button', { name: '推演此步异常 →' }));
+    selectTab('推演与分支');
     fireEvent.change(screen.getByRole('textbox', { name: '假设问题' }), {
       target: { value: '如果提前交付呢？' },
     });
@@ -451,7 +481,7 @@ describe('StoryDrawer', () => {
         }),
     );
     fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
-    fireEvent.click(screen.getByRole('button', { name: '推演此步异常 →' }));
+    selectTab('推演与分支');
     expect(
       screen.getByRole('button', { name: /时效逾期 · 超过约定期限/ }),
     ).toBeVisible();
@@ -551,7 +581,7 @@ describe('StoryDrawer', () => {
       });
       fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
       fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
-      fireEvent.click(screen.getByRole('button', { name: '推演此步异常 →' }));
+      selectTab('推演与分支');
       fireEvent.click(
         screen.getByRole('button', { name: /时效逾期 · 超过约定期限/ }),
       );
@@ -725,16 +755,18 @@ describe('StoryDrawer', () => {
       target: { value: '' },
     });
     expect(screen.queryByText(/当前故事未能润色/)).toBeNull();
-    expect(screen.getByRole('tab', { name: '推演与分支' })).toHaveAttribute(
-      'aria-selected',
-      'true',
-    );
-    expect(screen.getByRole('tab', { name: '故事剧本' })).toBeDisabled();
+    expect(
+      screen.getByRole('tabpanel', { name: '故事剧本' }),
+    ).toHaveTextContent('履约时钟假设暂无剧本');
     fireEvent.change(
       screen.getByRole('spinbutton', { name: '假设窗口（小时）' }),
       { target: { value: '24' } },
     );
     expect(screen.getByRole('slider', { name: '业务时间' })).toBeEnabled();
+    selectTab('推演与分支');
+    expect(screen.getByRole('region', { name: '时点履约状态' })).toBeVisible();
+    selectTab('故事剧本');
+    expect(screen.getByRole('tabpanel', { name: '故事剧本' })).toBeVisible();
     expect(api.story.load).toHaveBeenCalledOnce();
   });
 

@@ -1023,7 +1023,21 @@ const EditorWorkspace = ({
               }
             }
           }}
-          onSelect={(nodeId) => state.session.select(nodeId)}
+          onSelect={(nodeId) => {
+            if (storyActive) {
+              const scene =
+                story.anchoredStep?.entityId === nodeId
+                  ? story.anchoredScene
+                  : story.scenes.find(
+                      ({ activity }) => activity.workObject.entityId === nodeId,
+                    );
+              if (scene) {
+                story.jumpToStep(scene.stepIndex);
+                return;
+              }
+            }
+            state.session.select(nodeId);
+          }}
           onClearSelection={() => state.session.clearSelection()}
         />
       )}

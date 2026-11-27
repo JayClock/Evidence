@@ -4,8 +4,10 @@ import type { StoryPlaybackController } from '../../state/useStoryPlayback';
 
 export const StoryOutlineSpine = ({
   playback,
+  onExploreStep,
 }: {
   playback: StoryPlaybackController;
+  onExploreStep: (sequence: number) => void;
 }) => {
   const [expanded, setExpanded] = useState(false);
   const listId = useId();
@@ -47,12 +49,12 @@ export const StoryOutlineSpine = ({
           scenes.map(({ stepIndex, narrative }) => {
             const active = stepIndex === current?.stepIndex;
             return (
-              <li key={stepIndex}>
+              <li key={stepIndex} className="flex items-center gap-1">
                 <Button
                   type="button"
                   size="xs"
                   variant="ghost"
-                  className="h-auto min-h-7 w-full justify-start whitespace-normal text-start"
+                  className="h-auto min-h-7 min-w-0 flex-1 justify-start whitespace-normal text-start"
                   aria-current={active && !isBetweenSteps ? 'step' : undefined}
                   disabled={!playback.ready}
                   onClick={() => playback.jumpToStep(stepIndex)}
@@ -70,6 +72,16 @@ export const StoryOutlineSpine = ({
                       {isBetweenSteps ? '已发生' : '当前幕'}
                     </small>
                   ) : null}
+                </Button>
+                <Button
+                  type="button"
+                  size="xs"
+                  variant="ghost"
+                  aria-label={`推演第 ${stepIndex} 幕`}
+                  disabled={!playback.ready}
+                  onClick={() => onExploreStep(stepIndex)}
+                >
+                  推演
                 </Button>
               </li>
             );
