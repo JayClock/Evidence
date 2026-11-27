@@ -136,9 +136,10 @@ describe('native CEL What-If sandbox', () => {
       .mockResolvedValueOnce({ values })
       .mockResolvedValueOnce(explanation);
     const result = await simulateWhatIf(input, { agent: { generate } });
-    expect(JSON.parse(generate.mock.calls[0]![0].userPrompt).step.asOf).toBe(
-      input.asOf,
-    );
+    expect(JSON.parse(generate.mock.calls[0][0].userPrompt)).toMatchObject({
+      asOf: input.asOf,
+      step: { asOf: '2026-04-01T12:00:00Z' },
+    });
     expect(result.hypothesis).toEqual({ asOf: input.asOf, values });
     const earlier = { asOf: '2026-04-01T18:00:00Z', values };
     expect(

@@ -110,7 +110,8 @@ export async function simulateWhatIf(
                 systemPrompt: WHAT_IF_EXTRACTION_PROMPT,
                 userPrompt: compactCanonicalJson({
                   hypothesisQuestion,
-                  step: asOf === undefined ? current : { ...current, asOf },
+                  asOf: asOf ?? current.asOf,
+                  step: current,
                   inputAttributes: scenario.inputAttributes,
                   upstream: scenario.upstream.map(
                     ({ entityId, entityLabel, asOf, values }) => ({
