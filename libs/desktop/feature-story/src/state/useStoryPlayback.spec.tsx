@@ -341,6 +341,7 @@ describe('story playback', () => {
       expect.objectContaining({
         currentStepSequence: 2,
         stepHash: timed.steps[1]!.stepHash,
+        asOf: new Date(second + 1).toISOString(),
       }),
     );
     act(() => hook.result.current.seek(second));

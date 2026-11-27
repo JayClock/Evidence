@@ -555,6 +555,39 @@ describe('StoryDrawer', () => {
       }),
     );
     expect(screen.getByRole('form', { name: '固化违约分支' })).toBeVisible();
+    expect(
+      screen.getByRole('region', { name: '下游协同阻断' }),
+    ).toHaveTextContent('第 3 幕 · 交付确认');
+    expect(screen.getByRole('button', { name: /下一步/ })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: '恢复本幕正常流' }));
+    expect(screen.getByRole('button', { name: /下一步/ })).toBeEnabled();
+    expect(screen.queryByRole('region', { name: '下游协同阻断' })).toBeNull();
+  });
+
+  it('advances the selected scene past a later example without admitting its facts', async () => {
+    const { api } = await setup({
+      timed: true,
+      timedRules: true,
+      breach: true,
+    });
+    fireEvent.click(screen.getByRole('button', { name: /展开全部 3 幕/ }));
+    fireEvent.click(screen.getByRole('button', { name: '推演第 2 幕' }));
+    const clock = screen.getByRole('slider', { name: '本幕假设时钟' });
+    fireEvent.change(clock, { target: { value: String(65 * 60_000) } });
+    expect(screen.getByText('第 2/3 步')).toBeVisible();
+    expect(
+      screen.getByRole('region', { name: '时点履约状态' }),
+    ).toHaveTextContent('违约条件成立');
+    expect(
+      screen.getByRole('list', { name: '当前时点规则结果' }),
+    ).toHaveTextContent('输入不足，未能求值');
+    expect(
+      screen.getByRole('navigation', { name: '故事步骤' }),
+    ).toHaveTextContent('已冻结');
+    expect(api.story.whatIf).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '推演第 3 幕' }));
+    expect(screen.getByText('第 3/3 步')).toBeVisible();
+    expect(screen.queryByText('已冻结')).toBeNull();
   });
 
   it('shows guidance but no speculative form while AI is unconfigured', async () => {

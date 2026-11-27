@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { createDomainGraph } from '@evidence-poc/evidence-model-core';
 import { createDesktopFixture } from '@evidence-poc/desktop-testing';
-import { storyFlow } from '@evidence-poc/desktop-testing/story';
+import { storyFlow, storySnapshot } from '@evidence-poc/desktop-testing/story';
 import {
+  blockedStoryScenes,
   evaluateWhatIfCapability,
   promotableSceneRequests,
 } from './whatIfCapability';
@@ -10,6 +11,24 @@ import {
 const steps = storyFlow().steps;
 
 describe('What-If capability', () => {
+  it('freezes direct and transitive dependents and leaves independent scenes available', () => {
+    const [contract, request, confirmation] =
+      storySnapshot().selected!.projection.scenes;
+    const scenes = [
+      contract!,
+      request!,
+      confirmation!,
+      { ...request!, stepIndex: 4 },
+      {
+        ...confirmation!,
+        stepIndex: 5,
+        prerequisites: [
+          { ...confirmation!.prerequisites[0]!, previousStepIndex: 3 },
+        ],
+      },
+    ];
+    expect([...blockedStoryScenes(scenes, 2).keys()]).toEqual([3, 5]);
+  });
   it('uses the causal deadline and keeps the currency on a one-subunit shortfall', () => {
     const model = createDesktopFixture();
     const [contract, request, confirmation] = steps;

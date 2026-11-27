@@ -10,9 +10,31 @@ import {
   type EntityAST,
 } from '@evidence-poc/evidence-schema';
 import type {
+  StoryScene,
   WhatIfChallenge,
   WhatIfResult,
 } from '@evidence-poc/evidence-agent/browser';
+
+/** The projection lists direct prerequisites in causal order. */
+export function blockedStoryScenes(
+  scenes: readonly StoryScene[],
+  breachedStep?: number,
+) {
+  const blocked = new Map<number, StoryScene>();
+  if (breachedStep === undefined) return blocked;
+  for (const scene of scenes) {
+    if (
+      scene.stepIndex > breachedStep &&
+      scene.prerequisites.some(
+        ({ previousStepIndex }) =>
+          previousStepIndex === breachedStep || blocked.has(previousStepIndex),
+      )
+    ) {
+      blocked.set(scene.stepIndex, scene);
+    }
+  }
+  return blocked;
+}
 
 /** Only the current scene's causal requests can own a modeled outcome. */
 export function promotableSceneRequests(

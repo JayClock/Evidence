@@ -301,6 +301,44 @@ export const WhatIfSection = ({
       ) : (
         <p>当前步骤已有判定规则。配置大模型后可输入假设并查看解释。</p>
       )}
+      {playback.breachedStep !== undefined ? (
+        <section
+          aria-label="下游协同阻断"
+          className="flex flex-col gap-2 border-t border-evidence-line pt-3"
+        >
+          <h4 className="font-medium">下游协同阻断</h4>
+          {playback.blockedScenes.size ? (
+            <>
+              <p>
+                第 {playback.breachedStep}{' '}
+                幕触发违约，以下步骤因缺少履约凭证而冻结。
+              </p>
+              <ul>
+                {[...playback.blockedScenes.values()].map(
+                  ({ stepIndex, activity }) => (
+                    <li key={stepIndex}>
+                      第 {stepIndex} 幕 · {activity.workObject.entityLabel}
+                    </li>
+                  ),
+                )}
+              </ul>
+            </>
+          ) : (
+            <p>
+              第 {playback.breachedStep}{' '}
+              幕触发违约，本流程没有依赖这份凭证的后续步骤。
+            </p>
+          )}
+          <Button
+            type="button"
+            size="xs"
+            className="self-start"
+            onClick={playback.resetSceneTrial}
+          >
+            恢复本幕正常流
+          </Button>
+        </section>
+      ) : null}
     </section>
   );
 };

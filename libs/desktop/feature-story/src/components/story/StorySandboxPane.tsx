@@ -14,10 +14,14 @@ const statusLabel = {
 
 export const TimelineDetails = ({
   playback,
+  sceneClock,
 }: {
   playback: StoryPlaybackController;
+  sceneClock?: StoryPlaybackController['sceneClock'];
 }) => {
-  const { timeline, currentTime, focusedObligations: obligations } = playback;
+  const { timeline } = playback;
+  const currentTime = sceneClock?.time ?? playback.currentTime;
+  const obligations = sceneClock?.obligations ?? playback.focusedObligations;
   if (!timeline || currentTime === undefined) return null;
   return (
     <section
@@ -27,6 +31,27 @@ export const TimelineDetails = ({
       <h3 className="font-medium">
         时点履约状态 · {timelineLabel(timeline, currentTime)}
       </h3>
+      {sceneClock &&
+      sceneClock.obligations.length > 0 &&
+      sceneClock.end > sceneClock.start ? (
+        <label className="flex flex-col gap-1">
+          本幕假设时钟
+          <input
+            type="range"
+            min={0}
+            max={sceneClock.end - sceneClock.start}
+            step="any"
+            value={currentTime - sceneClock.start}
+            aria-valuetext={timelineLabel(timeline, currentTime)}
+            onChange={(event) =>
+              playback.setSceneTime(
+                sceneClock.start + event.currentTarget.valueAsNumber,
+              )
+            }
+            className="w-full accent-evidence-accent"
+          />
+        </label>
+      ) : null}
       <p className="text-[11px] text-evidence-muted">
         {timeline.kind === 'rehearsal'
           ? '假设在 T0 发起且尚无确认，按输入的实际经过小时推演，不推断工作日或合同条款。'
@@ -115,11 +140,13 @@ export const StorySandboxPane = ({
       ) : context ? (
         <p className="text-evidence-muted">{context}</p>
       ) : null}
-      {playback.ready ? <TimelineDetails playback={playback} /> : null}
+      {playback.ready ? (
+        <TimelineDetails playback={playback} sceneClock={playback.sceneClock} />
+      ) : null}
       <WhatIfSection playback={playback} aiConfigured={aiConfigured} />
       {playback.promotionRequests.length ? (
         <BreachOutcomeDisclosure
-          key={`${playback.snapshotId ?? playback.rehearsal.requestId}:${anchoredStep?.stepHash}:${playback.currentTime}:${playback.hasSandboxBreach}`}
+          key={`${playback.snapshotId ?? playback.rehearsal.requestId}:${anchoredStep?.stepHash}:${playback.sceneClock?.time ?? playback.currentTime}:${playback.hasSandboxBreach}`}
           playback={playback}
         />
       ) : null}

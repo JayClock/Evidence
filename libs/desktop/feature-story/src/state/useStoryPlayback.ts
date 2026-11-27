@@ -16,6 +16,7 @@ import {
 import { previewJourneyStep } from './journeyPreview';
 import { sceneChecklist } from './sceneChecklist';
 import {
+  blockedStoryScenes,
   evaluateWhatIfCapability,
   promotableSceneRequests,
 } from './whatIfCapability';
@@ -225,17 +226,23 @@ export const useStoryPlayback = ({
         : undefined,
     [graph, flow, anchoredFacts],
   );
-  const focusedObligations = useMemo(() => {
-    const fulfillment = factScene?.activity.fulfillment;
-    if (!flow || !fulfillment) return obligations;
+  const sceneRequestKeys = useMemo(() => {
+    const fulfillment = anchoredFacts?.activity.fulfillment;
+    if (!flow || !fulfillment) return undefined;
     const steps = new Set(
       fulfillment.requests.map(({ stepIndex }) => stepIndex),
     );
-    const keys = new Set(
+    return new Set(
       flow.steps.filter(({ sequence }) => steps.has(sequence)).map(stepRef),
     );
-    return obligations.filter(({ key }) => keys.has(key));
-  }, [factScene, flow, obligations]);
+  }, [anchoredFacts, flow]);
+  const focusedObligations = useMemo(
+    () =>
+      step && sceneRequestKeys
+        ? obligations.filter(({ key }) => sceneRequestKeys.has(key))
+        : obligations,
+    [step, sceneRequestKeys, obligations],
+  );
   const ready =
     enabled &&
     (rehearsing
@@ -568,17 +575,56 @@ export const useStoryPlayback = ({
   };
 
   // Sandbox state is scoped to the entire displayed revision, not just its step.
-  const sandboxKey = useMemo(
-    () => ({
+  const sceneScope = useMemo(
+    () => ({}),
+    [
       requestKey,
       aiConfigured,
       narrationGeneration,
-      step,
+      anchoredStep,
       clock,
       seekTime,
-    }),
-    [requestKey, aiConfigured, narrationGeneration, step, clock, seekTime],
+    ],
   );
+  const [sceneCursor, setSceneCursor] = useState<{
+    scope: object;
+    time: number;
+  }>();
+  const trialTime =
+    sceneCursor?.scope === sceneScope ? sceneCursor.time : undefined;
+  const assumedTime = trialTime ?? seekTime;
+  const sceneTime = assumedTime ?? currentTime;
+  const sceneClock = useMemo(() => {
+    if (!exampleTimeline || !anchoredStep || sceneTime === undefined)
+      return undefined;
+    const start = Date.parse(anchoredStep.asOf);
+    const visible = exampleTimeline.at(
+      sceneTime,
+      anchoredIndex,
+      stepRef(anchoredStep),
+    );
+    const obligations = sceneRequestKeys
+      ? visible.filter(({ key }) => sceneRequestKeys.has(key))
+      : [];
+    const end = obligations.reduce(
+      (last, { deadline }) =>
+        deadline === undefined ? last : Math.max(last, deadline + 3_600_000),
+      Math.max(start, sceneTime),
+    );
+    return {
+      start,
+      end: Math.min(end, exampleTimeline.end),
+      time: sceneTime,
+      obligations,
+    };
+  }, [
+    exampleTimeline,
+    anchoredStep,
+    anchoredIndex,
+    sceneRequestKeys,
+    sceneTime,
+  ]);
+  const sandboxKey = useMemo(() => ({}), [sceneScope, trialTime]);
   const currentSandboxKey = useRef<typeof sandboxKey | null>(sandboxKey);
   currentSandboxKey.current = sandboxKey;
   const pendingSandbox = useRef<{ key: object } | null>(null);
@@ -611,6 +657,7 @@ export const useStoryPlayback = ({
         !flow ||
         !anchoredStep ||
         !question.trim() ||
+        currentSandboxKey.current !== sandboxKey ||
         pendingSandbox.current?.key === sandboxKey
       )
         return;
@@ -626,6 +673,9 @@ export const useStoryPlayback = ({
           currentStepSequence: anchoredStep.sequence,
           stepHash: anchoredStep.stepHash,
           question,
+          ...(assumedTime === undefined
+            ? {}
+            : { asOf: new Date(assumedTime).toISOString() }),
           ...(picked?.hypothesisDraft
             ? { hypothesisDraft: picked.hypothesisDraft }
             : {}),
@@ -663,6 +713,7 @@ export const useStoryPlayback = ({
       sandboxKey,
       rootPath,
       document,
+      assumedTime,
     ],
   );
   useEffect(
@@ -685,16 +736,45 @@ export const useStoryPlayback = ({
         : [],
     [currentSandbox?.result, anchoredChecklist, graph],
   );
+  const clockBreaches = useMemo(() => {
+    if (
+      currentSandbox ||
+      (trialTime === undefined && !isBetweenSteps && !rehearsing)
+    )
+      return [];
+    return (sceneClock?.obligations ?? (rehearsing ? obligations : [])).filter(
+      ({ status }) => status === 'breached',
+    );
+  }, [
+    currentSandbox,
+    trialTime,
+    isBetweenSteps,
+    rehearsing,
+    sceneClock,
+    obligations,
+  ]);
+  const result = currentSandbox?.result;
+  const hasSandboxBreach =
+    !!result &&
+    !result.isSpeculative &&
+    result.ruleOutcomes.some(({ kind, result }) => kind === 'breach' && result);
+  const breachedStep =
+    hasSandboxBreach || clockBreaches.length
+      ? anchoredStep?.sequence
+      : undefined;
+  const blockedScenes = useMemo(
+    () => blockedStoryScenes(scenes, breachedStep),
+    [scenes, breachedStep],
+  );
+  const nextStep = flow?.steps[nextIndex];
+  const nextBlocked =
+    nextStep !== undefined && blockedScenes.has(nextStep.sequence);
   const promotionRequests = useMemo(() => {
     if (!ready || !writable) return [];
     const ids = new Set(sandboxRequests.map(({ id }) => id));
-    if (!step) {
-      for (const obligation of obligations) {
-        if (obligation.status === 'breached') ids.add(obligation.requestId);
-      }
-    }
+    for (const obligation of clockBreaches) ids.add(obligation.requestId);
     return requestOptions.filter(({ id }) => ids.has(id));
-  }, [ready, writable, step, obligations, requestOptions, sandboxRequests]);
+  }, [ready, writable, clockBreaches, requestOptions, sandboxRequests]);
 
   // A newly modeled branch is a possible response, not an event in the example.
   const [promoted, setPromoted] = useState<{
@@ -771,6 +851,19 @@ export const useStoryPlayback = ({
     currentStepSequence: step?.sequence ?? 0,
     snapshotId: ready && !rehearsing ? loaded?.result.snapshotId : undefined,
     currentTime,
+    sceneClock,
+    setSceneTime: (time: number) => {
+      if (!ready || !sceneClock || !Number.isFinite(time)) return;
+      setIsPlaying(false);
+      clearWhatIf();
+      setSceneCursor({
+        scope: sceneScope,
+        time: Math.max(
+          sceneClock.start,
+          Math.min(sceneClock.end, Math.round(time)),
+        ),
+      });
+    },
     timeline,
     seekStart,
     obligations,
@@ -856,10 +949,13 @@ export const useStoryPlayback = ({
     canNext:
       ready &&
       !rehearsing &&
+      !nextBlocked &&
       nextIndex >= 0 &&
       nextIndex < (flow?.steps.length ?? 0),
     canPlay:
-      ready && (rehearsing ? timeline !== null : (flow?.steps.length ?? 0) > 1),
+      ready &&
+      !nextBlocked &&
+      (rehearsing ? timeline !== null : (flow?.steps.length ?? 0) > 1),
     selectFlow: (flowId: string, atStep?: FlowStepTrace) => {
       setIsPlaying(false);
       setCursor(undefined);
@@ -896,6 +992,7 @@ export const useStoryPlayback = ({
       if (
         ready &&
         !rehearsing &&
+        !nextBlocked &&
         nextIndex >= 0 &&
         nextIndex < (flow?.steps.length ?? 0)
       ) {
@@ -904,7 +1001,7 @@ export const useStoryPlayback = ({
       }
     },
     togglePlaying: () => {
-      if (!ready) return;
+      if (!ready || nextBlocked) return;
       if (rehearsing) {
         if (!timeline) return;
         if (!isPlaying && currentTime === timeline.end) setCursor(undefined);
@@ -929,7 +1026,14 @@ export const useStoryPlayback = ({
     clearWhatIf,
     sandbox: currentSandbox,
     promotionRequests,
-    hasSandboxBreach: sandboxRequests.length > 0,
+    hasSandboxBreach,
+    breachedStep,
+    blockedScenes,
+    resetSceneTrial: () => {
+      clearWhatIf();
+      setSceneCursor(undefined);
+      if (isBetweenSteps && anchoredStep) jumpToStep(anchoredStep.sequence);
+    },
     promoteBreachOutcome,
   };
 };

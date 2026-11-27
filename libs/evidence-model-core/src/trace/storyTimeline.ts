@@ -35,6 +35,8 @@ export interface StoryTimeline {
   readonly at: (
     time: number,
     throughStepIndex?: number,
+    /** Keep only this example and its causal inputs when advancing a scene's clock. */
+    exampleKey?: string,
   ) => readonly TimelineObligation[];
 }
 
@@ -120,13 +122,18 @@ const buildTimeline = (
     start,
     end,
     marks,
-    at: (time, throughStepIndex) => {
+    at: (time, throughStepIndex, exampleKey) => {
       if (!Number.isFinite(time)) return [];
       time = Math.max(start, Math.min(end, Math.trunc(time)));
       // Explicit keyframes can distinguish causal events with the same clock value.
+      const inputs =
+        exampleKey === undefined ? undefined : ancestors.get(exampleKey);
       const visible = observations.filter(
         (event) =>
           event.time <= time &&
+          (exampleKey === undefined ||
+            event.key === exampleKey ||
+            inputs?.has(event.key)) &&
           (throughStepIndex === undefined ||
             event.stepIndex === undefined ||
             event.stepIndex <= throughStepIndex),

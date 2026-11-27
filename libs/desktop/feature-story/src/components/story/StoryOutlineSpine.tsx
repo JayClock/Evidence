@@ -1,5 +1,5 @@
 import { useId, useState } from 'react';
-import { Badge, Button } from '@evidence-poc/desktop-ui-kit';
+import { Badge, Button, cn } from '@evidence-poc/desktop-ui-kit';
 import type { StoryPlaybackController } from '../../state/useStoryPlayback';
 
 export const StoryOutlineSpine = ({
@@ -48,13 +48,17 @@ export const StoryOutlineSpine = ({
         {expanded &&
           scenes.map(({ stepIndex, narrative }) => {
             const active = stepIndex === current?.stepIndex;
+            const blocked = playback.blockedScenes.has(stepIndex);
             return (
               <li key={stepIndex} className="flex items-center gap-1">
                 <Button
                   type="button"
                   size="xs"
                   variant="ghost"
-                  className="h-auto min-h-7 min-w-0 flex-1 justify-start whitespace-normal text-start"
+                  className={cn(
+                    'h-auto min-h-7 min-w-0 flex-1 justify-start whitespace-normal text-start',
+                    blocked && 'text-evidence-muted bg-evidence-hover',
+                  )}
                   aria-current={active && !isBetweenSteps ? 'step' : undefined}
                   disabled={!playback.ready}
                   onClick={() => playback.jumpToStep(stepIndex)}
@@ -67,6 +71,7 @@ export const StoryOutlineSpine = ({
                   <span className="min-w-0 break-words">
                     {narrative.headline}
                   </span>
+                  {blocked ? <Badge variant="secondary">已冻结</Badge> : null}
                   {active ? (
                     <small className="ms-auto shrink-0">
                       {isBetweenSteps ? '已发生' : '当前幕'}

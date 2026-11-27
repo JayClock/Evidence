@@ -16,6 +16,7 @@ import {
   buildFmCheckReport,
   collectFlowScenarios,
   createDomainGraph,
+  isTimestampText,
   type DomainGraph,
 } from '@evidence-poc/evidence-model-core';
 import {
@@ -319,6 +320,7 @@ export const registerStoryIpc = ({
       )
         throw new Error('无效的业务沙盘模式。');
       if (
+        (input.asOf !== undefined && !isTimestampText(input.asOf)) ||
         (input.localOnly !== undefined &&
           typeof input.localOnly !== 'boolean') ||
         (input.localOnly && !input.hypothesisDraft) ||
@@ -344,6 +346,7 @@ export const registerStoryIpc = ({
           flow,
           currentStepSequence: input.currentStepSequence,
           hypothesisQuestion: input.question.trim(),
+          asOf: input.asOf,
           hypothesis: input.hypothesisDraft,
           ruleId: input.targetedRuleId,
           ...(input.allowSpeculative === true
