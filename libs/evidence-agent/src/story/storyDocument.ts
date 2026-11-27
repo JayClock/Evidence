@@ -1,6 +1,7 @@
-import type {
-  DomainGraph,
-  FlowStepTrace,
+import {
+  formatBusinessQuantity,
+  type DomainGraph,
+  type FlowStepTrace,
 } from '@evidence-poc/evidence-model-core';
 import {
   compactCanonicalJson,
@@ -17,39 +18,6 @@ export const businessDate = (value: string): string | undefined => {
   if (!parts || !Number.isFinite(Date.parse(value))) return undefined;
   const [, year, month, day, minute, second, zone] = parts;
   return `${year}年${Number(month)}月${Number(day)}日${minute ? ` ${minute}${second === '00' ? '' : `:${second}`} ${zone?.toUpperCase() === 'Z' ? 'UTC' : `UTC${zone}`}` : ''}`;
-};
-
-const formatMoney = (value: unknown): string | undefined => {
-  if (
-    !value ||
-    typeof value !== 'object' ||
-    !('minorUnits' in value) ||
-    typeof value.minorUnits !== 'number' ||
-    !Number.isSafeInteger(value.minorUnits) ||
-    !('currency' in value) ||
-    typeof value.currency !== 'string' ||
-    !/^[A-Z]{3}$/u.test(value.currency)
-  )
-    return undefined;
-  // For unknown codes, keep the declared integer rather than assuming a subunit scale.
-  if (!Intl.supportedValuesOf('currency').includes(value.currency))
-    return `${value.minorUnits} ${value.currency}（最小货币单位）`;
-  const format = new Intl.NumberFormat('zh-CN', {
-    style: 'currency',
-    currency: value.currency,
-  });
-  const digits = format.resolvedOptions().maximumFractionDigits;
-  if (digits === undefined) return undefined;
-  const minor = BigInt(value.minorUnits);
-  const scale = 10n ** BigInt(digits);
-  const whole = minor / scale;
-  const fraction = (minor < 0n ? -minor : minor) % scale;
-  return format
-    .formatToParts(whole === 0n && minor < 0n ? -0 : whole)
-    .map(({ type, value: part }) =>
-      type === 'fraction' ? String(fraction).padStart(digits, '0') : part,
-    )
-    .join('');
 };
 
 export const documentReferenceOf = ({
@@ -87,7 +55,7 @@ export const buildStoryDocument = (
     if (value === null) return '未填写';
     if (typeof value === 'boolean') return value ? '是' : '否';
     if (attribute?.valueType === 'money') {
-      const money = formatMoney(value);
+      const money = formatBusinessQuantity(attribute, value, 'symbol');
       if (money) return money;
     }
     if (Array.isArray(value))

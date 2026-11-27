@@ -70,6 +70,7 @@ describe('M1 trace to M2 story integration', () => {
       },
     ]);
     expect(requestCards[0]?.hypothesisDraft?.values).toBeUndefined();
+    expect(requestCards[0]?.question).toContain('次日（2027年1月3日）');
     const request = flow.steps.find(
       (step) => step.entityId === 'request.annual-target',
     )!;
@@ -124,6 +125,7 @@ describe('M1 trace to M2 story integration', () => {
     )!;
     const cards = cardsFor(receipt.entityId);
     const deficit = cards.find((card) => card.category === 'deficit')!;
+    expect(deficit.question).toContain('499,999.99元，低于约定的 500,000.00元');
     expect(deficit).toMatchObject({
       targetedRuleId: 'rule.annual-shortfall',
       isFallback: true,

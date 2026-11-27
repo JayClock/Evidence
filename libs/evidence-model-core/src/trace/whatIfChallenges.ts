@@ -8,6 +8,7 @@ import {
 import { celValueToJson, compileCelExpression } from '../cel/celEvaluator.js';
 import type { DomainGraph } from '../model/graph.js';
 import { validateTypedValue } from '../validation/typedValues.js';
+import { formatBusinessQuantity } from './businessQuantity.js';
 import type { FlowStepTrace } from './types.js';
 import {
   createWhatIfScenario,
@@ -39,6 +40,8 @@ type BoundField = {
   value: unknown;
   money?: Record<string, unknown>;
 };
+
+const impactQuestion = '会产生什么业务后果？对后续流程有何影响？';
 
 export const isWhatIfDeadline = ({ timeRole, name, valueType }: AttributeAST) =>
   timeRole === 'deadline' ||
@@ -146,15 +149,22 @@ function deficitChallenge(
     return;
   const below = belowTarget(target, source);
   if (below === undefined) return;
+  const quantity = (amount: unknown) =>
+    source.money ? { ...source.money, minorUnits: amount } : amount;
+  const actual = formatBusinessQuantity(source.field, quantity(below));
+  const agreed = formatBusinessQuantity(source.field, quantity(target));
+  const shortfall =
+    actual && agreed
+      ? `只有 ${actual}，低于约定的 ${agreed}`
+      : '略低于约定金额';
+  const label = source.field.label.replace(/最小(?:货币)?单位/gu, '');
   return {
     category: 'deficit',
     label: '交付未达标',
-    question: `如果《${step.entityLabel}》的「${source.field.label}」只有 ${below}${source.money ? '（最小货币单位）' : ''}，低于约定的 ${target}，会怎样？`,
+    question: `如果《${step.entityLabel}》的「${label}」${shortfall}，${impactQuestion}`,
     hypothesisDraft: {
       values: {
-        [source.field.name]: source.money
-          ? { ...source.money, minorUnits: below }
-          : below,
+        [source.field.name]: quantity(below),
       },
     },
   };
@@ -180,14 +190,21 @@ function overdueChallenge(
   if (!Number.isFinite(instant.getTime())) return;
   const late = instant.toISOString();
   if (validateTypedValue(late, 'timestamp')) return;
-  const change = occurrence ? `将「${occurrence.label}」推迟到` : '到';
+  // Name the day in the deadline's declared offset, even when the draft crosses UTC midnight.
+  const date = new Intl.DateTimeFormat('zh-CN', {
+    dateStyle: 'long',
+    timeZone: deadline.match(/[+-]\d{2}:\d{2}$/u)?.[0] ?? 'UTC',
+  }).format(instant);
   const when = alreadyLate
-    ? `已超过「${field.label}」的 ${late}`
-    : `「${field.label}」后一天（${late}）`;
+    ? `${date}（已过「${field.label}」）`
+    : `「${field.label}」次日（${date}）`;
+  const change = occurrence
+    ? `《${step.entityLabel}》上的「${occurrence.label}」推迟到${when}`
+    : `到${when}仍未按《${step.entityLabel}》履约`;
   return {
     category: 'overdue',
     label: '超过约定期限',
-    question: `如果${change}${when}${occurrence ? '' : '仍未履约'}，《${step.entityLabel}》的判定结果会怎样？`,
+    question: `如果${change}，${impactQuestion}`,
     hypothesisDraft: {
       asOf: late,
       ...(occurrence ? { values: { [occurrence.name]: late } } : {}),

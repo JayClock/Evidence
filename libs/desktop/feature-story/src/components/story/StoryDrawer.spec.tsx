@@ -319,7 +319,7 @@ describe('StoryDrawer', () => {
       screen.getByRole('button', { name: /时效逾期 · 超过约定期限/ }),
     );
     const question =
-      '如果将「确认时间」推迟到「截止时间」后一天（2026-11-12T10:00:00.000Z），《交付确认》的判定结果会怎样？';
+      '如果《交付确认》上的「确认时间」推迟到「截止时间」次日（2026年11月12日），会产生什么业务后果？对后续流程有何影响？';
     expect(screen.getByRole('textbox', { name: '假设问题' })).toHaveValue(
       question,
     );

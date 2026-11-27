@@ -145,6 +145,7 @@ export type {
   FlowStepTrace,
   StepFingerprintInput,
 } from './trace/types.js';
+export { formatBusinessQuantity } from './trace/businessQuantity.js';
 export {
   isWhatIfFulfillmentEvidence,
   whatIfDecisionRules,
