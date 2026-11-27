@@ -33,6 +33,9 @@
       "path": "../../libs/evidence-mcp/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/evidence-ingestion/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/evidence-cel/tsconfig.lib.json"
     },
     {

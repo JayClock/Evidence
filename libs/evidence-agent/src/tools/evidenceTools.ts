@@ -22,12 +22,14 @@ import {
 } from '@evidence-poc/evidence-schema';
 import {
   applyModelPatches,
-  annotateContractClauses,
   buildKeyDataLedger,
   createDomainGraph,
+} from '@evidence-poc/evidence-model-core';
+import {
+  annotateContractClauses,
   domainNounOf,
   parseBlueprint,
-} from '@evidence-poc/evidence-model-core';
+} from '@evidence-poc/evidence-ingestion';
 import { z } from 'zod';
 import { focusedBusinessContext } from './focusedBusinessContext.js';
 import { registerZodTool } from './registerZodTool.js';

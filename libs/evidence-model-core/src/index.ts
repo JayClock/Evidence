@@ -33,7 +33,7 @@ export {
   type ScenarioExample,
   type ScenarioEvaluation,
 } from './scenario/scenarioStudio.js';
-export * from './ingestion/index.js';
+export * from '@evidence-poc/evidence-ingestion';
 export {
   getBusinessArchetype,
   instantiateArchetypeMutator,

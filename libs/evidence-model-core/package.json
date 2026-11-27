@@ -32,6 +32,7 @@
   },
   "dependencies": {
     "@evidence-poc/evidence-cel": "workspace:*",
+    "@evidence-poc/evidence-ingestion": "workspace:*",
     "@evidence-poc/evidence-schema": "workspace:*",
     "@noble/hashes": "^2.4.0",
     "fast-json-patch": "^3.1.1",

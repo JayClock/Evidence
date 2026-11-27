@@ -74,6 +74,9 @@
     },
     {
       "path": "./libs/evidence-cel"
+    },
+    {
+      "path": "./libs/evidence-ingestion"
     }
   ]
 }

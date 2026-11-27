@@ -8,7 +8,7 @@ import {
   layoutDomainModel,
   parseBlueprint,
   readIngestionDraftJson,
-} from '@evidence-poc/evidence-model-core';
+} from '@evidence-poc/evidence-ingestion';
 import { buildIngestionPrompt } from '@evidence-poc/evidence-agent';
 import type { IngestionDraft } from '@evidence-poc/evidence-schema';
 

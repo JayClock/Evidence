@@ -16,6 +16,9 @@
       "path": "../evidence-schema/tsconfig.lib.json"
     },
     {
+      "path": "../evidence-ingestion/tsconfig.lib.json"
+    },
+    {
       "path": "../evidence-cel/tsconfig.lib.json"
     }
   ],

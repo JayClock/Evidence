@@ -362,6 +362,9 @@ importers:
       '@evidence-poc/evidence-cel':
         specifier: workspace:*
         version: link:../../libs/evidence-cel
+      '@evidence-poc/evidence-ingestion':
+        specifier: workspace:*
+        version: link:../../libs/evidence-ingestion
       '@evidence-poc/evidence-mcp':
         specifier: workspace:*
         version: link:../../libs/evidence-mcp
@@ -881,6 +884,9 @@ importers:
       '@evidence-poc/evidence-api':
         specifier: workspace:*
         version: link:../evidence-api
+      '@evidence-poc/evidence-ingestion':
+        specifier: workspace:*
+        version: link:../evidence-ingestion
       '@evidence-poc/evidence-model-core':
         specifier: workspace:*
         version: link:../evidence-model-core
@@ -967,6 +973,18 @@ importers:
         specifier: ^2.3.0
         version: 2.9.1
 
+  libs/evidence-ingestion:
+    dependencies:
+      '@evidence-poc/evidence-cel':
+        specifier: workspace:*
+        version: link:../evidence-cel
+      '@evidence-poc/evidence-schema':
+        specifier: workspace:*
+        version: link:../evidence-schema
+      tslib:
+        specifier: ^2.3.0
+        version: 2.9.1
+
   libs/evidence-mcp:
     dependencies:
       '@evidence-poc/evidence-schema':
@@ -990,6 +1008,9 @@ importers:
       '@evidence-poc/evidence-cel':
         specifier: workspace:*
         version: link:../evidence-cel
+      '@evidence-poc/evidence-ingestion':
+        specifier: workspace:*
+        version: link:../evidence-ingestion
       '@evidence-poc/evidence-schema':
         specifier: workspace:*
         version: link:../evidence-schema
