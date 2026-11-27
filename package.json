@@ -10,6 +10,7 @@
     "boundaries:drill": "node tools/workspace-rules/boundary-drill.mjs",
     "graph": "nx graph",
     "desktop": "nx start desktop",
+    "desktop:check": "nx build desktop",
     "desktop:package": "nx package desktop",
     "desktop:make": "nx make desktop",
     "test:desktop": "nx test desktop",

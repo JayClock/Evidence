@@ -420,6 +420,9 @@ importers:
       '@electron-forge/plugin-vite':
         specifier: ^7.10.2
         version: 7.11.2(bluebird@3.7.2)(supports-color@8.1.1)
+      '@electron/asar':
+        specifier: 3.4.1
+        version: 3.4.1
       '@evidence-poc/desktop-testing':
         specifier: workspace:*
         version: link:../../libs/desktop/testing

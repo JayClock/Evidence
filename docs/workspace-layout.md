@@ -166,6 +166,7 @@ Tags drive `@nx/enforce-module-boundaries` in `eslint.config.mjs`:
 ## Common commands
 
 ```bash
+pnpm desktop:check                           # package and verify desktop entries and template assets
 pnpm install                                 # from the lockfile
 pnpm install --frozen-lockfile               # dependency install in CI
 pnpm api:setup                              # pinned oasdiff for API diff/tests
