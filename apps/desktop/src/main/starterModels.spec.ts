@@ -17,6 +17,26 @@ const VALID_TEMPLATES = [
 ] as const;
 
 describe('starter models', () => {
+  it('gives each project its own mutable copy of the selected template', () => {
+    const first = createStarterDocument('procurement', starterContext);
+    first.entities.length = 0;
+    first.manifest.entryContextRefs.length = 0;
+    const next = createStarterDocument('procurement', {
+      name: 'Second project',
+      modelId: 'second',
+    });
+    expect(next.manifest).toMatchObject({
+      name: 'Second project',
+      id: 'second',
+    });
+    expect(next.entities.length).toBeGreaterThan(0);
+    expect(next.manifest.entryContextRefs.length).toBeGreaterThan(0);
+    expect(
+      listProjectTemplates().find((template) => template.id === 'procurement')
+        ?.entityCount,
+    ).toBe(next.entities.length);
+  });
+
   it.each(VALID_TEMPLATES)(
     'ships a statically valid %s model',
     (templateId) => {

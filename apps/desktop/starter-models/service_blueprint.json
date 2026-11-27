@@ -1,0 +1,431 @@
+{
+  "manifest": {
+    "type": "fm_model",
+    "schemaVersion": "6.0",
+    "id": "service-blueprint",
+    "name": "服务蓝图起点",
+    "version": "0.1.0",
+    "ruleLanguage": "CEL",
+    "entryContextRefs": [
+      "context.engagement",
+      "context.sourcing",
+      "context.service-catalog"
+    ],
+    "description": "服务蓝图变种的建模起点：把蓝图里的阶段、活动与交互产物落到询价、服务合同与交付验收这一条最小链路上，供工作坊继续补充后台行为与违约补偿。"
+  },
+  "entities": [
+    {
+      "type": "entity",
+      "id": "context.engagement",
+      "category": "context",
+      "kind": "contract",
+      "label": "服务委托（Service Engagement）",
+      "rootRefs": [
+        "contract.engagement"
+      ]
+    },
+    {
+      "type": "entity",
+      "id": "contract.engagement",
+      "category": "evidence",
+      "kind": "contract",
+      "label": "服务合同（Service Agreement）",
+      "contextRef": "context.engagement",
+      "roleRefs": [
+        "role.client",
+        "role.provider"
+      ],
+      "attributes": [
+        {
+          "name": "signed_at",
+          "label": "合同签署时间",
+          "meaning": "客户与服务方形成合同的业务时间",
+          "valueType": "timestamp",
+          "required": true,
+          "keyData": true,
+          "timeRole": "occurrence"
+        },
+        {
+          "name": "scope",
+          "label": "服务范围",
+          "meaning": "合同约定的服务范围",
+          "valueType": "string",
+          "required": true,
+          "keyData": true
+        },
+        {
+          "name": "fee_minor_units",
+          "label": "合同金额",
+          "meaning": "合同约定的最小货币单位整数金额",
+          "valueType": "int",
+          "required": true,
+          "keyData": true
+        }
+      ]
+    },
+    {
+      "type": "entity",
+      "id": "role.client",
+      "category": "role",
+      "kind": "party",
+      "label": "委托客户（Client）",
+      "contextRef": "context.engagement"
+    },
+    {
+      "type": "entity",
+      "id": "role.provider",
+      "category": "role",
+      "kind": "party",
+      "label": "咨询机构（Consulting Provider）",
+      "contextRef": "context.engagement"
+    },
+    {
+      "type": "entity",
+      "id": "party.client-contact",
+      "category": "participant",
+      "kind": "party",
+      "label": "客户对接人（Client Contact）"
+    },
+    {
+      "type": "entity",
+      "id": "party.provider-owner",
+      "category": "participant",
+      "kind": "party",
+      "label": "服务负责人（Service Lead）"
+    },
+    {
+      "type": "entity",
+      "id": "context.sourcing",
+      "category": "context",
+      "kind": "pre_contract",
+      "label": "服务寻源（Service Sourcing）",
+      "rootRefs": [
+        "rfp.service-inquiry"
+      ],
+      "parentContextRef": "context.engagement"
+    },
+    {
+      "type": "entity",
+      "id": "rfp.service-inquiry",
+      "category": "evidence",
+      "kind": "rfp",
+      "label": "服务方案征询（Service RFP）",
+      "contextRef": "context.sourcing",
+      "responsibleRoleRef": "role.client",
+      "attributes": [
+        {
+          "name": "started_at",
+          "label": "征询开始时间",
+          "meaning": "客户发出方案征询的业务时间",
+          "valueType": "timestamp",
+          "required": true,
+          "keyData": true,
+          "timeRole": "start"
+        },
+        {
+          "name": "expired_at",
+          "label": "方案提交截止时间",
+          "meaning": "服务方提交方案的业务截止时间",
+          "valueType": "timestamp",
+          "required": true,
+          "keyData": true,
+          "timeRole": "deadline"
+        }
+      ]
+    },
+    {
+      "type": "entity",
+      "id": "proposal.service-proposal",
+      "category": "evidence",
+      "kind": "proposal",
+      "label": "服务方案（Service Proposal）",
+      "contextRef": "context.sourcing",
+      "responsibleRoleRef": "role.provider",
+      "attributes": [
+        {
+          "name": "started_at",
+          "label": "方案形成时间",
+          "meaning": "服务方形成方案的业务时间",
+          "valueType": "timestamp",
+          "required": true,
+          "keyData": true,
+          "timeRole": "start"
+        },
+        {
+          "name": "expired_at",
+          "label": "方案有效期截止时间",
+          "meaning": "方案失效的业务时间",
+          "valueType": "timestamp",
+          "required": true,
+          "keyData": true,
+          "timeRole": "deadline"
+        }
+      ]
+    },
+    {
+      "type": "entity",
+      "id": "request.service-delivery",
+      "category": "evidence",
+      "kind": "fulfillment_request",
+      "fulfillmentAction": "交付约定的咨询成果",
+      "label": "服务交付申请（Service Delivery Request）",
+      "contextRef": "context.engagement",
+      "responsibleRoleRef": "role.client",
+      "attributes": [
+        {
+          "name": "started_at",
+          "label": "交付申请时间",
+          "meaning": "客户要求开始交付的业务时间",
+          "valueType": "timestamp",
+          "required": true,
+          "keyData": true,
+          "timeRole": "start"
+        },
+        {
+          "name": "expired_at",
+          "label": "交付截止时间",
+          "meaning": "服务方完成交付的业务截止时间",
+          "valueType": "timestamp",
+          "required": true,
+          "keyData": true,
+          "timeRole": "deadline"
+        }
+      ]
+    },
+    {
+      "type": "entity",
+      "id": "confirmation.service-acceptance",
+      "category": "evidence",
+      "kind": "fulfillment_confirmation",
+      "label": "服务验收确认（Service Acceptance Confirmation）",
+      "contextRef": "context.engagement",
+      "responsibleRoleRef": "role.provider",
+      "attributes": [
+        {
+          "name": "confirmed_at",
+          "label": "验收确认时间",
+          "meaning": "服务方形成交付结果的业务时间",
+          "valueType": "timestamp",
+          "required": true,
+          "keyData": true,
+          "timeRole": "occurrence"
+        },
+        {
+          "name": "acceptance_result",
+          "label": "验收结论",
+          "meaning": "本次交付的验收结论",
+          "valueType": "string",
+          "required": true,
+          "keyData": true
+        }
+      ]
+    },
+    {
+      "type": "entity",
+      "id": "evidence.acceptance-form",
+      "category": "evidence",
+      "kind": "other_evidence",
+      "label": "验收单（Acceptance Form）",
+      "contextRef": "context.engagement",
+      "responsibleRoleRef": "role.provider",
+      "attributes": [
+        {
+          "name": "created_at",
+          "label": "验收单形成时间",
+          "meaning": "客户签署验收单的业务时间",
+          "valueType": "timestamp",
+          "required": true,
+          "keyData": true,
+          "timeRole": "occurrence"
+        }
+      ]
+    },
+    {
+      "type": "entity",
+      "id": "context.service-catalog",
+      "category": "context",
+      "kind": "domain",
+      "label": "服务目录（Service Catalog）",
+      "rootRefs": [
+        "thing.service"
+      ]
+    },
+    {
+      "type": "entity",
+      "id": "thing.service",
+      "category": "participant",
+      "kind": "thing",
+      "label": "服务项（Service Item）",
+      "contextRef": "context.service-catalog",
+      "attributes": [
+        {
+          "name": "service_code",
+          "label": "服务编码",
+          "meaning": "服务目录中区分服务的编码",
+          "valueType": "string",
+          "required": true,
+          "keyData": true
+        },
+        {
+          "name": "title",
+          "label": "服务名称",
+          "meaning": "服务的业务名称",
+          "valueType": "string",
+          "required": true,
+          "keyData": true
+        }
+      ]
+    },
+    {
+      "type": "entity",
+      "id": "role.catalog-service",
+      "category": "role",
+      "kind": "domain",
+      "label": "目录服务项（Catalog Service）",
+      "contextRef": "context.service-catalog"
+    }
+  ],
+  "relationships": [
+    {
+      "type": "relationship",
+      "id": "relation.contract-references-proposal",
+      "kind": "references",
+      "sourceRef": "contract.engagement",
+      "targetRef": "proposal.service-proposal",
+      "label": "合同引用方案作为签订依据",
+      "sourceCardinality": {
+        "min": 1,
+        "max": 1
+      },
+      "targetCardinality": {
+        "min": 1,
+        "max": 1
+      }
+    },
+    {
+      "type": "relationship",
+      "id": "relation.proposal-references-inquiry",
+      "kind": "references",
+      "sourceRef": "proposal.service-proposal",
+      "targetRef": "rfp.service-inquiry",
+      "label": "方案引用征询作为发起依据",
+      "sourceCardinality": {
+        "min": 1,
+        "max": 1
+      },
+      "targetCardinality": {
+        "min": 1,
+        "max": 1
+      }
+    },
+    {
+      "type": "relationship",
+      "id": "relation.contract-references-service",
+      "kind": "references",
+      "sourceRef": "contract.engagement",
+      "targetRef": "thing.service",
+      "label": "合同引用被采购的服务项",
+      "sourceCardinality": {
+        "min": 1,
+        "max": 1
+      },
+      "targetCardinality": {
+        "min": 1,
+        "max": 1
+      }
+    },
+    {
+      "type": "relationship",
+      "id": "relation.delivery-request-references-contract",
+      "kind": "references",
+      "sourceRef": "request.service-delivery",
+      "targetRef": "contract.engagement",
+      "label": "交付申请引用合同",
+      "sourceCardinality": {
+        "min": 1,
+        "max": 1
+      },
+      "targetCardinality": {
+        "min": 1,
+        "max": 1
+      }
+    },
+    {
+      "type": "relationship",
+      "id": "relation.acceptance-references-request",
+      "kind": "references",
+      "sourceRef": "confirmation.service-acceptance",
+      "targetRef": "request.service-delivery",
+      "label": "验收确认引用所属申请",
+      "sourceCardinality": {
+        "min": 1,
+        "max": 1
+      },
+      "targetCardinality": {
+        "min": 1,
+        "max": 1
+      }
+    },
+    {
+      "type": "relationship",
+      "id": "relation.acceptance-form-references-confirmation",
+      "kind": "references",
+      "sourceRef": "evidence.acceptance-form",
+      "targetRef": "confirmation.service-acceptance",
+      "label": "验收单印证验收确认",
+      "sourceCardinality": {
+        "min": 1,
+        "max": 1
+      },
+      "targetCardinality": {
+        "min": 1,
+        "max": 1
+      }
+    },
+    {
+      "type": "relationship",
+      "id": "relation.client-contact-plays-client",
+      "kind": "plays_role",
+      "sourceRef": "party.client-contact",
+      "targetRef": "role.client",
+      "label": "客户对接人经办客户角色"
+    },
+    {
+      "type": "relationship",
+      "id": "relation.provider-owner-plays-provider",
+      "kind": "plays_role",
+      "sourceRef": "party.provider-owner",
+      "targetRef": "role.provider",
+      "label": "服务负责人经办服务方角色"
+    },
+    {
+      "type": "relationship",
+      "id": "relation.service-plays-catalog-service",
+      "kind": "plays_role",
+      "sourceRef": "thing.service",
+      "targetRef": "role.catalog-service",
+      "label": "服务项扮演目录服务项角色"
+    }
+  ],
+  "rules": [
+    {
+      "type": "rule",
+      "id": "rule.service-delivery-completed",
+      "kind": "completion",
+      "label": "服务交付履约完成判断",
+      "description": "同一交付申请存在有效期内的验收确认时，服务交付履约完成。",
+      "contextRef": "context.engagement",
+      "bindings": {
+        "request": {
+          "ref": "request.service-delivery"
+        },
+        "confirmations": {
+          "ref": "confirmation.service-acceptance",
+          "cardinality": "many"
+        }
+      },
+      "expression": "confirmations.exists(c, c.confirmed_at >= request.started_at && c.confirmed_at <= request.expired_at)",
+      "resultType": "bool"
+    }
+  ]
+}

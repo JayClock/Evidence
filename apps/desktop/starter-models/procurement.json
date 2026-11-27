@@ -1,0 +1,741 @@
+{
+  "manifest": {
+    "type": "fm_model",
+    "schemaVersion": "6.0",
+    "id": "procurement",
+    "name": "公对公商品采购履约",
+    "version": "0.1.0",
+    "ruleLanguage": "CEL",
+    "entryContextRefs": [
+      "context.procurement",
+      "context.sourcing",
+      "context.catalog"
+    ],
+    "description": "公对公商品采购履约起点：询价与报价、采购协议、发货/支付/开票三组履约项，以及标的物所在的商品目录上下文。"
+  },
+  "entities": [
+    {
+      "type": "entity",
+      "id": "context.procurement",
+      "category": "context",
+      "kind": "contract",
+      "label": "商品采购（Product Procurement）",
+      "rootRefs": [
+        "contract.procurement"
+      ]
+    },
+    {
+      "type": "entity",
+      "id": "contract.procurement",
+      "category": "evidence",
+      "kind": "contract",
+      "label": "商品采购协议（Product Procurement Agreement）",
+      "contextRef": "context.procurement",
+      "roleRefs": [
+        "role.buyer",
+        "role.seller"
+      ],
+      "attributes": [
+        {
+          "name": "signed_at",
+          "label": "协议签署时间",
+          "meaning": "买卖双方形成采购协议的业务时间",
+          "valueType": "timestamp",
+          "required": true,
+          "keyData": true,
+          "timeRole": "occurrence"
+        },
+        {
+          "name": "quantity",
+          "label": "采购数量",
+          "meaning": "协议约定的采购数量",
+          "valueType": "int",
+          "required": true,
+          "keyData": true
+        },
+        {
+          "name": "total_minor_units",
+          "label": "协议总金额",
+          "meaning": "协议约定的最小货币单位整数总金额",
+          "valueType": "int",
+          "required": true,
+          "keyData": true
+        }
+      ]
+    },
+    {
+      "type": "entity",
+      "id": "role.buyer",
+      "category": "role",
+      "kind": "party",
+      "label": "买方（Buyer）",
+      "contextRef": "context.procurement"
+    },
+    {
+      "type": "entity",
+      "id": "role.seller",
+      "category": "role",
+      "kind": "party",
+      "label": "卖方（Seller）",
+      "contextRef": "context.procurement"
+    },
+    {
+      "type": "entity",
+      "id": "party.buyer-agent",
+      "category": "participant",
+      "kind": "party",
+      "label": "买方采购员（Purchasing Agent）"
+    },
+    {
+      "type": "entity",
+      "id": "party.seller-sales",
+      "category": "participant",
+      "kind": "party",
+      "label": "卖方销售（Sales Representative）"
+    },
+    {
+      "type": "entity",
+      "id": "context.sourcing",
+      "category": "context",
+      "kind": "pre_contract",
+      "label": "商品询报价（Product Sourcing）",
+      "rootRefs": [
+        "rfp.product-inquiry"
+      ],
+      "parentContextRef": "context.procurement"
+    },
+    {
+      "type": "entity",
+      "id": "rfp.product-inquiry",
+      "category": "evidence",
+      "kind": "rfp",
+      "label": "商品询价（Product Inquiry）",
+      "contextRef": "context.sourcing",
+      "responsibleRoleRef": "role.buyer",
+      "attributes": [
+        {
+          "name": "started_at",
+          "label": "询价开始时间",
+          "meaning": "买方发出询价单的业务时间",
+          "valueType": "timestamp",
+          "required": true,
+          "keyData": true,
+          "timeRole": "start"
+        },
+        {
+          "name": "expired_at",
+          "label": "报价截止时间",
+          "meaning": "本次询价接收报价的业务截止时间",
+          "valueType": "timestamp",
+          "required": true,
+          "keyData": true,
+          "timeRole": "deadline"
+        },
+        {
+          "name": "quantity",
+          "label": "询价数量",
+          "meaning": "本次希望采购的商品数量",
+          "valueType": "int",
+          "required": true,
+          "keyData": true
+        }
+      ]
+    },
+    {
+      "type": "entity",
+      "id": "proposal.product-quotation",
+      "category": "evidence",
+      "kind": "proposal",
+      "label": "商品报价（Product Quotation）",
+      "contextRef": "context.sourcing",
+      "responsibleRoleRef": "role.seller",
+      "attributes": [
+        {
+          "name": "started_at",
+          "label": "报价开始时间",
+          "meaning": "卖方形成报价的业务时间",
+          "valueType": "timestamp",
+          "required": true,
+          "keyData": true,
+          "timeRole": "start"
+        },
+        {
+          "name": "expired_at",
+          "label": "报价有效期截止时间",
+          "meaning": "本次报价失效的业务时间",
+          "valueType": "timestamp",
+          "required": true,
+          "keyData": true,
+          "timeRole": "deadline"
+        },
+        {
+          "name": "quoted_minor_units",
+          "label": "报价金额",
+          "meaning": "卖方按最小货币单位整数给出的报价金额",
+          "valueType": "int",
+          "required": true,
+          "keyData": true
+        }
+      ]
+    },
+    {
+      "type": "entity",
+      "id": "request.payment",
+      "category": "evidence",
+      "kind": "fulfillment_request",
+      "fulfillmentAction": "支付采购货款",
+      "label": "支付申请（Payment Request）",
+      "contextRef": "context.procurement",
+      "responsibleRoleRef": "role.seller",
+      "attributes": [
+        {
+          "name": "started_at",
+          "label": "支付申请时间",
+          "meaning": "卖方提出支付申请的业务时间",
+          "valueType": "timestamp",
+          "required": true,
+          "keyData": true,
+          "timeRole": "start"
+        },
+        {
+          "name": "expired_at",
+          "label": "支付截止时间",
+          "meaning": "买方完成支付的业务截止时间",
+          "valueType": "timestamp",
+          "required": true,
+          "keyData": true,
+          "timeRole": "deadline"
+        },
+        {
+          "name": "requested_minor_units",
+          "label": "申请支付金额",
+          "meaning": "本次申请支付的最小货币单位整数金额",
+          "valueType": "int",
+          "required": true,
+          "keyData": true
+        }
+      ]
+    },
+    {
+      "type": "entity",
+      "id": "confirmation.payment",
+      "category": "evidence",
+      "kind": "fulfillment_confirmation",
+      "label": "支付确认（Payment Confirmation）",
+      "contextRef": "context.procurement",
+      "responsibleRoleRef": "role.buyer",
+      "attributes": [
+        {
+          "name": "confirmed_at",
+          "label": "支付确认时间",
+          "meaning": "买方形成支付结果的业务时间",
+          "valueType": "timestamp",
+          "required": true,
+          "keyData": true,
+          "timeRole": "occurrence"
+        },
+        {
+          "name": "paid_minor_units",
+          "label": "确认支付金额",
+          "meaning": "买方确认支付的最小货币单位整数金额",
+          "valueType": "int",
+          "required": true,
+          "keyData": true
+        }
+      ]
+    },
+    {
+      "type": "entity",
+      "id": "request.delivery",
+      "category": "evidence",
+      "kind": "fulfillment_request",
+      "fulfillmentAction": "交付采购商品",
+      "label": "发货申请（Dispatch Request）",
+      "contextRef": "context.procurement",
+      "responsibleRoleRef": "role.buyer",
+      "attributes": [
+        {
+          "name": "started_at",
+          "label": "发货申请时间",
+          "meaning": "买方提出发货要求的业务时间",
+          "valueType": "timestamp",
+          "required": true,
+          "keyData": true,
+          "timeRole": "start"
+        },
+        {
+          "name": "expired_at",
+          "label": "发货截止时间",
+          "meaning": "卖方完成发货的业务截止时间",
+          "valueType": "timestamp",
+          "required": true,
+          "keyData": true,
+          "timeRole": "deadline"
+        },
+        {
+          "name": "delivery_address",
+          "label": "收货地址",
+          "meaning": "本次发货的收货地址",
+          "valueType": "string",
+          "required": true,
+          "keyData": true
+        }
+      ]
+    },
+    {
+      "type": "entity",
+      "id": "confirmation.delivery",
+      "category": "evidence",
+      "kind": "fulfillment_confirmation",
+      "label": "发货确认（Dispatch Confirmation）",
+      "contextRef": "context.procurement",
+      "responsibleRoleRef": "role.seller",
+      "attributes": [
+        {
+          "name": "confirmed_at",
+          "label": "发货确认时间",
+          "meaning": "卖方形成发货结果的业务时间",
+          "valueType": "timestamp",
+          "required": true,
+          "keyData": true,
+          "timeRole": "occurrence"
+        },
+        {
+          "name": "carrier",
+          "label": "承运方",
+          "meaning": "承担本次运输的承运方名称",
+          "valueType": "string",
+          "required": true,
+          "keyData": true
+        }
+      ]
+    },
+    {
+      "type": "entity",
+      "id": "evidence.delivery-note",
+      "category": "evidence",
+      "kind": "other_evidence",
+      "label": "发货单（Dispatch Note）",
+      "contextRef": "context.procurement",
+      "responsibleRoleRef": "role.seller",
+      "attributes": [
+        {
+          "name": "created_at",
+          "label": "发货单形成时间",
+          "meaning": "承运方开出运输单据的业务时间",
+          "valueType": "timestamp",
+          "required": true,
+          "keyData": true,
+          "timeRole": "occurrence"
+        }
+      ]
+    },
+    {
+      "type": "entity",
+      "id": "request.invoice",
+      "category": "evidence",
+      "kind": "fulfillment_request",
+      "fulfillmentAction": "开具采购发票",
+      "label": "开票申请（Invoice Request）",
+      "contextRef": "context.procurement",
+      "responsibleRoleRef": "role.buyer",
+      "attributes": [
+        {
+          "name": "started_at",
+          "label": "开票申请时间",
+          "meaning": "买方提出开票申请的业务时间",
+          "valueType": "timestamp",
+          "required": true,
+          "keyData": true,
+          "timeRole": "start"
+        },
+        {
+          "name": "expired_at",
+          "label": "开票截止时间",
+          "meaning": "卖方开出票据的业务截止时间",
+          "valueType": "timestamp",
+          "required": true,
+          "keyData": true,
+          "timeRole": "deadline"
+        },
+        {
+          "name": "tax_number",
+          "label": "纳税人识别号",
+          "meaning": "买方用于开票的纳税人识别号",
+          "valueType": "string",
+          "required": true,
+          "keyData": true
+        }
+      ]
+    },
+    {
+      "type": "entity",
+      "id": "confirmation.invoice",
+      "category": "evidence",
+      "kind": "fulfillment_confirmation",
+      "label": "开票确认（Invoice Issuance Confirmation）",
+      "contextRef": "context.procurement",
+      "responsibleRoleRef": "role.seller",
+      "attributes": [
+        {
+          "name": "confirmed_at",
+          "label": "开票确认时间",
+          "meaning": "卖方开出票据的业务时间",
+          "valueType": "timestamp",
+          "required": true,
+          "keyData": true,
+          "timeRole": "occurrence"
+        },
+        {
+          "name": "invoice_number",
+          "label": "票据号码",
+          "meaning": "开出的票据业务号码",
+          "valueType": "string",
+          "required": true,
+          "keyData": true
+        }
+      ]
+    },
+    {
+      "type": "entity",
+      "id": "evidence.invoice",
+      "category": "evidence",
+      "kind": "other_evidence",
+      "label": "发票（Invoice）",
+      "contextRef": "context.procurement",
+      "responsibleRoleRef": "role.seller",
+      "attributes": [
+        {
+          "name": "created_at",
+          "label": "发票形成时间",
+          "meaning": "票据交付买方的业务时间",
+          "valueType": "timestamp",
+          "required": true,
+          "keyData": true,
+          "timeRole": "occurrence"
+        }
+      ]
+    },
+    {
+      "type": "entity",
+      "id": "context.catalog",
+      "category": "context",
+      "kind": "domain",
+      "label": "商品目录（Product Catalog）",
+      "rootRefs": [
+        "thing.product"
+      ]
+    },
+    {
+      "type": "entity",
+      "id": "thing.product",
+      "category": "participant",
+      "kind": "thing",
+      "label": "商品（Product）",
+      "contextRef": "context.catalog",
+      "attributes": [
+        {
+          "name": "product_code",
+          "label": "商品编码",
+          "meaning": "商品目录中区分商品的编码",
+          "valueType": "string",
+          "required": true,
+          "keyData": true
+        },
+        {
+          "name": "name",
+          "label": "商品名称",
+          "meaning": "商品的业务名称",
+          "valueType": "string",
+          "required": true,
+          "keyData": true
+        }
+      ]
+    },
+    {
+      "type": "entity",
+      "id": "role.catalog-item",
+      "category": "role",
+      "kind": "domain",
+      "label": "目录商品（Catalog Item）",
+      "contextRef": "context.catalog"
+    }
+  ],
+  "relationships": [
+    {
+      "type": "relationship",
+      "id": "relation.contract-references-quotation",
+      "kind": "references",
+      "sourceRef": "contract.procurement",
+      "targetRef": "proposal.product-quotation",
+      "label": "协议引用报价作为签订依据",
+      "sourceCardinality": {
+        "min": 1,
+        "max": 1
+      },
+      "targetCardinality": {
+        "min": 1,
+        "max": 1
+      }
+    },
+    {
+      "type": "relationship",
+      "id": "relation.quotation-references-inquiry",
+      "kind": "references",
+      "sourceRef": "proposal.product-quotation",
+      "targetRef": "rfp.product-inquiry",
+      "label": "报价引用询价作为发起依据",
+      "sourceCardinality": {
+        "min": 1,
+        "max": 1
+      },
+      "targetCardinality": {
+        "min": 1,
+        "max": 1
+      }
+    },
+    {
+      "type": "relationship",
+      "id": "relation.inquiry-references-product",
+      "kind": "references",
+      "sourceRef": "rfp.product-inquiry",
+      "targetRef": "thing.product",
+      "label": "询价针对商品目录中的商品",
+      "sourceCardinality": {
+        "min": 1,
+        "max": 1
+      },
+      "targetCardinality": {
+        "min": 1,
+        "max": 1
+      }
+    },
+    {
+      "type": "relationship",
+      "id": "relation.contract-references-product",
+      "kind": "references",
+      "sourceRef": "contract.procurement",
+      "targetRef": "thing.product",
+      "label": "协议引用采购对象",
+      "sourceCardinality": {
+        "min": 1,
+        "max": 1
+      },
+      "targetCardinality": {
+        "min": 1,
+        "max": 1
+      }
+    },
+    {
+      "type": "relationship",
+      "id": "relation.payment-request-references-contract",
+      "kind": "references",
+      "sourceRef": "request.payment",
+      "targetRef": "contract.procurement",
+      "label": "支付申请引用协议",
+      "sourceCardinality": {
+        "min": 1,
+        "max": 1
+      },
+      "targetCardinality": {
+        "min": 1,
+        "max": 1
+      }
+    },
+    {
+      "type": "relationship",
+      "id": "relation.payment-confirmation-references-request",
+      "kind": "references",
+      "sourceRef": "confirmation.payment",
+      "targetRef": "request.payment",
+      "label": "支付确认引用所属申请",
+      "sourceCardinality": {
+        "min": 1,
+        "max": 1
+      },
+      "targetCardinality": {
+        "min": 1,
+        "max": 1
+      }
+    },
+    {
+      "type": "relationship",
+      "id": "relation.delivery-request-references-contract",
+      "kind": "references",
+      "sourceRef": "request.delivery",
+      "targetRef": "contract.procurement",
+      "label": "发货申请引用协议",
+      "sourceCardinality": {
+        "min": 1,
+        "max": 1
+      },
+      "targetCardinality": {
+        "min": 1,
+        "max": 1
+      }
+    },
+    {
+      "type": "relationship",
+      "id": "relation.delivery-confirmation-references-request",
+      "kind": "references",
+      "sourceRef": "confirmation.delivery",
+      "targetRef": "request.delivery",
+      "label": "发货确认引用所属申请",
+      "sourceCardinality": {
+        "min": 1,
+        "max": 1
+      },
+      "targetCardinality": {
+        "min": 1,
+        "max": 1
+      }
+    },
+    {
+      "type": "relationship",
+      "id": "relation.delivery-note-references-confirmation",
+      "kind": "references",
+      "sourceRef": "evidence.delivery-note",
+      "targetRef": "confirmation.delivery",
+      "label": "发货单印证发货确认",
+      "sourceCardinality": {
+        "min": 1,
+        "max": 1
+      },
+      "targetCardinality": {
+        "min": 1,
+        "max": 1
+      }
+    },
+    {
+      "type": "relationship",
+      "id": "relation.invoice-request-references-contract",
+      "kind": "references",
+      "sourceRef": "request.invoice",
+      "targetRef": "contract.procurement",
+      "label": "开票申请引用协议",
+      "sourceCardinality": {
+        "min": 1,
+        "max": 1
+      },
+      "targetCardinality": {
+        "min": 1,
+        "max": 1
+      }
+    },
+    {
+      "type": "relationship",
+      "id": "relation.invoice-confirmation-references-request",
+      "kind": "references",
+      "sourceRef": "confirmation.invoice",
+      "targetRef": "request.invoice",
+      "label": "开票确认引用所属申请",
+      "sourceCardinality": {
+        "min": 1,
+        "max": 1
+      },
+      "targetCardinality": {
+        "min": 1,
+        "max": 1
+      }
+    },
+    {
+      "type": "relationship",
+      "id": "relation.invoice-references-confirmation",
+      "kind": "references",
+      "sourceRef": "evidence.invoice",
+      "targetRef": "confirmation.invoice",
+      "label": "发票印证开票确认",
+      "sourceCardinality": {
+        "min": 1,
+        "max": 1
+      },
+      "targetCardinality": {
+        "min": 1,
+        "max": 1
+      }
+    },
+    {
+      "type": "relationship",
+      "id": "relation.buyer-agent-plays-buyer",
+      "kind": "plays_role",
+      "sourceRef": "party.buyer-agent",
+      "targetRef": "role.buyer",
+      "label": "买方采购员经办买方角色"
+    },
+    {
+      "type": "relationship",
+      "id": "relation.seller-sales-plays-seller",
+      "kind": "plays_role",
+      "sourceRef": "party.seller-sales",
+      "targetRef": "role.seller",
+      "label": "卖方销售经办卖方角色"
+    },
+    {
+      "type": "relationship",
+      "id": "relation.product-plays-catalog-item",
+      "kind": "plays_role",
+      "sourceRef": "thing.product",
+      "targetRef": "role.catalog-item",
+      "label": "商品扮演目录商品角色"
+    }
+  ],
+  "rules": [
+    {
+      "type": "rule",
+      "id": "rule.payment-completed",
+      "kind": "completion",
+      "label": "支付履约完成判断",
+      "description": "同一支付申请存在有效期内的支付确认时，支付履约完成。",
+      "contextRef": "context.procurement",
+      "bindings": {
+        "request": {
+          "ref": "request.payment"
+        },
+        "confirmations": {
+          "ref": "confirmation.payment",
+          "cardinality": "many"
+        }
+      },
+      "expression": "confirmations.exists(c, c.confirmed_at >= request.started_at && c.confirmed_at <= request.expired_at)",
+      "resultType": "bool"
+    },
+    {
+      "type": "rule",
+      "id": "rule.delivery-completed",
+      "kind": "completion",
+      "label": "发货履约完成判断",
+      "description": "同一发货申请存在有效期内的发货确认时，发货履约完成。",
+      "contextRef": "context.procurement",
+      "bindings": {
+        "request": {
+          "ref": "request.delivery"
+        },
+        "confirmations": {
+          "ref": "confirmation.delivery",
+          "cardinality": "many"
+        }
+      },
+      "expression": "confirmations.exists(c, c.confirmed_at >= request.started_at && c.confirmed_at <= request.expired_at)",
+      "resultType": "bool"
+    },
+    {
+      "type": "rule",
+      "id": "rule.invoice-completed",
+      "kind": "completion",
+      "label": "开票履约完成判断",
+      "description": "同一开票申请存在有效期内的开票确认时，开票履约完成。",
+      "contextRef": "context.procurement",
+      "bindings": {
+        "request": {
+          "ref": "request.invoice"
+        },
+        "confirmations": {
+          "ref": "confirmation.invoice",
+          "cardinality": "many"
+        }
+      },
+      "expression": "confirmations.exists(c, c.confirmed_at >= request.started_at && c.confirmed_at <= request.expired_at)",
+      "resultType": "bool"
+    }
+  ]
+}

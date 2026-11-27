@@ -1,0 +1,725 @@
+{
+  "manifest": {
+    "type": "fm_model",
+    "schemaVersion": "6.0",
+    "id": "subscription",
+    "name": "专栏订阅与断更补偿",
+    "version": "0.1.0",
+    "ruleLanguage": "CEL",
+    "entryContextRefs": [
+      "context.subscription",
+      "context.payment-support",
+      "context.course-catalog"
+    ],
+    "description": "内容订阅履约起点：订阅协议下的付款与内容访问两组履约项，断更补偿作为违约触发的履约项，付款由独立的支付协议上下文支撑。"
+  },
+  "entities": [
+    {
+      "type": "entity",
+      "id": "context.subscription",
+      "category": "context",
+      "kind": "contract",
+      "label": "专栏订阅（Column Subscription）",
+      "rootRefs": [
+        "contract.subscription"
+      ]
+    },
+    {
+      "type": "entity",
+      "id": "contract.subscription",
+      "category": "evidence",
+      "kind": "contract",
+      "label": "专栏订阅合同（Column Subscription Agreement）",
+      "contextRef": "context.subscription",
+      "roleRefs": [
+        "role.reader",
+        "role.publisher"
+      ],
+      "attributes": [
+        {
+          "name": "signed_at",
+          "label": "订阅签署时间",
+          "meaning": "读者与内容方形成订阅合同的业务时间",
+          "valueType": "timestamp",
+          "required": true,
+          "keyData": true,
+          "timeRole": "occurrence"
+        },
+        {
+          "name": "term_days",
+          "label": "订阅期天数",
+          "meaning": "合同约定的内容访问期限",
+          "valueType": "int",
+          "required": true,
+          "keyData": true
+        },
+        {
+          "name": "price_minor_units",
+          "label": "订阅价格",
+          "meaning": "合同约定的最小货币单位整数价格",
+          "valueType": "int",
+          "required": true,
+          "keyData": true
+        }
+      ]
+    },
+    {
+      "type": "entity",
+      "id": "role.reader",
+      "category": "role",
+      "kind": "party",
+      "label": "订阅用户（Subscriber）",
+      "contextRef": "context.subscription"
+    },
+    {
+      "type": "entity",
+      "id": "role.publisher",
+      "category": "role",
+      "kind": "party",
+      "label": "专栏出版方（Publisher）",
+      "contextRef": "context.subscription"
+    },
+    {
+      "type": "entity",
+      "id": "party.reader",
+      "category": "participant",
+      "kind": "party",
+      "label": "订阅用户（Subscriber）"
+    },
+    {
+      "type": "entity",
+      "id": "party.publisher-editor",
+      "category": "participant",
+      "kind": "party",
+      "label": "专栏编辑（Column Editor）"
+    },
+    {
+      "type": "entity",
+      "id": "request.pay-subscription",
+      "category": "evidence",
+      "kind": "fulfillment_request",
+      "fulfillmentAction": "支付订阅费用",
+      "label": "订阅付款申请（Subscription Payment Request）",
+      "contextRef": "context.subscription",
+      "responsibleRoleRef": "role.publisher",
+      "attributes": [
+        {
+          "name": "started_at",
+          "label": "付款申请时间",
+          "meaning": "内容方提出付款要求的业务时间",
+          "valueType": "timestamp",
+          "required": true,
+          "keyData": true,
+          "timeRole": "start"
+        },
+        {
+          "name": "expired_at",
+          "label": "付款截止时间",
+          "meaning": "读者完成付款的业务截止时间",
+          "valueType": "timestamp",
+          "required": true,
+          "keyData": true,
+          "timeRole": "deadline"
+        },
+        {
+          "name": "requested_minor_units",
+          "label": "申请支付金额",
+          "meaning": "本次申请支付的最小货币单位整数金额",
+          "valueType": "int",
+          "required": true,
+          "keyData": true
+        }
+      ]
+    },
+    {
+      "type": "entity",
+      "id": "confirmation.pay-subscription",
+      "category": "evidence",
+      "kind": "fulfillment_confirmation",
+      "label": "订阅付款确认（Subscription Payment Confirmation）",
+      "contextRef": "context.subscription",
+      "responsibleRoleRef": "role.reader",
+      "attributes": [
+        {
+          "name": "confirmed_at",
+          "label": "付款确认时间",
+          "meaning": "读者形成付款结果的业务时间",
+          "valueType": "timestamp",
+          "required": true,
+          "keyData": true,
+          "timeRole": "occurrence"
+        },
+        {
+          "name": "paid_minor_units",
+          "label": "确认支付金额",
+          "meaning": "读者确认支付的最小货币单位整数金额",
+          "valueType": "int",
+          "required": true,
+          "keyData": true
+        }
+      ]
+    },
+    {
+      "type": "entity",
+      "id": "request.content-access",
+      "category": "evidence",
+      "kind": "fulfillment_request",
+      "fulfillmentAction": "开放付费内容访问权限",
+      "label": "付费内容访问申请（Paid Content Access Request）",
+      "contextRef": "context.subscription",
+      "responsibleRoleRef": "role.reader",
+      "attributes": [
+        {
+          "name": "started_at",
+          "label": "访问申请时间",
+          "meaning": "读者发起付费内容访问的业务时间",
+          "valueType": "timestamp",
+          "required": true,
+          "keyData": true,
+          "timeRole": "start"
+        },
+        {
+          "name": "expired_at",
+          "label": "访问截止时间",
+          "meaning": "内容方放行付费内容的业务截止时间",
+          "valueType": "timestamp",
+          "required": true,
+          "keyData": true,
+          "timeRole": "deadline"
+        }
+      ]
+    },
+    {
+      "type": "entity",
+      "id": "confirmation.content-unlocked",
+      "category": "evidence",
+      "kind": "fulfillment_confirmation",
+      "label": "付费内容放行确认（Paid Content Access Confirmation）",
+      "contextRef": "context.subscription",
+      "responsibleRoleRef": "role.publisher",
+      "attributes": [
+        {
+          "name": "confirmed_at",
+          "label": "放行确认时间",
+          "meaning": "内容方放行付费内容的业务时间",
+          "valueType": "timestamp",
+          "required": true,
+          "keyData": true,
+          "timeRole": "occurrence"
+        }
+      ]
+    },
+    {
+      "type": "entity",
+      "id": "request.discontinue-refund",
+      "category": "evidence",
+      "kind": "fulfillment_request",
+      "fulfillmentAction": "退还专栏订阅费用",
+      "label": "断更退款申请（Discontinuation Refund Request）",
+      "contextRef": "context.subscription",
+      "responsibleRoleRef": "role.reader",
+      "attributes": [
+        {
+          "name": "started_at",
+          "label": "退款申请时间",
+          "meaning": "读者因断更提出退款的业务时间",
+          "valueType": "timestamp",
+          "required": true,
+          "keyData": true,
+          "timeRole": "start"
+        },
+        {
+          "name": "expired_at",
+          "label": "退款截止时间",
+          "meaning": "内容方完成退款的业务截止时间",
+          "valueType": "timestamp",
+          "required": true,
+          "keyData": true,
+          "timeRole": "deadline"
+        },
+        {
+          "name": "refund_minor_units",
+          "label": "申请退款金额",
+          "meaning": "读者申请退还的最小货币单位整数金额",
+          "valueType": "int",
+          "required": true,
+          "keyData": true
+        }
+      ]
+    },
+    {
+      "type": "entity",
+      "id": "confirmation.refund-completed",
+      "category": "evidence",
+      "kind": "fulfillment_confirmation",
+      "label": "退款完成确认（Refund Completion Confirmation）",
+      "contextRef": "context.subscription",
+      "responsibleRoleRef": "role.publisher",
+      "attributes": [
+        {
+          "name": "confirmed_at",
+          "label": "退款完成时间",
+          "meaning": "内容方完成退款的业务时间",
+          "valueType": "timestamp",
+          "required": true,
+          "keyData": true,
+          "timeRole": "occurrence"
+        },
+        {
+          "name": "refunded_minor_units",
+          "label": "实际退款金额",
+          "meaning": "内容方实际退还的最小货币单位整数金额",
+          "valueType": "int",
+          "required": true,
+          "keyData": true
+        }
+      ]
+    },
+    {
+      "type": "entity",
+      "id": "context.payment-support",
+      "category": "context",
+      "kind": "contract",
+      "label": "移动支付（Mobile Payments）",
+      "rootRefs": [
+        "contract.payment-support"
+      ]
+    },
+    {
+      "type": "entity",
+      "id": "contract.payment-support",
+      "category": "evidence",
+      "kind": "contract",
+      "label": "移动支付用户协议（Mobile Payment User Agreement）",
+      "contextRef": "context.payment-support",
+      "roleRefs": [
+        "role.payer",
+        "role.payment-provider"
+      ],
+      "attributes": [
+        {
+          "name": "signed_at",
+          "label": "协议签署时间",
+          "meaning": "用户开通移动支付服务的业务时间",
+          "valueType": "timestamp",
+          "required": true,
+          "keyData": true,
+          "timeRole": "occurrence"
+        }
+      ]
+    },
+    {
+      "type": "entity",
+      "id": "role.payer",
+      "category": "role",
+      "kind": "party",
+      "label": "付款用户（Payer）",
+      "contextRef": "context.payment-support"
+    },
+    {
+      "type": "entity",
+      "id": "role.payment-provider",
+      "category": "role",
+      "kind": "party",
+      "label": "支付服务商（Payment Provider）",
+      "contextRef": "context.payment-support"
+    },
+    {
+      "type": "entity",
+      "id": "party.payment-provider-operator",
+      "category": "participant",
+      "kind": "party",
+      "label": "支付服务商运营（Payment Operations Specialist）"
+    },
+    {
+      "type": "entity",
+      "id": "request.charge",
+      "category": "evidence",
+      "kind": "fulfillment_request",
+      "fulfillmentAction": "划转订阅款项",
+      "label": "扣款申请（Charge Request）",
+      "contextRef": "context.payment-support",
+      "responsibleRoleRef": "role.payment-provider",
+      "attributes": [
+        {
+          "name": "started_at",
+          "label": "扣款申请时间",
+          "meaning": "支付服务商发起扣款的业务时间",
+          "valueType": "timestamp",
+          "required": true,
+          "keyData": true,
+          "timeRole": "start"
+        },
+        {
+          "name": "expired_at",
+          "label": "扣款截止时间",
+          "meaning": "扣款结果返回的业务截止时间",
+          "valueType": "timestamp",
+          "required": true,
+          "keyData": true,
+          "timeRole": "deadline"
+        },
+        {
+          "name": "charge_minor_units",
+          "label": "扣款金额",
+          "meaning": "本次扣除的最小货币单位整数金额",
+          "valueType": "int",
+          "required": true,
+          "keyData": true
+        }
+      ]
+    },
+    {
+      "type": "entity",
+      "id": "confirmation.charge",
+      "category": "evidence",
+      "kind": "fulfillment_confirmation",
+      "label": "扣款确认（Charge Confirmation）",
+      "contextRef": "context.payment-support",
+      "responsibleRoleRef": "role.payer",
+      "attributes": [
+        {
+          "name": "confirmed_at",
+          "label": "扣款确认时间",
+          "meaning": "支付渠道返回扣款结果的业务时间",
+          "valueType": "timestamp",
+          "required": true,
+          "keyData": true,
+          "timeRole": "occurrence"
+        },
+        {
+          "name": "charged_minor_units",
+          "label": "扣款成功金额",
+          "meaning": "实际扣除的最小货币单位整数金额",
+          "valueType": "int",
+          "required": true,
+          "keyData": true
+        }
+      ]
+    },
+    {
+      "type": "entity",
+      "id": "context.course-catalog",
+      "category": "context",
+      "kind": "domain",
+      "label": "专栏目录（Column Catalog）",
+      "rootRefs": [
+        "thing.column"
+      ]
+    },
+    {
+      "type": "entity",
+      "id": "thing.column",
+      "category": "participant",
+      "kind": "thing",
+      "label": "专栏（Column）",
+      "contextRef": "context.course-catalog",
+      "attributes": [
+        {
+          "name": "column_code",
+          "label": "专栏编码",
+          "meaning": "专栏目录中区分专栏的编码",
+          "valueType": "string",
+          "required": true,
+          "keyData": true
+        },
+        {
+          "name": "title",
+          "label": "专栏标题",
+          "meaning": "专栏的业务标题",
+          "valueType": "string",
+          "required": true,
+          "keyData": true
+        }
+      ]
+    },
+    {
+      "type": "entity",
+      "id": "role.catalog-column",
+      "category": "role",
+      "kind": "domain",
+      "label": "目录专栏（Catalog Column）",
+      "contextRef": "context.course-catalog"
+    }
+  ],
+  "relationships": [
+    {
+      "type": "relationship",
+      "id": "relation.contract-references-column",
+      "kind": "references",
+      "sourceRef": "contract.subscription",
+      "targetRef": "thing.column",
+      "label": "订阅合同引用被订阅的专栏",
+      "sourceCardinality": {
+        "min": 1,
+        "max": 1
+      },
+      "targetCardinality": {
+        "min": 1,
+        "max": 1
+      }
+    },
+    {
+      "type": "relationship",
+      "id": "relation.payment-request-references-contract",
+      "kind": "references",
+      "sourceRef": "request.pay-subscription",
+      "targetRef": "contract.subscription",
+      "label": "付款申请引用订阅合同",
+      "sourceCardinality": {
+        "min": 1,
+        "max": 1
+      },
+      "targetCardinality": {
+        "min": 1,
+        "max": 1
+      }
+    },
+    {
+      "type": "relationship",
+      "id": "relation.payment-confirmation-references-request",
+      "kind": "references",
+      "sourceRef": "confirmation.pay-subscription",
+      "targetRef": "request.pay-subscription",
+      "label": "付款确认引用所属申请",
+      "sourceCardinality": {
+        "min": 1,
+        "max": 1
+      },
+      "targetCardinality": {
+        "min": 1,
+        "max": 1
+      }
+    },
+    {
+      "type": "relationship",
+      "id": "relation.payment-confirmation-uses-charge",
+      "kind": "references",
+      "sourceRef": "confirmation.charge",
+      "targetRef": "confirmation.pay-subscription",
+      "label": "支付协议中的扣款结果支撑订阅付款确认",
+      "sourceCardinality": {
+        "min": 1,
+        "max": 1
+      },
+      "targetCardinality": {
+        "min": 1,
+        "max": 1
+      }
+    },
+    {
+      "type": "relationship",
+      "id": "relation.access-request-references-contract",
+      "kind": "references",
+      "sourceRef": "request.content-access",
+      "targetRef": "contract.subscription",
+      "label": "内容访问申请引用订阅合同",
+      "sourceCardinality": {
+        "min": 1,
+        "max": 1
+      },
+      "targetCardinality": {
+        "min": 1,
+        "max": 1
+      }
+    },
+    {
+      "type": "relationship",
+      "id": "relation.access-confirmation-references-request",
+      "kind": "references",
+      "sourceRef": "confirmation.content-unlocked",
+      "targetRef": "request.content-access",
+      "label": "放行确认引用所属申请",
+      "sourceCardinality": {
+        "min": 1,
+        "max": 1
+      },
+      "targetCardinality": {
+        "min": 1,
+        "max": 1
+      }
+    },
+    {
+      "type": "relationship",
+      "id": "relation.refund-request-references-contract",
+      "kind": "references",
+      "sourceRef": "request.discontinue-refund",
+      "targetRef": "contract.subscription",
+      "label": "断更退款申请引用订阅合同",
+      "sourceCardinality": {
+        "min": 1,
+        "max": 1
+      },
+      "targetCardinality": {
+        "min": 1,
+        "max": 1
+      }
+    },
+    {
+      "type": "relationship",
+      "id": "relation.refund-confirmation-references-request",
+      "kind": "references",
+      "sourceRef": "confirmation.refund-completed",
+      "targetRef": "request.discontinue-refund",
+      "label": "退款完成确认引用所属申请",
+      "sourceCardinality": {
+        "min": 1,
+        "max": 1
+      },
+      "targetCardinality": {
+        "min": 1,
+        "max": 1
+      }
+    },
+    {
+      "type": "relationship",
+      "id": "relation.charge-request-references-contract",
+      "kind": "references",
+      "sourceRef": "request.charge",
+      "targetRef": "contract.payment-support",
+      "label": "扣款申请引用支付协议",
+      "sourceCardinality": {
+        "min": 1,
+        "max": 1
+      },
+      "targetCardinality": {
+        "min": 1,
+        "max": 1
+      }
+    },
+    {
+      "type": "relationship",
+      "id": "relation.charge-confirmation-references-request",
+      "kind": "references",
+      "sourceRef": "confirmation.charge",
+      "targetRef": "request.charge",
+      "label": "扣款确认引用所属申请",
+      "sourceCardinality": {
+        "min": 1,
+        "max": 1
+      },
+      "targetCardinality": {
+        "min": 1,
+        "max": 1
+      }
+    },
+    {
+      "type": "relationship",
+      "id": "relation.reader-plays-reader",
+      "kind": "plays_role",
+      "sourceRef": "party.reader",
+      "targetRef": "role.reader",
+      "label": "读者本人经办读者角色"
+    },
+    {
+      "type": "relationship",
+      "id": "relation.reader-plays-payer",
+      "kind": "plays_role",
+      "sourceRef": "party.reader",
+      "targetRef": "role.payer",
+      "label": "读者本人经办付款用户角色"
+    },
+    {
+      "type": "relationship",
+      "id": "relation.editor-plays-publisher",
+      "kind": "plays_role",
+      "sourceRef": "party.publisher-editor",
+      "targetRef": "role.publisher",
+      "label": "专栏编辑经办内容方角色"
+    },
+    {
+      "type": "relationship",
+      "id": "relation.provider-operator-plays-provider",
+      "kind": "plays_role",
+      "sourceRef": "party.payment-provider-operator",
+      "targetRef": "role.payment-provider",
+      "label": "支付服务商运营经办支付服务商角色"
+    },
+    {
+      "type": "relationship",
+      "id": "relation.column-plays-catalog-column",
+      "kind": "plays_role",
+      "sourceRef": "thing.column",
+      "targetRef": "role.catalog-column",
+      "label": "专栏扮演目录专栏角色"
+    }
+  ],
+  "rules": [
+    {
+      "type": "rule",
+      "id": "rule.payment-completed",
+      "kind": "completion",
+      "label": "订阅付款履约完成判断",
+      "description": "同一付款申请存在有效期内的付款确认时，订阅付款履约完成。",
+      "contextRef": "context.subscription",
+      "bindings": {
+        "request": {
+          "ref": "request.pay-subscription"
+        },
+        "confirmations": {
+          "ref": "confirmation.pay-subscription",
+          "cardinality": "many"
+        }
+      },
+      "expression": "confirmations.exists(c, c.confirmed_at >= request.started_at && c.confirmed_at <= request.expired_at)",
+      "resultType": "bool"
+    },
+    {
+      "type": "rule",
+      "id": "rule.content-access-completed",
+      "kind": "completion",
+      "label": "内容访问履约完成判断",
+      "description": "同一访问申请存在有效期内的放行确认时，内容访问履约完成。",
+      "contextRef": "context.subscription",
+      "bindings": {
+        "request": {
+          "ref": "request.content-access"
+        },
+        "confirmations": {
+          "ref": "confirmation.content-unlocked",
+          "cardinality": "many"
+        }
+      },
+      "expression": "confirmations.exists(c, c.confirmed_at >= request.started_at && c.confirmed_at <= request.expired_at)",
+      "resultType": "bool"
+    },
+    {
+      "type": "rule",
+      "id": "rule.refund-completed",
+      "kind": "completion",
+      "label": "断更退款履约完成判断",
+      "description": "同一退款申请存在有效期内的退款完成确认时，断更退款履约完成。",
+      "contextRef": "context.subscription",
+      "bindings": {
+        "request": {
+          "ref": "request.discontinue-refund"
+        },
+        "confirmations": {
+          "ref": "confirmation.refund-completed",
+          "cardinality": "many"
+        }
+      },
+      "expression": "confirmations.exists(c, c.confirmed_at >= request.started_at && c.confirmed_at <= request.expired_at)",
+      "resultType": "bool"
+    },
+    {
+      "type": "rule",
+      "id": "rule.charge-completed",
+      "kind": "completion",
+      "label": "扣款履约完成判断",
+      "description": "同一扣款申请存在有效期内的扣款确认时，扣款履约完成。",
+      "contextRef": "context.payment-support",
+      "bindings": {
+        "request": {
+          "ref": "request.charge"
+        },
+        "confirmations": {
+          "ref": "confirmation.charge",
+          "cardinality": "many"
+        }
+      },
+      "expression": "confirmations.exists(c, c.confirmed_at >= request.started_at && c.confirmed_at <= request.expired_at)",
+      "resultType": "bool"
+    }
+  ]
+}

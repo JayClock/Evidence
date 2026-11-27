@@ -10,6 +10,9 @@ const config = {
     name: 'Evidence Modeling',
     appBundleId: 'dev.evidence.modeling',
     asar: true,
+    // Ship the main/renderer bundles and the JSON seeds read relative to the app root.
+    ignore: (file) =>
+      Boolean(file) && !/^\/(?:\.vite|starter-models)(?:\/|$)/.test(file),
     ...(process.env.APPLE_ID
       ? {
           osxSign: {},

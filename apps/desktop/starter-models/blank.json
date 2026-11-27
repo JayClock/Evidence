@@ -1,0 +1,15 @@
+{
+  "manifest": {
+    "type": "fm_model",
+    "schemaVersion": "6.0",
+    "id": "blank",
+    "name": "空白模型",
+    "version": "0.1.0",
+    "ruleLanguage": "CEL",
+    "entryContextRefs": [],
+    "description": "空白起点：先确定合同上下文的当事双方，再从主要履约项开始补齐凭证。"
+  },
+  "entities": [],
+  "relationships": [],
+  "rules": []
+}

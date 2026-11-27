@@ -22,7 +22,7 @@ import { watchModelSource, type ModelWatcher } from './modelWatcher';
 import { createLivePersistence, type PersistedModel } from './livePersistence';
 import { modelSourceOf } from '@evidence-poc/desktop-services';
 import type { ProjectStore } from './projectStore';
-import { listProjectTemplates } from './templates/starterModels';
+import { listProjectTemplates } from './starterModels';
 
 export interface ProjectIpcOptions {
   projectStore: ProjectStore;

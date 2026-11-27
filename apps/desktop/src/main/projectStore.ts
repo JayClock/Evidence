@@ -22,10 +22,7 @@ import type {
   OpenProjectResult,
   WriteProjectResult,
 } from '@evidence-poc/desktop-contracts/projects';
-import {
-  createStarterDocument,
-  deriveModelId,
-} from './templates/starterModels';
+import { createStarterDocument, deriveModelId } from './starterModels';
 
 export const RECENT_PROJECTS_FILE = 'workspace-recents.json';
 
