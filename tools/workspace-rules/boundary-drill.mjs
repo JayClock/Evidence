@@ -73,6 +73,28 @@ const CASES = [
     expects: "'node:fs' import is restricted from being used by a pattern",
   },
   {
+    name: 'chat presentation importing the modeling agent feature',
+    project: 'desktop-ui-chat',
+    file: 'libs/desktop/ui-chat/src/__boundary-drill.ts',
+    body: "export * from '@evidence-poc/desktop-feature-agent';\n",
+    expects:
+      'Circular dependency between "desktop-ui-chat" and "desktop-feature-agent"',
+  },
+  {
+    name: 'a browser feature importing native sensors from the Node entry',
+    project: 'desktop-feature-diagnostics',
+    file: 'libs/desktop/feature-diagnostics/src/__boundary-drill.ts',
+    body: "export * from '@evidence-poc/evidence-agent-sensors';\n",
+    expects: "'@evidence-poc/evidence-agent-sensors' import is restricted",
+  },
+  {
+    name: 'a main-process service depending on renderer controls',
+    project: 'desktop-services',
+    file: 'libs/desktop/services/src/__boundary-drill.ts',
+    body: "export * from '@evidence-poc/desktop-ui-kit';\n",
+    expects: 'A project tagged with "layer:service" can only depend on libs',
+  },
+  {
     name: 'one business context reading another',
     project: 'evidence-agent',
     file: 'libs/evidence-agent/src/__boundary-drill.ts',

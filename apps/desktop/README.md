@@ -128,6 +128,9 @@ Renderer behavior is shared through Nx libraries:
 | layout, viewport, rulers                 | `@evidence-poc/evidence-canvas-interaction`                                  |
 | canvas and inspector UI                  | `@evidence-poc/desktop-feature-canvas`, `desktop-feature-inspector`          |
 | story, delivery, modeling agent UI/hooks | `desktop-feature-story`, `desktop-feature-delivery`, `desktop-feature-agent` |
+| draft ingestion, domain ledger, scenario studio, model diagnostics | `desktop-feature-ingestion`, `desktop-feature-ledger`, `desktop-feature-scenario`, `desktop-feature-diagnostics` |
+| chat thread and message parts | `desktop-ui-chat` |
+| desktop MCP bridge and services | `desktop-services` |
 | browser sensor/event DTOs and labels     | `@evidence-poc/evidence-agent/browser`                                       |
 | inline acceptance compilation            | `@evidence-poc/evidence-acceptance/projection`                               |
 | shared scripted API/renderer fixtures    | `@evidence-poc/desktop-testing` (tests only)                                 |

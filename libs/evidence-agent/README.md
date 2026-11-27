@@ -3,7 +3,7 @@
 进程内的 Pi Harness 底座，提供桌面端建模副驾的会话、传感器和工具：
 
 1. **Agent 会话**（`session/`）——由 Pi 的 `AgentSessionRuntime` 和 `SessionManager` 管理会话、恢复与分叉。宿主显式提供建模指令与工具，不加载工作目录里的扩展、技能、模板或上下文文件。Pi 事件投影为桌面端可渲染的 `AgentStreamEvent`，SDK 替换会话后重新绑定订阅。
-2. **传感器**（`sensors/`）——把模型一致性检查、关键数据台账和 API 诊断
+2. **传感器**（`@evidence-poc/evidence-agent-sensors`）——把模型一致性检查、关键数据台账和 API 诊断
    汇总到 `SensorReport`，并据此判定阶段门禁。
 3. **工具注入**（`tools/`）——`createEvidenceToolsExtension` 把模型补丁、API 差异投影
    等能力注册给 Pi，Agent 因此只能在受控契约内读写模型。
@@ -11,7 +11,7 @@
 ## 边界
 
 - 本包不直接读写 `.evidence/` 目录：模型补丁经 `tools/` 构造后进入 `ModelSession`，
-  目录读取由 `sensors/native/modelSources.ts` 统一负责。
+  探针从 `evidence-agent-sensors` 读取模型目录。
 - 本包不实现领域校验：一致性、关键数据台账与阶段门禁的实际计算由
   `evidence-model-core` / `evidence-api` 完成，本包只做编排与判定。
 - 本包也不解析解释器：技能包只提供提示词与文档，没有需要启动的脚本。

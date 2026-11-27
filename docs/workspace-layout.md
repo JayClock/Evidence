@@ -7,7 +7,7 @@ each answers a different question.
 | --------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------- |
 | `apps/`         | Runnable entry points: `desktop` (Electron Forge) and `cli` (the unified `evidence` command)         | yes (`apps/*`)                  |
 | `libs/`         | Model/schema/interaction engines, model I/O, shared tools, API projection, acceptance, Agent and MCP | yes (`libs/*`)                  |
-| `libs/desktop/` | Desktop contracts, UI kit, canvas/inspector/story/delivery/agent features and test support     | yes (`libs/desktop/*`)          |
+| `libs/desktop/` | Desktop contracts, Node services, UI libraries, feature libraries and test support     | yes (`libs/desktop/*`)          |
 
 Nothing is a library in two toolchains: every `libs/*` entry is a TypeScript
 package consumed through pnpm, and no Java or Gradle module lives in this
@@ -113,7 +113,7 @@ Tags drive `@nx/enforce-module-boundaries` in `eslint.config.mjs`:
 - `type:app` may depend on `type:lib`, never on another app.
 - `type:lib` may depend on `type:lib`.
 - `layer:*` enforces dependency direction: schema → domain → I/O/projection →
-  orchestration; UI controls, desktop contracts and features have explicit
+  orchestration; UI controls, desktop contracts, services and features have explicit
   allowed inputs. Apps compose the layers; libraries cannot import apps.
 - `platform:universal` cannot import Node/browser projects; browser features
   may consume Node libraries only through declared browser-safe surfaces.
@@ -121,7 +121,7 @@ Tags drive `@nx/enforce-module-boundaries` in `eslint.config.mjs`:
   unsafe package roots.
 - `scope:*` records business ownership and disallows reverse edges (for example,
   acceptance may consume API projection but may not consume Agent or desktop).
-- `pnpm boundaries:drill` proves seven forbidden imports still fail lint.
+- `pnpm boundaries:drill` proves ten forbidden imports still fail lint.
 
 ## Current extraction boundaries
 
@@ -129,10 +129,25 @@ Tags drive `@nx/enforce-module-boundaries` in `eslint.config.mjs`:
   of constants; dependencies on Node libraries are type-only. It is not a new
   general-purpose RPC protocol. Feature hooks take narrow API ports as arguments;
   only the application shell reads `window.evidenceAPI`.
-- `desktop-feature-story`, `desktop-feature-delivery`
-  and `desktop-feature-agent` own their UI, hooks and colocated tests. Cross-feature
-  coordination, window handling and project services stay in `apps/desktop`.
-  Shared renderer fixtures live in `desktop-testing`, never in an app import.
+- The desktop features own canvas, inspector, story, delivery, agent, ingestion,
+  ledger, scenario and diagnostics views with their colocated tests. The editor
+  coordinates the active project, shared selection, playback and panel layout.
+  Renderer tests share fixtures from `desktop-testing`.
+- `desktop-ui-chat` provides the assistant-ui thread, message parts and external
+  store adapter. Its controls come from `desktop-ui-kit`. The agent feature
+  supplies Pi messages, inquiry context and model patch review actions.
+- `desktop-services` owns the main-process MCP bridge, client registration,
+  capture, sensors and saved-model delivery. The Electron shell supplies IPC,
+  the active window and the application lifecycle. Starter documents ship as
+  JSON in `apps/desktop/starter-models`.
+- `evidence-ingestion` reads business text, contracts and blueprints and compiles
+  reviewed drafts. `evidence-cel` owns expression analysis, evaluation and the
+  time formulas used by ingestion and model mutations. Model-core re-exports
+  the existing APIs for compatibility. Nx follows these re-exports, so changes
+  in either library can still affect consumers of the model-core entry.
+- `evidence-agent-sensors` runs native checks and produces reports. Its
+  `/browser` entry exposes reports and summaries for the renderer.
+  The agent's existing entry points forward their sensor APIs.
 - `evidence-tools` is a universal domain library: one registry of validated
   patch/recipe operations and write-safety metadata. Pi and MCP adapt it, while
   the host still owns atomic application, static guards and undo. These tools

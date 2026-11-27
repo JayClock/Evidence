@@ -5,8 +5,8 @@ Nx project: `desktop-feature-agent`; package: `@evidence-poc/desktop-feature-age
 Owns node inquiry and patch review. The [official assistant-ui Thread](../ui-chat/src/assistant-ui/README.md)
 handles the transcript, reasoning, tool disclosures, and composer. An external-store
 adapter projects Pi's message snapshots into the Thread; it does not run a second
-agent or persist chat history. Pi sessions, model loading and sensors remain in the
-Node `evidence-agent` library and desktop main-process adapters.
+agent or persist chat history. Pi sessions and model loading live in `evidence-agent`. Native checks live in
+`evidence-agent-sensors`.
 
 The editor supplies a prompt function that publishes its current revision and
 replays the main process's committed transactions into its local `ModelSession`.
