@@ -274,6 +274,9 @@ describe('StoryDrawer', () => {
     );
     expect(screen.getByRole('tabpanel', { name: '故事剧本' })).toBeVisible();
     selectTab('推演与分支');
+    expect(screen.getByRole('textbox', { name: '假设问题' })).toHaveValue(
+      '如果延迟交付，会影响验收吗？',
+    );
     expect(screen.getByText('验收可能延迟。')).toBeVisible();
   });
 
@@ -775,7 +778,8 @@ describe('StoryDrawer', () => {
     fireEvent.change(screen.getByRole('slider', { name: '业务时间' }), {
       target: { value: String(105 * 60_000) },
     });
-    expect(screen.getByText(/已过截止，未判定违约/)).toBeVisible();
+    const script = within(screen.getByRole('tabpanel', { name: '故事剧本' }));
+    expect(script.getByText(/已过截止，未判定违约/)).toBeVisible();
     expect(screen.queryByRole('form', { name: '固化违约分支' })).toBeNull();
     expect(screen.getByRole('article', { name: '业务单据' })).toHaveTextContent(
       '《交付请求》',
@@ -783,7 +787,7 @@ describe('StoryDrawer', () => {
     expect(screen.getByRole('article', { name: '本幕叙事' })).toHaveTextContent(
       '供货方要求采购方验收交付成果',
     );
-    expect(screen.getByText('已推进至第 2 步，等待后续时点。')).toBeVisible();
+    expect(script.getByText('已推进至第 2 步，等待后续时点。')).toBeVisible();
     expect(screen.queryByRole('textbox', { name: '假设问题' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
     expect(screen.getByRole('article', { name: '业务单据' })).toHaveTextContent(
@@ -794,7 +798,7 @@ describe('StoryDrawer', () => {
     fireEvent.change(screen.getByRole('slider', { name: '业务时间' }), {
       target: { value: '-1' },
     });
-    expect(screen.getByText('第一步尚未发生，等待业务开始。')).toBeVisible();
+    expect(script.getByText('第一步尚未发生，等待业务开始。')).toBeVisible();
     expect(screen.queryByRole('article', { name: '业务单据' })).toBeNull();
   });
 

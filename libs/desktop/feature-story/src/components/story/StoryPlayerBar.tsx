@@ -112,6 +112,9 @@ export const StoryPlayerBar = ({
                 ? '时点推演 · 非业务凭证'
                 : '暂无可放映的步骤'}
       {playback.clockUnavailable ? ' · 时间轴不可用' : null}
+      {playback.blockedScenes.size > 0
+        ? ` · 本次推演冻结 ${playback.blockedScenes.size} 幕`
+        : null}
     </span>
     {playback.journeyPreview ? (
       <span

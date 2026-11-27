@@ -182,7 +182,11 @@ export const StoryDrawer = ({
                     ) : null}
                   </div>
                 </Tabs.Content>
-                <Tabs.Content value="sandbox">
+                <Tabs.Content
+                  value="sandbox"
+                  forceMount
+                  hidden={view !== 'sandbox'}
+                >
                   <StorySandboxPane
                     playback={playback}
                     aiConfigured={aiConfigured}
