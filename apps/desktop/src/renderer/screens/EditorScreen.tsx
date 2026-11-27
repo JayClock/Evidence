@@ -363,7 +363,7 @@ const EditorWorkspace = ({
         : (input, before) => {
             if (state.session.getDocument() !== before)
               throw new Error('模型已变化，请重新推演后再提交。');
-            const rationale = `${input.outcome.kind === 'compensation_pair' ? '固化违约补偿履约' : '固化争议终结'}：${input.condition}`;
+            const rationale = `${input.outcome.kind === 'compensation_pair' ? '约定履约补救' : '启动终极救济'} · ${input.condition}`;
             state.session.mutate(
               (draft) => recordBreachOutcomeMutator(draft, input),
               rationale,

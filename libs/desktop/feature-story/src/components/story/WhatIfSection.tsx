@@ -329,6 +329,11 @@ export const WhatIfSection = ({
               幕触发违约，本流程没有依赖这份凭证的后续步骤。
             </p>
           )}
+          {!playback.promotionRequests.length ? (
+            <p>
+              双方可按约定补救履约，或通过解除合同、仲裁、诉讼寻求终极救济。
+            </p>
+          ) : null}
           <Button
             type="button"
             size="xs"

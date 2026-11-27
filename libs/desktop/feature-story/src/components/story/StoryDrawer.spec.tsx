@@ -628,23 +628,27 @@ describe('StoryDrawer', () => {
         screen.getByRole('region', { name: 'What-If 业务沙盘' }),
       ).not.toHaveTextContent('rule.late');
       const form = within(screen.getByRole('form', { name: '固化违约分支' }));
-      fireEvent.click(form.getByRole('radio', { name: '争议终结' }));
-      const submit = form.getByRole('button', { name: '固化为争议终结' });
+      expect(form.getByRole('radio', { name: '约定履约补救' })).toBeChecked();
+      fireEvent.click(form.getByRole('radio', { name: '启动终极救济' }));
+      const submit = form.getByRole('button', { name: '保存救济分支' });
       fireEvent.click(submit);
       expect(recordOutcome).not.toHaveBeenCalled();
       fireEvent.change(
         form.getByRole('textbox', { name: '已确认的触发条件' }),
         { target: { value: ' 到期未交付 ' } },
       );
-      fireEvent.change(form.getByRole('combobox', { name: '争议终结方式' }), {
+      fireEvent.change(form.getByRole('combobox', { name: '救济方式' }), {
         target: { value: remedy },
       });
       // A rejected edit must keep the user's agreement available for retry.
       recordOutcome.mockImplementationOnce(() => {
-        throw new Error('请复核触发条件');
+        throw new Error('Invalid terminal_escalation payload');
       });
       await act(async () => fireEvent.click(submit));
       expect(form.getByRole('alert')).toHaveTextContent('请复核触发条件');
+      expect(form.getByRole('alert')).not.toHaveTextContent(
+        'terminal_escalation',
+      );
       await act(async () => fireEvent.click(submit));
       const updated = recordOutcome.mock.results.at(-1)!
         .value as DomainModelDocument;
@@ -720,18 +724,16 @@ describe('StoryDrawer', () => {
     ).toHaveTextContent('违约条件成立');
     expect(screen.queryByRole('button', { name: '固化违约分支…' })).toBeNull();
     selectTab('推演与分支');
-    expect(screen.queryByRole('form', { name: '固化违约分支' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: '固化违约分支…' }));
     const form = within(screen.getByRole('form', { name: '固化违约分支' }));
     fireEvent.change(form.getByLabelText('已确认的触发条件'), {
       target: { value: '未按期交付' },
     });
-    fireEvent.click(form.getByRole('radio', { name: '争议终结' }));
-    fireEvent.change(form.getByLabelText('争议终结方式'), {
+    fireEvent.click(form.getByRole('radio', { name: '启动终极救济' }));
+    fireEvent.change(form.getByLabelText('救济方式'), {
       target: { value: 'arbitration' },
     });
     await act(async () =>
-      fireEvent.click(form.getByRole('button', { name: '固化为争议终结' })),
+      fireEvent.click(form.getByRole('button', { name: '保存救济分支' })),
     );
     await act(async () => vi.advanceTimersByTimeAsync(STORY_REFRESH_DELAY));
     fireEvent.click(screen.getByRole('button', { name: /展开全部 3 幕/ }));

@@ -802,14 +802,14 @@ describe('EditorScreen', () => {
     const form = within(story.getByRole('form', { name: '固化违约分支' }));
     for (const [name, value] of [
       ['已确认的触发条件', '逾期未到账'],
-      ['补偿请求名称', '退款请求'],
-      ['补偿确认名称', '退款确认'],
+      ['补救请求名称', '退款请求'],
+      ['补救确认名称', '退款确认'],
     ]) {
       fireEvent.change(form.getByRole('textbox', { name }), {
         target: { value },
       });
     }
-    fireEvent.click(form.getByRole('button', { name: '固化为违约补偿履约' }));
+    fireEvent.click(form.getByRole('button', { name: '保存补救分支' }));
     const review = within(
       await story.findByRole('region', { name: '违约分支复核' }),
     );
@@ -1169,13 +1169,11 @@ describe('EditorScreen', () => {
     fireEvent.change(within(form).getByLabelText('已确认的触发条件'), {
       target: { value: '到期仍未交付且协商失败' },
     });
-    fireEvent.click(within(form).getByRole('radio', { name: '争议终结' }));
-    fireEvent.change(within(form).getByLabelText('争议终结方式'), {
+    fireEvent.click(within(form).getByRole('radio', { name: '启动终极救济' }));
+    fireEvent.change(within(form).getByLabelText('救济方式'), {
       target: { value: 'lawsuit' },
     });
-    fireEvent.click(
-      within(form).getByRole('button', { name: '固化为争议终结' }),
-    );
+    fireEvent.click(within(form).getByRole('button', { name: '保存救济分支' }));
     const review = await details.findByRole('region', { name: '违约分支复核' });
     expect(
       await details.findByText(/模型中的处置选项.*诉讼移交凭证/),

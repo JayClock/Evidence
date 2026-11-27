@@ -2,7 +2,6 @@ import { useId, useState } from 'react';
 import { Button } from '@evidence-poc/desktop-ui-kit';
 import {
   TERMINAL_REMEDY_KINDS,
-  type RecordBreachOutcomeInput,
   type TerminalRemedyKind,
 } from '@evidence-poc/evidence-schema';
 import type { StoryPlaybackController } from '../../state/useStoryPlayback';
@@ -10,10 +9,51 @@ import type { StoryPlaybackController } from '../../state/useStoryPlayback';
 const remedies: Record<TerminalRemedyKind, string> = {
   lawsuit: '诉讼',
   arbitration: '仲裁',
-  contract_termination: '合同终止',
+  contract_termination: '解除合同',
 };
 const fieldClass =
   'w-full rounded border border-evidence-line bg-evidence-surface px-2 py-1';
+
+const OutcomeChoice = ({
+  label,
+  description,
+  checked,
+  onSelect,
+}: {
+  label: string;
+  description: string;
+  checked: boolean;
+  onSelect: () => void;
+}) => {
+  const id = useId();
+  return (
+    <label className="grid flex-1 cursor-pointer grid-cols-[auto_1fr] items-baseline gap-x-2 gap-y-1 rounded-md border border-evidence-line p-2 has-checked:border-evidence-accent">
+      <input
+        type="radio"
+        name="kind"
+        checked={checked}
+        aria-labelledby={id}
+        aria-describedby={`${id}-help`}
+        onChange={onSelect}
+      />
+      <span id={id} className="font-medium">
+        {label}
+      </span>
+      <span id={`${id}-help`} className="col-start-2 text-evidence-muted">
+        {description}
+      </span>
+    </label>
+  );
+};
+
+function outcomeError(cause: unknown) {
+  const message = cause instanceof Error ? cause.message : '';
+  if (message.includes('已有处理分支'))
+    return '这个触发条件已有处置分支，请核对已有约定。';
+  if (message.includes('已变化'))
+    return '模型或当前步骤已变化，请重新推演后保存。';
+  return '分支未能保存，请复核触发条件和处置约定后重试。';
+}
 
 const BreachOutcomeForm = ({
   formId,
@@ -23,13 +63,15 @@ const BreachOutcomeForm = ({
   playback: StoryPlaybackController;
 }) => {
   const id = useId();
-  const [kind, setKind] =
-    useState<RecordBreachOutcomeInput['outcome']['kind']>('compensation_pair');
+  const [compensation, setCompensation] = useState(true);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const requests = playback.promotionRequests;
   const singleRequest = requests.length === 1 ? requests[0] : undefined;
-  const compensation = kind === 'compensation_pair';
+  const chooseCompensation = (selected: boolean) => {
+    setCompensation(selected);
+    setError('');
+  };
   return (
     <form
       id={formId}
@@ -77,7 +119,7 @@ const BreachOutcomeForm = ({
                 },
           });
         } catch (cause) {
-          setError(cause instanceof Error ? cause.message : String(cause));
+          setError(outcomeError(cause));
         } finally {
           setSubmitting(false);
         }
@@ -122,39 +164,25 @@ const BreachOutcomeForm = ({
             className={fieldClass}
           />
         </label>
-        <fieldset className="flex flex-wrap gap-x-4 gap-y-1">
+        <fieldset className="flex min-w-0 flex-col gap-2">
           <legend className="mb-1">处置方式</legend>
-          <label>
-            <input
-              type="radio"
-              name="kind"
-              value="compensation_pair"
-              checked={compensation}
-              onChange={() => {
-                setKind('compensation_pair');
-                setError('');
-              }}
-            />{' '}
-            补偿履约
-          </label>
-          <label>
-            <input
-              type="radio"
-              name="kind"
-              value="terminal_escalation"
-              checked={!compensation}
-              onChange={() => {
-                setKind('terminal_escalation');
-                setError('');
-              }}
-            />{' '}
-            争议终结
-          </label>
+          <OutcomeChoice
+            label="约定履约补救"
+            description="约定补交、展期或支付滞纳金，并记录如何确认补救完成。"
+            checked={compensation}
+            onSelect={() => chooseCompensation(true)}
+          />
+          <OutcomeChoice
+            label="启动终极救济"
+            description="按约定解除合同，或将争议移交仲裁机构、法院。"
+            checked={!compensation}
+            onSelect={() => chooseCompensation(false)}
+          />
         </fieldset>
         {compensation ? (
           <>
             <label className="flex flex-col gap-1">
-              补偿请求名称
+              补救请求名称
               <input
                 name="requestLabel"
                 required
@@ -163,7 +191,7 @@ const BreachOutcomeForm = ({
               />
             </label>
             <label className="flex flex-col gap-1">
-              补偿确认名称
+              补救确认名称
               <input
                 name="confirmationLabel"
                 required
@@ -174,7 +202,7 @@ const BreachOutcomeForm = ({
           </>
         ) : (
           <label className="flex flex-col gap-1">
-            争议终结方式
+            救济方式
             <select
               name="remedy"
               defaultValue=""
@@ -193,7 +221,7 @@ const BreachOutcomeForm = ({
           </label>
         )}
         <Button type="submit" variant="default" className="self-start">
-          {compensation ? '固化为违约补偿履约' : '固化为争议终结'}
+          {compensation ? '保存补救分支' : '保存救济分支'}
         </Button>
       </fieldset>
       {error ? (
@@ -211,10 +239,10 @@ export const BreachOutcomeDisclosure = ({
   playback: StoryPlaybackController;
 }) => {
   const id = useId();
-  const [expanded, setExpanded] = useState(playback.hasSandboxBreach);
+  const [expanded, setExpanded] = useState(playback.breachedStep !== undefined);
   return (
     <div className="flex flex-col items-start gap-2 border-t border-evidence-line pt-3">
-      <p>当前推演已触发违约条件，可记录双方约定的处置方式。</p>
+      {!expanded ? <p>已触发违约，可约定履约补救或启动终极救济。</p> : null}
       <Button
         type="button"
         aria-expanded={expanded}
