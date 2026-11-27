@@ -143,16 +143,14 @@ export async function simulateWhatIf(
     };
   }
 
-  const ruleOutcomes = rules.map(trial.decide);
-  const decisions = rules.map((rule, index) => ({
-    ...ruleOutcomes[index]!,
-    kind: rule.kind,
+  const ruleOutcomes = rules.map((rule) => ({
+    ...trial.decide(rule),
     label: rule.label,
+    kind: rule.kind,
     description: rule.description,
-    notes: rule.notes,
   }));
   const localExplanation = () =>
-    decisions
+    ruleOutcomes
       .map(({ label, kind, result }) => {
         const condition = kind === 'breach' ? '违约条件' : '完成条件';
         return `按「${label}」判定，${condition}${result ? '成立' : '不成立'}。`;
@@ -169,7 +167,7 @@ export async function simulateWhatIf(
             hypothesis,
             asOf: trial.asOf,
             currentValues: trial.valuesOf(current),
-            ruleOutcomes: decisions,
+            ruleOutcomes,
           }),
         }),
       ),

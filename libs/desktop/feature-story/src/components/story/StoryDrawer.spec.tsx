@@ -87,11 +87,17 @@ const setup = async ({
       (step) => step.sequence === input.currentStepSequence,
     );
     const rule = graph.getRule(input.targetedRuleId);
-    if (!step || !rule)
+    if (!step || (rule?.kind !== 'completion' && rule?.kind !== 'breach'))
       throw new Error('Expected the challenge’s scene and rule');
-    const ruleOutcome = createWhatIfScenario(graph, selected.steps, step)
+    const decision = createWhatIfScenario(graph, selected.steps, step)
       .apply(input.hypothesisDraft)
       .decide(rule);
+    const ruleOutcome = {
+      ...decision,
+      label: rule.label,
+      kind: rule.kind,
+      description: rule.description,
+    };
     return {
       isSpeculative: false,
       hypothesis: input.hypothesisDraft,
@@ -432,7 +438,12 @@ describe('StoryDrawer', () => {
     expect(editor).toHaveFocus();
     const edited = '如果采购方逾期五天仍未验收，会怎样？';
     fireEvent.change(editor, { target: { value: edited } });
-    const ruleOutcome = { ruleId: 'rule.late', result: true };
+    const ruleOutcome = {
+      ruleId: 'rule.late',
+      label: '逾期未交付',
+      kind: 'breach' as const,
+      result: true,
+    };
     vi.mocked(api.story.whatIf).mockResolvedValueOnce({
       isSpeculative: false,
       hypothesis: { asOf: '2026-11-16T10:00:00Z' },

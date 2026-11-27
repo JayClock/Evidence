@@ -552,12 +552,18 @@ describe('story playback', () => {
     });
     expect(hook.result.current.sandbox?.loading).toBe(true);
     act(() => hook.result.current.next());
+    const ruleOutcome = {
+      ruleId: 'rule.payment',
+      label: '付款足额',
+      kind: 'completion' as const,
+      result: false,
+    };
     await act(async () =>
       answer({
         isSpeculative: false,
         hypothesis: { values: { amount: 300 } },
-        ruleOutcome: { ruleId: 'rule.payment', result: false },
-        ruleOutcomes: [{ ruleId: 'rule.payment', result: false }],
+        ruleOutcome,
+        ruleOutcomes: [ruleOutcome],
         businessImpactExplanation: '旧答案',
       }),
     );

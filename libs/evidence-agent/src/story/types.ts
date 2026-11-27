@@ -128,7 +128,10 @@ export interface WhatIfInput {
 
 export interface WhatIfRuleOutcome {
   readonly ruleId: string;
+  readonly label: string;
+  readonly kind: 'completion' | 'breach';
   readonly result: boolean;
+  readonly description?: string;
 }
 
 export interface RuleBasedWhatIfResult {

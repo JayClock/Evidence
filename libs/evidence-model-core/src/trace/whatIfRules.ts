@@ -6,6 +6,8 @@ import {
 } from '@evidence-poc/evidence-schema';
 import type { DomainGraph } from '../model/graph.js';
 
+type DecisionRule = RuleAST & { kind: 'completion' | 'breach' };
+
 export const isWhatIfFulfillmentEvidence = (
   entity: EntityAST | undefined,
 ): boolean =>
@@ -15,7 +17,7 @@ export const isWhatIfFulfillmentEvidence = (
 export function whatIfDecisionRules(
   graph: DomainGraph,
   entityId: string,
-): readonly RuleAST[] {
+): readonly DecisionRule[] {
   if (!isWhatIfFulfillmentEvidence(graph.getEntity(entityId))) return [];
   const related = new Set([entityId]);
   for (const pair of graph.fulfillmentPairs()) {
@@ -26,7 +28,7 @@ export function whatIfDecisionRules(
   return graph
     .rules()
     .filter(
-      (rule) =>
+      (rule): rule is DecisionRule =>
         (rule.kind === 'completion' || rule.kind === 'breach') &&
         Object.values(rule.bindings).some(
           (binding) => 'ref' in binding && related.has(binding.ref),

@@ -12,6 +12,7 @@ import type {
 export type {
   WhatIfChallenge,
   WhatIfChallengeCategory,
+  WhatIfRuleOutcome,
 } from '@evidence-poc/evidence-agent';
 
 export const STORY_IPC_CHANNELS = {

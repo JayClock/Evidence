@@ -154,6 +154,9 @@ describe('M1 trace to M2 story integration', () => {
     );
     expect(result.ruleOutcome).toEqual({
       ruleId: 'rule.annual-shortfall',
+      kind: 'breach',
+      label: annual.label,
+      description: annual.description,
       result: true,
     });
   });
@@ -243,6 +246,9 @@ describe('M1 trace to M2 story integration', () => {
     );
     expect(result.ruleOutcome).toEqual({
       ruleId: 'rule.late-payment',
+      kind: 'breach',
+      label: '付款逾期',
+      description: '晚于付款请求约定时间付款',
       result: true,
     });
     expect(

@@ -131,7 +131,12 @@ describe('What-If capability', () => {
     });
     const graph = createDomainGraph(model);
     const shared = [request, { ...request, id: 'request.second' }];
-    const ruleOutcome = { ruleId: completion.id, result: true };
+    const ruleOutcome = {
+      ruleId: completion.id,
+      label: completion.label,
+      kind: 'completion' as const,
+      result: true,
+    };
     const result = {
       isSpeculative: false as const,
       hypothesis: {},
@@ -145,7 +150,12 @@ describe('What-If capability', () => {
         ...result,
         ruleOutcomes: [
           ...result.ruleOutcomes,
-          { ruleId: 'rule.second-breach', result: true },
+          {
+            ruleId: 'rule.second-breach',
+            label: '第二项违约条件',
+            kind: 'breach' as const,
+            result: true,
+          },
         ],
       }).map((r) => r.id),
     ).toEqual(['request.second']);

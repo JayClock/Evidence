@@ -122,11 +122,20 @@ describe('native CEL What-If sandbox', () => {
     const result = await simulateWhatIf(input, { agent: { generate } });
     expect(result.ruleOutcome).toEqual({
       ruleId: 'rule.payment-breach',
+      label: '付款逾期',
+      kind: 'breach',
+      description: '实际付款时间晚于约定期限时构成逾期',
       result: true,
     });
     expect(result.ruleOutcomes).toEqual([
-      { ruleId: 'rule.payment-breach', result: true },
-      { ruleId: 'rule.payment-completion', result: true },
+      result.ruleOutcome,
+      {
+        ruleId: 'rule.payment-completion',
+        label: '付款金额足额',
+        kind: 'completion',
+        description: '实付金额达到请求金额',
+        result: true,
+      },
     ]);
     expect(result.businessImpactExplanation).toContain('逾期');
     expect(generate).toHaveBeenCalledTimes(2);
@@ -152,6 +161,9 @@ describe('native CEL What-If sandbox', () => {
     const result = await simulateWhatIf(input, { agent: { generate } });
     expect(result.ruleOutcome).toEqual({
       ruleId: 'rule.payment-completion',
+      label: '付款金额足额',
+      kind: 'completion',
+      description: '实付金额达到请求金额',
       result: false,
     });
     expect(result.ruleOutcomes).toHaveLength(1);
@@ -192,7 +204,7 @@ describe('native CEL What-If sandbox', () => {
     const generate = vi.fn().mockResolvedValue(explanation);
     expect(
       (await simulateWhatIf(input, { agent: { generate } })).ruleOutcome,
-    ).toEqual({ ruleId: 'rule.deadline', result: true });
+    ).toMatchObject({ ruleId: 'rule.deadline', kind: 'breach', result: true });
   });
 
   it('retains exact int64 comparisons instead of rounding to JavaScript numbers', async () => {
@@ -590,7 +602,11 @@ describe('native CEL What-If sandbox', () => {
     ).resolves.toMatchObject({
       isSpeculative: false,
       ruleOutcomes: expect.arrayContaining([
-        { ruleId: 'rule.payment-completion', result: false },
+        expect.objectContaining({
+          ruleId: 'rule.payment-completion',
+          kind: 'completion',
+          result: false,
+        }),
       ]),
     });
     generate.mockClear();

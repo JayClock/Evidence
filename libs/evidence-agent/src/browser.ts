@@ -31,6 +31,7 @@ export type {
   WhatIfChallengeCategory,
   WhatIfHypothesis,
   WhatIfResult,
+  WhatIfRuleOutcome,
   NextStepExpectation,
 } from './story/types.js';
 export {
