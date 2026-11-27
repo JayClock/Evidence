@@ -5,8 +5,8 @@ import { createEvidenceMcpBridgeClient } from '@evidence-poc/evidence-mcp';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { McpStatus } from '@evidence-poc/desktop-contracts/mcpIpc';
-import { startMcpBridgeRuntime } from './mcpBridgeRuntime';
-import { createMcpRequestHandler } from './mcpRequestHandler';
+import { startMcpBridgeRuntime } from './mcpBridgeRuntime.js';
+import { createMcpRequestHandler } from './mcpRequestHandler.js';
 
 const endpointFor = (name: string): string =>
   join(tmpdir(), `evidence-mcp-runtime-${process.pid}-${name}.sock`);

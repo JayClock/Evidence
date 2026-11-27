@@ -4,7 +4,7 @@ import type {
   McpStageGateResult,
 } from '@evidence-poc/evidence-mcp';
 
-import { modelSourceOf } from './modelSource';
+import { modelSourceOf } from './modelSource.js';
 
 /** Builds one sensors engine per project root and caches it. */
 export interface McpSensorServiceOptions {

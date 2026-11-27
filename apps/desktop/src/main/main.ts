@@ -4,7 +4,7 @@ import {
   openWorkspace,
 } from '@evidence-poc/evidence-model-io';
 
-import { app, BrowserWindow, nativeTheme } from 'electron';
+import { app, BrowserWindow, ipcMain, nativeTheme } from 'electron';
 import { AiConfigService } from './ai/aiConfigService';
 import { registerAiConfigIpc } from './ai/aiConfigIpc';
 import {
@@ -14,15 +14,15 @@ import {
 
 import { EVIDENCE_MCP_IPC_CHANNELS } from '@evidence-poc/desktop-contracts/mcpIpc';
 import { registerAgentIpc } from './agentIpcHandlers';
-import { startMcpBridgeRuntime } from './mcpBridgeRuntime';
-import { registerMcpIpc } from './mcpIpcHandlers';
-import { createMcpRequestHandler } from './mcpRequestHandler';
 import {
+  createMcpDeliveryService,
+  createMcpRequestHandler,
+  createMcpSensorService,
   mcpClientConfigs,
+  registerMcpIpc,
+  startMcpBridgeRuntime,
   synchronizeEvidenceMcpRegistration,
-} from './mcpRegistration';
-import { createMcpDeliveryService } from './mcpDeliveryService';
-import { createMcpSensorService } from './mcpSensorService';
+} from '@evidence-poc/desktop-services';
 import { registerIngestionIpc } from './ingestionIpc';
 import { createModelIngestionReader } from './ingestionModelReader';
 import { registerDeliveryIpc } from './deliveryIpc';
@@ -173,7 +173,7 @@ const startApplication = async (): Promise<void> => {
   });
 
   if (runtime !== null) {
-    const ipc = registerMcpIpc({ runtime });
+    const ipc = registerMcpIpc({ runtime, ipcMain });
 
     app.once('will-quit', () => {
       ipc.dispose();

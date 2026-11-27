@@ -80,6 +80,9 @@
     },
     {
       "path": "./libs/evidence-agent-sensors"
+    },
+    {
+      "path": "./libs/desktop/services"
     }
   ]
 }

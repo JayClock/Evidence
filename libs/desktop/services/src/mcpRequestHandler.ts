@@ -9,7 +9,7 @@ import type {
 
 import type { McpRendererMethod } from '@evidence-poc/desktop-contracts/mcpIpc';
 
-import type { McpDeliveryService } from './mcpDeliveryService';
+import type { McpDeliveryService } from './mcpDeliveryService.js';
 
 /** Thrown by a dependency to surface a stable MCP error code. */
 export class McpRequestError extends Error {

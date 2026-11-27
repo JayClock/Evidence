@@ -57,6 +57,9 @@
       "path": "../../libs/desktop/ui-kit/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/desktop/services/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/desktop/feature-story/tsconfig.lib.json"
     },
     {

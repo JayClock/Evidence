@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { createMcpSensorService } from './mcpSensorService';
+import { createMcpSensorService } from './mcpSensorService.js';
 
 const engineThat = (outcome: {
   keyData?: unknown;

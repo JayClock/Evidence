@@ -4,9 +4,9 @@ import type {
 } from '@evidence-poc/evidence-mcp';
 import type { DeliveryBundle } from '@evidence-poc/evidence-api';
 
-import { readDelivery } from './deliveryProjection';
+import { readDelivery } from './readDelivery.js';
 import { openWorkspace } from '@evidence-poc/evidence-model-io';
-import { modelSourceOf } from './modelSource';
+import { modelSourceOf } from './modelSource.js';
 
 /**
  * The two MCP reads that answer "what does this model become".

@@ -18,6 +18,7 @@
     "@evidence-poc/desktop-feature-ledger": "workspace:*",
     "@evidence-poc/desktop-feature-scenario": "workspace:*",
     "@evidence-poc/desktop-feature-story": "workspace:*",
+    "@evidence-poc/desktop-services": "workspace:*",
     "@evidence-poc/desktop-ui-kit": "workspace:*",
     "@evidence-poc/evidence-acceptance": "workspace:*",
     "@evidence-poc/evidence-agent": "workspace:*",

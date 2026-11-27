@@ -16,8 +16,8 @@ import {
   type McpStatus,
 } from '@evidence-poc/desktop-contracts/mcpIpc';
 
-import type { McpRendererChannel } from './mcpRequestHandler';
-import { imageToPng } from './mcpCapture';
+import type { McpRendererChannel } from './mcpRequestHandler.js';
+import { imageToPng } from './mcpCapture.js';
 
 export interface McpBridgeRuntimeOptions {
   endpoint: string;
@@ -26,9 +26,12 @@ export interface McpBridgeRuntimeOptions {
   /** Creates the request handler, kept injectable for tests. */
   createHandler: (deps: {
     renderer: McpRendererChannel;
-    capture: (
-      rect: { x: number; y: number; width: number; height: number },
-    ) => Promise<{ data: string; width: number; height: number }>;
+    capture: (rect: {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    }) => Promise<{ data: string; width: number; height: number }>;
     onCall: () => void;
   }) => (request: EvidenceMcpAppRequest) => Promise<EvidenceMcpAppResult>;
   publishStatus: (status: McpStatus) => void;
@@ -85,9 +88,7 @@ export const startMcpBridgeRuntime = async ({
       const contents = getActiveContents();
 
       if (contents === null || contents.isDestroyed()) {
-        reject(
-          new Error('桌面端没有打开的模型窗口，无法读取或修改当前模型。'),
-        );
+        reject(new Error('桌面端没有打开的模型窗口，无法读取或修改当前模型。'));
         return;
       }
 

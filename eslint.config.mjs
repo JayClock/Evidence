@@ -82,6 +82,14 @@ export default [
               ],
             },
             {
+              // Node-side desktop services implement contracts and compose the engines.
+              sourceTag: 'layer:service',
+              onlyDependOnLibsWithTags: [
+                'layer:contract', 'layer:orchestration', 'layer:projection',
+                'layer:io', 'layer:domain', 'layer:schema',
+              ],
+            },
+            {
               // Desktop transport DTOs; no Electron or view implementation.
               sourceTag: 'layer:contract',
               onlyDependOnLibsWithTags: [

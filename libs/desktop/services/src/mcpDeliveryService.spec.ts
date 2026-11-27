@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { DeliveryBundle } from '@evidence-poc/evidence-api';
 
-import { createMcpDeliveryService } from './mcpDeliveryService';
+import { createMcpDeliveryService } from './mcpDeliveryService.js';
 
 const bundle = (): DeliveryBundle =>
   ({

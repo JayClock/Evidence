@@ -8,15 +8,10 @@ import path from 'node:path';
 
 import {
   allowedCallerRoleRefs,
-  buildProjection,
-  hasErrors,
-  loadModel,
   deliveryFilesOf,
   type DeliveryBundle,
   type DeliveryService,
 } from '@evidence-poc/evidence-api';
-
-export { deliveryFilesOf };
 
 /**
  * Turning a project's model into the documents a delivery hand-off consists of.
@@ -105,21 +100,6 @@ export const previewOf = (bundle: DeliveryBundle): DeliveryPreview => {
     })),
     limitations: [...bundle.limitations],
   };
-};
-
-/** Reads a model root and projects its delivery. */
-export const readDelivery = async (
-  modelRoot: string,
-): Promise<DeliveryBundle> => {
-  const loaded = await loadModel(modelRoot);
-  if (loaded.index === null) {
-    throw new Error(loaded.diagnostics.map((item) => item.message).join('；'));
-  }
-  const built = buildProjection({ index: loaded.index });
-  if (hasErrors(built.diagnostics)) {
-    throw new Error(built.diagnostics.map((item) => item.message).join('；'));
-  }
-  return built.projection;
 };
 
 /** Validates the transport envelope without treating an incomplete model as released. */

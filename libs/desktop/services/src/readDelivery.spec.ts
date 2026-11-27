@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { cp, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { deliveryFilesOf, readDelivery } from './deliveryProjection';
+import { deliveryFilesOf } from '@evidence-poc/evidence-api';
+import { readDelivery } from './readDelivery.js';
 
 const modelRoot = path.resolve(
   import.meta.dirname,

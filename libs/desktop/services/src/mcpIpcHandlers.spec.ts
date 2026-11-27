@@ -1,8 +1,12 @@
+import { ipcMain } from 'electron';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { McpRendererResponse, McpStatus } from '@evidence-poc/desktop-contracts/mcpIpc';
+import type {
+  McpRendererResponse,
+  McpStatus,
+} from '@evidence-poc/desktop-contracts/mcpIpc';
 
-import type { McpBridgeRuntime } from './mcpBridgeRuntime';
+import type { McpBridgeRuntime } from './mcpBridgeRuntime.js';
 
 const handlers = new Map<string, (...args: unknown[]) => unknown>();
 const listeners = new Map<string, (...args: unknown[]) => unknown>();
@@ -24,9 +28,11 @@ vi.mock('electron', () => ({
   },
 }));
 
-const { registerMcpIpc } = await import('./mcpIpcHandlers');
+const { registerMcpIpc } = await import('./mcpIpcHandlers.js');
 
-const runtimeOf = (status: McpStatus): McpBridgeRuntime & {
+const runtimeOf = (
+  status: McpStatus,
+): McpBridgeRuntime & {
   respond: (response: McpRendererResponse) => void;
 } => ({
   status: () => status,
@@ -50,7 +56,7 @@ describe('registerMcpIpc', () => {
       error: null,
     };
 
-    registerMcpIpc({ runtime: runtimeOf(status) });
+    registerMcpIpc({ ipcMain, runtime: runtimeOf(status) });
 
     expect(await handlers.get('evidence:mcp:status')?.()).toEqual(status);
   });
@@ -64,9 +70,12 @@ describe('registerMcpIpc', () => {
       registeredClients: [],
       error: null,
     });
-    const registration = registerMcpIpc({ runtime });
+    const registration = registerMcpIpc({ ipcMain, runtime });
 
-    listeners.get('evidence:mcp:response')?.({}, { requestId: 'one', success: true, result: 1 });
+    listeners.get('evidence:mcp:response')?.(
+      {},
+      { requestId: 'one', success: true, result: 1 },
+    );
 
     expect(runtime.respond).toHaveBeenCalledOnce();
 

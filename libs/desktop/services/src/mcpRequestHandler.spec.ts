@@ -9,7 +9,7 @@ import type {
 import {
   createMcpRequestHandler,
   type McpSensorService,
-} from './mcpRequestHandler';
+} from './mcpRequestHandler.js';
 
 /** A delivery read that answers without projecting a real project. */
 const deliveryService = () => ({

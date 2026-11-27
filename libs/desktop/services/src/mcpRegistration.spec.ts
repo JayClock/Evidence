@@ -9,7 +9,7 @@ import {
   evidenceMcpServerEntry,
   mcpClientConfigs,
   synchronizeEvidenceMcpRegistration,
-} from './mcpRegistration';
+} from './mcpRegistration.js';
 
 const workdir = async (): Promise<string> =>
   mkdtemp(path.join(tmpdir(), 'evidence-mcp-registration-'));

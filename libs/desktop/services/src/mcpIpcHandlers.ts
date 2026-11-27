@@ -1,11 +1,11 @@
-import { ipcMain } from 'electron';
+import type { IpcMain } from 'electron';
 
 import {
   EVIDENCE_MCP_IPC_CHANNELS,
   type McpRendererResponse,
 } from '@evidence-poc/desktop-contracts/mcpIpc';
 
-import type { McpBridgeRuntime } from './mcpBridgeRuntime';
+import type { McpBridgeRuntime } from './mcpBridgeRuntime.js';
 
 /**
  * Wires the renderer side of the bridge.
@@ -19,7 +19,9 @@ import type { McpBridgeRuntime } from './mcpBridgeRuntime';
  */
 export const registerMcpIpc = ({
   runtime,
+  ipcMain,
 }: {
+  ipcMain: Pick<IpcMain, 'on' | 'handle' | 'removeListener' | 'removeHandler'>;
   runtime: McpBridgeRuntime;
 }): { dispose: () => void } => {
   const listener = (
