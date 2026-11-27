@@ -1,11 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@evidence-poc/desktop-ui-kit';
 
-import {
-  type EntityAST,
-  type InspectorPropertyDefinition,
-  getInspectorGroups,
-} from '@evidence-poc/evidence-schema';
+import type { EntityAST } from '@evidence-poc/evidence-schema';
+import { getInspectorGroups, type InspectorPropertyDefinition } from './inspector/registry.js';
 import {
   buildKeyDataLedger,
   type DomainGraph,

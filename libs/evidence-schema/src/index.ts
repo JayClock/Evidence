@@ -278,28 +278,7 @@ export {
   strictValidateDomainModel,
 } from './validation/strictValidate.js';
 
-export {
-  INSPECTOR_GROUP_DEFINITIONS,
-  INSPECTOR_GROUP_IDS,
-  INSPECTOR_GROUP_LABELS,
-  type InspectorGroupId,
-} from './inspector/groups.js';
-
-export {
-  INSPECTOR_ATTRIBUTE_FIELDS,
-  INSPECTOR_KEY_DATA_HELPER,
-  INSPECTOR_KEY_DATA_PROVENANCE_PROPERTY,
-  INSPECTOR_RULE_FIELDS,
-  getInspectorGroup,
-  getInspectorGroups,
-  getReferenceConstraint,
-  type InspectorEditorKind,
-  type InspectorGroupDefinition,
-  type InspectorGroupDefinitionWithCategory,
-  type InspectorOption,
-  type InspectorPropertyDefinition,
-  type InspectorReferenceConstraint,
-} from './inspector/registry.js';
+export { vocabularyIds, vocabularyLabels } from './vocabulary.js';
 
 export type { ExampleTestAST } from './ast/example.js';
 export { ExampleTestASTSchema } from './ast/example.js';

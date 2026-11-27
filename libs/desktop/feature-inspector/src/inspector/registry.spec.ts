@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { ENTITY_CATEGORIES } from '@evidence-poc/evidence-schema';
 import {
-  ENTITY_CATEGORIES,
   INSPECTOR_ATTRIBUTE_FIELDS,
   INSPECTOR_GROUP_IDS,
   INSPECTOR_GROUP_LABELS,

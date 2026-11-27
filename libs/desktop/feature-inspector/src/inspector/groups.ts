@@ -1,4 +1,4 @@
-import { vocabularyIds, vocabularyLabels } from '../vocabulary.js';
+import { vocabularyIds, vocabularyLabels } from '@evidence-poc/evidence-schema';
 
 /**
  * Inspector sections rendered by the desktop right-hand panel.

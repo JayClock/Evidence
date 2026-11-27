@@ -8,9 +8,10 @@ import {
   ROLE_KINDS,
   ROLE_KIND_LABELS,
   type EntityCategory,
-} from '../ast/entity.js';
-import { RULE_KINDS, RULE_KIND_LABELS } from '../ast/rule.js';
-import { VALUE_TYPES } from '../ast/values.js';
+  RULE_KINDS,
+  RULE_KIND_LABELS,
+  VALUE_TYPES,
+} from '@evidence-poc/evidence-schema';
 import { INSPECTOR_GROUP_LABELS, type InspectorGroupId } from './groups.js';
 
 /** Editor widget the renderer should mount for a property. */
