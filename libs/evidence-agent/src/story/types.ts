@@ -1,5 +1,8 @@
 import type { DomainModelDocument } from '@evidence-poc/evidence-schema';
-import type { FlowScenarioTrace } from '@evidence-poc/evidence-model-core';
+import type {
+  FlowScenarioTrace,
+  WhatIfHypothesis,
+} from '@evidence-poc/evidence-model-core';
 
 /** A field on a business document, including its modeled data provenance. */
 export interface DocumentCardField {
@@ -104,12 +107,7 @@ export interface StoryAgent {
   }): Promise<unknown>;
 }
 
-export interface WhatIfHypothesis {
-  /** An explicit RFC 3339 clock; never inferred from the machine's date. */
-  readonly asOf?: string;
-  /** Partial overrides of the current step's declared input attributes only. */
-  readonly values?: Readonly<Record<string, unknown>>;
-}
+export type { WhatIfHypothesis } from '@evidence-poc/evidence-model-core';
 
 export interface WhatIfInput {
   readonly model: DomainModelDocument;
