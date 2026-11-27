@@ -20,6 +20,9 @@ import {
   MessagePrimitive,
 } from "@assistant-ui/react";
 import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -31,11 +34,6 @@ import {
   DialogContent,
   DialogTrigger,
 } from "@evidence-poc/desktop-ui-kit";
-import {
-  Avatar,
-  AvatarImage,
-  AvatarFallback,
-} from "../ui/avatar";
 import { TooltipIconButton } from "./tooltip-icon-button";
 import { useAttachmentState } from "./attachment-state";
 import { cn } from "@evidence-poc/desktop-ui-kit";
@@ -113,7 +111,7 @@ const AttachmentThumb: FC<{ src: string | undefined }> = ({ src }) => {
   );
 };
 
-const AttachmentUI: FC = () => {
+export const Attachment: FC = () => {
   const {
     isComposer,
     src,
@@ -223,7 +221,7 @@ export const UserMessageAttachments: FC = () => {
   return (
     <div className="aui-user-message-attachments-end col-span-full col-start-1 row-start-1 flex w-full flex-row justify-end gap-2 empty:hidden">
       <MessagePrimitive.Attachments>
-        {() => <AttachmentUI />}
+        {() => <Attachment />}
       </MessagePrimitive.Attachments>
     </div>
   );
@@ -233,7 +231,7 @@ export const ComposerAttachments: FC = () => {
   return (
     <div className="aui-composer-attachments flex w-full flex-row items-center gap-2 overflow-x-auto empty:hidden">
       <ComposerPrimitive.Attachments>
-        {() => <AttachmentUI />}
+        {() => <Attachment />}
       </ComposerPrimitive.Attachments>
     </div>
   );

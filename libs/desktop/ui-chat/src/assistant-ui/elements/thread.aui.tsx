@@ -24,9 +24,7 @@ import {
   ToolGroupTrigger,
 } from './tool-group.aui';
 import { TooltipIconButton } from './tooltip-icon-button';
-import { Button } from '@evidence-poc/desktop-ui-kit';
-import { Skeleton } from '../ui/skeleton';
-import { cn } from '@evidence-poc/desktop-ui-kit';
+import { Button, Skeleton, cn } from '@evidence-poc/desktop-ui-kit';
 import {
   ActionBarMorePrimitive,
   ActionBarPrimitive,
@@ -43,6 +41,7 @@ import {
   type ImageMessagePartComponent,
   type TextMessagePartComponent,
   type ToolCallMessagePartComponent,
+  type ToolCallMessagePartProps,
   useAuiState,
 } from '@assistant-ui/react';
 import {
@@ -75,9 +74,19 @@ import {
   type ComponentType,
   type FC,
   type PropsWithChildren,
+  type ReactNode,
 } from 'react';
 
 export type ThreadGroupPart = MessagePrimitive.GroupedParts.GroupPart;
+
+/** Prefer a tool's registered renderer, falling back to the thread's disclosure. */
+export const InlineTool: FC<
+  ToolCallMessagePartProps & {
+    toolUI?: ReactNode;
+    Fallback?: ToolCallMessagePartComponent;
+  }
+> = ({ Fallback = ToolFallback, toolUI, ...part }) =>
+  toolUI ?? <Fallback {...part} />;
 
 const DefaultToolGroup: FC<PropsWithChildren<{ group: ThreadGroupPart }>> = ({
   group,
@@ -742,7 +751,9 @@ const AssistantMessage: FC = () => {
               case 'reasoning':
                 return <Reasoning {...part} />;
               case 'tool-call':
-                return part.toolUI ?? <ToolFallbackComponent {...part} />;
+                return (
+                  <InlineTool {...part} Fallback={ToolFallbackComponent} />
+                );
               case 'data':
                 return part.dataRendererUI;
               case 'file':

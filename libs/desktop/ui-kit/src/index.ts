@@ -69,3 +69,6 @@ export {
 } from './components/command/Command.js';
 export type { CommandDialogProps } from './components/command/Command.js';
 export { Toaster, notify, toast } from './components/sonner/Toaster.js';
+export { Avatar, AvatarFallback, AvatarImage } from './components/avatar/Avatar.js';
+export { Skeleton } from './components/skeleton/Skeleton.js';
+export { Textarea } from './components/textarea/Textarea.js';

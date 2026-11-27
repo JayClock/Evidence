@@ -2,7 +2,7 @@
 
 Nx project: `desktop-feature-agent`; package: `@evidence-poc/desktop-feature-agent`.
 
-Owns node inquiry and patch review. The [official assistant-ui Thread](src/assistant-ui/README.md)
+Owns node inquiry and patch review. The [official assistant-ui Thread](../ui-chat/src/assistant-ui/README.md)
 handles the transcript, reasoning, tool disclosures, and composer. An external-store
 adapter projects Pi's message snapshots into the Thread; it does not run a second
 agent or persist chat history. Pi sessions, model loading and sensors remain in the

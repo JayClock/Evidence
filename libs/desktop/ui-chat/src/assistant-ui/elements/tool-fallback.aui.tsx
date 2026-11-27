@@ -37,8 +37,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "./collapsible-root";
-import { Button } from "@evidence-poc/desktop-ui-kit";
-import { Textarea } from "../ui/textarea";
+import { Button, Textarea } from "@evidence-poc/desktop-ui-kit";
 
 const ANIMATION_DURATION = 200;
 

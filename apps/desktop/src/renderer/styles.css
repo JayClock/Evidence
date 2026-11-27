@@ -9,6 +9,7 @@
  * See docs/rfc-phase-1-ui-infra-and-command-palette.md §3.3.
  */
 @source '../../../../libs/desktop/ui-kit/src';
+@source '../../../../libs/desktop/ui-chat/src';
 @source '../../../../libs/desktop/feature-canvas/src';
 @source '../../../../libs/desktop/feature-inspector/src';
 @source '../../../../libs/desktop/feature-agent/src';

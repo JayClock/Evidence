@@ -6,7 +6,7 @@ import {
   type ThreadMessageLike,
 } from '@assistant-ui/react';
 import { Button } from '@evidence-poc/desktop-ui-kit';
-import { Thread } from '../../assistant-ui/elements/thread.aui';
+import { Thread } from '@evidence-poc/desktop-ui-chat';
 import type { PatchReviewController } from '../../state/usePatchReview';
 import type { PiConversation } from '../../state/usePiConversation';
 import { InlinePatchCard } from './InlinePatchCard';

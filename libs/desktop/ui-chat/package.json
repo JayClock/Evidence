@@ -1,0 +1,41 @@
+{
+  "name": "@evidence-poc/desktop-ui-chat",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@evidence-poc/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "nx": {
+    "name": "desktop-ui-chat",
+    "tags": [
+      "type:lib",
+      "layer:ui",
+      "platform:browser",
+      "scope:desktop"
+    ]
+  },
+  "dependencies": {
+    "@assistant-ui/react": "0.15.37",
+    "@assistant-ui/react-markdown": "0.14.26",
+    "@evidence-poc/desktop-ui-kit": "workspace:*",
+    "@radix-ui/react-collapsible": "^1.2.1",
+    "@radix-ui/react-slot": "^1.5.0",
+    "class-variance-authority": "^0.7.1",
+    "lucide-react": "^1.72.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.3.1",
+    "remark-gfm": "4.0.1",
+    "tslib": "^2.3.0",
+    "zustand": "^5.1.0"
+  }
+}
