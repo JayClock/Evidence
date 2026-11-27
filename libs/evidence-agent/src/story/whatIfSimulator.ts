@@ -6,6 +6,7 @@ import {
 } from '@evidence-poc/evidence-model-core';
 import { compactCanonicalJson } from '@evidence-poc/evidence-schema';
 
+import { projectStoryFacts } from './flowStoryProjector.js';
 import {
   WHAT_IF_EXPLANATION_PROMPT,
   WHAT_IF_EXTRACTION_PROMPT,
@@ -14,9 +15,18 @@ import {
 import {
   HypothesisSchema,
   ImpactExplanationSchema,
+  WhatIfNarrativeText,
   responseObject,
 } from './responseSchemas.js';
 import { abortable, createStoryAgent } from './storyAgent.js';
+import { businessDate } from './storyDocument.js';
+import {
+  buildLocalStoryExplanation,
+  businessVerdict,
+  whatIfBusinessFacts,
+  whatIfCommitment,
+  whatIfStoryContext,
+} from './whatIfStory.js';
 import type {
   RuleBasedWhatIfResult,
   StoryAgent,
@@ -88,14 +98,6 @@ export async function simulateWhatIf(
     );
 
   const scenario = createWhatIfScenario(graph, flow.steps, current);
-  const upstreamFacts = () =>
-    scenario.upstream.map(({ entityId, entityLabel, asOf, values }) => ({
-      entityId,
-      entityLabel,
-      asOf,
-      values,
-    }));
-
   const agent = options.agent ?? createStoryAgent();
   const hypothesis =
     rules.length === 0 && suppliedHypothesis === undefined
@@ -109,77 +111,113 @@ export async function simulateWhatIf(
                   hypothesisQuestion,
                   step: current,
                   inputAttributes: scenario.inputAttributes,
-                  upstream: upstreamFacts(),
+                  upstream: scenario.upstream.map(
+                    ({ entityId, entityLabel, asOf, values }) => ({
+                      entityId,
+                      entityLabel,
+                      asOf,
+                      values,
+                    }),
+                  ),
                 }),
               })),
           ),
         );
   const trial = scenario.apply(hypothesis);
-
-  if (hypothesis === undefined || rules.length === 0) {
-    const explanation = ImpactExplanationSchema.parse(
-      responseObject(
-        await agent.generate({
-          systemPrompt: WHAT_IF_SPECULATIVE_PROMPT,
-          userPrompt: compactCanonicalJson({
-            hypothesisQuestion,
-            ...(hypothesis === undefined ? {} : { hypothesis }),
-            current: {
-              entityId: current.entityId,
-              entityLabel: current.entityLabel,
-              asOf: current.asOf,
-              values: current.values,
-            },
-            upstream: upstreamFacts(),
-          }),
-        }),
-      ),
-    );
-    return {
-      isSpeculative: true,
-      ...(hypothesis === undefined ? {} : { hypothesis }),
-      ruleOutcomes: [],
-      businessImpactExplanation: explanation.businessImpactExplanation,
-    };
-  }
-
   const ruleOutcomes = rules.map((rule) => ({
     ...trial.decide(rule),
     label: rule.label,
     kind: rule.kind,
     description: rule.description,
   }));
+  const scenes = new Map(
+    projectStoryFacts(flow, model).scenes.map((scene) => [
+      scene.stepIndex,
+      scene,
+    ]),
+  );
+  const scene = scenes.get(current.sequence)!;
+  const obligations = scene.activity.fulfillment?.requests.map(
+    ({ stepIndex, action, rightHolder, obligor }) => ({
+      workObjectTitle: scenes.get(stepIndex)?.activity.workObject.entityLabel,
+      action,
+      rightHolder: rightHolder?.roleLabel,
+      obligor: obligor?.roleLabel,
+    }),
+  );
+  const storyContext = whatIfStoryContext(scene, trial.asOf);
+  const changes = whatIfBusinessFacts(
+    graph,
+    current.entityId,
+    hypothesis?.values ?? {},
+  );
   const localExplanation = () =>
-    ruleOutcomes
-      .map(({ label, kind, result }) => {
-        const condition = kind === 'breach' ? '违约条件' : '完成条件';
-        return `按「${label}」判定，${condition}${result ? '成立' : '不成立'}。`;
-      })
-      .join('\n');
-  const explain = async (signal?: AbortSignal) =>
-    ImpactExplanationSchema.parse(
-      responseObject(
-        await agent.generate({
-          systemPrompt: WHAT_IF_EXPLANATION_PROMPT,
-          signal,
-          userPrompt: compactCanonicalJson({
-            hypothesisQuestion,
-            hypothesis,
-            asOf: trial.asOf,
-            currentValues: trial.valuesOf(current),
-            ruleOutcomes,
-          }),
-        }),
+    buildLocalStoryExplanation(
+      storyContext,
+      changes,
+      ruleOutcomes,
+      whatIfCommitment(
+        graph,
+        rules,
+        [current, ...scenario.upstream],
+        trial.factsOf,
       ),
-    ).businessImpactExplanation;
+      obligations?.length === 1 ? obligations[0] : undefined,
+    );
+  const explain = async (systemPrompt: string, signal?: AbortSignal) => {
+    const response = await agent.generate({
+      systemPrompt,
+      signal,
+      userPrompt: compactCanonicalJson({
+        hypothesisQuestion,
+        changes,
+        storyContext,
+        obligations,
+        currentFacts: whatIfBusinessFacts(
+          graph,
+          current.entityId,
+          trial.factsOf(current),
+        ),
+        upstream: scenario.upstream.map((step) => ({
+          workObjectTitle: step.entityLabel,
+          actorLabel: scenes.get(step.sequence)?.activity.actor.roleLabel,
+          displayDate: businessDate(step.asOf),
+          facts: whatIfBusinessFacts(graph, step.entityId, trial.factsOf(step)),
+        })),
+        ruleOutcomes: ruleOutcomes.map((outcome) => ({
+          label: outcome.label,
+          description: outcome.description,
+          kind: outcome.kind === 'breach' ? '违约约定' : '完成条件',
+          result: businessVerdict(outcome),
+        })),
+      }),
+    });
+    const { businessImpactExplanation } = ImpactExplanationSchema.parse(
+      responseObject(response),
+    );
+    const prose = WhatIfNarrativeText.safeParse(businessImpactExplanation);
+    if (prose.success) return prose.data;
+    if (rules.length) return localExplanation();
+    throw prose.error;
+  };
+
+  if (hypothesis === undefined || rules.length === 0) {
+    return {
+      isSpeculative: true,
+      ...(hypothesis === undefined ? {} : { hypothesis }),
+      ruleOutcomes: [],
+      businessImpactExplanation: await explain(WHAT_IF_SPECULATIVE_PROMPT),
+    };
+  }
+
   let businessImpactExplanation: string;
   if (localOnly) businessImpactExplanation = localExplanation();
   else if (options.explanation === 'optional') {
     const signal = AbortSignal.timeout(15_000);
     businessImpactExplanation = await abortable(signal, () =>
-      explain(signal),
+      explain(WHAT_IF_EXPLANATION_PROMPT, signal),
     ).catch(localExplanation);
-  } else businessImpactExplanation = await explain();
+  } else businessImpactExplanation = await explain(WHAT_IF_EXPLANATION_PROMPT);
   return {
     isSpeculative: false,
     hypothesis,

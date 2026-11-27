@@ -34,6 +34,30 @@ export const documentReferenceOf = ({
   return undefined;
 };
 
+export function businessTextValue(
+  value: string,
+  field: Pick<AttributeAST, 'name' | 'valueType' | 'source'>,
+  graph?: DomainGraph,
+  referenceLabel?: (ref: string) => string | undefined,
+): string {
+  const date = businessDate(value);
+  if (date) return date;
+  if (
+    field.name !== 'id' &&
+    field.name !== 'ref' &&
+    (field.valueType === 'id' ||
+      field.source?.kind === 'preceding-evidence' ||
+      value.includes('#'))
+  ) {
+    return (
+      referenceLabel?.(value) ??
+      graph?.getEntity(value)?.label ??
+      (/^(?:[^#]+#|[a-f0-9]{32,}$)/iu.test(value) ? '关联单据待明确' : value)
+    );
+  }
+  return /^[a-f0-9]{32,}$/iu.test(value) ? '未提供业务编号' : value;
+}
+
 export const buildStoryDocument = (
   step: FlowStepTrace,
   graph: DomainGraph | undefined,
@@ -63,21 +87,12 @@ export const buildStoryDocument = (
         .map((item: unknown) => displayValue(item, attribute, name))
         .join('、');
     if (typeof value !== 'string') return compactCanonicalJson(value);
-    const date = businessDate(value);
-    if (date) return date;
-    if (
-      name !== 'id' &&
-      name !== 'ref' &&
-      (attribute?.valueType === 'id' ||
-        attribute?.source?.kind === 'preceding-evidence' ||
-        value.includes('#'))
-    )
-      return (
-        referenceLabel(value) ??
-        graph?.getEntity(value)?.label ??
-        (/^(?:[^#]+#|[a-f0-9]{32,}$)/iu.test(value) ? '关联单据待明确' : value)
-      );
-    return /^[a-f0-9]{32,}$/iu.test(value) ? '未提供业务编号' : value;
+    return businessTextValue(
+      value,
+      attribute ?? { name },
+      graph,
+      referenceLabel,
+    );
   };
   for (const name of Object.keys(step.values).sort()) {
     const attribute = attributes.get(name);

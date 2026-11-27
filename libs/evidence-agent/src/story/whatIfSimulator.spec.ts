@@ -12,6 +12,21 @@ import { simulateWhatIf } from './whatIfSimulator.js';
 type StrictInput = Omit<WhatIfInput, 'allowSpeculative'>;
 const fixture = (): { -readonly [K in keyof StrictInput]: StrictInput[K] } => {
   const model = modelFixture();
+  Object.assign(model.entities.find(({ id }) => id === 'context.purchase')!, {
+    rootRefs: ['contract.purchase'],
+  });
+  model.entities.push({
+    type: 'entity',
+    id: 'contract.purchase',
+    category: 'evidence',
+    kind: 'contract',
+    label: '采购合同',
+    roleRefs: ['role.seller', 'role.buyer'],
+  });
+  Object.assign(model.entities.find(({ id }) => id === 'request.payment')!, {
+    responsibleRoleRef: 'role.seller',
+    fulfillmentAction: '支付采购货款',
+  });
   model.entities
     .find(({ id }) => id === 'request.payment')!
     .attributes!.push({
@@ -92,7 +107,11 @@ const fixture = (): { -readonly [K in keyof StrictInput]: StrictInput[K] } => {
     exampleLabel: '付款确认',
     actingRoleRef: 'role.buyer',
     basedOn: ['request.payment#付款申请'],
-    values: { confirmed_at: '2026-04-01T12:00:00Z', paid_amount: 100 },
+    values: {
+      ref: 'PAY-2',
+      confirmed_at: '2026-04-01T12:00:00Z',
+      paid_amount: 100,
+    },
     asOf: '2026-04-01T12:00:00Z',
   });
   return {
@@ -105,7 +124,7 @@ const fixture = (): { -readonly [K in keyof StrictInput]: StrictInput[K] } => {
 
 const explanation = {
   businessImpactExplanation:
-    '买方付款晚于约定期限，将触发付款逾期；具体违约责任还需确认合同约定。',
+    '若买方财务部在4月2日才按《付款申请单》支付采购货款，即使实付金额已经足额，付款时间仍超过了双方约定的期限，触发付款逾期。供应商销售部收到《付款确认单》后，需要与买方逐笔核对实际付款时间和收款凭据，再协商逾期事项如何处理。',
 };
 
 describe('native CEL What-If sandbox', () => {
@@ -137,17 +156,46 @@ describe('native CEL What-If sandbox', () => {
         result: true,
       },
     ]);
-    expect(result.businessImpactExplanation).toContain('逾期');
+    expect(result.businessImpactExplanation).toBe(
+      explanation.businessImpactExplanation,
+    );
     expect(generate).toHaveBeenCalledTimes(2);
     expect(generate.mock.calls[0]![0].systemPrompt).toBe(
       WHAT_IF_EXTRACTION_PROMPT,
     );
     const request = generate.mock.calls[1]![0];
     expect(request.systemPrompt).toBe(WHAT_IF_EXPLANATION_PROMPT);
-    expect(JSON.parse(request.userPrompt).ruleOutcomes[0]).toMatchObject({
-      result: true,
-      kind: 'breach',
+    expect(JSON.parse(request.userPrompt)).toMatchObject({
+      storyContext: {
+        actorLabel: '买方财务部',
+        counterpartyLabel: '供应商销售部',
+        workObjectTitle: '付款确认单',
+        referenceCode: 'PAY-2',
+        displayDate: '2026年4月2日 12:00 UTC',
+      },
+      changes: [{ label: '付款时间', value: '2026年4月2日 12:00 UTC' }],
+      obligations: [
+        {
+          workObjectTitle: '付款申请单',
+          action: '支付采购货款',
+          obligor: '买方财务部',
+          rightHolder: '供应商销售部',
+        },
+      ],
+      upstream: [
+        {
+          workObjectTitle: '付款申请单',
+          facts: expect.arrayContaining([{ label: '金额', value: '100' }]),
+        },
+      ],
+      ruleOutcomes: [
+        { label: '付款逾期', kind: '违约约定', result: '触发违约' },
+        { label: '付款金额足额', kind: '完成条件', result: '完成条件已达成' },
+      ],
     });
+    expect(request.userPrompt).not.toMatch(
+      /rule\.payment|paid_amount|confirmed_at|"expression"|"bindings"|T12:00:00|\btrue\b|\bfalse\b/u,
+    );
     expect(input).toEqual(original);
   });
 
@@ -180,6 +228,75 @@ describe('native CEL What-If sandbox', () => {
     expect(
       (await simulateWhatIf(input, { agent: { generate } })).ruleOutcome.result,
     ).toBe(false);
+  });
+
+  it.each([
+    [50, '2026-04-01T12:00:00Z', false, false],
+    [100, '2026-04-02T12:00:00Z', true, true],
+    [100, '2026-04-01T12:00:00Z', false, true],
+  ] as const)(
+    'explains payment of %s at %s offline, preserving both decisions',
+    async (amount, time, breach, complete) => {
+      const input = fixture();
+      input.hypothesis = {
+        asOf: time,
+        values: { confirmed_at: time, paid_amount: amount },
+      };
+      const generate = vi.fn();
+      const result = await simulateWhatIf(input, {
+        explanation: 'local',
+        agent: { generate },
+      });
+      expect(generate).not.toHaveBeenCalled();
+      expect(result.ruleOutcomes.map(({ result }) => result)).toEqual([
+        breach,
+        complete,
+      ]);
+      const prose = result.businessImpactExplanation;
+      expect(prose.length).toBeGreaterThanOrEqual(100);
+      expect(prose.length).toBeLessThanOrEqual(150);
+      expect(prose).toContain('买方财务部复核《付款确认单》');
+      expect(prose).toContain(`「已付金额」为${amount}`);
+      expect(prose).toContain(breach ? '已触发「付款逾期」' : '未触发违约');
+      expect(prose).toContain(
+        complete ? '满足约定的完成条件' : '不足以确认履约完成',
+      );
+      expect(prose).toContain(
+        breach || !complete ? '商定补正办法' : '整理本次核对的履约凭据',
+      );
+    },
+  );
+
+  it('keeps the same grounded local story when an optional provider is offline or a required explanation repeats instructions', async () => {
+    const input = fixture();
+    input.currentStepSequence = 1;
+    input.ruleId = 'rule.payment-completion';
+    input.model.rules[1]!.bindings = { request: { ref: 'request.payment' } };
+    input.model.rules[1]!.expression = 'request.amount >= 100';
+    input.hypothesis = { values: { amount: 75 } };
+    const generate = vi.fn().mockRejectedValueOnce(new Error('offline'));
+    const local = await simulateWhatIf(input, {
+      explanation: 'local',
+      agent: { generate },
+    });
+    expect(local.businessImpactExplanation).toMatch(
+      /供应商销售部.*付款申请单.*75.*不足以确认履约完成.*买方财务部办理《付款确认单》/u,
+    );
+    await expect(
+      simulateWhatIf(input, { explanation: 'optional', agent: { generate } }),
+    ).resolves.toEqual(local);
+    const leaked = explanation.businessImpactExplanation.replace(
+      '供应商销售部',
+      '在当前模型假设推演下的供应商销售部',
+    );
+    generate.mockResolvedValueOnce({ businessImpactExplanation: leaked });
+    await expect(
+      simulateWhatIf(input, { agent: { generate } }),
+    ).resolves.toEqual(local);
+    expect(
+      JSON.parse(generate.mock.calls[1]![0].userPrompt).storyContext
+        .nextExpectation,
+    ).toBe('买方财务部办理《付款确认单》');
   });
 
   it('injects only the explicit asOf into a request deadline rule, with no wall clock', async () => {
@@ -258,9 +375,8 @@ describe('native CEL What-If sandbox', () => {
       (await simulateWhatIf(input, { agent: { generate } })).ruleOutcome.result,
     ).toBe(false);
     expect(
-      JSON.parse(generate.mock.calls[0]![0].userPrompt).currentValues
-        .paid_amount,
-    ).toBe(70);
+      JSON.parse(generate.mock.calls[0]![0].userPrompt).currentFacts,
+    ).toContainEqual({ label: '已付金额', value: '70' });
     input.hypothesis = { values: { paid_amount: 200 } };
     await expect(
       simulateWhatIf(input, { agent: { generate } }),
@@ -541,7 +657,8 @@ describe('native CEL What-If sandbox', () => {
     ];
     const before = structuredClone(input);
     const speculativeExplanation = {
-      businessImpactExplanation: '卖方可能延迟备货，是否可暂停交付仍需确认。',
+      businessImpactExplanation:
+        '若买方财务部拒绝付款，供应商销售部可能无法凭《付款确认单》核销《付款申请单》上的货款。双方需要先查明拒付涉及的款项，核对申请与实际到账记录，再确认是否需要补交凭据，以及后续交付是否需要等到双方核对一致后才能继续。',
     };
     const generate = vi.fn().mockResolvedValueOnce(speculativeExplanation);
 
@@ -559,13 +676,51 @@ describe('native CEL What-If sandbox', () => {
     expect(request.systemPrompt).toBe(WHAT_IF_SPECULATIVE_PROMPT);
     expect(JSON.parse(request.userPrompt)).toMatchObject({
       hypothesisQuestion: input.hypothesisQuestion,
-      current: {
-        entityId: 'confirmation.payment',
-        values: { paid_amount: 100 },
-      },
-      upstream: [{ entityId: 'request.payment', values: { amount: 100 } }],
+      storyContext: { actorLabel: '买方财务部', workObjectTitle: '付款确认单' },
+      currentFacts: expect.arrayContaining([
+        { label: '已付金额', value: '100' },
+      ]),
+      upstream: [
+        {
+          workObjectTitle: '付款申请单',
+          facts: expect.arrayContaining([{ label: '金额', value: '100' }]),
+        },
+      ],
+      ruleOutcomes: [],
     });
     expect(input).toEqual(before);
+  });
+
+  it('keeps even an unruled structured question in business terms and rejects technical speculative prose', async () => {
+    const input = fixture();
+    input.model.rules = [];
+    input.hypothesis = {
+      asOf: '2026-04-03T13:00:00+08:00',
+      values: { paid_amount: 40 },
+    };
+    const generate = vi
+      .fn()
+      .mockResolvedValue({
+        businessImpactExplanation:
+          explanation.businessImpactExplanation.replace(
+            '《付款确认单》',
+            'rule.payment-breach',
+          ),
+      });
+    await expect(
+      simulateWhatIf(
+        { ...input, allowSpeculative: true },
+        { agent: { generate } },
+      ),
+    ).rejects.toThrow('业务语言');
+    expect(generate).toHaveBeenCalledOnce();
+    const prompt = JSON.parse(generate.mock.calls[0]![0].userPrompt);
+    expect(prompt.storyContext.displayDate).toBe(
+      '2026年4月3日 13:00 UTC+08:00',
+    );
+    expect(prompt.changes).toEqual([{ label: '已付金额', value: '40' }]);
+    expect(prompt.currentFacts).toContainEqual(prompt.changes[0]);
+    expect(prompt.ruleOutcomes).toEqual([]);
   });
 
   it('rejects contract steps even with speculative opt-in and a direct rule binding', async () => {

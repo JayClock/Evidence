@@ -74,6 +74,25 @@ describe('M1 trace to M2 story integration', () => {
     const request = flow.steps.find(
       (step) => step.entityId === 'request.annual-target',
     )!;
+    const [overdueCard] = requestCards;
+    const local = await simulateWhatIf(
+      {
+        model,
+        flow,
+        currentStepSequence: request.sequence,
+        hypothesisQuestion: overdueCard!.question,
+        hypothesis: overdueCard!.hypothesisDraft,
+        ruleId: overdueCard!.targetedRuleId,
+      },
+      { explanation: 'local' },
+    );
+    expect(local.businessImpactExplanation).toMatch(
+      /2027年1月3日.*业务负责人.*《年度收入考核指标》.*500,000\.00元.*不足以确认履约完成.*财务结算方办理《跨业务分成收益凭证》/u,
+    );
+    expect(local.businessImpactExplanation).not.toMatch(
+      /违约|罚金|rule\.|T09:|最小单位|条件不成立/u,
+    );
+    expect(local.businessImpactExplanation.length).toBeLessThanOrEqual(150);
     const scene = projectStoryFacts(flow, model).scenes.find(
       (scene) => scene.stepIndex === request.sequence,
     )!;
@@ -251,9 +270,11 @@ describe('M1 trace to M2 story integration', () => {
       description: '晚于付款请求约定时间付款',
       result: true,
     });
+    const total = model.entities
+      .find(({ id }) => id === current.entityId)!
+      .attributes!.find(({ name }) => name === 'total_amount')!;
     expect(
-      JSON.parse(generate.mock.calls[0]![0].userPrompt).currentValues
-        .total_amount,
-    ).toBe(500);
+      JSON.parse(generate.mock.calls[0]![0].userPrompt).currentFacts,
+    ).toContainEqual({ label: total.label, value: '500' });
   });
 });

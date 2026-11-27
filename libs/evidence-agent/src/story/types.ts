@@ -134,6 +134,15 @@ export interface WhatIfRuleOutcome {
   readonly description?: string;
 }
 
+export interface WhatIfStoryContext {
+  readonly actorLabel: string;
+  readonly counterpartyLabel?: string;
+  readonly workObjectTitle: string;
+  readonly referenceCode?: string;
+  readonly displayDate: string;
+  readonly nextExpectation?: string;
+}
+
 export interface RuleBasedWhatIfResult {
   readonly isSpeculative: false;
   readonly hypothesis: WhatIfHypothesis;

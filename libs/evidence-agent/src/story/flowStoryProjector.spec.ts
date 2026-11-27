@@ -351,7 +351,19 @@ it('retries a malformed challenge list without regenerating prose and keeps auth
   const first = await narrator.enrichStep(scene, [], options);
   expect(first?.narrative.prose).toBe(draft.prose);
   expect(first?.challenges).toBeUndefined();
-  generate.mockClear().mockResolvedValue({ challenges: [card] });
+  generate
+    .mockClear()
+    .mockResolvedValue({
+      challenges: [
+        {
+          ...card,
+          id: 'raw-date',
+          question: '如果到 2026-04-01T10:00:00Z 才付款呢？',
+        },
+        { ...card, id: 'raw-unit', label: '少付一个最小货币单位' },
+        card,
+      ],
+    });
   const retry = await narrator.enrichStep(scene, [], options);
   expect(retry?.challenges).toEqual([
     { ...card, targetedRuleId: 'rule.deficit' },

@@ -6,7 +6,11 @@ import {
   type FlowStepTrace,
 } from '@evidence-poc/evidence-model-core';
 import { WHAT_IF_CHALLENGE_SUGGESTION_PROMPT } from './prompts.js';
-import { WhatIfChallengesSchema, responseObject } from './responseSchemas.js';
+import {
+  WhatIfChallengesSchema,
+  responseObject,
+  whatIfJargon,
+} from './responseSchemas.js';
 import type { StoryAgent, WhatIfChallenge } from './types.js';
 
 export interface StoryChallengeSource {
@@ -106,6 +110,8 @@ export async function suggestStoryChallenges(
   const verified: WhatIfChallenge[] = [];
   for (const card of challenges) {
     if (
+      whatIfJargon.test(card.label) ||
+      whatIfJargon.test(card.question) ||
       verified.some(
         ({ id, question }) => id === card.id || question === card.question,
       )

@@ -100,6 +100,12 @@ export function createWhatIfScenario(
     }
 
     const materialized = new Map<string, Record<string, unknown>>();
+    // Narration can read verified values without evaluating unrelated or speculative facts.
+    const factsOf = (step: FlowStepTrace): Record<string, unknown> =>
+      materialized.get(exampleRef(step)) ?? {
+        ...step.values,
+        ...(exampleRef(step) === exampleRef(current) ? hypothesis.values : {}),
+      };
     const bindingsFor = (
       rule: RuleAST,
       step: FlowStepTrace,
@@ -131,10 +137,7 @@ export function createWhatIfScenario(
       const ref = exampleRef(step);
       const cached = materialized.get(ref);
       if (cached !== undefined) return cached;
-      const values = structuredClone({
-        ...step.values,
-        ...(ref === exampleRef(current) ? hypothesis.values : {}),
-      });
+      const values = structuredClone(factsOf(step));
       const modeledEntity = graph.getEntity(step.entityId);
       if (modeledEntity === undefined)
         throw new Error(`Unknown entity '${step.entityId}'.`);
@@ -204,7 +207,7 @@ export function createWhatIfScenario(
         throw new Error(`${rule.id}: a decision rule must return boolean.`);
       return { ruleId: rule.id, result };
     };
-    return { asOf, valuesOf: materialize, bindingsOf, decide };
+    return { asOf, valuesOf: materialize, factsOf, bindingsOf, decide };
   };
   return { upstream, inputAttributes, apply };
 }

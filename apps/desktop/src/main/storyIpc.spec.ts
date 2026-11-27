@@ -241,7 +241,9 @@ describe('story IPC', () => {
         ),
       ).resolves.toMatchObject({
         ruleOutcome: { ruleId: rule.id, result: true },
-        businessImpactExplanation: '按「付款逾期」判定，违约条件成立。',
+        businessImpactExplanation: expect.stringMatching(
+          /《payment request》.*付款逾期.*核对/u,
+        ),
       });
     } finally {
       ipc.dispose();

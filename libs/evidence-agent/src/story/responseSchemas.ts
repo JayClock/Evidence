@@ -30,6 +30,15 @@ export const ImpactExplanationSchema = z
   .object({ businessImpactExplanation: text })
   .strict();
 
+// Check only public prose. The structured hypothesis and result retain exact machine values.
+export const whatIfJargon =
+  /\b(?:rule[.-][\w.-]+|true|false|CEL|AST|minorUnits)\b|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}|最小(?:货币)?单位|(?:模型|沙盘)(?:假设)?推演|仅供参考|未建模|规则集|不(?:代表|构成)[^。！？\n]{0,18}(?:真实(?:付款|支付|发生)|后端操作|实际履约验收)/iu;
+
+export const WhatIfNarrativeText = text
+  .min(100)
+  .max(150)
+  .refine((value) => !whatIfJargon.test(value), '推演解说需使用业务语言。');
+
 const challengeList = z
   .array(
     z

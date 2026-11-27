@@ -51,6 +51,7 @@ export type {
   WhatIfInput,
   WhatIfResult,
   WhatIfRuleOutcome,
+  WhatIfStoryContext,
 } from './story/types.js';
 
 // ─── Agent session and prompts ───────────────────────────────────────────
