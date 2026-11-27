@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:6882af83bd6ee2cc5800b92b256a46d9878f32d656a65af39575fba472c130a9",
+  "pageVersion": "sha256:97318840eb28f00bb3767a96c5d3af12f0bc5741d29c4939169854751a514e2b",
   "claims": [
     {
       "id": "claim_319186a606cf4eb5b41077fcdfadf0b8",
@@ -12,7 +12,7 @@
         },
         {
           "resource": "repo://apps/desktop/src/preload/index.ts",
-          "version": "repo-file-v1:sha256:6b57d8c1374462702a182ee86888a5c98e70bc18facb840195f4c43fff3b35af"
+          "version": "repo-file-v1:sha256:048530a9d2c70ec956564181d987c84e1a995974a1b7a09649e02a414991f8f0"
         }
       ]
     },
@@ -21,7 +21,7 @@
       "statement": "Preload 提供 projects、agent、mcp、ingestion、story、aiConfig 和 system；订阅可取消，MCP 回答用 send，Agent 补丁由 main 发布事务。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/preload/index.ts#L118-L219",
+          "resource": "repo://apps/desktop/src/preload/index.ts#L109-L210",
           "version": "repo-lines-v1:sha256:9765cb0265de17ba89649dd7d0936ffe0ea4752576bce985cd483bc826b716d9:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAyLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIxNjJmMjg0N2M5MzU5MDExODQwMzgwZTUxZjBmMzUzOGFhMzAyYmQ5OTU1MTAxNmZkOTlhODVkYWQ0NWUxMDc5IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJlYTgyZGJjYWEyYThmZTI3ODJiZjY1NzA0YTk3NTExNTk5YThkZTViM2Q5MTkyNDMwNjdhYTJmNWUzZjc3NWJiIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJhYmNhYjYyMmZjY2Y1MGU3MWRkMWViMjZmOWY5MTgxNzAyZTIyZjM1ZDNkOWE2NDE4ZjdjZTQ1NGE0YWVjNThiIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MCwiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1In0"
         }
       ]
@@ -32,7 +32,7 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/main/main.ts",
-          "version": "repo-file-v1:sha256:d170366a26f53a383031af51e9f3e9d427af7a32b16ad468d2fbdaee4f300f13"
+          "version": "repo-file-v1:sha256:cf2b9dc0a837b6dacfdd3fea52ff1e7fea4c3ea8987840978dc8d63e194137d3"
         }
       ]
     },
@@ -65,7 +65,7 @@
       "statement": "ProjectStore 打开时从目录工作区读取 .evidence/model，返回解析结果和源文件摘要，不以缓存作为模型来源。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/main/projectStore.ts#L182-L210",
+          "resource": "repo://apps/desktop/src/main/projectStore.ts#L179-L207",
           "version": "repo-lines-v1:sha256:c526c339144776cb538b9c7b731e7025fe1f23cff3743530a8c634e94b7d360a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc4NmY5OWFjZjg5MzNjM2Q5ZGJkOTFhMzRlOGU2YzlkY2RiNmUxMmVjZWYyYWI1N2I3NWQ0MDIxZDJiODllZGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmMGNkYjk3MmE3YmZiN2VkMjQ2ZjlmZjY3MjM4NWU1NWY0OTY4ZmMxMTA0M2RjNWI2ODRkNTFkZmEzMWRiY2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk3MWZhOTJjNTJmYzA4Y2UwZDMyM2VhNmI4ODk4YzcyMWJhNzg4ODQ5ZWJiYzg2MjljYTE3M2ViYmU0MTZiNzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIyNjM1OWFkM2ZkNjljZWI4ODI3NDUzYWJmZDRiMjYyNmYzZmMwNzRmYWJkYTEwNjA3OTc3MjU3N2ZmNjM0ZDYifQ"
         }
       ]
@@ -75,7 +75,7 @@
       "statement": "ProjectStore 写入使用 expectedFiles 拒绝并发覆盖；不变的源文件不重写，写后复核摘要。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/main/projectStore.ts#L212-L253",
+          "resource": "repo://apps/desktop/src/main/projectStore.ts#L209-L250",
           "version": "repo-lines-v1:sha256:8f2822ec3dff026e095d41b537e73c558f2e025426279a6b524b49b47cae3036:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBjYjJiNzgwNzE0OTIyZjg4MWU1YTZmNDY1MGIwZmMyN2Q3MDkxMjI0Y2I5NTJhZjEwZmY0NTZmNDAzZTdlMjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVlM2UxNWNhZWQzNTJjZDg5ODhiMjJhMTM3YTAxMzE5ZTkxNzllM2IxZDVlMWE0ZmExYTg3NzVhMWIyOTUyMjMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk3MWZhOTJjNTJmYzA4Y2UwZDMyM2VhNmI4ODk4YzcyMWJhNzg4ODQ5ZWJiYzg2MjljYTE3M2ViYmU0MTZiNzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjczOTkwZTUzYTViNzllODE2N2ZhZWRiNTU4Yjg4ODA4YWVmMTEwMTBkMDlmZTVlYzY2Y2Q1YTIyZmU2MWMwNzYifQ"
         },
         {
@@ -89,7 +89,7 @@
       "statement": "创建工作区拒绝覆盖已有 .evidence 入口，初始化独占取得目标目录。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/main/projectStore.ts#L136-L145",
+          "resource": "repo://apps/desktop/src/main/projectStore.ts#L133-L142",
           "version": "repo-lines-v1:sha256:d31ba89e57aafaed224f871947da38644d7d17e4d2f6d54ed25dfab66b3c2e3c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYwYzRmNTY3ZDBiYTM5ZjZlZjg5ODUzN2E5MTJjODg4ZGRhMTY1NzYxNGFiN2Q1MTA5ZjY1ZTcyZWNhMTQ0NWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQyYTJjYjI1YTEyMmI0NDIyMWE2MjM0ZWM2NjBhN2I1ZmI3ZjliZGU3YjNiOWUyYjNjNTU5YTBkOTZmYWM3MzkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdlMDVlMzJiMzM4MjE1YTFhZjIxMDFhMWQ0M2IwZDVhMzExNTk2OWZhZDk0MzlhMDY2NTJjNjAxNGU1NTIxNGYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRhYzEzYjBhYzM1ZTBiMThlYjE5MmRkMGQ2MTE1MjZjNGE1ZTJlZDk0MTk2ZjUyZjljNWY2MGI1NmZmM2Y4MGEifQ"
         },
         {
@@ -107,7 +107,7 @@
           "version": "repo-lines-v1:sha256:97e5daa92f25ac6b3997192ef157c9777d6450f5be68ca656b92d1ef3628bc80:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk0ZDdlMGI2N2EwNjA1ZGRlYmZiYmYzMjc5MTkxNGQ4NmEzZTNlNzIwMzI3NTcxMDk0YTQ5MGMzM2YyZDg4ZjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUxMjM3YjU2NjM1ZjAyNDE4YzQzY2FiMGNiY2VmZDZhMDVkODBlOTA5MmNlNDk1Yzg5M2VhZGIxMjA5YzVmYTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBiMmI3OGE5ODQzZjUwZWEzOWI4NjU3ODEwODI3MDM4OGRhYjIxZTA2ZDUyNTZjYmNmNzlmOTNlYjJhOTE2MjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI2MWNjYzM2YmZlYjA1ODkyMTE5YzZmM2M3OWJmMjc2NTRhMGQ0Mzk3MzMxN2E0MDBmNGFiMmJiNGY5MDg2NzcifQ"
         },
         {
-          "resource": "repo://apps/desktop/src/main/projectStore.ts#L147-L154",
+          "resource": "repo://apps/desktop/src/main/projectStore.ts#L144-L151",
           "version": "repo-lines-v1:sha256:af25f309f8c7c87ed930201668a5fe879230bcad1740130ee1a415808037c726:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZmZkYjkyZmMxOGMzYTcwNmJjMTFlYjdjZDFiZmMxMWYwNjgwMzdlNzNjZDBlYTBkODI1MzkyMjM0N2M3MThkOSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDJhMmNiMjVhMTIyYjQ0MjIxYTYyMzRlYzY2MGE3YjVmYjdmOWJkZTdiM2I5ZTJiM2M1NTlhMGQ5NmZhYzczOSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDc0YjdiYTQ1NWNlZjFlZWY2ODM0YzY5MmQ1MzMyODY2NDY0MWNkMjUxNGUxYjQ1NWU5ODc4NTdkZWYxOWFhNSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDJkNTg0NmY2ZjM4NTExZTc5NWNjZmViNzU2ZDE1MzEwNDI1NzM5NzRmY2VjNmU5YjM2Mzg4NzMwMjE2NjJhNSJ9"
         }
       ]
@@ -117,7 +117,7 @@
       "statement": "桌面模型路径由 workspacePaths 派生为工作区下的 .evidence/model。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/main/modelSource.ts",
+          "resource": "repo://libs/desktop/services/src/modelSource.ts",
           "version": "repo-file-v1:sha256:ac39fcf85c97b655a42e95ed94f23cd61acc9d7e2aecb6e6e7194202c6fbc0fb"
         },
         {
@@ -160,7 +160,7 @@
         },
         {
           "resource": "repo://apps/desktop/src/renderer/screens/DashboardScreen.tsx",
-          "version": "repo-file-v1:sha256:0cbabe3cf99a1e2cea3cd2ad41696c56e64a348bd00c2dbb8295c9571c26edf9"
+          "version": "repo-file-v1:sha256:ef56d694cda318a764337d0f9bcd98c5485d690a1c3d5d09daea8c87be86eb11"
         }
       ]
     },
@@ -170,7 +170,7 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/main/projectStore.ts",
-          "version": "repo-file-v1:sha256:6a56ceec112a03f6b1b6b65d8c68741009534f2b1056a48938ad33deb1020272"
+          "version": "repo-file-v1:sha256:f0db303dad0822c10293dd64e424da38948516797e71af7929838ed7579e7f16"
         }
       ]
     },
@@ -184,7 +184,7 @@
         },
         {
           "resource": "repo://apps/desktop/src/main/projectIpc.ts",
-          "version": "repo-file-v1:sha256:833a5f982eb2b4f572795e86aa6ad03dd45a570df6b8bcbb6e56026809fba856"
+          "version": "repo-file-v1:sha256:ea7c8bcefa9469f1a7d34a729454867ffe3de7572437154ff4a6c811cc202f7b"
         },
         {
           "resource": "repo://apps/desktop/src/renderer/state/useEditorSession.ts",
@@ -198,7 +198,7 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/main/artifactPipeline.ts",
-          "version": "repo-file-v1:sha256:d1cbdb5f289ec9f96c3a3501650a0f467d5a232075c97dc7b202403184ba992f"
+          "version": "repo-file-v1:sha256:a7c3c50c909300b602a8d8dc0c624205ba7a26d2995fb61b276aebee3ab358b1"
         },
         {
           "resource": "repo://apps/desktop/src/main/deliveryIpc.ts",
@@ -226,7 +226,7 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/main/agentIpcHandlers.ts",
-          "version": "repo-file-v1:sha256:bcecdd1c06b2bc3851124d5f606692ddd52a8745a5a4cc1336db343bd5a227cf"
+          "version": "repo-file-v1:sha256:28a527072c08ab37c74d226740137db3bc4bdea351bee0c4e5af8c975cdac349"
         }
       ]
     },
@@ -236,7 +236,7 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/main/agentRuntime.ts",
-          "version": "repo-file-v1:sha256:e173b42a06c3c38a7b8c48e0a5e344fb9818d9e07b6330fcd1cb2403b6844c2f"
+          "version": "repo-file-v1:sha256:a074724b42fb59b6a96a3beec91c705711065f4a49828fde42fe5af161a0e5dc"
         },
         {
           "resource": "repo://apps/desktop/src/renderer/state/useLiveModelBridge.ts",
@@ -264,7 +264,7 @@
         },
         {
           "resource": "repo://apps/desktop/src/main/main.ts",
-          "version": "repo-file-v1:sha256:d170366a26f53a383031af51e9f3e9d427af7a32b16ad468d2fbdaee4f300f13"
+          "version": "repo-file-v1:sha256:cf2b9dc0a837b6dacfdd3fea52ff1e7fea4c3ea8987840978dc8d63e194137d3"
         }
       ]
     },
@@ -278,13 +278,13 @@
         },
         {
           "resource": "repo://apps/desktop/src/main/projectIpc.ts",
-          "version": "repo-file-v1:sha256:833a5f982eb2b4f572795e86aa6ad03dd45a570df6b8bcbb6e56026809fba856"
+          "version": "repo-file-v1:sha256:ea7c8bcefa9469f1a7d34a729454867ffe3de7572437154ff4a6c811cc202f7b"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.9.0",
-    "at": "2026-11-24T13:18:19.740Z"
+    "at": "2026-11-27T13:29:03.591Z"
   }
 }

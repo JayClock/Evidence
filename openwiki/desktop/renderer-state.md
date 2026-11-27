@@ -5,12 +5,10 @@ description: 一个编辑窗口如何保持单一 ModelSession、异步 ELK 几�
 tags: [desktop, renderer, state, model-session, ipc, mcp, react]
 verified:
   - by: openwiki/0.9.0
-    at: 2026-11-20T12:30:09.424Z
+    at: 2026-11-27T13:29:03.591Z
 sources:
   - id: openwiki-source-55138c775f581f8c989ca7dc
     resource: repo://apps/desktop/src/main/agentRuntime.ts
-  - id: openwiki-source-76f615743ac07abb0f83475e
-    resource: repo://apps/desktop/src/main/mcpBridgeRuntime.ts
   - id: openwiki-source-9459ee1a8fc917f2d94619ce
     resource: repo://apps/desktop/src/renderer/screens/EditorScreen.tsx
   - id: openwiki-source-febf1dc4c40bace9f81ae6c9
@@ -37,19 +35,21 @@ sources:
     resource: repo://apps/desktop/src/renderer/state/useWorkspaceViewMode.ts
   - id: openwiki-source-55662d405492cfd3a6e7e1bd
     resource: repo://libs/desktop/contracts/src/delivery.ts
-  - id: openwiki-source-120084d825f111cc158d4202
-    resource: repo://libs/desktop/feature-agent/src/state/useAgentSession.ts
   - id: openwiki-source-0c662531e68a2db936eccc7f
     resource: repo://libs/desktop/feature-agent/src/state/usePatchReview.ts
+  - id: openwiki-source-7a0b15a3630b87606c30c54f
+    resource: repo://libs/desktop/feature-agent/src/state/usePiConversation.ts
   - id: openwiki-source-effa8775635d4ee2d4bfa795
     resource: repo://libs/desktop/feature-delivery/src/state/useDeliveryHub.spec.tsx
   - id: openwiki-source-32df59b611c02b85d275991a
     resource: repo://libs/desktop/feature-delivery/src/state/useDeliveryHub.ts
   - id: openwiki-source-245f4a200cbde2a0d89ec4b6
     resource: repo://libs/desktop/feature-story/src/state/useStoryPlayback.ts
+  - id: openwiki-source-582687140a7ffcc45796a4a5
+    resource: repo://libs/desktop/services/src/mcpBridgeRuntime.ts
   - id: openwiki-source-29536c90f762c67d4e41b9c9
     resource: repo://libs/desktop/testing/src/desktopApi.ts
-generated: { by: "pi", at: "2026-11-20T12:30:09.424Z" }
+generated: { by: "pi", at: "2026-11-27T13:29:03.591Z" }
 ---
 
 # 渲染会话、异步布局与实时同步
@@ -90,7 +90,7 @@ MCP RFC 6902 batch 以 mcp:rationale 一步历史，失败保持 revision；成�
 
 useDeliveryHub 在整个 editor 生命周期订阅，150ms debounce；新 change 立即使旧 generation 失效，包括下一请求尚在 debounce 时。主进程 reply revision 须匹配，失败清 analysis/error/stale；accepted input+analysis 才能 export，携 expectedModelDigest，busy/stale/block 时不写。打开 hub 不重新定义 baseline 或另订阅模型。
 
-useSensorsState 先 latestReport，只有空才触发 fresh，push 按 root 过滤；refresh 绕 debounce。useAgentSession 分开累计文本和思考，并用最终助理消息校正，保留每类最多 8000 字符；按 toolCallId 跟踪活动，结束清 running，根路径切换重置。提交期间防止重复 prompt。story playback 按启用状态接收 debounced 快照，管理故事播放/What-If 与画布 focus；保存来源 invalidation 通过 clean reload 保护新编辑。各 controller 都不成为第二模型源。
+useSensorsState 先 latestReport，只有空才触发 fresh，push 按 root 过滤；refresh 绕 debounce。usePiConversation 分开累计文本和思考，并用最终助理消息校正，保留每类字符；按 toolCallId 跟踪活动，结束清 running，根路径切换重置。提交期间防止重复 prompt。story playback 按启用状态接收 debounced 快照，管理故事播放/What-If 与画布 focus；保存来源 invalidation 通过 clean reload 保护新编辑。各 controller 都不成为第二模型源。
 
 ## Chrome 与命令能力
 
@@ -98,10 +98,8 @@ useSensorsState 先 latestReport，只有空才触发 fresh，push 按 root 过�
 
 `useWorkspaceViewMode` 默认业务旅程，Alt+1/2 切换旅程与拓扑。台账替换中央画布；返回时恢复上次图形布局。两种图形布局、台账和放映都不写入模型或撤销历史。
 
-buildCommands 是 capabilities+handlers 的纯函数，disabled rows 保留解释；CHORDS 是显示键帽唯一源，groupCommands 固定分类，useCommandRegistry 依 caller memo 对象稳定结果。palette 和 header 复用 handler，不复制业务逻辑。
+## 相关页面
 
-## 测试 seam
-
-desktop-testing 的 installDesktopApi 提供 channel call log、agentMock 的 stream/report/patch 与 mcpMock 的 request/response/capture/status，UI 无需 Electron/socket/真实模型。useGraphLayout specs 覆盖旧结果、错误、unmount；bridge specs 覆盖 mount/selection区分、rapid calls、test-only/失败 revision；delivery/sensors/patchReview specs 覆盖 debounce竞态和后续编辑保护；布局和命令测试覆盖导轨切换、输入焦点避让与非模型状态。
-
-相关：[会话事务](../model/commands-and-session.md) · [画布](./canvas-and-inspector.md) · [MCP](../agents/mcp-integration.md) · [传感器](../agents/sensor-orchestration.md)
+- [桌面宿主与项目生命周期](./app-shell.md)
+- [业务泳道画布与属性检查器](./canvas-and-inspector.md)
+- [受控模型变更、会话与历史](../model/commands-and-session.md)

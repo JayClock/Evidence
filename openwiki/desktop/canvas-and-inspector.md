@@ -5,7 +5,7 @@ description: 业务泳道布局与折线如何映射到 React Flow，以及模�
 tags: [canvas, layout, swimlane, react-flow, inspector, cel, renderer]
 verified:
   - by: openwiki/0.9.0
-    at: 2026-11-24T13:18:19.740Z
+    at: 2026-11-27T13:29:03.591Z
 sources:
   - id: openwiki-source-9459ee1a8fc917f2d94619ce
     resource: repo://apps/desktop/src/renderer/screens/EditorScreen.tsx
@@ -33,6 +33,8 @@ sources:
     resource: repo://libs/desktop/feature-inspector/src/inspector/cel/CelFormulaBar.tsx
   - id: openwiki-source-2705304ded6d7ebcd7c41094
     resource: repo://libs/desktop/feature-inspector/src/inspector/FulfillmentPairSection.tsx
+  - id: openwiki-source-ddaef9de67392784ccbcf1b5
+    resource: repo://libs/desktop/feature-inspector/src/inspector/groups.ts
   - id: openwiki-source-294ae639434a4e29c9572cbc
     resource: repo://libs/desktop/feature-inspector/src/inspector/KeyDataLedgerSheet.tsx
   - id: openwiki-source-907db0a62784e18d1d287ccf
@@ -59,14 +61,12 @@ sources:
     resource: repo://libs/evidence-canvas-interaction/src/selection/contextScope.ts
   - id: openwiki-source-40ed2cf21089af3de30a0699
     resource: repo://libs/evidence-canvas-interaction/src/selection/hoverHighlight.ts
-  - id: openwiki-source-765a818dd2c076288d6080cc
-    resource: repo://libs/evidence-schema/src/inspector/groups.ts
-generated: { by: "pi", at: "2026-11-24T13:07:09.861Z" }
+generated: { by: "pi", at: "2026-11-27T13:29:03.591Z" }
 ---
 
 # 业务泳道画布与属性检查器
 
-职责分四层：canvas-interaction 负责无 DOM/React 的 业务泳道布局与几何；desktop feature-canvas 渲染 React Flow；feature-inspector 负责模型编辑；schema/inspector 注册字段与参考约束。app 组合它们，不直接进口 React Flow/CodeMirror。
+职责分四层：canvas-interaction 负责无 DOM/React 的 业务泳道布局与几何；desktop feature-canvas 渲染 React Flow；feature-inspector 负责模型编辑与字段元数据；feature-inspector/inspector 注册字段与参考约束。app 组合它们，不直接进口 React Flow/CodeMirror。
 
 ## 业务泳道布局
 
@@ -96,20 +96,12 @@ DiagnosticIndex 只用已知 target（#前实体/关系）或真实 Context fall
 
 ## 声明式 Inspector 与事务
 
-schema registry 声明 general/责任/attributes，fulfillment/rules 是专用 section；每字段给 editor/options/reference/helper。reference 约束 category/kind/sameContext，责任 picker 只供同合同 party role，单引用允许“未声明”。ID 只读，text/select/boolean/reference/attribute-table 等控件由注册信息驱动。
+Inspector registry 声明 general/责任/attributes，fulfillment/rules 是专用 section；每字段给 editor/options/reference/helper。reference 约束 category/kind/sameContext，责任 picker 只供同合同 party role，单引用允许“未声明”。ID 只读，text/select/boolean/reference/attribute-table 等控件由注册信息驱动。
 
-字段提交通过 `session.mutate(draft=>...Mutator)`。文本 local draft 在 blur/Enter 且值改变才提交，Escape 恢复，按 entity ID key 重挂避免草稿串对象。CEL/provenance 在属性行或检查器的字段台账中编辑，不在通用 rail 乱造文本提供方；此字段台账不是工作区的只读实体表。
+关键数据台账用公式栏显示当前字段的派生表达式；CEL 查看器使用模型候选对象运行原生分析，并将诊断与表达式一并展示。
 
-FulfillmentPairSection 从 graph.fulfillmentPair 显示 completion/confirmation/breach，pair/breach 调 guarded mutator，拒绝在面板显示原因。AttributeDataGrid 添加/更新/cascade删除属性、来源 picker、DerivedRuleSection 都同一会话事务；派生绑定可一次创建/更新规则并连接目标，一次撤销。
+## 相关页面
 
-ApiFieldBadge 复用 browser-safe fieldFor：Input、CEL Derived、Service Timestamp。KeyDataProvenanceView 由模型分类，显示模型推导的字段来源。宽 KeyDataLedgerSheet 和 formula bar 编辑同 session，显示待决/闭合计数；Alt+L/按钮打开，Escape stopPropagation 避免连带清选区。
-
-## CEL 公式与诊断
-
-公式栏通过 `CelCodeMirrorViewer` 展示当前表达式；诊断来自 model-core 对 CEL 表达式和模型候选项的分析，不由着色规则决定，也不代表整个模型通过门禁。
-
-## 测试地图
-
-swimlaneLayout 与 layoutTreeToGraph specs 覆盖阶段、嵌套 Context、循环、容器坐标与履约配对。feature-canvas adapter/CanvasViewport specs 覆盖父前子、local/world 对齐、早期 handles、scope/diagnostic/token/overlay。Inspector/registry/CEL specs 覆盖字段约束、单次事务撤销、来源与 native 作用域诊断；故事与泳道测试保护阶段、责任与镜头定位。
-
-相关：[模型事务](../model/commands-and-session.md) · [关键数据](../language/key-data-and-provenance.md) · [补丁审查](./ingestion-and-patch-review.md)
+- [渲染会话、异步布局与实时同步](./renderer-state.md)
+- [工作区、台账与交付](./workspace-surfaces.md)
+- [关键数据、派生与来源追溯](../language/key-data-and-provenance.md)

@@ -5,7 +5,7 @@ description: Zod 定义的 FM v6 AST、跨对象语义约束和稳定诊断，�
 tags: [fm, dsl, schema, entities, rules, validation, vocabulary, zod]
 verified:
   - by: openwiki/0.9.0
-    at: 2026-11-24T13:07:09.861Z
+    at: 2026-11-27T13:29:03.591Z
 sources:
   - id: openwiki-source-64a2b18876b184e07c424672
     resource: repo://apps/cli/src/commands/model.ts
@@ -51,7 +51,7 @@ sources:
     resource: repo://libs/evidence-schema/src/validation/strictValidate.ts
   - id: openwiki-source-976e28bc7b01588161a1f7bd
     resource: repo://libs/evidence-schema/src/vocabulary.ts
-generated: { by: "pi", at: "2026-11-24T13:07:09.861Z" }
+generated: { by: "pi", at: "2026-11-27T13:29:03.591Z" }
 ---
 
 # FM v6 语言与严格契约
@@ -99,28 +99,8 @@ derivation可产生任意合法resultType且必须target；precondition/invarian
 
 实体examples可带test：flow、tags、actingRoleRef、显式offset RFC3339 asOf、basedOn、expectedStatus、inputs、pathParameters(exampleRef/jsonpath)、expect(JSONPath→期望)。对象strict、JSON值须真实可序列化，tags/basedOn唯一；**inputs覆盖只允许显式>=400负向测试**。静态图级检查补充示例标签/引用等约束；创建入口映射、角色、依赖隔离/排序、捕获和CEL oracle属于 evidence-acceptance projector，不把投影条件塞进schema。
 
-没有 test 的 example 仍是示例，不臆造业务流程。AcceptanceFlow 是临时编译 IR，不是新的建模源格式；Bruno 集合也是导出结果。真实 HTTP 验收另见 [CLI](../workflows/cli-governance.md)。
+## 相关页面
 
-## 严格校验的实际流水线
-
-`DomainModelDocumentSyntaxSchema` strict对象 + category discriminatedUnion定义语法；`DomainModelDocumentSchema=...superRefine(refineDomainModel)`负责已类型化图语义：建唯一索引 → manifest entry → entities/ownership/time/root → relationships → rules → derivation symmetry。错误使用custom params保留FM code/objectId。
-
-`strictValidateDomainModel` safeParse → mapZodIssues → dedupeIssues；成功不归一化/修改调用者输入。映射器把Zod union/unrecognized_keys/refinement转为既有closed ValidationCode、pointer-like path、message、可选objectId，去重code/path/message。assertValidDomainModel抛携同issues的DomainModelValidationError。
-
-分类字段约束在 Zod branch 中表达，跨引用由 documentSemantics 校验。语法错误时不保证遍历不安全的图对象。
-
-静态gate被FM check、compile/lineage、API projection、可选validateOnDispatch复用。渐进会话默认不强制静态全有效，落盘也不等同门禁；用户可以保存半建模型，但正式交付拒绝。scope完整性、key-data provider、CEL、HTTP实现为独立问题。
-
-## 阅读词汇不是新实体
-
-lifecycle stages=rfp/proposal/contract/fulfillment，schema helpers按kind/Context内容推导；角色/参与者无自己的stage，other_evidence继承Context。画布使用四阶段业务泳道；布局不改变实体语义。clause分business→evidence、domain→domain-thing、boilerplate→none；annotation保留原句/理由，计算可另标computesValue。
-
-业务阶段词表定义画布的阅读顺序；凭证可声明 `stage`，固定凭证类型的显式阶段须与 kind 一致。
-
-sourceSnippet 可选保存 text/locator/source(contract/prd/interview/blueprint/unknown)、clauseIndex 与成对 charStart/charEnd；范围必须与 UTF-16 snippet 长度一致。manifest.sourceDocument 的条款须顺序连续且精确匹配原文切片。它们是建模来源记录，不是运行时授权或 key-data provider 证据，也不进入公开 API/故事模型投影。
-
-## 验证入口
-
-AST/strictValidate/zodPipeline specs覆盖语法strict、category unions、FM codes/objectId、图refinement、无输入突变；exampleTest specs保护clock/负向覆盖/JSON shape。golden product-procurement模型作为稳定基线，每case clone后破坏一条红线。vocabulary/lifecycle/clause/inspector specs验证共享词表与展示合同。
-
-相关：[源格式](../model/source-formats.md) · [关键数据](./key-data-and-provenance.md) · [检查与CEL](../model/checks-and-simulation.md) · [事务](../model/commands-and-session.md)
+- [关键数据、派生与来源追溯](./key-data-and-provenance.md)
+- [静态门禁、CEL 与样例求值](../model/checks-and-simulation.md)
+- [API 聚合根契约与 HAL 投影](../contracts/api-projection.md)

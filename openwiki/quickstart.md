@@ -5,7 +5,7 @@ description: 安装Evidence桌面与统一CLI，以 FM v6 建模、静态检查�
 tags: [quickstart, onboarding, navigation, commands]
 verified:
   - by: openwiki/0.9.0
-    at: 2026-11-24T13:18:19.740Z
+    at: 2026-11-27T13:29:03.591Z
 sources:
   - id: openwiki-source-5466111549d3bdae4dce66a7
     resource: repo://apps/cli/package.json
@@ -49,14 +49,14 @@ sources:
     resource: repo://package.json
   - id: openwiki-source-98d5ddb014a0fd4d678f6f2a
     resource: repo://tsconfig.json
-generated: { by: "pi", at: "2026-11-24T13:07:09.861Z" }
+generated: { by: "pi", at: "2026-11-27T13:29:03.591Z" }
 ---
 
 # 快速开始与任务导航
 
 Evidence是语言无关的后端业务建模工作台：先描述双方责任、请求时段、确认时刻、事实与派生规则，再投影接口和验收。模型不是ORM或后端实现；画布、CLI、传感器和生成器复用同一DomainModelDocument。
 
-当前 workspace 为**两个应用（desktop/cli）、十七个 TypeScript 库**。Node.js 22、pnpm 12.16.1 是框架开发工具链；`pnpm install` 安装固定 Bruno CLI，契约比较另需固定原生 oasdiff。项目目录不提供 skill 树。
+当前 workspace 为**两个应用（desktop/cli）、二十六个 TypeScript 库（12 个 evidence 库与 14 个 desktop 库）**。Node.js 22、pnpm 12.16.1 是框架开发工具链；`pnpm install` 安装固定 Bruno CLI，契约比较另需固定原生 oasdiff。项目目录不提供 skill 树。
 
 ## 从干净环境启动
 

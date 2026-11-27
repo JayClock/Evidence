@@ -5,7 +5,7 @@ description: 业务聚合根如何成为 URI、Context 如何成为服务，字�
 tags: [delivery, topology, routing, openapi, field-origin, api-diff, breaking-changes, desktop]
 verified:
   - by: openwiki/0.9.0
-    at: 2026-11-24T13:07:09.861Z
+    at: 2026-11-27T13:29:03.591Z
 sources:
   - id: openwiki-source-19442573d926816973f7a35a
     resource: repo://apps/cli/src/commands/diff.ts
@@ -17,8 +17,6 @@ sources:
     resource: repo://apps/desktop/src/main/deliveryIpc.ts
   - id: openwiki-source-fc371e1f84c3b5d478075b07
     resource: repo://apps/desktop/src/main/deliveryProjection.ts
-  - id: openwiki-source-59e7a4a2571d0728d39ecc85
-    resource: repo://apps/desktop/src/main/mcpDeliveryService.ts
   - id: openwiki-source-eb64da3d440064cfd8e29c7a
     resource: repo://docs/api-projection-v6.md
   - id: openwiki-source-bf747dad922ce4438e285478
@@ -27,14 +25,16 @@ sources:
     resource: repo://libs/desktop/feature-delivery/src/components/delivery/DeliveryHub.tsx
   - id: openwiki-source-32df59b611c02b85d275991a
     resource: repo://libs/desktop/feature-delivery/src/state/useDeliveryHub.ts
+  - id: openwiki-source-da7d9ed7229ea1d3aab94a15
+    resource: repo://libs/desktop/services/src/mcpDeliveryService.ts
   - id: openwiki-source-00036286abae2d8c898e2cef
     resource: repo://libs/evidence-acceptance/src/commands.ts
   - id: openwiki-source-d0f0c50af79c1c9e74ccaeb4
     resource: repo://libs/evidence-acceptance/src/diff/compareContracts.ts
   - id: openwiki-source-d7e13f22c3acec1fe75d3f7c
     resource: repo://libs/evidence-acceptance/src/diff/oasdiffRunner.ts
-  - id: openwiki-source-feaf4e64c269397a25f93a3d
-    resource: repo://libs/evidence-agent/src/sensors/native/nativeApiSensor.ts
+  - id: openwiki-source-c04eb3f2becdc2db18da73a3
+    resource: repo://libs/evidence-agent-sensors/src/sensors/native/nativeApiSensor.ts
   - id: openwiki-source-e945d84c4f7201722caecdad
     resource: repo://libs/evidence-api/src/delivery/addressing.ts
   - id: openwiki-source-53303a19d90a404248f1d663
@@ -51,7 +51,7 @@ sources:
     resource: repo://libs/evidence-api/src/delivery/topology.ts
   - id: openwiki-source-aac6631a251b846350b2d550
     resource: repo://libs/evidence-mcp/src/server/toolset.ts
-generated: { by: "pi", at: "2026-11-24T13:07:09.861Z" }
+generated: { by: "pi", at: "2026-11-27T13:29:03.591Z" }
 ---
 
 # 交付路由、快照与契约差异
@@ -98,18 +98,12 @@ compareContracts 拒绝不同 modelId、任一侧 error diagnostics 和无效 Op
 
 OasdiffRunner 固定版本 1.38.0：binary precedence 为显式 options、EVIDENCE_OASDIFF_BIN、从已安装包位置上溯的 cache、PATH。compare 不联网下载；安装用 `pnpm api:setup`。临时目录写空 config、两份 canonical contract，以 execFile 无 shell 执行 version、changelog JSON/Markdown 和 diff JSON；禁 external refs，默认 30 秒、16MiB buffer，finally 清理。版本/输出不合法或执行失败保留 stdout/stderr 并抛 OasdiffError，不降级成自制比较器。
 
-`evidence diff <base> <target>` 接收两个工作区根，默认 Markdown，可选 `--format json`；成功返回 0，破坏性变化或失败返回非零。库的 `runDiff({ base, target, format })` 接受两个模型目录或两个 OpenAPI JSON 文件的绝对路径，只读比较，分别用 0/1/2 区分通过、破坏性变化和错误。
+## 桌面与外部边界
 
-## 编辑预览与磁盘产物
+主进程的自动草稿写出仅依赖通过源摘要复核的磁盘修订。实时预览从编辑文档与基线计算摘要、契约差异、覆盖率及绑定；live bindings 经 provider 供画布，MCP topology/OpenAPI 则从 saved readDelivery 读取相同领域边界。
 
-`livePreviewOf` 分析 renderer 提供的当前文档和基线，返回修订、摘要、契约差异、覆盖和路由绑定；它不读盘、不写盘。`useDeliveryHub` 合并短时间内的编辑并丢弃过期结果。桌面的自动草稿由主进程在模型落盘后生成，写出前复核源字节摘要。MCP 交付从工作区磁盘模型读取。
+## 相关页面
 
-草稿传感器对破坏性变化给出告警；release 目标将其提升为阻塞。草稿可审查并不等于可发布。
-
-## 展示与测试
-
-DeliveryHub 是全窗产物工作区，默认展示产物列表及内容，并保留契约全览和增量视图。全览显示 services/routePrefixes/route counts/kind notes、sync/async crossings、bindings 的角色/exposure 和 limitations；差异页展示双摘要、原生 changelog/changes、coverage、非 API_ALIGNED 问题，支持定位和复制 Markdown。LiveApiProvider 让画布复用相同 bindings，inspector 通过 browser-safe delivery field entry 显示 Input/CEL Derived/Service Timestamp。MCP 的两个交付工具从 saved readDelivery 获取相同边界，不写模型。
-
-routes/topology/fieldContract specs 保护稳定寻址、角色和字段纪律；oasdiffRunner/compare/breakingScenarios/evolution specs 保护真实原生比较与版本失败；桌面 delivery IPC、useDeliveryHub 与 artifactPipeline specs 分别保护只读预览、过期应答与已落盘产物发布。
-
-相关：[API 投影](./api-projection.md) · [工作区](../desktop/workspace-surfaces.md) · [CLI 验收](../workflows/cli-governance.md)
+- [API 聚合根契约与 HAL 投影](./api-projection.md)
+- [构建、打包与维护](../operations/build-and-package.md)
+- [统一 CLI 与双门禁验收工作流](../workflows/cli-governance.md)

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:ad625dd11f1efdeae44b5b80d167ac14500c5422ed1b46d5f4e4f2b18a5e42ee",
+  "pageVersion": "sha256:8740fa36fb65aa159e55169bdfabc2a5e668e982f830831933b7c763d5dd4016",
   "claims": [
     {
       "id": "claim_268478c2f76e469a8fa21a385f68eec1",
@@ -96,11 +96,11 @@
       "evidence": [
         {
           "resource": "repo://libs/desktop/feature-inspector/src/RightInspector.tsx",
-          "version": "repo-file-v1:sha256:91c3395ee02633f63c14691744503c2dd92abee4fd45c5743b67a9640fada36d"
+          "version": "repo-file-v1:sha256:cef4241fd8ca1806e2560864ee5d6af9968d8275a3ef3f05d002ca0965802000"
         },
         {
-          "resource": "repo://libs/evidence-schema/src/inspector/groups.ts",
-          "version": "repo-file-v1:sha256:3860d6adbcb3b3ea0cad04731617cb74d05551aa3cf5c5aeeed27e346581f1a8"
+          "resource": "repo://libs/desktop/feature-inspector/src/inspector/groups.ts",
+          "version": "repo-file-v1:sha256:2242c20d82eb48712fc80074f9702c57f6e6b7ac7072d525df8483e61fab8d3e"
         }
       ]
     },
@@ -134,7 +134,7 @@
       "evidence": [
         {
           "resource": "repo://libs/desktop/feature-canvas/src/CanvasViewport.tsx",
-          "version": "repo-file-v1:sha256:d54abbf887bb7ac455d8282b1d1bee83401a21b2813b5bfd8db106970a644cb9"
+          "version": "repo-file-v1:sha256:7651374e92be4e5490975e1b70d2174cd30d03e26e8c3ec69b237caa1eefd898"
         }
       ]
     },
@@ -144,7 +144,7 @@
       "evidence": [
         {
           "resource": "repo://libs/desktop/feature-canvas/src/useReactFlowAdapter.ts",
-          "version": "repo-file-v1:sha256:e0ce908ec53f8f62abd39e3a6cc10f6e9e330dca9c76371885615c18301ed9e3"
+          "version": "repo-file-v1:sha256:f3153c43e8404235cbd5fe8cb3d09d8134db086ff9cd8696fe460868d4d32473"
         }
       ]
     },
@@ -154,7 +154,7 @@
       "evidence": [
         {
           "resource": "repo://libs/desktop/feature-canvas/src/CanvasViewport.tsx",
-          "version": "repo-file-v1:sha256:d54abbf887bb7ac455d8282b1d1bee83401a21b2813b5bfd8db106970a644cb9"
+          "version": "repo-file-v1:sha256:7651374e92be4e5490975e1b70d2174cd30d03e26e8c3ec69b237caa1eefd898"
         }
       ]
     },
@@ -164,11 +164,11 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/renderer/screens/EditorScreen.tsx",
-          "version": "repo-file-v1:sha256:8edcffcecf1ab94af1c955774b84d9407f19219e6ff2046697ff67fcc36d7b47"
+          "version": "repo-file-v1:sha256:cbd74a7c505e3a389f0a9ab70ed72c729d197c03ded6309a36fb95bb4ca1ac1f"
         },
         {
           "resource": "repo://libs/desktop/feature-canvas/src/CanvasViewport.tsx",
-          "version": "repo-file-v1:sha256:d54abbf887bb7ac455d8282b1d1bee83401a21b2813b5bfd8db106970a644cb9"
+          "version": "repo-file-v1:sha256:7651374e92be4e5490975e1b70d2174cd30d03e26e8c3ec69b237caa1eefd898"
         }
       ]
     },
@@ -178,11 +178,11 @@
       "evidence": [
         {
           "resource": "repo://libs/desktop/feature-canvas/src/NodeCard.tsx",
-          "version": "repo-file-v1:sha256:0e8161e5a95f1a7481a9ef66419ad0fceef2f0b4ba6844377c526e17442aa969"
+          "version": "repo-file-v1:sha256:e6e1fdfffeba09137e24378b56726cf1723553b8446d45344e111967e5685f03"
         },
         {
           "resource": "repo://libs/desktop/feature-canvas/src/useReactFlowAdapter.ts",
-          "version": "repo-file-v1:sha256:e0ce908ec53f8f62abd39e3a6cc10f6e9e330dca9c76371885615c18301ed9e3"
+          "version": "repo-file-v1:sha256:f3153c43e8404235cbd5fe8cb3d09d8134db086ff9cd8696fe460868d4d32473"
         }
       ]
     },
@@ -196,7 +196,7 @@
         },
         {
           "resource": "repo://libs/desktop/feature-canvas/src/useReactFlowAdapter.ts",
-          "version": "repo-file-v1:sha256:e0ce908ec53f8f62abd39e3a6cc10f6e9e330dca9c76371885615c18301ed9e3"
+          "version": "repo-file-v1:sha256:f3153c43e8404235cbd5fe8cb3d09d8134db086ff9cd8696fe460868d4d32473"
         }
       ]
     },
@@ -262,7 +262,7 @@
         },
         {
           "resource": "repo://libs/desktop/feature-inspector/src/inspector/cel/CelFormulaBar.tsx",
-          "version": "repo-file-v1:sha256:f1379a3542b80249d2140537ef0f870f45fb8040efbcfedfada4a0a073cac943"
+          "version": "repo-file-v1:sha256:be83ec0dd738da8f0ce068f92798b2a5e76a51ad674fdb2475fbea3d39b8730d"
         }
       ]
     },
@@ -272,13 +272,13 @@
       "evidence": [
         {
           "resource": "repo://libs/desktop/feature-inspector/src/inspector/cel/CelCodeMirrorViewer.tsx",
-          "version": "repo-file-v1:sha256:31eac4463b47664ad0ba61470fdbc9a5ba33ecf2c9d36e3e73f672eb78ebfbca"
+          "version": "repo-file-v1:sha256:089b570a9945004cbc672d9d008aaf29ce3d44e7a2ba048868d0aee0b2b77881"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.9.0",
-    "at": "2026-11-24T13:18:19.740Z"
+    "at": "2026-11-27T13:29:03.591Z"
   }
 }

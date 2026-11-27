@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:83beaabe57dee5d93b7f89402a4f6dd84371c5df02fb4b2f584f26386f5aa425",
+  "pageVersion": "sha256:12a76303d7808ef68563a961a3b27abb905f6b71b1efee9a441ad053b3daff53",
   "claims": [
     {
       "id": "claim_c08824c2d15442f09d8d2d854923d444",
@@ -22,7 +22,7 @@
       "evidence": [
         {
           "resource": "repo://libs/evidence-agent/src/session/evidenceAgentSession.spec.ts",
-          "version": "repo-file-v1:sha256:21fdfb1e5bd79d42bb1b74548ba06eb1bf6cf5c84f40ae2b0d24886a906a6838"
+          "version": "repo-file-v1:sha256:a2afe2f314be078f4daefb2142fe0f56a72bc5ae7a2288cd4d99ba4f9ae951ea"
         },
         {
           "resource": "repo://libs/evidence-agent/src/session/evidenceAgentSession.ts",
@@ -45,12 +45,12 @@
       "statement": "Pi 事件投影为文本增量、思考增量、最终消息、工具起止、settled 和错误；Renderer 使用最终助理消息校准增量，不将底层 agent_end 视为结束。",
       "evidence": [
         {
-          "resource": "repo://libs/desktop/feature-agent/src/state/useAgentSession.ts#L45-L119",
-          "version": "repo-lines-v1:sha256:ee29129e814bd06682a39523d20961003425062cd6f4ea0d14279ca4850366c7:eyJzZWxlY3RlZExpbmVDb3VudCI6NzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZiNjVjZWRkMjU4ZDY4MDQ2NTI0YTUyODA1MmIwMmNhOWFjMzM3MmRjYzY5ZjVhZWVjMTZkOWE0NDNiYjc4ZjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYyOGZkZWIwMzY0OGNkMjRiMmMzYTM3MjIyNGEzMzkwYjdjMWRhMzliNDY0NjRlMGVlZjM2MmJmNTVkMWFhODAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE0YmZjNGNlMzgxZWZlMmVjNWI1Y2NjZGVlZDBjYWI3ODMzYTU1YTM2Y2RjM2Q5NzI0MmFhMTA0NzhiM2QwY2QiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ1NjEwZTRiNDZiMTgzZjFhNGFkMWU1NzkxZTFjNDU4NjE0YmY2ZDliZDU0Nzg4NzhiNjM0YWYzYTEyZmU4ZWUifQ"
+          "resource": "repo://libs/desktop/feature-agent/src/state/usePiConversation.ts",
+          "version": "repo-file-v1:sha256:40cf84cc56cb6ca349b62f790675a08a1118666c92eb8059fbafb9ecf459fb9d"
         },
         {
-          "resource": "repo://libs/evidence-agent/src/session/streamEvents.ts#L9-L101",
-          "version": "repo-lines-v1:sha256:8c76c4546a3c1cf6331e1facb4d31c4d095acda483bce85156f31a915192960d:eyJzZWxlY3RlZExpbmVDb3VudCI6OTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIwYmRlNzZhMmE0ZWZjMTE3M2RlN2EwYWExYmRlNWE3N2FlZmRjNDFjNmQ0OWUyNjNmY2E2MWZkMGQ1NmY3YTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ3MzBjMWFmNzM2NjNmMmFhNTI2ZWRmMGRlMTljYTA0NWExZWE0NjU4M2ZjNDA0ZWI2ZDJmZjY5NjM1NTc1MDAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjlkZWM1ODQ2MzY3OTcxZmJkNWI3OGJkZjQ3Zjk2YjgxZDJkNjM4ZDFhNTk0OGUyMjkyNzQ5NzhiYzk3ZTE4ZjkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUzODQzY2VkOGMyYWQ1OTJlY2JmMGM1NjNlMTk2MmMwYzhjNDZhNTg2ODRjYTI0MGViOThkMjA2NzU4YzU1MjUifQ"
+          "resource": "repo://libs/evidence-agent/src/session/streamEvents.ts",
+          "version": "repo-file-v1:sha256:1938d6375161e3893b8e0b73103c1b2ac3a9b93de7271a84fe88e6f3bec343d3"
         }
       ]
     },
@@ -59,12 +59,12 @@
       "statement": "Pi 注册 15 项工具，其中八项写工具与只读 What-If 模拟来自 evidence-tools 的共享 registry。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-agent/src/tools/evidenceTools.ts#L111-L153",
-          "version": "repo-lines-v1:sha256:546a1e7853076c7c5fd5bc138b6eefd8e90c51f9c4a9bb888b73cc50d767d196:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFmMTcyNzNlNGU2M2I0ZGE4Nzk1N2YwZDJkMDk4ODcwNzE2NjZjMjQyN2Q4YTBkNmVmMDA2MjY4Y2YxMDgxZmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMxYTljZjNkNTlkNmQzYzM4YjAyODZlNTE4MDUzOGY3MjU2NTViYThmNTc0NjgyMjgyNGM5N2EzOGE2NjIwNTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI5NWQzYmVjMmM4N2MwYWQ0YTI3ZmFiYmYzNmMxNGVlMWY1ZDY1ZjNjM2E0ZDhlYmMzZjM0MjkwZmU5OTZlYWMifQ"
+          "resource": "repo://libs/evidence-agent/src/tools/evidenceTools.ts",
+          "version": "repo-file-v1:sha256:a129cdf6d37056af382d5a9a5e46d0cce90d8bebae8a8d833923268121965a65"
         },
         {
-          "resource": "repo://libs/evidence-tools/src/index.ts#L30-L55",
-          "version": "repo-lines-v1:sha256:1c1fe17841a28345dd0c376a67a12061e83b09e6838c97d2cfcb77742b21885c:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI2NzEwYTcwMmQ4YmUyYTg0NjI5NTU5ZjQ1N2Q4NzA3NTM5MzkxMDYwYzkyYzgxMjg2ZWUzZjM5MjNlNGY2NzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE3NGVlOGE4ZDFhYTg0NTM5MWJjNjc5ZWI3MGNlN2Y0NmEzY2Q2ZmIyZDE2ZmNjYTY3ZmExNzhmNGY4YzFlMGUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQyMjQ1YjMyOTg0NDAwZWEyMDNjMzRmOGNkNTUyYWQ4MGI3OWJmYzBkYTc3MWFmMmI5YjBkNjI4Njk0MGZhNWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc2NzRkMTkyYTRiOTY4NDExM2I1M2Y1ZmQ0M2FkMzM5MzU5MGEwZjlmZjNkNTVjNzQ3NGY1YTk3MmZhN2Y4YTMifQ"
+          "resource": "repo://libs/evidence-tools/src/index.ts",
+          "version": "repo-file-v1:sha256:11c035328e17ef44294c1a5bd25a9e265b0641177dd1565efc0126a25af12be3"
         }
       ]
     },
@@ -73,12 +73,12 @@
       "statement": "工具 Zod 校验 RFC 6902 请求，成功列出 op，主进程写入拒绝转 isError，不接受 typed commands。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-agent/src/tools/evidenceTools.ts#L136-L153",
-          "version": "repo-lines-v1:sha256:c3433eb5cf55c878663b17fa8fc3b146e0d79602ce6864d424e9f5aa0c61a44d:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ1NWRjZmUxYjZjYThmYjZjMjlhOGJhYjI1MDk3NzdlNWMyZjAwMzQ2MjRjY2Q0ZDdkYjAzZmQwMWYxNjM5NTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjYzZmJkYjMxOWRiOWU1NDE2ZDY4Y2Q0OWU0NTM2OThjODA0NjFiYWFjODI5ZjJkYmRlMDNhMmJjOGVhYzkxYmYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI5NWQzYmVjMmM4N2MwYWQ0YTI3ZmFiYmYzNmMxNGVlMWY1ZDY1ZjNjM2E0ZDhlYmMzZjM0MjkwZmU5OTZlYWMifQ"
+          "resource": "repo://libs/evidence-agent/src/tools/evidenceTools.ts",
+          "version": "repo-file-v1:sha256:a129cdf6d37056af382d5a9a5e46d0cce90d8bebae8a8d833923268121965a65"
         },
         {
-          "resource": "repo://libs/evidence-tools/src/index.ts#L138-L159",
-          "version": "repo-lines-v1:sha256:ce29cb4bf3b24e1f30a94b536ccb16e0c04c1a1cc4e675f9509c139c0fdfcce8:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQyYTJjYjI1YTEyMmI0NDIyMWE2MjM0ZWM2NjBhN2I1ZmI3ZjliZGU3YjNiOWUyYjNjNTU5YTBkOTZmYWM3MzkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI5NzhlMjUwM2I4Y2YzN2EwNmY3ZDZmMGEzYTZiNmZlMzU2OTFmYmNhYjUwYjg3NzVjYWI2ZmFiYzcxYzU5MmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVhNjg0YjgyNTdiMzUyMGI4ZTJlYWY3ZjRlYzUxMDYzMmZjMzVmOTVjZTJjY2RjMWQ3YTg5YWZlMDllZmVlNzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBiODhjZjgzYmZhNTVlNGI3MTZhOTA2MTRlMzI4Mzg4ODM5NDI4NDdjNDM0MGFkNmE4ZjE4ODY4YmUwYzlmZDEifQ"
+          "resource": "repo://libs/evidence-tools/src/index.ts",
+          "version": "repo-file-v1:sha256:11c035328e17ef44294c1a5bd25a9e265b0641177dd1565efc0126a25af12be3"
         }
       ]
     },
@@ -87,12 +87,12 @@
       "statement": "Agent 补丁在主进程对 live revision 预检并原子提交；仅实际修改产生递增 revision 和广播事务，不等待 renderer IPC 确认。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/main/agentIpcHandlers.ts#L58-L77",
-          "version": "repo-lines-v1:sha256:0b531e00cce3335f23c6c5ec1fc25c9c752de202659e79bff1c0c3e5f807ea4a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNlMDJlZjJmZGE3YjFjY2I2MGIyNGNjZDUzMTA1NmYwYzQ1YThmMjMzNWMxYTdlYjc3NGUyNjliNjc5NjAzYmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI0YjMyMzQ4NjNlYzc1MWIwMDQxYzM0ODhlMTU1ZmQ1MTE1MzVkYjBiMzI4ZTYxZGI4ZDZjYTAwMzRmMzVkYzAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhkZWZmNmVmMTE5MzM5YzgyMWExZGQ4NGEyNzEyOGZjNTA0OTg4NDg0NGE2OGNhNTZiYTQyZjA2Y2ZmMjE4ZWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU0ZWIzZmFmZmZiNGI2OWY4ODk2Njg0Nzc3NDc5NjIwNmE2MWE0ZTYxZWNjOTEwMWY3ZjVlM2RhM2NlMWEyYTEifQ"
+          "resource": "repo://apps/desktop/src/main/agentIpcHandlers.ts",
+          "version": "repo-file-v1:sha256:28a527072c08ab37c74d226740137db3bc4bdea351bee0c4e5af8c975cdac349"
         },
         {
-          "resource": "repo://apps/desktop/src/main/agentRuntime.ts#L131-L182",
-          "version": "repo-lines-v1:sha256:960736a1c215ef42ae5b71373133133a280aebce63df027effa461bd62c0a681:eyJzZWxlY3RlZExpbmVDb3VudCI6NTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk4ZjRkMzUxOTU0Y2FlMDAyYzU4NjRjYzlhMWQzNDUyZDFiMGE0MGNhZWNjNzcyYzIyYjVlZTk0YWQyYWFkMDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJmOTcxNGFkYjU1Y2Q3YjQ0MGUxNzQ2YTg3MDNhODAwY2UxNTNlNzM3OTg5NDA4ZWMxZTQ1NTc4OTVjNjM5NmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE4NzVkMmQ3NWVmNGQwYTZmM2Q4MTJlZGRhZjU3YTg0ODkzOTgyOGRlZDI4ZTM5NTFmOTIzNTM4ZDVlZjc4M2MiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZkMWI4YjY1ODA0ZDQ4OWVkMDNiYzVlZGE2M2Y2ZDBlNThiN2RkYTNjODY1NDJkOGQ1YzZiMmE3NjJmNWUzODYifQ"
+          "resource": "repo://apps/desktop/src/main/agentRuntime.ts",
+          "version": "repo-file-v1:sha256:a074724b42fb59b6a96a3beec91c705711065f4a49828fde42fe5af161a0e5dc"
         }
       ]
     },
@@ -102,11 +102,11 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/main/agentRuntime.spec.ts",
-          "version": "repo-file-v1:sha256:319addedc24499d60379d1aeb28572e12ff21c226bf33dc8382168db4995d25b"
+          "version": "repo-file-v1:sha256:d793fb9ccaa38ae99eef94fd9b87a223ab7c26d22bb48b72ef275f791795efc7"
         },
         {
           "resource": "repo://apps/desktop/src/main/agentRuntime.ts",
-          "version": "repo-file-v1:sha256:62310bb59183347c10567e9564bb565496d9e582f8837419d5b8f7a02200e482"
+          "version": "repo-file-v1:sha256:a074724b42fb59b6a96a3beec91c705711065f4a49828fde42fe5af161a0e5dc"
         }
       ]
     },
@@ -115,12 +115,12 @@
       "statement": "Agent 写流按规范化项目路径独占 renderer owner；其他窗口被拒绝，owner 销毁时释放 runtime；Pi transcript 存储在 desktop userData 下按项目哈希隔离的目录。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/main/agentIpcHandlers.ts#L38-L86",
-          "version": "repo-lines-v1:sha256:c6fecab2f6923ccc0223e1668cf969f2ba1c9d889fa8fdf7294a1a62f6f8b6c7:eyJzZWxlY3RlZExpbmVDb3VudCI6NDksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNlOTRiMDgzMTIzNWM2NWY2MWYzNjlmOTQ0YzkyZDAyOGU2NGYwOTE1OGExYWMxNWM1YTRjNDYyOGZmMTkyY2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc5OGM5MmRkYmMzZDM2ZjM4ZDAzNTM0Mzg3ZTc4YjM2ODNmMWU2NDY2NGY1YjIyYzYwYzUwMTQ3ZWE4YThhOTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM0MTMxYjRiNzI1Zjk4NDE4OTM3ZDQ2ODgzZjUyYzExMjVkNWRkZDI3MGZhZmUzNTc1OWZjZWJmZjAwYzIzYTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM4ZDZmMjY0MDVlNWNiNzM3ZjZjMDllMWUzMzY4MmVkMTQzODY0OGVkODQ4MjUxODhiYWE2ZDhiZDhkZGUyYmYifQ"
+          "resource": "repo://apps/desktop/src/main/agentIpcHandlers.ts",
+          "version": "repo-file-v1:sha256:28a527072c08ab37c74d226740137db3bc4bdea351bee0c4e5af8c975cdac349"
         },
         {
-          "resource": "repo://apps/desktop/src/main/main.ts#L72-L85",
-          "version": "repo-lines-v1:sha256:6fd1898f70aa1f7509be393f432cbfccf3fea826d2af77603725adbbe6db51ac:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEwYzk0NmQ0NmJiMGE2MmVjYWY0NWE4N2I5Y2Q4ZDI5YWFhOTNlNTUyYzMzZDJkYjFkMzdjOWQyZGE2M2YyNTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVmOTI1MzhlMjFkYzZiOWY1YTk5ZDdjOWJmYmIxNzc2ZjVkMGIyNTUxMGZiNTM5NmIxZmY1MTAyNDRmMTY1MjkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjliNGE2ZmI0NzhlZDNhNjNlN2Y2NjA2NmEzN2E0YjkxZDNjY2Y0NTY0OWQ3YTQ1M2Q3Mzc5NDZmMzE3MjZmZTEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU3N2U2MzBlZTJmZDZhMTE1MjY1OTgzYTY2MjEwNWRiMDcwOWFhNDMyNGI0MDJhMGY1ZWU4ZjNlNzU4ODg5NDkifQ"
+          "resource": "repo://apps/desktop/src/main/main.ts",
+          "version": "repo-file-v1:sha256:cf2b9dc0a837b6dacfdd3fea52ff1e7fea4c3ea8987840978dc8d63e194137d3"
         }
       ]
     },
@@ -129,7 +129,7 @@
       "statement": "测试验证补丁提交不等待 renderer 确认、只发布真实改动，以及拒绝会转为工具错误。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/main/agentRuntime.spec.ts#L561-L620",
+          "resource": "repo://apps/desktop/src/main/agentRuntime.spec.ts#L675-L734",
           "version": "repo-lines-v1:sha256:7c2def36b4c7d5fdf3cb39d59d0b81977f984551df8d65f31eeb443962ec9f5e:eyJzZWxlY3RlZExpbmVDb3VudCI6NjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEyZWEyMWQ2Njk4MGIwYjNiYWI0YTRlZThhZTljMDQ5OTVkMGQxOWI5Yzg1ODc1MWNjNTIxYmI4N2Y2ZWE3YjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIzZThiNTUxNzkzYzdhMjdkZTQzYzk0ZDIyNTJiODA5ZDJjNjU1YzZlZGJlOTVhMTNmZjYwNDNlNTY4MzU1NTQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImEzMGM1OGE5MTcwNWFhODYzZTdmZDIzOTJkZGE0ZGNhYzM0YjQwODQ0ZjQ2NzgxZGNjOWI2M2VlYTM3ZmRjMmUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMwMDU1ODYzMDJhYWZlZTliMDhjZGMwNWFlYzA1YjgzMDM2NDIxNTAwMTMwZGNiZjRkYzhhNTA5MGVlOTdmOTkifQ"
         },
         {
@@ -144,11 +144,11 @@
       "evidence": [
         {
           "resource": "repo://libs/evidence-agent/src/browser.ts",
-          "version": "repo-file-v1:sha256:ad0fc6a21785b330f14a1c41fde06885d36372a87f6f4418d4a1f3c1ef344d09"
+          "version": "repo-file-v1:sha256:e9754372688b58abb9160b98403e808b4df2afe8e6fe59abe9f255b21e5db42a"
         },
         {
           "resource": "repo://libs/evidence-agent/src/index.ts",
-          "version": "repo-file-v1:sha256:5ecc30066292092a2fa6fc3bb6f5af193d413855f1991cbc084d468b368fc988"
+          "version": "repo-file-v1:sha256:0fa614c4b9e295743b196e9be94143e7c698a1623e5749a1fbcfbdb5ab2c4f6a"
         }
       ]
     },
@@ -157,7 +157,7 @@
       "statement": "run_sensors 文本返回紧凑门禁投影，details 保存完整报告。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-agent/src/tools/evidenceTools.ts#L207-L232",
+          "resource": "repo://libs/evidence-agent/src/tools/evidenceTools.ts#L212-L237",
           "version": "repo-lines-v1:sha256:59ba367492d8d50cb96b8daedd4f0e4551602cbde74394b09960e0abd79476e3:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFhMTE1MzA4NDRkN2I2ZDFjMTA4MmEwYjgxOWNiZmRiM2I5YTM2MWRmOGY1YzM2MmEyNDE3YzU1OTA3MzdlODgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIyZDExY2FmNDNlOTdlZjM2OWU2YmVlZDFhMjY4YmQwNTgzOGYyOWI5ZGQyNTRiZjY5YmE2NDg4NDE0NzIzNGEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ3ODdmZWI4MDg4MDI2OGEzYjBmMjViMTBjMzczNDFiNjMzMDM2ZGQ0NDMxNzRhZDBiNzg4NjcwOWNmOTI4MjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgxY2VkYmVlMmMxZWRlYTA3MTUzYWFlZTQyNDU5MGMwNWNkZjQ0OGYxY2ZmNjY0OGViZjkyOTA0ZGQwMjY2NzgifQ"
         }
       ]
@@ -167,7 +167,7 @@
       "statement": "get_api_diff 只在副本试算 proposedPatches，sync_api_projection 只刷新诊断不改模型或发布基线。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-agent/src/tools/evidenceTools.ts#L160-L205",
+          "resource": "repo://libs/evidence-agent/src/tools/evidenceTools.ts#L165-L210",
           "version": "repo-lines-v1:sha256:08ba2556110686b30df626028a39831108b9b429d88f79926d16cde41fdd4add:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRjMzljZWNiZjhlYzNkNWRlMGI4MzZmOWE0YzlkYTcyNzRhNDcxYWE1Y2IwMzk1ZWU0YjE0MGU2ZTFkY2FkZDciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlkNDQxMjlhOTI3MDM4YWQ4YjQxZWJiOTJkODE1MTk2ZDMwMGY4YmYzNTZmMWRlMWFlZDMxMTRhZDUyOWM4YmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ0NGMyOTgwMTE3MDRlOWU3ODVlNmI3MjAzMjIzZGVkMWYyMjQwOTMxYTI0NGZhYjQ2ZDIxYjhhOGViMGRhNzAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU0NmZiNTRmZmI3YTk1M2E3YWYzMzYzMWM0NGRjNzg2ZDY2YjViMzNhMzQzMGM5Y2NhMmZkODU4YzI3OGVlOTEifQ"
         }
       ]
@@ -178,7 +178,7 @@
       "evidence": [
         {
           "resource": "repo://libs/evidence-agent/src/tools/evidenceTools.ts",
-          "version": "repo-file-v1:sha256:30ea2274d11f2200361289837c37ae84e75e9f94a532a4e2f4a36727d1da8456"
+          "version": "repo-file-v1:sha256:a129cdf6d37056af382d5a9a5e46d0cce90d8bebae8a8d833923268121965a65"
         }
       ]
     },
@@ -188,11 +188,11 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/main/ingestionModelReader.spec.ts",
-          "version": "repo-file-v1:sha256:a4326b7108d2a2b82b16a863709e2b0e61526bc11f11004e7ee29ca000857dfe"
+          "version": "repo-file-v1:sha256:783960e141299f78559267c29afeab9f889ec9138032a25cec609dcbe62fa09f"
         },
         {
           "resource": "repo://apps/desktop/src/main/ingestionModelReader.ts",
-          "version": "repo-file-v1:sha256:a7513eef8653edfc042992c65cbe41bd8043bd92c45e4ab4693d195fd3d537ae"
+          "version": "repo-file-v1:sha256:80322877f68dce209eac5074b69cc2d686ea8558cb2ae82aa36fac0958b4d96a"
         }
       ]
     },
@@ -201,12 +201,8 @@
       "statement": "模型镜像拒绝外部项目或旧 revision，保留首个基线并重新 debounce；报告标记当前 revision，过时 run 不发布。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/main/agentRuntime.ts#L182-L222",
-          "version": "repo-lines-v1:sha256:adb6bf6ed066f64a87833befec1cd9095d65a82c7b1220cb257129b1c0fd61fd:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJmOTcxNGFkYjU1Y2Q3YjQ0MGUxNzQ2YTg3MDNhODAwY2UxNTNlNzM3OTg5NDA4ZWMxZTQ1NTc4OTVjNjM5NmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRmMmEyZjk5NmYwOGU2ODBiZDI5MjEzNWE2ZmE0OTc4YmRhMjZlNjAyZDg0ZjMzY2IxZDU5NDc3NWQ0MzA0YjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdjZTU0Y2FkMTVkNDNjMWFkYjVmODhkMzg5Y2RkMGEwZTRlMGY4MWEzZTBmNDlhYTAxZGYwMzc0MGFhMzlmNmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFlMzAzYjY3ODgyYTRkNDE5NTBjNjhmMWNiNDliYjVlMzIxZjdlYzEwMGIyMDRkMDNhYmJmODViZTg1ZjZlNzgifQ"
-        },
-        {
-          "resource": "repo://apps/desktop/src/main/agentRuntime.ts#L346-L370",
-          "version": "repo-lines-v1:sha256:3f0910b5314084e1186543bb4d7f51aa7aa9ee11240d619cf79feb6d3f1bc135:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM2Y2Y1Nzg5ZGQ5NjY4OWVkYmE2MTc5MDk4OWM1Mzc3ZmE3OGRhYzFhY2E4OGRiN2NkNzllYTY2Y2NkZjQyYWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNhZTVjYTVlMzUyYTdhMTllOTNkOGI3NGM2YTliMzZlNThmNGM4NWIzNDI1Y2I4YTNiOTIyYTk3M2I3MDY3MjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZlZTQ0ZTk5MWJmNTg4MTYxMTZkZmY0NDgzMWNiMmE5ZDdmODFmMGEwMzQyOWEyMDgzZTc3ZWU3YzI0M2E4NjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3MmY0OGE2Y2JmZjYxMjgzMTExYTMwNThkZmM0NTgzMDg4ZDFhNmZmMTRlZGY3NGVlYTUyN2I5NDEwMzVjNWYifQ"
+          "resource": "repo://apps/desktop/src/main/agentRuntime.ts",
+          "version": "repo-file-v1:sha256:a074724b42fb59b6a96a3beec91c705711065f4a49828fde42fe5af161a0e5dc"
         }
       ]
     },
@@ -215,12 +211,12 @@
       "statement": "建模从画布全局 Storming 或节点 Inquiry 进入；前者不继承节点焦点，后者带明确焦点。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/main/agentRuntime.spec.ts#L445-L488",
-          "version": "repo-lines-v1:sha256:ab57d3a0c0b0ddf8b47a19c25b10436b60495ce10432402f1caf44f6eba1a1bf:eyJzZWxlY3RlZExpbmVDb3VudCI6NDQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNjZmVlZjFiYzk4YjU3ZTFmNTZlNzU5OWY0MDVlZWZlZDhjYWVjMGFhOTk1ZmY1NWNjYmEwNzI0MWY0NTBmMjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgxZmEwZDlkZGUzMmUyZTljOGUxMjQyYmQ4NzllZDJkZTUzZmU4ODg4NzMyYzYxZGIxYWY4NjAwZTcwM2MzZDMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ4ZjY5ZjlhMzFjM2NiYTIyZTE0YjZiZGRkNzM3ZGI4N2MwMDNjOWEzN2VmMGNlYmE5OGZjNmQwNDQ4NDA5YjkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM5MjQ0MTE1ODBkMDJmYzYwODgwOTNhZTgwYTU0OGViZjU4YjE5NWUzYjU5ZmE3M2FmYTUyNGM0OTE0MmFmOTAifQ"
+          "resource": "repo://apps/desktop/src/main/agentRuntime.spec.ts",
+          "version": "repo-file-v1:sha256:d793fb9ccaa38ae99eef94fd9b87a223ab7c26d22bb48b72ef275f791795efc7"
         },
         {
-          "resource": "repo://apps/desktop/src/renderer/screens/EditorScreen.tsx#L433-L554",
-          "version": "repo-lines-v1:sha256:7cffd7205f37d599de51e180fba69a6d3084a2f540538f54442df698f5ba30a1:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIyLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI2NTFhNjllNDg0Mjk5OWQ5NWY4NGQ0MTIzOWU2NTUyYjI4MDIxMzlkZmRjOGNlMjFiYTgxYTg1YTBiOTU1OTJlIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0MmEyY2IyNWExMjJiNDQyMjFhNjIzNGVjNjYwYTdiNWZiN2Y5YmRlN2IzYjllMmIzYzU1OWEwZDk2ZmFjNzM5IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIyODJkZDJlMTkwOWYyZjRlODllMWFkOWE2ZGVhODdkMTgzZjBmZWI0MDQ4NzA1YmUyZWRjODY2ZWVmMWQzZjQ3IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJhOTA2M2JjNWJiY2QzYjBkZTJkNzA2YzQ5MTgwN2IyMTdmMjQ3YzAyYWYzNTYzZmRiYzgzYzQ3OWY2ODhiN2IwIn0"
+          "resource": "repo://apps/desktop/src/renderer/screens/EditorScreen.tsx",
+          "version": "repo-file-v1:sha256:cbd74a7c505e3a389f0a9ab70ed72c729d197c03ded6309a36fb95bb4ca1ac1f"
         }
       ]
     },
@@ -230,11 +226,11 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/renderer/screens/EditorScreen.tsx",
-          "version": "repo-file-v1:sha256:d8b8c09310947611b6d2cc8e71cf9a864124191d9b922547793438d36fe0edd8"
+          "version": "repo-file-v1:sha256:cbd74a7c505e3a389f0a9ab70ed72c729d197c03ded6309a36fb95bb4ca1ac1f"
         },
         {
           "resource": "repo://libs/desktop/feature-agent/src/state/usePatchReview.ts",
-          "version": "repo-file-v1:sha256:256675d5229728b0d28bd56086ddb54b510283e92475fb0a9a914a14094f0750"
+          "version": "repo-file-v1:sha256:d1aeb89ea4e4c8e3875acaf73e540a45b7a7334f204fffcdbc577303cce7bbbd"
         }
       ]
     },
@@ -243,7 +239,7 @@
       "statement": "默认禁用 Pi 内置工具，桌面注入应用工具扩展而非开放直接写文件的内置工具。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/main/agentRuntime.ts#L252-L281",
+          "resource": "repo://apps/desktop/src/main/agentRuntime.ts#L223-L252",
           "version": "repo-lines-v1:sha256:9b4d675a66a789fcc45783f3470a02a5d4b4b0e0e5d492c0f9333f22d1c03c02:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZlODk2MWVmNzg2ZDRlZGUxNTQwZTdiMWE4ZDkwN2Y5N2E1OTFlMzY3MjJhNWFhN2NlMGY4NGMwNDI5MGU0NWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIyZDExY2FmNDNlOTdlZjM2OWU2YmVlZDFhMjY4YmQwNTgzOGYyOWI5ZGQyNTRiZjY5YmE2NDg4NDE0NzIzNGEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNmZDM3YTliNWRlMmM2Yzk2OTg2ZjE4NjEyN2JjZTZhYzM2NThlOTg5NjA2ZWM5ZDAwYWFlMmY2ODMwYjhkMDIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJkMmI0ZDAxYmNkNTI2Y2EzMDE1ZDljNDcwNTI2NjEzMDc0NzZlYzIyZTg5YzE0MDkzODE3NzUyODc2MTVjMmQifQ"
         },
         {
@@ -257,26 +253,26 @@
       "statement": "桌面与 Pi CLI 共用 agentDir 的凭据、模型和设置；选择或重载配置重置模型会话，保留现有项目 transcript 路径。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/main/agentRuntime.ts#L373-L386",
-          "version": "repo-lines-v1:sha256:f513af41a3b2c9089846ab1de80dc6dde67df19f66434996dc806a8e42f3bdf0:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYzOGVlMjE2YzBmYmU4MzMwZjUwM2I1ZTgxNzhkMTZiN2M2NjNiOWZiODQ4NzA2M2JkZTJjNjEwNjJjOTAyZjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmMGNkYjk3MmE3YmZiN2VkMjQ2ZjlmZjY3MjM4NWU1NWY0OTY4ZmMxMTA0M2RjNWI2ODRkNTFkZmEzMWRiY2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzMzJlMjU1NGFmMGJkYTUyMDk5MDNkNTc3NzRjYmQ5ZDg0ZTMwOTIyMmNhOGFhMTdhYjZlNDI2OWJhZWY2NTciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImYxNDZhMzQyZmM0OTMxYzY1Y2I5MWE1ODViZTFjYTc4NWY0NmRhMmQ1NWFmM2ZkYjYwOWNkNzFlNDRhY2UzOTAifQ"
+          "resource": "repo://apps/desktop/src/main/agentRuntime.ts",
+          "version": "repo-file-v1:sha256:a074724b42fb59b6a96a3beec91c705711065f4a49828fde42fe5af161a0e5dc"
         },
         {
           "resource": "repo://apps/desktop/src/main/ai/aiConfigIpc.ts",
           "version": "repo-file-v1:sha256:91e00f6e4f4395ab4f3b3c58e93bd24b7b0467a2c9f9968d52f2ebe3223b4eea"
         },
         {
-          "resource": "repo://apps/desktop/src/main/ai/aiConfigService.ts#L62-L139",
-          "version": "repo-lines-v1:sha256:7112f1b78c2db10ec56326b0625cea1b3a587d612d44889f294feba52d01c152:eyJzZWxlY3RlZExpbmVDb3VudCI6NzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmMGNkYjk3MmE3YmZiN2VkMjQ2ZjlmZjY3MjM4NWU1NWY0OTY4ZmMxMTA0M2RjNWI2ODRkNTFkZmEzMWRiY2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI5ZTdiZDAxZjhkNGRhNWM2YTY2ZGI1OTRmZGVhNWViNDdhMWMzNDc1Y2UwNzllZWU0OTQzNjk0YzZlMmQ2N2EiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjIzMmZiOTY4OTcyMTBlOTVlMzZmYmQ2NzFkYTMxYmE5YTBhMmJlZTU0ZWRlZGViMDI4ODk5MDA0NTVmZmY4YTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBjYjkyNmMwYjhmZmQ4NTFlNjAwMjEyZTJmZTA5YTc1MGUyZGY1Y2ZiNWQ2ZGMzYzg2Zjc4NmMxNWQ5NDI3MzUifQ"
+          "resource": "repo://apps/desktop/src/main/ai/aiConfigService.ts",
+          "version": "repo-file-v1:sha256:4ee2da8b57c7b1a9dab450723caaedb5f19a24549fe7b37a2ec4edf19895cbe9"
         },
         {
-          "resource": "repo://apps/desktop/src/main/main.ts#L70-L90",
-          "version": "repo-lines-v1:sha256:dd87f9dafa33a9510892963b40720eec28370b6f02f94db33458388f3e5d077c:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI0ZTk3NjFkMmM2M2M0NjVmYThlNGExNjA3MzNjZTBiZTg2NjlkMDI3MDE5NjUxZjQ3NTM4ZjZlMGQ3YjU1MWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE5MjVmMmY3OTljYjdhNDg1YjQ0YWNlYTc1ZWNhY2IwZDE2ZmE3YTJkNTQxN2RkNWYyY2U5YTFkMWNiMjY4NGEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY2YmQ4ZmMzMTVhYWY2MGRlODgzYmY5MTY1OTFiOTE4NjU5ZDMzNjAyZjI0NDc5NTk3MWYxOGNlZjE0MDVhMTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc0YmEyZmJjNGE3NDUxN2MzYjNiOWFkMjY0ZGI0ZGM4MGFjMzI5OGIyMDk2YTE3M2I1NWRiYTA2OTJlNzAxM2QifQ"
+          "resource": "repo://apps/desktop/src/main/main.ts",
+          "version": "repo-file-v1:sha256:cf2b9dc0a837b6dacfdd3fea52ff1e7fea4c3ea8987840978dc8d63e194137d3"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.9.0",
-    "at": "2026-11-20T12:30:09.424Z"
+    "at": "2026-11-27T13:29:03.591Z"
   }
 }

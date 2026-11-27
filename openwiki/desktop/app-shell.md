@@ -5,7 +5,7 @@ description: Electron 窗口与 IPC 边界、目录工作区的自动持久化�
 tags: [desktop, electron, ipc, preload, project-store, windows]
 verified:
   - by: openwiki/0.9.0
-    at: 2026-11-24T13:18:19.740Z
+    at: 2026-11-27T13:29:03.591Z
 sources:
   - id: openwiki-source-f85ce0e3a462797434d822a8
     resource: repo://apps/desktop/src/main/agentIpcHandlers.ts
@@ -23,8 +23,6 @@ sources:
     resource: repo://apps/desktop/src/main/livePersistence.ts
   - id: openwiki-source-5d33672c45ec58cd29dce507
     resource: repo://apps/desktop/src/main/main.ts
-  - id: openwiki-source-e8d8a05aad1d7c63bcff6353
-    resource: repo://apps/desktop/src/main/modelSource.ts
   - id: openwiki-source-934367cee5dc2ef07c9fb835
     resource: repo://apps/desktop/src/main/modelWatcher.ts
   - id: openwiki-source-1ea7682f1abe09b6e2edbf92
@@ -49,11 +47,13 @@ sources:
     resource: repo://apps/desktop/src/renderer/state/useEditorSession.ts
   - id: openwiki-source-87e5669496e1e215691f3e0c
     resource: repo://apps/desktop/src/renderer/state/useLiveModelBridge.ts
+  - id: openwiki-source-26d2bfdeaab3b9cf414f5bfe
+    resource: repo://libs/desktop/services/src/modelSource.ts
   - id: openwiki-source-2c4cbeffd18cdc1b75d15ef4
     resource: repo://libs/evidence-model-io/src/adapters/diskAdapter.ts
   - id: openwiki-source-e399a918ad3d695b7f506627
     resource: repo://libs/evidence-model-io/src/workspace.ts
-generated: { by: "pi", at: "2026-11-24T13:07:09.861Z" }
+generated: { by: "pi", at: "2026-11-27T13:29:03.591Z" }
 ---
 
 # 桌面宿主与项目生命周期
@@ -98,4 +98,8 @@ Agent runtime 按规范化 root 绑定唯一 editor owner，关窗释放。补�
 
 projectStore 和 projectIpc specs 保护初始化、磁盘冲突和工作区所有权；modelWatcher specs 保护树的原子写、合批和关闭；livePersistence 和 artifactPipeline specs 验证排队与产物版本。App tests 保护 hash；delivery/ingestion/story/AI IPC specs 通过注入 dialog/service 保护生命周期与取消，integration specs 验证真实树往返。
 
-相关：[renderer 会话](./renderer-state.md) · [源格式](../model/source-formats.md) · [构建资源](../operations/build-and-package.md) · [MCP](../agents/mcp-integration.md)
+## 相关页面
+
+- [系统架构与依赖边界](../architecture/overview.md)
+- [渲染会话、异步布局与实时同步](./renderer-state.md)
+- [工作区、台账与交付](./workspace-surfaces.md)

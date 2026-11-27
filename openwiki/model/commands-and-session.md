@@ -5,7 +5,7 @@ description: Immer recipes、guarded mutators与标准RFC6902如何构成原子�
 tags: [mutations, session, undo, subscriptions, patches, diff, graph, purity]
 verified:
   - by: openwiki/0.9.0
-    at: 2026-11-24T13:07:09.861Z
+    at: 2026-11-27T13:29:03.591Z
 sources:
   - id: openwiki-source-55138c775f581f8c989ca7dc
     resource: repo://apps/desktop/src/main/agentRuntime.ts
@@ -53,7 +53,7 @@ sources:
     resource: repo://libs/evidence-schema/src/ast/jsonPatch.ts
   - id: openwiki-source-f3dd6cff8734842de5630223
     resource: repo://libs/evidence-tools/src/index.ts
-generated: { by: "pi", at: "2026-11-24T13:07:09.861Z" }
+generated: { by: "pi", at: "2026-11-27T13:29:03.591Z" }
 ---
 
 # 受控模型变更、会话与历史
@@ -78,34 +78,14 @@ mutations/下的函数接受draft并原地更新draft，不能拿普通共享源
 
 entity identity的id/type/category不可随update改，rule的id/type/kind/context/target保持；派生目标存在时attribute rename拒绝，不能可靠重写expression。entity删除先枚举所有引用，不cascade则entity.referenced，cascade仅删可安全移除引用；derived attribute移除先处理rule，不能留悬空target。relationship拒绝self与错误plays_role方向。
 
-复合mutators一次写成完整业务结构：createContract连接rootRefs、bindDerivedRule连接rule与attribute、createFulfillmentPair写请求/确认/引用/完成rule并要求mandatory business time。caller在单个session.mutate中组合多个mutator即一批，失败全不提交。
+复合mutators同步写合同root、派生双向或完整履约结构，在一个recipe形成一次历史。证据可不先定责而独立生长，后续可拆分请求/确认、绑定结构化来源、为履约组指定上下文并记录补偿。
 
-证据生长算子先铺可独立保存的凭证，再按事实配对、绑定来源、为同一履约组确定归属，或记录已确认的补偿。`createModelPatch(document,recipe)` 从 guarded recipe 取标准补丁和结果。共享 registry 向 Pi/MCP 提供通用补丁、领域写算子与只读 What-If；算子没有特权写通道，宿主拥有事务和门禁。
+## Agent、MCP与差异对比
 
-## RFC6902边界与安全
+MCP 在 renderer applyPatchBatch，Pi 主进程原子提交、renderer applyCommittedPatch 重放；共享历史，只在真变更后建立 Agent 审阅。diffDomainModels 产生只读差异，支持 patch review 构建 overlay 与一键撤销。自动传感器由已落盘的产物流水线调度。
 
-JsonPatchItemSchema区分add/remove/replace/move/copy/test，strict keys，value须finite acyclic JSON。pointer允许空root或/开头，转义仅~0/~1；解码段拒绝__proto__/constructor/prototype，防原型穿透。ModelPatchRequestSchema还要求非空rationale和至少一op；内部JsonPatchSchema可空。
+## 相关页面
 
-applyJsonPatchMutator先parse+structuredClone，避免freeze或alias调用者value；逐op验证路径只走own JSON members，array index须规范非负安全整数且不越界（不能4294967296被int32转成0、不能01/-1），'-'仅add位置。copy/move验证from，move拒绝移入自身子孙、同path no-op、先remove再按新数组长度解析destination，遵循RFC。用fast-json-patch验证执行，最后DomainModelDocumentSyntaxSchema验证结果。root替换即使先前已写draft，也reconcile回同draft，避免Immer“修改后又返回替代对象”冲突。
-
-`test`适合先验证/ entities/N/id，拒绝过期位置快照。所有op在同produce recipe中，中间test/path/syntax失败全批不提交。合法但静态FM不完整的结果可被默认session接受，随后validate/sensors报告，不应伪称patch成功就是完整绿灯。applyModelPatches只读预览返回副本文档；toJsonPatches转义内部paths，不把Immer格式发到IPC。
-
-## 选择、事件与异常
-
-换document后若selected entity消失清全部selection，若仅selected attribute消失只清attributeName；这些selection-changed可早于document-changed，UI不会编辑不存在字段。graph memo只在文档变动后失效，selection不构造另一图。
-
-三事件是document-changed（commands字段保留但现为label）、history-changed、selection-changed。文档/stack已提交后同步按Set顺序通知，doc event先history，undo/redo label为undo:/redo:。listener不是事务参与者：它抛错可能使调用方看到异常，但编辑已提交且后续listener未被通知，不得解释为回滚。
-
-## 桌面、Agent与读取模型
-
-MCP 在 renderer 校验并 `applyPatchBatch`，返回 op/revision/undoable 与事后诊断；Pi 在主进程校验并准备 forward/inverse patches，只有真实变更提交并发布，renderer `applyCommittedPatch` 重放并保留 before/after 审阅。usePatchReview以当前===after才undo，后续编辑后只关闭，accept不写。
-
-useLiveModelBridge 在 mount 及本地文档更改（含 undo/redo）发布 root/editorId/revision/document/base；选区和提交事务的重放不回发。Prompt 等发布完成后用锁保护活跃编辑轮次。Main 接收递增 revision，保留最初基线并使上一份手动诊断失效。自动传感器由已落盘产物流水线调度；两个版本来源不可混用。
-
-diffDomainModels是只读说明，分Context/业务实体/关系/规则及key-data drift，不是写入口。DomainGraph的indexed lookup/contextPath/rules/fulfillmentPairs是派生read model；pair由显式引用+完成/违约规则定义，canvas和Inspector共用。
-
-## 测试与纯度
-
-session/createModelSession specs保护atomic/no-op/historyLimit/结果snapshot/affectedIds/selection清理、listener与事件顺序；jsonPatches specs覆盖root/move/copy/test、数组/own-path/prototype边界、clone隔离和失败不提交。mutations各family/operators specs保护红线与一次事务；purity.spec以浏览器bundle禁止Node builtins。core可以被renderer/Node工具共用，但文件读写只属于model-io/main。
-
-相关：[renderer](../desktop/renderer-state.md) · [补丁审查](../desktop/ingestion-and-patch-review.md) · [语言](../language/fm-dsl.md) · [源格式](./source-formats.md)
+- [渲染会话、异步布局与实时同步](../desktop/renderer-state.md)
+- [静态门禁、CEL 与样例求值](./checks-and-simulation.md)
+- [模型工作区与源文件](./source-formats.md)

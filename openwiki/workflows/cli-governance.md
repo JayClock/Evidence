@@ -5,7 +5,7 @@ description: evidence 如何从 FM 模型导出 OpenAPI 与 Bruno 集合，对�
 tags: [cli, acceptance, governance, bruno, oasdiff, drift, ci]
 verified:
   - by: openwiki/0.9.0
-    at: 2026-11-25T01:33:08.568Z
+    at: 2026-11-27T13:29:03.591Z
 sources:
   - id: openwiki-source-164e2da859b5277df81c7d94
     resource: repo://.github/workflows/ci.yml

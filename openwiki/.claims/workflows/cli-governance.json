@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:5387571604e21502232d630d3d83cd9b5a9e8547ffb81a90fe1136c0d8f1f832",
+  "pageVersion": "sha256:658ccf5d5d478b5eb5940cca514a18e8147f37dbc39f290571949fd65454a53c",
   "claims": [
     {
       "id": "claim_2e23d63c615949bcbde260388194c88b",
@@ -63,8 +63,8 @@
       "statement": "DoD 可以显式报告 pending，但不能豁免执行错误或 strict drift；write-reports 从单次执行写工作区 JSON/Markdown/JUnit 报告。",
       "evidence": [
         {
-          "resource": "repo://apps/cli/src/commands/test.ts#L96-L154",
-          "version": "repo-lines-v1:sha256:d6c379b093100b7a26a58935c60b881972445c956adb0488ff029644d9170730:eyJzZWxlY3RlZExpbmVDb3VudCI6NTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEyN2UzNWM3MzU1MjYxNWEzYzcxNTY0MGZjOTBiMjI5NDVhMGRhZjhjOTQzYTcxYmJjMGIzZjAxYjVmMjVlNTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA4ODdmODRiOTg5NmE4NDlhMzg4YTRjNjI2NTM4Yjk2Y2IzODBmZjM1NTM0ODg2YzQ4M2JiYWE2MTNlOGVmZjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+          "resource": "repo://apps/cli/src/commands/test.ts",
+          "version": "repo-file-v1:sha256:80620bbe61a4450b690f2ead91d85764b387a2d65e1a69c95ed8a51b5c8dd792"
         },
         {
           "resource": "repo://apps/cli/tests/governance.e2e.spec.ts",
@@ -105,12 +105,12 @@
       "statement": "examples:verify 对多个履约模型运行 export --verify，校验已提交的 OpenAPI 与 Bruno 产物，不重写生成目录。",
       "evidence": [
         {
-          "resource": "repo://.github/workflows/ci.yml#L72-L73",
-          "version": "repo-lines-v1:sha256:97c9082820805df3fb3597777ee61a7aac95059192721408821ca1e0b995a3b8:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMzgwN2RkNDRhY2ZjYzFkYmJiMDA2NDUzOWYyNjBiYmFjODBkMWM2NDZkMGMwOGQzYTAzZDQxZmYwMzI2NjMzNyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZDhjNDU1N2YzOWFlMTFmNTI4MDVkNmVlZDIyNmMzYjk1NjhhZDNmOTZjNmRhY2FlZTgzNTg0ZDc0MGMzN2E2YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiODU2MGE0OWM0YmViNTBhNzE4NTZlMDA1MzJiMzE1MDc4ZWM5OTMxNjY4MTU3ZjcwZmYzZTY2NjMzOTE5MmEzNiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZmUyY2NlMWFkODFlODQyZmJhNGE3NDA0OGNlYzlmOTcxYWNhMWFhMWIxNDMxYzkzN2ViMjBkYmY1ZmJmYzgyZiJ9"
+          "resource": "repo://.github/workflows/ci.yml",
+          "version": "repo-file-v1:sha256:3c6460388d810d40ec85ae619b919bc7d73e7458b32e4a84b190efe0bee3cf8f"
         },
         {
           "resource": "repo://package.json",
-          "version": "repo-file-v1:sha256:f84a2c22acac2b3f6be85de2e51aaf810ba83e49054580ba9a457767a4994085"
+          "version": "repo-file-v1:sha256:8e27e6991e9b87d3a10bb0b56103966a3d60a554c8a1002c4722da7b09ec4a6c"
         },
         {
           "resource": "repo://tools/verify-fulfillment-examples.mjs",
@@ -123,12 +123,12 @@
       "statement": "story --no-ai 从声明的 flow 离线导出领域故事板，解析 basedOn、保留业务时点且按商业要素分组；不调用模型或执行后端。",
       "evidence": [
         {
-          "resource": "repo://apps/cli/src/commands/story.ts#L31-L72",
-          "version": "repo-lines-v1:sha256:29df83248c413585e1a13a839346a80ea90e6dc27c12699ae9478d6a28aef93a:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY2OGNhNTQzMjU5NDAwOGQ4NDgxYjNmZjYxYzRlYzBiZjE1Nzg3ZDllZmNlZTY4ODNjOWNhODE0NTBmMDZmMTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRhOTY2ZjlkODFlOWE4ZThmMDA2NjY2NjQ2ZDBiNWY1MTBiMDhmYjljNGYyMDA4YWQ0MTFjZDNlYjE4YWFiYmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJhZWU1ZjhkOWIyODBjYWU4MTg3NDYzZDAzYTVkMDhjMDcyODZkZGMwZGMwZDllMzQzYWY0NDBjMTkwNmQ0OTEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk2ZmQ5YTRmZWQ5MDNhMzg1NDEyZjcyMWQyN2MzOWNhMTBiMmJmMjMwMTZjMjc3ZTI0NzJjZWNiYjI2MGFkZGYifQ"
+          "resource": "repo://apps/cli/src/commands/story.ts",
+          "version": "repo-file-v1:sha256:e067bf994537ca37c36c4eb862d93637988098a1e81e8d553e4e3795f847b957"
         },
         {
-          "resource": "repo://libs/evidence-agent/src/story/flowStoryProjector.ts#L164-L340",
-          "version": "repo-lines-v1:sha256:b98cee348e3e88673fdda9a859d1f038cf148eae8566cae62f2c7b4aa828d9e7:eyJzZWxlY3RlZExpbmVDb3VudCI6MTc3LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI4MzJhZGZmZmM4Y2ZiYTU0YTQxMThkYjk4MGVhNzQwODkxMDNiZDdlMTJkMWI4ZmQ2YjMzODZhZjc5OGE4MTkxIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI3MDI0ZGRiOTAyZDkwMGFhYTkzNzM4NGE4MjA2NGZlZTdlYzhhNjQxMDIwYmI1OGM3OGY5N2I3ZjM1MGE5OWQ5IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI3NmY0ZTE2N2I3ZDRjMzFmNzM4ZDA2ZmEzMzAxNzgwMjcwY2JmYTQ1MDdmZDc3ZThlMzU0YTM1Mzk3NzU2MzhjIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlNDQzYThkMTU5MzQyYWE0MzBmNDkxYTVmZmI2MGUxNjhkZTg5ODFiYWE3YTgxN2NmOTQ4MTQ0MGVhYmI2YjAwIn0"
+          "resource": "repo://libs/evidence-agent/src/story/flowStoryProjector.ts",
+          "version": "repo-file-v1:sha256:dcfe0d211ab5bf76881269fcae140157eb6385b2ae7aea9e8cd78584a496d54a"
         }
       ]
     },
@@ -137,12 +137,12 @@
       "statement": "CLI 逐步等待 AI 草稿，串行累积已就绪叙事或人工解释；人工解释优先，润色只能覆盖标题和正文。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-agent/src/story/flowStoryProjector.ts#L356-L383",
-          "version": "repo-lines-v1:sha256:b179c1954a0c411d63ba6ed1b76b6fb89b7a9b9b3a8e64a8d48f3c5fdbf40330:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUwMmIwMzlmMzlkNTRhOTJiYThkMmVjODU2OGVhZjJkNGI0N2NhNmQyMzhlZjQ2MDQ5MThjOTk5Y2UzMzg1YWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFhMWQxYTYzMzkwMjI5Yzc5ODM0N2U4M2EwNDA1NDQxYzk0MDAwMzUyODRhZDE2OGMxYmY2Y2RmMWQ3MGEzNzAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY2ZGJkYzgyZmU4YjM0MDc4NmEzODNhNzE0YTJjMjc1MzgwOTY4ZDc0Mjg1OWE5OGIzMmIzM2JjYWVlMDVkYzciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+          "resource": "repo://libs/evidence-agent/src/story/flowStoryProjector.ts",
+          "version": "repo-file-v1:sha256:dcfe0d211ab5bf76881269fcae140157eb6385b2ae7aea9e8cd78584a496d54a"
         },
         {
-          "resource": "repo://libs/evidence-agent/src/story/storyContinuity.ts#L1-L16",
-          "version": "repo-lines-v1:sha256:25894e7896ddc500d2c0e2e6cac6ac709887f5fdfdb527d0bdc5b0a78f647e3a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMxYjdmOTA3OGU5ZTRlMWE0OWRiZDk4MmZiZmIxYWU5ZmVlMzU5NDlhNjhhNTdiN2FiNWE4NGE5ZDcyZTA1MmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJiMTE2N2Y3MDY5MTA3ZTJkYjNkM2Q5MjE5OGI3YjQ4NTM5NzhjYzljNjE4OWRiMzMwOTc4MTU1N2MzMzYyMDkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM3NzNkMTdhZWUxM2NlYTRlNmZkNzVhZGE3NzM0NTYwNjJlZmE4ZWNhYTczNGYyOTFkYzM1ODBlZDkwMTg5MGQifQ"
+          "resource": "repo://libs/evidence-agent/src/story/storyContinuity.ts",
+          "version": "repo-file-v1:sha256:94ca3ce36fc5e330de82e7beaaa62a72ec65e7752577cc94b4807bbfcb83120d"
         }
       ]
     },
@@ -151,12 +151,12 @@
       "statement": "桌面按游标发起单步请求，当前故事就绪后最多预取下一步；游标命中在途预取复用请求，过时请求被取消。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/main/storyIpc.ts#L220-L297",
-          "version": "repo-lines-v1:sha256:99873c569779bd2dab9e6558849e919dd1572462016ce81687916e6dcd6f73d2:eyJzZWxlY3RlZExpbmVDb3VudCI6NzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ1ZGZkMDMxMGU3MjQzNTU3MjI0NTM5MjY4YWY1YWI5YzcxNjU3Yzk0MTE1ZGY2YmUyNmM3MDc2MzAyNTQ3NjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmMGNkYjk3MmE3YmZiN2VkMjQ2ZjlmZjY3MjM4NWU1NWY0OTY4ZmMxMTA0M2RjNWI2ODRkNTFkZmEzMWRiY2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImEzMGM1OGE5MTcwNWFhODYzZTdmZDIzOTJkZGE0ZGNhYzM0YjQwODQ0ZjQ2NzgxZGNjOWI2M2VlYTM3ZmRjMmUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVkNTFhMTAyYmRkYTAxYzZhZTBhYjNiYWExZTllN2E3ZDg0ZDc3Mjg5ZmQ1ZDVjMWIyYjNmNDA4ODIwNGMwYzAifQ"
+          "resource": "repo://apps/desktop/src/main/storyIpc.ts",
+          "version": "repo-file-v1:sha256:a718fe986e66e5d2f9130e81f904027d1465424f074ffcae7405855459173f98"
         },
         {
-          "resource": "repo://libs/desktop/feature-story/src/state/useStoryNarration.ts#L19-L154",
-          "version": "repo-lines-v1:sha256:6cddf033ee24fb59472fc279a5141c7a1254f319a3f94942288806acde0a6d7c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTM2LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI3OGVjYzAzOWU5YmM0NzliYjI4MGUzMDdlM2RjNmIwNGM1MGRlZTA1Nzg4OGU3NDA0ZmYzZWZlYmM5MmU1NDY5IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI5OGY2MTU1Y2NmZjIxZWUzMmJhMTEyYjg4Y2VlMjMyN2I0NzE3YTliZDFjNmM1ODU0NzkyOTNiODNhYjVkNThkIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI2YjQ0MmZhYzgzYzI2Zjg4ODkzOTM4ZWU2MDViODJhNzNlMTIyNDI2NjY3NzBhODk5NDUwZDdkZTkwM2FmNmY1IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIzMmI4ODA3Y2IzYWE3ZTQ3Y2Y3NmIwYjBkMTk0NDU3MTdiYzUwMThmZGNhMTA2NDRjMzFkNjhiNTMwOTg0YmI3In0"
+          "resource": "repo://libs/desktop/feature-story/src/state/useStoryNarration.ts",
+          "version": "repo-file-v1:sha256:e392813fa428325041a54386e4d6cf1a999e14c21a0abafdcbcacfbda8d60bc2"
         }
       ]
     },
@@ -165,22 +165,22 @@
       "statement": "草稿缓存同时匹配本步事实与前情；主进程用当前快照中的人工解释覆盖旧草稿前情，前序编辑后不复用旧前情的草稿。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/main/storyIpc.ts#L72-L110",
-          "version": "repo-lines-v1:sha256:e8fced9188576c0e95749a4fb35021720747df1af83e754b875dfdbe7dc3b74d:eyJzZWxlY3RlZExpbmVDb3VudCI6MzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI1YmNiZWQ3Y2JhMmI3ZDRmZTAxNzI5ZWY2ODgwYTBlZDU1MjEwZjQ5OWMwNzUzNWNiOTU1OWIyOWFlNWViOTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFhMWQxYTYzMzkwMjI5Yzc5ODM0N2U4M2EwNDA1NDQxYzk0MDAwMzUyODRhZDE2OGMxYmY2Y2RmMWQ3MGEzNzAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhmNDlhMTU5Y2FlMTc2NzM0OWM5NGEyMTg4ZDY3NWI1MDRlNTdhZjhjNDk1MzQxNmY3MjhkMmNhYTFlMWNlNzEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdlYTQyMDc5NDc5ZDg2Mjc2OTc0Mzk0ZWY3OGRiNGIxMzVlOTNmNzdjZGRiNDU1ZjZkMmRkMDk4YmI4ODBjZmUifQ"
+          "resource": "repo://apps/desktop/src/main/storyIpc.ts",
+          "version": "repo-file-v1:sha256:a718fe986e66e5d2f9130e81f904027d1465424f074ffcae7405855459173f98"
         },
         {
-          "resource": "repo://libs/desktop/feature-story/src/state/useStoryPlayback.spec.tsx#L214-L248",
-          "version": "repo-lines-v1:sha256:d57c76cc4e96e1d2a15cf761e55ef1ef9927b489f59a8c2a287451b359af19be:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYzOTgzMWJjYWNmYjZmMzliYjgwMjdkMmI3ZjNiYjJmMGQ2MThkMDQzNTVkNGUzNzA1Y2RmZjYzMmE0N2JiNWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjlkMjM2NzM3NjIxZmExZmJlMmFiOThjZDU4YjU0OTMzMjE5YTQ4ZTRlMzhiNTdlY2JiMTNkZDEzNWQwMTUyYTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNiMzU1NmVlNzQwMWFmMDUyMjE2NDAyNGFmMzNkYzBhYjZmYjYyNDg5Y2Q0MjJjZTM0MjFhOWYzNDcwOTYwZjgifQ"
+          "resource": "repo://libs/desktop/feature-story/src/state/useStoryPlayback.spec.tsx",
+          "version": "repo-file-v1:sha256:4086d252e774387cb7fcee4fb3a81dd84c2b124fa79caebcf8116ff11827e198"
         },
         {
-          "resource": "repo://libs/evidence-agent/src/story/storyNarrator.ts#L65-L106",
-          "version": "repo-lines-v1:sha256:8cf6839b57ae4d29dbf4d7643180409d6024332fc4ed556814aa0efebf083159:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY5MDU2NjFjMzEwMzlhNjZlY2ZiNzZkMjNlYmI4OTBjMzI0Mjk2NmI0NjdjNjA3Mzg4MTI3Yjg4YzcyMWI0NjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYwMGNiZGYwZDM0OTMwOGVmNDgwYzVkYWFlYjA4OTJmYThlNzU2MDcwZDVkODg2NGViMmQ3MzgyOTY4NWJmYjIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEzOGZhMmMxZTlhMGUzMzI4YzEwODhlMjUwZWM0N2JiODczMDk5NWQyMjgzN2ViZTBmYWE5NmI4NjA1ZjBmODYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRiOTY0ZDFkZjE4ZThjMDlhNzFlN2E3YzJkZjRlMmQyOWYwMTNmOTZjMDlmNWZlMGM3YjFmOWUxMDg1NDQ2OGMifQ"
+          "resource": "repo://libs/evidence-agent/src/story/storyNarrator.ts",
+          "version": "repo-file-v1:sha256:ec12764bb6a571d94615f9c28dfc880d08134a1b7dae0bb74e210be6542e17cf"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.9.0",
-    "at": "2026-11-25T01:33:08.568Z"
+    "at": "2026-11-27T13:29:03.591Z"
   }
 }

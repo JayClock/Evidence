@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:e108f00de2110cb1431a037eabb50a560155262da3cc2c7f069fc54e120f57ad",
+  "pageVersion": "sha256:2633365ade03e5e453b4d242b387bfd7111e6d0d3548d1f65a6ba3af8fbb404f",
   "claims": [
     {
       "id": "claim_71a034064f924c369c99bf50d91bde55",
@@ -8,15 +8,15 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/main/ingestionIpc.ts",
-          "version": "repo-file-v1:sha256:e4aeb9d09b02c538727fc170403bae43d2baa252a24ec0c216b80f8c19c1578c"
+          "version": "repo-file-v1:sha256:817406481d561e13a072db824a7da4910ef2ee69c59560a724d4f36d4a19da82"
         },
         {
           "resource": "repo://libs/desktop/contracts/src/ingestion.ts",
-          "version": "repo-file-v1:sha256:00c791908f2cfba2ac5ce8cc0f8c2c9ee54e9ca5ae3f0afb11104b5d3efeaf2c"
+          "version": "repo-file-v1:sha256:ad9f8d712b5410cbb252390c2c78b25d2bdc5ad024045f6c52d11b6d83b6cbbe"
         },
         {
           "resource": "repo://libs/desktop/contracts/src/ipc.ts",
-          "version": "repo-file-v1:sha256:ed68dfc9490b28cb60c726a062710b7e51aaec97e5b2af9acd91d1f6c4594c03"
+          "version": "repo-file-v1:sha256:252cc521e2b9788c412911bc7fb15f9bd08374a47ee6b92c2ad493b14262a836"
         }
       ]
     },
@@ -26,7 +26,7 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/main/ingestionModelReader.ts",
-          "version": "repo-file-v1:sha256:a7513eef8653edfc042992c65cbe41bd8043bd92c45e4ab4693d195fd3d537ae"
+          "version": "repo-file-v1:sha256:80322877f68dce209eac5074b69cc2d686ea8558cb2ae82aa36fac0958b4d96a"
         }
       ]
     },
@@ -35,8 +35,8 @@
       "statement": "The ingestion prompt encodes a seven-step reading discipline — split the document into business, domain and legal clauses, find the contract, split the pre-contract context, pair request spans with confirmation instants, read a breach as a new fulfillment pair, separate the thing into the domain context, and extract computed values as calculator or checker things — plus hard constraints against inventing facts, missing provenance, rewriting a legal clause into an obligation, more than two contract roles, using a span as a confirmation, and any output other than JSON.",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-agent/src/prompts/ingestion.ts#L14-L70",
-          "version": "repo-lines-v1:sha256:b4ab3b7ec297e7a3733df75e9e07ac453d4380ececb041204eb7909761c81bc9:eyJzZWxlY3RlZExpbmVDb3VudCI6NTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkzMTFhNDdlNjFhNWEzMDExZmVlOTI2OGNhYjlhMDQ3MzY0YTlkNzc4YmYzMDI4ZjI4Zjk5MGFjYjU3ODExNTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhmY2QwOWJmNmFlMDg0ZTQ2YTk2YWViZGI2ZjZhNjFlZGNkYWM1NzRjNDY2ODA3ZjM1NTMzMWEwZjJhZmY3ZjIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE3MjhlZTY5MGNkNDZhZGFlZTNhNDY2NDM1NTFiY2JmZDEwMGNhN2Y4NTk1MzVhZmU1YjY4OWQwYzkzMGVjNGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQwZDAzOTdkMTU3ODlmYjZhYjllYTZmMzYzODRkZDkxYWU0ZWVhOGZjYmU1OGRjOTM5NWQ4OTdhZTNiMzQ0N2IifQ"
+          "resource": "repo://libs/evidence-agent/src/prompts/ingestion.ts",
+          "version": "repo-file-v1:sha256:4b3a62a34cd65fdc9d9705b8cc52f26cee8fbaa9244d138f395e52e79c330d9e"
         }
       ]
     },
@@ -45,8 +45,8 @@
       "statement": "When the configured model returns an unreadable reply or its call throws, readDraft falls back to the local text-rules reader, labels the result reader 'text-rules', and prepends an issue explaining the fallback instead of returning an empty draft.",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/main/ingestionIpc.ts#L79-L118",
-          "version": "repo-lines-v1:sha256:347ec9d73660237cb52e99ec218349fd9475c0a804b942453f64ecf61438ae37:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5MjZhNjgzNGRlOThjNjMyZjVlZDg3ZWJkY2MyNDhiMzlkYzI5OGFiMGRjOGJjZTE0ZTg0ZTM1NDM2NDk1YzYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdjMDIxNmIxODEzNDc4N2M0ZTJhMjA3NmUzMGMzZGMxZTY4NWExNDgwMWQwMjViMjVhMDNjZjZkODgwZTE0NjEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU3NjAyZTZjY2UzNjZkZTliYzUyM2NhZjczZTMwYjBmNmU0MWE0YmQxOTYzYmQ0N2VmYjU2YWU1ZmYyZDJiYTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUxOTI3MTgxM2E4YzA2NGM5YWYxZDY2NjA1YzJmNzJjNTY0MTU4MTg5MmFiZThjNjlmODYzMGQ5Yzc0MWE0OTYifQ"
+          "resource": "repo://apps/desktop/src/main/ingestionIpc.ts",
+          "version": "repo-file-v1:sha256:817406481d561e13a072db824a7da4910ef2ee69c59560a724d4f36d4a19da82"
         }
       ]
     },
@@ -55,12 +55,12 @@
       "statement": "A model reply is repaired when JSON arrives in a code fence or prose, when a collection is missing, when short evidence kind names are used, when an evidence kind is unrecognised (kept as other_evidence) or when a domainRole is outside the vocabulary (dropped), and each of those repairs is reported; a reply with no JSON, unparseable JSON or a collection whose items lack ids is refused with an error instead.",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-model-core/src/ingestion/readDraftJson.ts#L21-L203",
-          "version": "repo-lines-v1:sha256:7519e54d69a9f8e0a54aafbe4742cb306c5ec303d17cbb751ef96419b1ff241a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgzLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIwMWJhNDcxOWM4MGI2ZmU5MTFiMDkxYTdjMDUxMjRiNjRlZWVjZTk2NGUwOWMwNThlZjhmOTgwNWRhY2E1NDZiIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJhYTFkMWE2MzM5MDIyOWM3OTgzNDdlODNhMDQwNTQ0MWM5NDAwMDM1Mjg0YWQxNjhjMWJmNmNkZjFkNzBhMzcwIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJmNzUxMTMxMjkxZTUzMDg5MzY3ZDc0YWY0Yzk3YmJlYTFiYmEyYjllMDk1ZDUzYzgzZjJlYTkwOTVjN2YwMjFmIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MCwiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1In0"
+          "resource": "repo://libs/evidence-ingestion/src/readDraftJson.ts",
+          "version": "repo-file-v1:sha256:e92f5f661d61108efdd5ac9f550c6a8a8f27694a19e6162b0d5bb56be75ab2cc"
         },
         {
-          "resource": "repo://libs/evidence-model-core/src/ingestion/textExtractor.spec.ts#L155-L226",
-          "version": "repo-lines-v1:sha256:6b488d71327bc76da35be0b0b8fe9c1f39a456a19885bbf6510af4d89cb85a0d:eyJzZWxlY3RlZExpbmVDb3VudCI6NzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg0ZTQyMDhjZDZmZmI4YzRhMzU0N2IyZjU0YWRhMTk5NzhjM2YzNjVlNzhmOTUwMmVmNTE0NWNkZDJhYTg1NDMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRmNmRhYmM2OTAwYjI2ZWFkNWY2Njc2NDgxZWViNWYxZmQxN2M3NDg0Nzc2MTVmZTk4ZjliNjI3MDljNTIyYTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAyNzMxYzcyYTMzNDRiMGNhMmM0MTMxNjNkODZlNDJlNTIwMGFkZmI3NzlmZTRmMGNmYzExNTUxZjZlYWM4OWIifQ"
+          "resource": "repo://libs/evidence-ingestion/src/textExtractor.spec.ts",
+          "version": "repo-file-v1:sha256:1d9c1f2134f519c2e150863742515ff242e5c44fe45a2bf183e4f36c5c5cfb56"
         }
       ]
     },
@@ -69,16 +69,16 @@
       "statement": "The blueprint reader accepts Markdown or CSV tables with stage, activity, evidence, kind, party, thing and system columns matched by alias containment, infers evidence kind and contract side from names, keeps duplicate document names as separate evidences, and reports an unconfirmed request instead of inventing a partner.",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-model-core/src/ingestion/blueprintParser.spec.ts#L109-L140",
-          "version": "repo-lines-v1:sha256:ae25a0657d5cbdfdcc5837dbd3e2f887c866ed79cb65b9d8fea6647dbaa73eed:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRlOTFmYTM0MGIxYzQxZjI3OWM3OTBhNTg2YWY2YTg0NDRkNWFjZDNiN2NlNGRhMzUyMmZjYmM1YmY1MjNjMTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNhM2U0NmY5NDI3NmI2ZjZmNGVkMWYwMmFmNzhiZWY2YTJlZTFjNDM5ZGQ1NTg0Yjk3Mzk0ODMxMzIxNGQyYjciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ5ZjgzMDA5Y2JkMDIxZjczNThjNGM3MzhjMWQxMmRhM2U2NTlkOTkyMDE5N2U0ZGM5ZjI0ZTgwZDAyYzQ0MGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRiOWVkZDI2ZDA4OGJjY2QwNmQ3ZjhhMWU1MjEzYWYwMTQ4ZGU5OTFjZDMzODZmZTkzYjA0YjA5MjVmZDkwOTMifQ"
+          "resource": "repo://libs/evidence-ingestion/src/blueprintParser.spec.ts",
+          "version": "repo-file-v1:sha256:3736aa2c20542819b0e4dd73bcea97d8cbae4664906e53a3f0983dd8b6968118"
         },
         {
-          "resource": "repo://libs/evidence-model-core/src/ingestion/blueprintParser.ts#L10-L52",
-          "version": "repo-lines-v1:sha256:76df9bc730ff9706088d42317ab7bec116b0afb68e5f3b728dcf493223a20b94:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFlNDIwM2JhY2FlMGRhNGJjY2Y3OTMxZTFhMjlkMzc2MTZhYTM5YzdmZTA2NTA3ODdjNmIzYWI3MjNkMWM4OTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVhNjA5M2EyZjVkYjU1MjNjODUxZGQyODVkYjQzN2MzYTE0YjE5NTM5ZDg3OWU0Y2MxZGIyMWE5NTIyYTQ3ODMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE0ODc2YTg4Nzg0NmE1Nzk0MzI2YzZiZjdmNmM4N2UyNDlkMDgzYjk2OTY5OWZkZDU5YWM3ZmYxZWMxYTM2NmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg1ZDUxNzNmZjBhOTk0ODQwMGY3ZTRmOTdlYzg3MGZmMGIzYzdmYmI4MjA3M2UxZWUxNTM1OGMzNGFkMmRmZmEifQ"
+          "resource": "repo://libs/evidence-ingestion/src/blueprintParser.ts",
+          "version": "repo-file-v1:sha256:f51582262c1c06f84f9b599c07fcc2fb375aca27f6c673d07522927b2005d5d6"
         },
         {
-          "resource": "repo://libs/evidence-model-core/src/ingestion/draftAssembly.ts#L60-L120",
-          "version": "repo-lines-v1:sha256:fdcf517c3598f3eee20982d5cd6726e2c44bb5f64cd7d135f5c7af6dd9240a9c:eyJzZWxlY3RlZExpbmVDb3VudCI6NjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE2YWNjZWVlZGFmOWI1YzA0MTM5M2FhOGVjN2E3MWViMTU2ZmMxZjlhOTU3NGU2OTQyYTVhYjE0YTdkOTI1MTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUxZmFiNzg0ZGE2MDE3M2JiMTg2NTcyYTdiNzU1ODQyNjk5OWU3NWQ5OTk0ODdmYjQxMzQ3ZTY5NTU5ZmVjMWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZjMjRhMTEzMTU5ZTg5NGYwMzFhNzY1NmQ2OTFkNjk2ZTIxYmRhNDJhYjAwYzlkY2FiNDljYWRjMGIzZGI5MDMifQ"
+          "resource": "repo://libs/evidence-ingestion/src/draftAssembly.ts",
+          "version": "repo-file-v1:sha256:0757dfe7d670e4518566a196bb64accf63e71f81bcdf3accaa5fe8bbcbda4d76"
         }
       ]
     },
@@ -87,11 +87,11 @@
       "statement": "Compiling a draft re-keys ids uniquely, then computes writability as a monotone fixpoint over contexts, roles, things and evidences: dropping a contract transitively drops the context it rooted and that context's evidences, every removal is reported once, and the compiler never invents a missing role or root.",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-model-core/src/ingestion/compileDraft.ts",
-          "version": "repo-file-v1:sha256:ee7e928d5278ef2c8861ac164c5a2d51a28a0ce2587d04f1abbeddbf6dd62d85"
+          "resource": "repo://libs/evidence-ingestion/src/compileDraft.ts",
+          "version": "repo-file-v1:sha256:bc2840f9a86d09dd17f75be52c0de5d582c6e3b3210af93e2e07a27bcca04a5a"
         },
         {
-          "resource": "repo://libs/evidence-model-core/src/ingestion/draftSupport.ts",
+          "resource": "repo://libs/evidence-ingestion/src/draftSupport.ts",
           "version": "repo-file-v1:sha256:480e22d84e2997abee00ee59c0d75821b1f93a4a5bae55f93bab78e7dc060f8e"
         }
       ]
@@ -101,8 +101,8 @@
       "statement": "编译仅为可写且同合约内的请求与确认生成完成规则；需要有效引用及请求起止、确认时标，否则跳过并报告。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-model-core/src/ingestion/compileDraft.ts#L640-L716",
-          "version": "repo-lines-v1:sha256:5b4b5bd3f9e619866b401689fc30e87a6e4b0a5ba39ad0c9f767f2dff51c3a9f:eyJzZWxlY3RlZExpbmVDb3VudCI6NzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM3OGI2YjQwZjcwMTNhNDM0OGE3ZWVkMmM0ZDE0ODM0NWNhMTdlNDA5OTNlYTJmYjk4MjA3ZTA0ODBhZjQ4M2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVlYmZhYWU1OWEwZTJkNmYwZmMwMGEzZmIzYjYxY2ZhOWIzMjU3ZDA1ODU5MmQ2NGY3NDkwNGQyYzQ1ZDVjODQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZjZjA5MjdhYmRlMGI5NjRkMDNiZDU4MzE3ZGY5NmRlNWQ0OTdjOTMwMzZmMGJmZGI1MzkxNGNhMGU3ZGM0MDkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk1MDMzNTUwYmM3MTBlYzdmZjM0Y2Q5YmNjODhkOTk1ZjM3YzYzYmVjODJiYzg0YjhmNWM4NWU0MGE4N2IyMzkifQ"
+          "resource": "repo://libs/evidence-ingestion/src/compileDraft.ts",
+          "version": "repo-file-v1:sha256:bc2840f9a86d09dd17f75be52c0de5d582c6e3b3210af93e2e07a27bcca04a5a"
         }
       ]
     },
@@ -111,12 +111,8 @@
       "statement": "编译采用用户填写的名称，拒绝零实体；成功通过 project store 写入，返回诊断与草稿布局，并打开 editor。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/main/ingestionIpc.ts#L163-L209",
-          "version": "repo-lines-v1:sha256:f8fe83489357d12e0aed4b43612fc10f71289de3c2ca1a1ca8208a86f4d9fb06:eyJzZWxlY3RlZExpbmVDb3VudCI6NDcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNjMDBmMjUzYmQ3MTFmMzdiNTZiYmEwY2U1MmYzYzZhM2ZkZDQxOTA2NjI3ZGQwMmFlOGZlMTFlOWIxYjc2YmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQyYTJjYjI1YTEyMmI0NDIyMWE2MjM0ZWM2NjBhN2I1ZmI3ZjliZGU3YjNiOWUyYjNjNTU5YTBkOTZmYWM3MzkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRlMjU1MjcxNjk4YjljYmMwMTEwMmQzOTRmNTJiMTA3MmMyMzEwZjg2Njg4MGRjNjEzZmNmYzc1YmYwMWMwNTEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImEzMjBjNzkzOWQwZjU4NDYyMjQzY2MwNTdhOTUxN2I1MGZiNTcwMjdlNTdlZDcyMDI1NDlkYWMxMzlkNTI3ZTYifQ"
-        },
-        {
-          "resource": "repo://apps/desktop/src/main/ingestionIpc.ts#L225-L242",
-          "version": "repo-lines-v1:sha256:b684558f899c16ce2cd564c60f705d918e056092e9342fe9442851eab531f975:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI1OTU1ODg5NmQ5YzA4YTk0NjI0MmNhMjM5ZDg0NjFkYmRiYTk1MGQ0NGI3OWQyNDFmMDcwNGViOGIwYTc1NWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmMGNkYjk3MmE3YmZiN2VkMjQ2ZjlmZjY3MjM4NWU1NWY0OTY4ZmMxMTA0M2RjNWI2ODRkNTFkZmEzMWRiY2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc5ZjRlMWRkNzJkNzI4OWIxMTBjNzMyYTg2NzYxYTMxMzIyNmNlOTU3MDFkYjBhMjA4NDAxZmJjZTBhMWJiNzIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgwMTk2OWE1MTE4NTIxZTk1MzQ5NDI4YzEwNGRlODgwYTk1MWQ4MGIxZDZjYWUwMDI3NGY3Mzk0YTlhMTI5NGUifQ"
+          "resource": "repo://apps/desktop/src/main/ingestionIpc.ts",
+          "version": "repo-file-v1:sha256:817406481d561e13a072db824a7da4910ef2ee69c59560a724d4f36d4a19da82"
         }
       ]
     },
@@ -125,16 +121,16 @@
       "statement": "只有主进程提交的实际变更经重放才能形成 review，记录 op/rationale、contexts/entities diff 和无 ghost overlay。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/main/agentRuntime.ts#L150-L175",
-          "version": "repo-lines-v1:sha256:ca607f3428892fe049a92fa3121526c5417f4ecfc65782e2d98cf7a9dc523053:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjExZGY4N2E0NzMxNmM3MDhjNTUwMjA5OGU5YWY2YzQ0NTM0ZWI4MGJlYWRjZjYwNjMwMjhlZmNhODU5MzdhYmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg0ODY2N2EyNTU1Y2NmNmY2YWU1ZDNhNTBmYjMwMjZjYWFmZmIzYzEzYzQ2OWE5Y2Q4ODc4NTk2YWRlYzhhZDkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEwODUwM2E0NDc1ZTFjYzMxYWJjYWJkOGE4NTUyYjFiOThhNGIzYTNjMjU2MTRlN2RiNzdhNDdhYjZkMGM5YzciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY3YTNiYTU0YTg2MDJhZDFjMTA5OTgyYTAyMTM3ZGYxYzM0ODE1ZjBiMDEzOTMxNWU1NTA1NjYzNjdlNDkzODMifQ"
+          "resource": "repo://apps/desktop/src/main/agentRuntime.ts",
+          "version": "repo-file-v1:sha256:a074724b42fb59b6a96a3beec91c705711065f4a49828fde42fe5af161a0e5dc"
         },
         {
           "resource": "repo://apps/desktop/src/renderer/state/useLiveModelBridge.ts",
-          "version": "repo-file-v1:sha256:f6091dfd73647df1569262179e4e9bea1779baa8a7a02acc5a94586fe09de2e5"
+          "version": "repo-file-v1:sha256:eb3397acf8f3508aeea5928a1479cbe43c5be57d0069dccb01b246f6e5268dc0"
         },
         {
           "resource": "repo://libs/desktop/feature-agent/src/state/usePatchReview.ts",
-          "version": "repo-file-v1:sha256:256675d5229728b0d28bd56086ddb54b510283e92475fb0a9a914a14094f0750"
+          "version": "repo-file-v1:sha256:d1aeb89ea4e4c8e3875acaf73e540a45b7a7334f204fffcdbc577303cce7bbbd"
         }
       ]
     },
@@ -144,11 +140,11 @@
       "evidence": [
         {
           "resource": "repo://libs/desktop/feature-agent/src/components/agent/InlinePatchCard.tsx",
-          "version": "repo-file-v1:sha256:85fa6a66b9f3ba19ba81d3dcf4a83b76642510d0c93205cdc19e9eaf4122b2d7"
+          "version": "repo-file-v1:sha256:d8ecffd4a7b24db69788e38884192dd2200c801971a82ce90022758873fb2897"
         },
         {
           "resource": "repo://libs/desktop/feature-agent/src/state/usePatchReview.ts",
-          "version": "repo-file-v1:sha256:256675d5229728b0d28bd56086ddb54b510283e92475fb0a9a914a14094f0750"
+          "version": "repo-file-v1:sha256:d1aeb89ea4e4c8e3875acaf73e540a45b7a7334f204fffcdbc577303cce7bbbd"
         }
       ]
     },
@@ -158,15 +154,15 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/renderer/screens/EditorScreen.spec.tsx",
-          "version": "repo-file-v1:sha256:7bf8647d29427a267c18405c7ba4a4662ffc21c16acd75bf940ece741e4d821f"
+          "version": "repo-file-v1:sha256:1ad0dde17ee386f308f4246f45554820a2dad8206f0f3b7fda526ebc2a1d9cd5"
         },
         {
           "resource": "repo://libs/desktop/feature-agent/src/state/usePatchReview.spec.tsx",
           "version": "repo-file-v1:sha256:7cfba9509d5de386016da530c064dabf45fca5d88cbdb57d724d29b640eeddec"
         },
         {
-          "resource": "repo://libs/evidence-model-core/src/ingestion/compileDraft.spec.ts",
-          "version": "repo-file-v1:sha256:3f82ec84bfd43180a997a810183507be3468878b140ebdc1ca3c1f922f9fc624"
+          "resource": "repo://libs/evidence-ingestion/src/compileDraft.spec.ts",
+          "version": "repo-file-v1:sha256:11c344f202f6ba3f3e3b6403480ce934e8f41431f42d06fbe09809043b53ae90"
         }
       ]
     },
@@ -175,11 +171,11 @@
       "statement": "Contract annotation files each sentence into exactly one bucket in a fixed order — risk allocation and procedure first, then a business action verb, then a computation — and reports rather than resolves an unclassifiable clause or a clause that is both procedural and obligatory.",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-model-core/src/ingestion/contractAnnotator.spec.ts",
+          "resource": "repo://libs/evidence-ingestion/src/contractAnnotator.spec.ts",
           "version": "repo-file-v1:sha256:1d888c2982f1989af56805149f2c0249de5328293b2c2d3642f073cf29877dc1"
         },
         {
-          "resource": "repo://libs/evidence-model-core/src/ingestion/contractAnnotator.ts",
+          "resource": "repo://libs/evidence-ingestion/src/contractAnnotator.ts",
           "version": "repo-file-v1:sha256:8be64b599b89346c22a3e73de5eb28087b64490b9e6fd44a77f09d9ff276bd43"
         }
       ]
@@ -189,11 +185,11 @@
       "statement": "The contract reader feeds only the business clauses to the offline row reader, turns computing clauses into calculator or checker things rooted in a domain context it writes itself, deduplicates them by label so one noun yields one component, keeps each clause as the component's provenance, and reports a formula it cannot name instead of inventing a calculator.",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-model-core/src/ingestion/contractReader.spec.ts",
+          "resource": "repo://libs/evidence-ingestion/src/contractReader.spec.ts",
           "version": "repo-file-v1:sha256:d4756280d31d5f70baab52c5f27403f39fac3ddce45e368d496418a041e8c97b"
         },
         {
-          "resource": "repo://libs/evidence-model-core/src/ingestion/contractReader.ts",
+          "resource": "repo://libs/evidence-ingestion/src/contractReader.ts",
           "version": "repo-file-v1:sha256:396ae6c4600f7cc9421e50cf84808bde655cae8139b6b8042ce9ea72491f318a"
         }
       ]
@@ -204,7 +200,7 @@
       "evidence": [
         {
           "resource": "repo://libs/evidence-schema/src/ingestion/draft.ts",
-          "version": "repo-file-v1:sha256:4e56daab2b7f9038b628b42526347ac6f6a96f2d6d65c46f05086bbd01dc2793"
+          "version": "repo-file-v1:sha256:ddf5f7126d2983727279d3f4f00de3aa500f0bdaea492b8f854f9eb7a8ee85b7"
         }
       ]
     },
@@ -213,8 +209,8 @@
       "statement": "摄取审阅展示 reader、实体及履约对计数、缺口和条款，可改 label/kind 或移除凭证；选择目标并提交之前不写模型。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/renderer/components/ingestion/DraftReviewPanel.tsx",
-          "version": "repo-file-v1:sha256:9ca785679da2adb69d68b2d7768d44c3017a110c15a4dd87c1c521f0a47ef7a9"
+          "resource": "repo://libs/desktop/feature-ingestion/src/DraftReviewPanel.tsx",
+          "version": "repo-file-v1:sha256:157a3f31416f29d17951efe3208776a672d11b126e98917d3e3be3d5a18eb057"
         }
       ]
     },
@@ -223,8 +219,8 @@
       "statement": "renderer 合并已提交事务推送和 prompt 回执，去重并按 revision 重放，通过 applyCommittedPatch 并入人类编辑的撤销历史。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/renderer/state/useLiveModelBridge.ts#L61-L145",
-          "version": "repo-lines-v1:sha256:bdc1be5eecee106641249c904d7cca3991e328f5ad6d8909d81660bcc768c3db:eyJzZWxlY3RlZExpbmVDb3VudCI6ODUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY5YjE5ODJlOGRkNzQ4MTE4MTQ2YjM5YTJkMDA2MmY0MDgxZTM0Nzc5Yjg2NzVjMjM0YzRmYjEyNGRjMzkzOTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI5NzhlMjUwM2I4Y2YzN2EwNmY3ZDZmMGEzYTZiNmZlMzU2OTFmYmNhYjUwYjg3NzVjYWI2ZmFiYzcxYzU5MmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFmYTQ4NWZlMTAyZDU3YzY0NTMwZDVkYTIwOGNjOGY1N2Q5ZDBkMTEwNzZlNzZmZmQ3NjYzZTI4OGIzYzRmN2MiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkwYWZhYmEyN2M4MTJjMDQ2NzEwZmZhNzk2Y2FlNjBiOGY2NTc1MjM0YWQ2ZWQzZTEyODJhOGQ1OTZlMTAyYTIifQ"
+          "resource": "repo://apps/desktop/src/renderer/state/useLiveModelBridge.ts",
+          "version": "repo-file-v1:sha256:eb3397acf8f3508aeea5928a1479cbe43c5be57d0069dccb01b246f6e5268dc0"
         },
         {
           "resource": "repo://libs/evidence-model-core/src/session/createModelSession.ts",
@@ -238,7 +234,7 @@
       "evidence": [
         {
           "resource": "repo://libs/desktop/feature-agent/src/state/usePatchReview.ts",
-          "version": "repo-file-v1:sha256:256675d5229728b0d28bd56086ddb54b510283e92475fb0a9a914a14094f0750"
+          "version": "repo-file-v1:sha256:d1aeb89ea4e4c8e3875acaf73e540a45b7a7334f204fffcdbc577303cce7bbbd"
         },
         {
           "resource": "repo://libs/evidence-model-core/src/session/createModelSession.ts",
@@ -251,12 +247,12 @@
       "statement": "仅存在 pending review 时由 editor shortcut 接管 Escape/Mod+Enter；Escape 的回退先于普通 typing guard，接受不修改模型。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/renderer/screens/EditorScreen.tsx#L647-L684",
-          "version": "repo-lines-v1:sha256:4a7f90a2682229e1bee8af21ec6536da8834e54a46453564b47cba87d26ad5f8:eyJzZWxlY3RlZExpbmVDb3VudCI6MzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk1ODRlMmVlZWE3YTBmZWZmZTUxOGEyN2IwMWRmN2IyMmYzNGM2OGYzYjVmOGVjY2U3MDM5ZTIwOGY2NGFjYzYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjliNjhhNzMzNzQxY2E0N2JkZmE0MWUyMjliZDlkMjZmYmM2Mzg2NDQzYjkzNWNkNjhiYzk3ZmJmNjc1OGM2MTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImYzMjE0NTAxNGIzN2Q3ZTJmMjljZWZlYWVkODc5MjE3ZmRiNzkyNzJkNDY3OTlkOWMxNTc5MThkZWE2M2M3YTciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkwZWFiMmQ4Yjg4MGUyMjQ1OWQ5MTk4Y2IyYTZlOWZjM2ZmODI5MjQ5MGE5NWQwMzZlZDM1NmVmNjRhNTk5MmUifQ"
+          "resource": "repo://apps/desktop/src/renderer/screens/EditorScreen.tsx",
+          "version": "repo-file-v1:sha256:cbd74a7c505e3a389f0a9ab70ed72c729d197c03ded6309a36fb95bb4ca1ac1f"
         },
         {
-          "resource": "repo://apps/desktop/src/renderer/state/useEditorShortcuts.ts#L139-L170",
-          "version": "repo-lines-v1:sha256:183b58af81c95fb6ca01a659555bf6c258f3625ef116f9c11103befe6da0da0d:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjliNjJmNjBkODU5MGE1NzljZjQ2ZjhkNjczNzhjNGM1NzJiOTYyY2VjY2RiOTBjN2E1ZjdiNDJiOTYwNzgyYTQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE3YzMxMWYwN2RlNjc1M2Q5MTMyNDg1ODQzMTY0NjFhYzYxZDQ3NDk5MmQ2NWQ0MzY1N2FjNjdmZTNmM2U4ZDciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA0ZDkwMWExMGFjZTQ3ZTg2YTlmOWVlMzQ4YjBhNjI0MDIyYTc5ZTFhODhiODhlNDU4ZWM2ZTNmMjk2MzMwM2QifQ"
+          "resource": "repo://apps/desktop/src/renderer/state/useEditorShortcuts.ts",
+          "version": "repo-file-v1:sha256:958bfac8b5e6b443528b7dfae0e19e364aaea17582af8383724d9f276dbcc600"
         }
       ]
     },
@@ -265,15 +261,15 @@
       "statement": "协议 reader 保存 sourceDocument 全文与条款字符范围；对象仅在唯一精确匹配时关联 clauseIndex/provenance，编译器将文档持久化为 manifest.sourceDocument、元素来源持久化为 entity.sourceSnippet。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-model-core/src/ingestion/compileDraft.ts",
-          "version": "repo-file-v1:sha256:ee7e928d5278ef2c8861ac164c5a2d51a28a0ce2587d04f1abbeddbf6dd62d85"
+          "resource": "repo://libs/evidence-ingestion/src/compileDraft.ts",
+          "version": "repo-file-v1:sha256:bc2840f9a86d09dd17f75be52c0de5d582c6e3b3210af93e2e07a27bcca04a5a"
         },
         {
-          "resource": "repo://libs/evidence-model-core/src/ingestion/contractAnnotator.ts",
+          "resource": "repo://libs/evidence-ingestion/src/contractAnnotator.ts",
           "version": "repo-file-v1:sha256:8be64b599b89346c22a3e73de5eb28087b64490b9e6fd44a77f09d9ff276bd43"
         },
         {
-          "resource": "repo://libs/evidence-model-core/src/ingestion/contractReader.ts",
+          "resource": "repo://libs/evidence-ingestion/src/contractReader.ts",
           "version": "repo-file-v1:sha256:396ae6c4600f7cc9421e50cf84808bde655cae8139b6b8042ce9ea72491f318a"
         }
       ]
@@ -283,14 +279,14 @@
       "statement": "摄取可从本地文件装入原文，再走与粘贴内容相同的草稿入口。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/renderer/components/ingestion/IngestDraftModal.tsx#L115-L151",
-          "version": "repo-lines-v1:sha256:a48eb224301c8255d28a478335df12eec1355db383c59a800efb1d93e2d16beb:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZlMDEwMzViZGFkOTg0ZGZhNmE2MjcyNjU3NDMxNTVmYmYyZTUyY2I5YmUyY2EyMjcxM2I3NzI3MDA2NTk4NDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFkMDNiM2IyNjVlNmEyZDdlMmQwMDQ0ZTNkN2QzZTg3OTY3ZTEzZWQ5NjE5ZDgzZDViNGFmYmRjMmYwMmFlOTEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNlYjY0ODRhMjQyODUzOGUzM2FjZGZjZTBhNGNmMGZhNjQ2NTgxZDAzMmE3NDk4NmJhNGY1ZTc5YmU4YjFkMTUifQ"
+          "resource": "repo://libs/desktop/feature-ingestion/src/IngestDraftModal.tsx",
+          "version": "repo-file-v1:sha256:61ed460ca679fc45faa5152e3b8b8abdd063f11a6a0d121573590b311f27f673"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.9.0",
-    "at": "2026-11-20T12:30:09.424Z"
+    "at": "2026-11-27T13:29:03.591Z"
   }
 }

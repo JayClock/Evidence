@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:afd6ee04b1e2a5386e398b83fbdc0648c43f5f9c34a24923ca8257dec641d402",
+  "pageVersion": "sha256:96ee115eb134f9201316f868a12eb64ad75574e572d64241707508c2b92b4914",
   "claims": [
     {
       "id": "claim_fe4254228849474d93ef6b6f97e17914",
@@ -8,7 +8,7 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/renderer/screens/EditorScreen.tsx",
-          "version": "repo-file-v1:sha256:d8b8c09310947611b6d2cc8e71cf9a864124191d9b922547793438d36fe0edd8"
+          "version": "repo-file-v1:sha256:cbd74a7c505e3a389f0a9ab70ed72c729d197c03ded6309a36fb95bb4ca1ac1f"
         }
       ]
     },
@@ -21,8 +21,8 @@
           "version": "repo-file-v1:sha256:204b7e193c4098b1e42e7c7b470e0484a159e26ffc452c947413d0a912f11111"
         },
         {
-          "resource": "repo://apps/desktop/src/renderer/screens/EditorScreen.tsx#L945-L999",
-          "version": "repo-lines-v1:sha256:6338be508a8bb1ab9b550f34717e62242b11206547114797f7cfb6f7ca828b81:eyJzZWxlY3RlZExpbmVDb3VudCI6NTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJiNTIwNzA4NDU5OWEwZWJiZGZkNzMyNWRkNDkwMjc3ZTA0ODY2MTQyNjE4N2ZjOWY3MWEyNWVkOTNlNWY5YjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZiYWNlYzNhZTI5ODEzNjVjYzgwM2ZiOTE5MWU1OTFiMWMyNTc4NTE4YmI0Nzg5MjJmMjU2ZjVhYjc2N2E4ZDkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQyMDg1OWU1MDM4ODA5OTdlM2E4NTdhZjJiYThmZGJmMTkwNThlNjk3Mzc3ZjRmOGZmMTEzZmIyOGUwODhkMGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU3ZWY3YzdiMzVlYWZmYzM1YjFkNjMwYWM1YTMzMDBmYjhmMDFlODExOWU2OWE0OGRlZTUyYjg4ZjU1ZTNmMTIifQ"
+          "resource": "repo://apps/desktop/src/renderer/screens/EditorScreen.tsx",
+          "version": "repo-file-v1:sha256:cbd74a7c505e3a389f0a9ab70ed72c729d197c03ded6309a36fb95bb4ca1ac1f"
         }
       ]
     },
@@ -31,8 +31,8 @@
       "statement": "导轨在中央切换实体表与画布、切换底部问题面板、打开对象目录。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/renderer/state/useWorkspaceLayoutState.ts#L58-L111",
-          "version": "repo-lines-v1:sha256:5911dcff638e8357ce0d020f59b6701f38b2eb010b39aa5442ea3863ee07a1a3:eyJzZWxlY3RlZExpbmVDb3VudCI6NTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhmMDc1YTkzNjA5ZjgyNmQwNzFlZGJmMjhiYzlmMTQ1OWE1MDhlZGM2N2M3NzY1YzJmZjA4MDU2Mzc0NjhjMzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE2ZTQ2N2U4MTI3ZDg5YjFiNWVkMWU3NmM1Nzk1OWFhYmM1NmYxNDA2MWQ4MjgwNDMwMWIzN2U4MGEwN2YxYjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA0MmFlNDEyN2EzZDQ4NzNkZjRlYTQyMTI1YzZmYzU0NDVlZTA3Y2ZlNGViMTNhZmJlN2U2YWNjOGFiODdlMjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI2YWUxY2M0MTc5ZTVjN2Y3MWJlYzA0NmI3NjlhYjA5NDA0MWM2OGY2ZDcyMGU2MTI0MDgwMDNhOWYwMjMzNGEifQ"
+          "resource": "repo://apps/desktop/src/renderer/state/useWorkspaceLayoutState.ts",
+          "version": "repo-file-v1:sha256:32adc879bfff70ff5d0008170141d40a6e03bd88b25cdbf44bf941f7cb288c74"
         }
       ]
     },
@@ -42,11 +42,11 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/renderer/screens/EditorScreen.tsx",
-          "version": "repo-file-v1:sha256:d8b8c09310947611b6d2cc8e71cf9a864124191d9b922547793438d36fe0edd8"
+          "version": "repo-file-v1:sha256:cbd74a7c505e3a389f0a9ab70ed72c729d197c03ded6309a36fb95bb4ca1ac1f"
         },
         {
           "resource": "repo://apps/desktop/src/renderer/state/useWorkspaceLayoutState.ts",
-          "version": "repo-file-v1:sha256:fe40d7c6918cd2d50f8ed0a7fdb56def6861b75fabf4b4cc1ded5dcc224a08b8"
+          "version": "repo-file-v1:sha256:32adc879bfff70ff5d0008170141d40a6e03bd88b25cdbf44bf941f7cb288c74"
         }
       ]
     },
@@ -56,11 +56,11 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/renderer/screens/EditorScreen.tsx",
-          "version": "repo-file-v1:sha256:d8b8c09310947611b6d2cc8e71cf9a864124191d9b922547793438d36fe0edd8"
+          "version": "repo-file-v1:sha256:cbd74a7c505e3a389f0a9ab70ed72c729d197c03ded6309a36fb95bb4ca1ac1f"
         },
         {
           "resource": "repo://apps/desktop/src/renderer/state/useWorkspaceViewMode.ts",
-          "version": "repo-file-v1:sha256:7ecf809f06e3cc5d45c3e20f852ee92f8e7341976a4b0798587931e5ea0a9756"
+          "version": "repo-file-v1:sha256:63a681bc1bb057908a9fa5eddc66f639487d9d7f0a3a26e110bb52480b977d78"
         }
       ]
     },
@@ -70,7 +70,7 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/renderer/screens/EditorScreen.tsx",
-          "version": "repo-file-v1:sha256:d8b8c09310947611b6d2cc8e71cf9a864124191d9b922547793438d36fe0edd8"
+          "version": "repo-file-v1:sha256:cbd74a7c505e3a389f0a9ab70ed72c729d197c03ded6309a36fb95bb4ca1ac1f"
         }
       ]
     },
@@ -83,12 +83,12 @@
           "version": "repo-file-v1:sha256:6dbbe6aa1f6375603364de67897acf0aba46cb809c4eebbfe3a61af4f907218f"
         },
         {
-          "resource": "repo://apps/desktop/src/renderer/state/commandRegistry.ts#L69-L81",
-          "version": "repo-lines-v1:sha256:e5ecc560bc5b12a1ee1bee6447f302f2ddb4908d0c2bb3a74c6148cbfdfc4e17:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE2YzUyMDQ1MDViNzYyYWM4NWY2NDRlYjcwOTBhZDJjMGE3MjdjM2Q1NmNmM2Y2MmEyOWZhNDNiMWU1OGIzZDEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE3NGVlOGE4ZDFhYTg0NTM5MWJjNjc5ZWI3MGNlN2Y0NmEzY2Q2ZmIyZDE2ZmNjYTY3ZmExNzhmNGY4YzFlMGUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNjMzAwMzUyYWUyZjI3NGRlOTU0MWNiYzAxYmI0MTJlZWViMmM4NzdiYzg4MDFhZjhjYjI2MDFlZDA2ZDk3M2UiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY2Y2JjNTFhMDMwMzRlM2EwNmNkMzgwOTY2ZWYyOGFiNjdiMDk2MDcwM2I5YTk2ZWNlNjgxMGMzMDg4ZGQ2YmQifQ"
+          "resource": "repo://apps/desktop/src/renderer/state/commandRegistry.ts",
+          "version": "repo-file-v1:sha256:54f757b683d115eafbefdbaa68840722c8c92fa5b266ba356275f81a257770e4"
         },
         {
-          "resource": "repo://apps/desktop/src/renderer/state/useWorkspaceLayoutState.ts#L25-L32",
-          "version": "repo-lines-v1:sha256:646fc57df1aa2aaa705df1193c791fbf44d23e11931456d5af478ff842c2a09f:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNmRhNjhjZjIxYWZhNDIwZjgzYmE5MDRlN2ZjMzM0NDA1Zjg0ZmQ0NWI0ZjVlNTk5YTIzNTRjNjllNjA5ZGZjMyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNWRmMmExMTJmNzQzZWVjMGFjYzNkZTI0MWYwMTJmMzNhMmQ1ZmJiYzFjZmQ1ZGI4ZjkwNmFlY2I0YzQwMzg4MSJ9"
+          "resource": "repo://apps/desktop/src/renderer/state/useWorkspaceLayoutState.ts",
+          "version": "repo-file-v1:sha256:32adc879bfff70ff5d0008170141d40a6e03bd88b25cdbf44bf941f7cb288c74"
         }
       ]
     },
@@ -98,11 +98,11 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/renderer/state/useEditorShortcuts.ts",
-          "version": "repo-file-v1:sha256:3e1ea2c1bcaba98595c0f884d7058aecc8c49dfbec1bac971058f02b6aa975ff"
+          "version": "repo-file-v1:sha256:958bfac8b5e6b443528b7dfae0e19e364aaea17582af8383724d9f276dbcc600"
         },
         {
           "resource": "repo://apps/desktop/src/renderer/state/useWorkspaceLayoutState.ts",
-          "version": "repo-file-v1:sha256:fe40d7c6918cd2d50f8ed0a7fdb56def6861b75fabf4b4cc1ded5dcc224a08b8"
+          "version": "repo-file-v1:sha256:32adc879bfff70ff5d0008170141d40a6e03bd88b25cdbf44bf941f7cb288c74"
         }
       ]
     },
@@ -111,12 +111,12 @@
       "statement": "useEditorShortcuts returns immediately when the keydown event is already defaultPrevented, implementing the rule that a surface which consumed a key owns it instead of having the workspace act on it as well.",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/renderer/state/useEditorShortcuts.spec.tsx#L29-L49",
-          "version": "repo-lines-v1:sha256:f2c4218c29254b0b543972f911576580b1a8cd3eddb631014464b3c29d175463:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY0OGVjODQ3ODZjZDIyMzM3NDYzMzUwMzhhMDI2NjZjOTlhNDdhOGU1NDdhNTRlZmJhYTRhYzVlMzQ5MDkwMDciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFhNjI1MzY1ZGE5Yzc1ZTUyM2U1NzliN2M5NGFkMzY4OThiY2FiNjNhNjViNTgzMTExN2QyMmQxOWE2M2ViNWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM1NmRjZTJlOTE2ZTNkMWUyNTU3M2Y2NGZkZTA3YjdiNjRiOTA3YTFlYjZhNWNmMTdhZDNmZThjM2E4MGM5YjIifQ"
+          "resource": "repo://apps/desktop/src/renderer/state/useEditorShortcuts.spec.tsx",
+          "version": "repo-file-v1:sha256:6df36994175a23b6847aa06a124af5477bce79a9a19c7c87829e41c490dc9337"
         },
         {
-          "resource": "repo://apps/desktop/src/renderer/state/useEditorShortcuts.ts#L58-L63",
-          "version": "repo-lines-v1:sha256:59c2aa3dc74b60c4466da846baef50028777a99f07a7804d4fdee4acd16dfde3:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTcyZDhhZDRiYTY0ODMwN2Y4MmNmMGQ3YjM4MzM1NzAyYTAzZjM1NjMyODlkMmZlNmVhMWI3Zjk3ZjQyNGU1NCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOWI2MmY2MGQ4NTkwYTU3OWNmNDZmOGQ2NzM3OGM0YzU3MmI5NjJjZWNjZGI5MGM3YTVmN2I0MmI5NjA3ODJhNCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYmU5NDhiYThkMDBlYjRjMGQyM2I5OWVmNWVjYTc2YmUyYWMyMTNjNTAwNzI2OTA5MDM0MGQ2OTNiNDE3Y2Q0NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDg3ZDA3YjFlMDZkNmIxOTNjZTQ2YjMwZjUzZTBmZGEyNTRlZWVjMzlmZDQxZTY0MWE5Y2MxOWI0ZDg1OTA3YSJ9"
+          "resource": "repo://apps/desktop/src/renderer/state/useEditorShortcuts.ts",
+          "version": "repo-file-v1:sha256:958bfac8b5e6b443528b7dfae0e19e364aaea17582af8383724d9f276dbcc600"
         }
       ]
     },
@@ -125,12 +125,12 @@
       "statement": "编辑器 Escape 先由开放的 Storming 处理，再由待审补丁处理；Mod+Enter 仅在有审阅且不处于输入或对话框时接受。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/renderer/screens/EditorScreen.tsx#L647-L685",
-          "version": "repo-lines-v1:sha256:cdfa93224c7df2e9f2c0ee5aa75ac26d37d2916037e5f18d79700a8410852bf7:eyJzZWxlY3RlZExpbmVDb3VudCI6MzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk1ODRlMmVlZWE3YTBmZWZmZTUxOGEyN2IwMWRmN2IyMmYzNGM2OGYzYjVmOGVjY2U3MDM5ZTIwOGY2NGFjYzYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU0NTY3MDA4NzZlN2RlMTVjYWFmZDg5YTIyYjFmYmY4MWRiNWQwMGYyMTVkZjA4MmM0MTcwZmIyYTNjMTUxNzQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImYzMjE0NTAxNGIzN2Q3ZTJmMjljZWZlYWVkODc5MjE3ZmRiNzkyNzJkNDY3OTlkOWMxNTc5MThkZWE2M2M3YTciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRlMDFlZjcwNWMxZmRlMDcxYzZhZmZjN2ZlM2U5Y2E5ZWIxNDZlZGFlZmY0ZWYwOTQ3NjA2OWRlOWFjMTY5NTgifQ"
+          "resource": "repo://apps/desktop/src/renderer/screens/EditorScreen.tsx",
+          "version": "repo-file-v1:sha256:cbd74a7c505e3a389f0a9ab70ed72c729d197c03ded6309a36fb95bb4ca1ac1f"
         },
         {
-          "resource": "repo://apps/desktop/src/renderer/state/useEditorShortcuts.ts#L139-L170",
-          "version": "repo-lines-v1:sha256:183b58af81c95fb6ca01a659555bf6c258f3625ef116f9c11103befe6da0da0d:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjliNjJmNjBkODU5MGE1NzljZjQ2ZjhkNjczNzhjNGM1NzJiOTYyY2VjY2RiOTBjN2E1ZjdiNDJiOTYwNzgyYTQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE3YzMxMWYwN2RlNjc1M2Q5MTMyNDg1ODQzMTY0NjFhYzYxZDQ3NDk5MmQ2NWQ0MzY1N2FjNjdmZTNmM2U4ZDciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA0ZDkwMWExMGFjZTQ3ZTg2YTlmOWVlMzQ4YjBhNjI0MDIyYTc5ZTFhODhiODhlNDU4ZWM2ZTNmMjk2MzMwM2QifQ"
+          "resource": "repo://apps/desktop/src/renderer/state/useEditorShortcuts.ts",
+          "version": "repo-file-v1:sha256:958bfac8b5e6b443528b7dfae0e19e364aaea17582af8383724d9f276dbcc600"
         }
       ]
     },
@@ -140,11 +140,11 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/renderer/state/useEditorShortcuts.spec.tsx",
-          "version": "repo-file-v1:sha256:85c2922f74ff293e1af5b0c6da2196181becbaa093edc39a7cc01810d72f41e3"
+          "version": "repo-file-v1:sha256:6df36994175a23b6847aa06a124af5477bce79a9a19c7c87829e41c490dc9337"
         },
         {
           "resource": "repo://apps/desktop/src/renderer/state/useEditorShortcuts.ts",
-          "version": "repo-file-v1:sha256:3e1ea2c1bcaba98595c0f884d7058aecc8c49dfbec1bac971058f02b6aa975ff"
+          "version": "repo-file-v1:sha256:958bfac8b5e6b443528b7dfae0e19e364aaea17582af8383724d9f276dbcc600"
         }
       ]
     },
@@ -153,8 +153,8 @@
       "statement": "检查器字段台账以 capture Escape 关闭自己并阻止传播，不清除画布选区。",
       "evidence": [
         {
-          "resource": "repo://libs/desktop/feature-inspector/src/inspector/KeyDataLedgerSheet.tsx#L82-L104",
-          "version": "repo-lines-v1:sha256:a9bc033304c3f1cd3552c993e05e891fe160fcfb0bb1e5506bc668b5c76ca9fc:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU0YTFiMjU5YjA0OGI2MWExNDk2Y2JjOGM3NjEwMzcwMmRiZDJmZTVhZTVhMDZiMDNjY2I4Y2Q3M2I3M2EzZGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU3MjE2ZThlOWMwYTFhNjhkMDZjMmZiYWE1ZmQyMTM5NDgyYjhlZmQwYTE5MzE1YjkxNWU2Y2NlODQ5ZDg5ZGMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE4ZjE5ZTgyMDNhNTMwN2ViN2QyYjQxMzZjY2JlYzU0N2MzMzgxOGQ5NzUyZDViZjE4OTIyMmJmM2Y0ZTg3NTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBhMzViMzg4MDVkZjBiOTUyMGY5MTkzY2U0ODM5MTI5ZjVlYmE3NGU0NWI1YmU1ZGVjMTQ4YzNhNTY2NGQ1OGMifQ"
+          "resource": "repo://libs/desktop/feature-inspector/src/inspector/KeyDataLedgerSheet.tsx",
+          "version": "repo-file-v1:sha256:0871883c3ccb630a308267b1348e657d7e1c5f1001c0018a2cc91925338ec58a"
         }
       ]
     },
@@ -164,11 +164,11 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/renderer/screens/EditorScreen.spec.tsx",
-          "version": "repo-file-v1:sha256:7bf8647d29427a267c18405c7ba4a4662ffc21c16acd75bf940ece741e4d821f"
+          "version": "repo-file-v1:sha256:1ad0dde17ee386f308f4246f45554820a2dad8206f0f3b7fda526ebc2a1d9cd5"
         },
         {
           "resource": "repo://apps/desktop/src/renderer/screens/EditorScreen.tsx",
-          "version": "repo-file-v1:sha256:d8b8c09310947611b6d2cc8e71cf9a864124191d9b922547793438d36fe0edd8"
+          "version": "repo-file-v1:sha256:cbd74a7c505e3a389f0a9ab70ed72c729d197c03ded6309a36fb95bb4ca1ac1f"
         }
       ]
     },
@@ -178,7 +178,7 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/renderer/screens/EditorScreen.tsx",
-          "version": "repo-file-v1:sha256:d8b8c09310947611b6d2cc8e71cf9a864124191d9b922547793438d36fe0edd8"
+          "version": "repo-file-v1:sha256:cbd74a7c505e3a389f0a9ab70ed72c729d197c03ded6309a36fb95bb4ca1ac1f"
         }
       ]
     },
@@ -192,7 +192,7 @@
         },
         {
           "resource": "repo://apps/desktop/src/renderer/state/commandRegistry.ts",
-          "version": "repo-file-v1:sha256:f69302b55483d9e3148b994149d8acb1d21d5947ecad87afa16435fe21b596c7"
+          "version": "repo-file-v1:sha256:54f757b683d115eafbefdbaa68840722c8c92fa5b266ba356275f81a257770e4"
         },
         {
           "resource": "repo://apps/desktop/src/renderer/state/useCommandRegistry.ts",
@@ -209,8 +209,8 @@
           "version": "repo-file-v1:sha256:6dbbe6aa1f6375603364de67897acf0aba46cb809c4eebbfe3a61af4f907218f"
         },
         {
-          "resource": "repo://apps/desktop/src/renderer/screens/EditorScreen.tsx#L774-L824",
-          "version": "repo-lines-v1:sha256:211f7654f9008381c44227825d14ae1c7ae7490a3e3849e9a4934b6ab2428a90:eyJzZWxlY3RlZExpbmVDb3VudCI6NTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjllMDNhYjM2MjViOWYzOTQ0MmJlOTkyN2JmOTQzMWQwOTllNmY1YjBmMjhjMTc4YjQwZmNlYzljYTNmYjVlYjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ3ODYzZTM5Mjk5NzExNDk4ZDhlNzNjYmIzYTk3YjQzM2RiNWUyZTY1YWIwNTEyYTJiNTQ1NmJiMWUzNTFlZGEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhhOThiYWZkODc4YWJkMTJhNWExNjUyNzAxZWY3NjQ1ZGQyOWJhOWM0OWNlYTFkMmUyYWE1ZDUzZmQ3OGFlMzAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJlY2Y3NDk1OTgzZGFiYjIwMjUxYzkzYzBkZTc5MDRhYTA1OWE4ODNhZGFiZDc0NjM5YzgzNDYxNjJlNWFhMDUifQ"
+          "resource": "repo://apps/desktop/src/renderer/screens/EditorScreen.tsx",
+          "version": "repo-file-v1:sha256:cbd74a7c505e3a389f0a9ab70ed72c729d197c03ded6309a36fb95bb4ca1ac1f"
         }
       ]
     },
@@ -219,12 +219,8 @@
       "statement": "EditorScreen replaces the entire workspace with a message screen when the project path is missing or projects.open fails, and renders a role=alert strip between the header and the studio while live model sync is failing, rather than letting either failure hide inside the studio.",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/renderer/screens/EditorScreen.tsx#L126-L152",
-          "version": "repo-lines-v1:sha256:037fe0cef8f68712b1472f543c0a8d4574cb05692c4946487bc3f87816d8f47d:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdmZjUwYmE5YzJmODRjMjAyYzk3NDU3NmU0N2VmOGRkNDY0N2FmYWM5ZTNlZWI4MzgwZTBlZGZjNmY4NWE1ZTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk1ZWYwMWJjMDhkYmMzYjYzZTRlNzVlYTNkMjZhNWI5NDE4OTE4NzdlMjdhZDg5MTMyOWM4NDExZDdkOGRjNGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU4ZmRiNWU2NTVmY2Q2Yjc5NThjZTlmOTNhMGM1ZjRjMzRlODIxOWQ4NjNjMTJhNGMwMzgyNzQxMjg3MjAyODAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU4YTQxYzBlMzlmODRmYjVkZTAxN2RjMmQyZjBlZTY3MzIwZWE5MmQxMGJiMTRkMzQxZDE1OWY2ZTA0YmY5ODIifQ"
-        },
-        {
-          "resource": "repo://apps/desktop/src/renderer/screens/EditorScreen.tsx#L956-L958",
-          "version": "repo-lines-v1:sha256:efa2a54adfb3ac4e52b19c18a02ab034a9bf802361a3052e9b41a9146beb09ad:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZDhjNjIxZDliMzZmZmZmYjZjZDdjM2RiZmQ3MGZjZmMzNTJiY2NjMjAxOGI5YjRhMjZiZGZkNjQ0OWRmNzNmMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiM2VmODYwZDJmMGZhMWMwYzMxMmNhZDBiNDE1M2Y3MWM4OGI3ZjdmMmQ2MTZlNDk0OTAwMzc2ZDU1YmE4MTU0MyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzBkNDFmNjhhOWU4MmYzZDZhMjY0NmY3OTA5Yzk4YWIyODFmNjhhYzE2OGRlNDhiMGJjZWYyZDNhNDAyNDFiYyJ9"
+          "resource": "repo://apps/desktop/src/renderer/screens/EditorScreen.tsx",
+          "version": "repo-file-v1:sha256:cbd74a7c505e3a389f0a9ab70ed72c729d197c03ded6309a36fb95bb4ca1ac1f"
         }
       ]
     },
@@ -233,8 +229,8 @@
       "statement": "检查器字段台账在有实体时可以 Alt+L 打开，由检查器绑定而非工作区快捷键处理。",
       "evidence": [
         {
-          "resource": "repo://libs/desktop/feature-inspector/src/RightInspector.tsx#L147-L231",
-          "version": "repo-lines-v1:sha256:da2fa3dd614fbf97c78c2408e432033811f87a8fc08985e4a8b1d278c280b45a:eyJzZWxlY3RlZExpbmVDb3VudCI6ODUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVjZDkxNTljZjFkOTc5ZDM1YzUzY2JiNGNlMDgwODViMWRiMGMwODZiMDI4NzhlNzYxOGZhNzMwZjIwNmI0ZjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMyZDk5OGI0OTc5Yzk3MjBiYTRlNzdiOTc3MGNmZWUxM2UwNGFlODBlOWFhZWY0YzZjMzFkOGFkNzY2YTBmNWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk3YWZjZTE2OGNmNjdiZWMzNDhkZmNhMjMzNjg2YWIxMzE3MmU5MDhlOTEzOGFhYzdiY2ZiNDAwZTgyYmZmNmYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM4MmNjZTlmZTdjYTdjZWUxYjM2Nzc5ZWU0YjkzMWRlOWZkZTBjNmEyMmJhYTAwMzRlYTQ5MzFkNjYyZGMzY2YifQ"
+          "resource": "repo://libs/desktop/feature-inspector/src/RightInspector.tsx",
+          "version": "repo-file-v1:sha256:cef4241fd8ca1806e2560864ee5d6af9968d8275a3ef3f05d002ca0965802000"
         }
       ]
     },
@@ -244,11 +240,11 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/renderer/screens/EditorScreen.tsx",
-          "version": "repo-file-v1:sha256:d8b8c09310947611b6d2cc8e71cf9a864124191d9b922547793438d36fe0edd8"
+          "version": "repo-file-v1:sha256:cbd74a7c505e3a389f0a9ab70ed72c729d197c03ded6309a36fb95bb4ca1ac1f"
         },
         {
           "resource": "repo://libs/desktop/feature-story/src/state/useStoryPlayback.ts",
-          "version": "repo-file-v1:sha256:75fa5b750c56a7cd79c161ac3061887b31dd21505da94a242952ea35f49df6be"
+          "version": "repo-file-v1:sha256:a829ea0052be6a0224330dac61053e8d5ba0e46c967898299c2f15c5be616c80"
         }
       ]
     },
@@ -257,18 +253,18 @@
       "statement": "中央实体表只读投影 live 模型，按类别与查询过滤，CSV 输出当前筛选结果。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/renderer/components/ledger/useEntityLedger.ts",
-          "version": "repo-file-v1:sha256:b061e51c26580d5d3844ad97151db2c10058c71330a746afe636025fc0132093"
+          "resource": "repo://apps/desktop/src/renderer/screens/EditorScreen.tsx",
+          "version": "repo-file-v1:sha256:cbd74a7c505e3a389f0a9ab70ed72c729d197c03ded6309a36fb95bb4ca1ac1f"
         },
         {
-          "resource": "repo://apps/desktop/src/renderer/screens/EditorScreen.tsx#L875-L889",
-          "version": "repo-lines-v1:sha256:c3fe50ef05d3c14d60901f7619652f444976f8ef28cb714887ae8d52d304160e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM1ZjM0NTRjMjg2YWU1MzQ3YzYxOGM2OWViZWQzODAwN2IxZTJkYTc5MTQ2MTJjY2MzN2Q0MjIzZmMzYjU1YmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVmZjQzZDhmMWRhNzAxZGU2M2VhYWI4YmRhMWVmNzBlMzM3YWVjYTg0YjkwYzNkYTA2ODllOTY1NGIwYTI3YzgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJlZDdiNWE4MTM3OWU0MjlmMWZiOTUxZDYzYWM1ZjRlYTg3NDU5N2FmNmE3N2I4ZmI1OTQwZTYxZDA4YTIxYTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgwYjU2MjM3MGY1NzZlN2U5YjE5MThkMThkZmJkZTFkOWM0N2U2YzM2Mzc3NjgzNzNiNjZmMGU1ZDFkNGNmZWEifQ"
+          "resource": "repo://libs/desktop/feature-ledger/src/useEntityLedger.ts",
+          "version": "repo-file-v1:sha256:b061e51c26580d5d3844ad97151db2c10058c71330a746afe636025fc0132093"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.9.0",
-    "at": "2026-11-20T12:30:09.424Z"
+    "at": "2026-11-27T13:29:03.591Z"
   }
 }

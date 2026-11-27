@@ -5,7 +5,7 @@ description: 桌面如何加载共享 Pi 配置、隔离项目会话、投影流
 tags: [agent, pi-sdk, session, tools, prompts, desktop]
 verified:
   - by: openwiki/0.9.0
-    at: 2026-11-20T12:30:09.424Z
+    at: 2026-11-27T13:29:03.591Z
 sources:
   - id: openwiki-source-f85ce0e3a462797434d822a8
     resource: repo://apps/desktop/src/main/agentIpcHandlers.ts
@@ -25,10 +25,10 @@ sources:
     resource: repo://apps/desktop/src/main/main.ts
   - id: openwiki-source-9459ee1a8fc917f2d94619ce
     resource: repo://apps/desktop/src/renderer/screens/EditorScreen.tsx
-  - id: openwiki-source-120084d825f111cc158d4202
-    resource: repo://libs/desktop/feature-agent/src/state/useAgentSession.ts
   - id: openwiki-source-0c662531e68a2db936eccc7f
     resource: repo://libs/desktop/feature-agent/src/state/usePatchReview.ts
+  - id: openwiki-source-7a0b15a3630b87606c30c54f
+    resource: repo://libs/desktop/feature-agent/src/state/usePiConversation.ts
   - id: openwiki-source-9d54a30ae7fe8603951dd3dd
     resource: repo://libs/evidence-agent/src/browser.ts
   - id: openwiki-source-1c67fed1db077d0e39bb80ad

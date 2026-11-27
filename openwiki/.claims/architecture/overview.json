@@ -1,18 +1,18 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:e467e0ac0e83591c7a7e6f8faa7a8ae0d6449d1fa8c2d2e2a907432e01da35cc",
+  "pageVersion": "sha256:15235512ecdbbaa95f054a56eab622db3e4b8c707ea9d6bcfe96037b6b07cf01",
   "claims": [
     {
       "id": "claim_164af37c15bd455a9db772d5a23f1eed",
-      "statement": "工作区有 desktop 和 cli 两个应用、九个 evidence 库和八个 desktop 库；CLI 是独立组合宿主。",
+      "statement": "工作区有 desktop 和 cli 两个应用、十二个 evidence 库和十四个 desktop 库；CLI 是独立组合宿主。",
       "evidence": [
         {
           "resource": "repo://docs/workspace-layout.md",
-          "version": "repo-file-v1:sha256:3dceacc63fbf9300a2bc9ff8650e61ad082fa2119435a718a200594d96484d21"
+          "version": "repo-file-v1:sha256:f68bd16841d07cc7f054d3fa54d7957e92e725f181290353122010be8816514a"
         },
         {
           "resource": "repo://tsconfig.json",
-          "version": "repo-file-v1:sha256:3257d896fda47807b116943d63128d511195c8fc7030e2270e731b8fc799bb3b"
+          "version": "repo-file-v1:sha256:a5d993f399e263ff54f37ecd403817c47fdec144362bd7251c2ef4a29c013100"
         }
       ]
     },
@@ -36,7 +36,7 @@
       "evidence": [
         {
           "resource": "repo://libs/evidence-model-core/package.json",
-          "version": "repo-file-v1:sha256:a3f0e2640edbb8eb597180d691bb41999be62899307d3d9600ede8fc2b1b5f66"
+          "version": "repo-file-v1:sha256:475792a753e2df22951d854601c8bcda0c24921d8ae1637415e3127b2fe08cfd"
         },
         {
           "resource": "repo://libs/evidence-model-io/package.json",
@@ -64,7 +64,7 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/main/main.ts",
-          "version": "repo-file-v1:sha256:d170366a26f53a383031af51e9f3e9d427af7a32b16ad468d2fbdaee4f300f13"
+          "version": "repo-file-v1:sha256:cf2b9dc0a837b6dacfdd3fea52ff1e7fea4c3ea8987840978dc8d63e194137d3"
         },
         {
           "resource": "repo://apps/desktop/src/renderer/state/useEditorSession.ts",
@@ -82,7 +82,7 @@
         },
         {
           "resource": "repo://libs/evidence-acceptance/package.json",
-          "version": "repo-file-v1:sha256:d0302309652bebf606c7656d7e2d113247dc77bb77398a8079b6ad3cd8377ba1"
+          "version": "repo-file-v1:sha256:b8320a3654e7f9d80e389ba31def30f6a912824c7d04d623d9b8489761f5e2f7"
         }
       ]
     },
@@ -118,7 +118,7 @@
       "evidence": [
         {
           "resource": "repo://eslint.config.mjs",
-          "version": "repo-file-v1:sha256:a6e31878842bb2472aaed2802e9d8746f59424cac61ff2eb702ec1e6de0299ed"
+          "version": "repo-file-v1:sha256:042980a9908b852c07d867288208bc929b5901d2be4eb093529bcffcf39376c9"
         }
       ]
     },
@@ -128,11 +128,11 @@
       "evidence": [
         {
           "resource": "repo://eslint.config.mjs",
-          "version": "repo-file-v1:sha256:a6e31878842bb2472aaed2802e9d8746f59424cac61ff2eb702ec1e6de0299ed"
+          "version": "repo-file-v1:sha256:042980a9908b852c07d867288208bc929b5901d2be4eb093529bcffcf39376c9"
         },
         {
           "resource": "repo://tools/workspace-rules/boundary-drill.mjs",
-          "version": "repo-file-v1:sha256:ba5e79dcdcb03ef2b8bd00a9c24d761f81769cd7d3de6a1320f9aee1bc77291a"
+          "version": "repo-file-v1:sha256:44636012da3674946ad8327e86b365afb203654413d6503e2ca2a9df418f0907"
         }
       ]
     },
@@ -160,11 +160,11 @@
       "evidence": [
         {
           "resource": "repo://libs/evidence-agent/src/browser.ts",
-          "version": "repo-file-v1:sha256:ad0fc6a21785b330f14a1c41fde06885d36372a87f6f4418d4a1f3c1ef344d09"
+          "version": "repo-file-v1:sha256:e9754372688b58abb9160b98403e808b4df2afe8e6fe59abe9f255b21e5db42a"
         },
         {
           "resource": "repo://libs/evidence-agent/src/index.ts",
-          "version": "repo-file-v1:sha256:8d39bb73443ee03de15d3f9fc5f50993a77b300e135c2ee9a626cd96577b891a"
+          "version": "repo-file-v1:sha256:0fa614c4b9e295743b196e9be94143e7c698a1623e5749a1fbcfbdb5ab2c4f6a"
         }
       ]
     },
@@ -174,15 +174,15 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/main/agentRuntime.ts",
-          "version": "repo-file-v1:sha256:e173b42a06c3c38a7b8c48e0a5e344fb9818d9e07b6330fcd1cb2403b6844c2f"
-        },
-        {
-          "resource": "repo://apps/desktop/src/main/mcpRequestHandler.ts",
-          "version": "repo-file-v1:sha256:ecc2f247f50f826bb1f902441b46089d47aa4384e9def330e37fa8a9602a35e4"
+          "version": "repo-file-v1:sha256:a074724b42fb59b6a96a3beec91c705711065f4a49828fde42fe5af161a0e5dc"
         },
         {
           "resource": "repo://apps/desktop/src/renderer/state/useLiveModelBridge.ts",
           "version": "repo-file-v1:sha256:eb3397acf8f3508aeea5928a1479cbe43c5be57d0069dccb01b246f6e5268dc0"
+        },
+        {
+          "resource": "repo://libs/desktop/services/src/mcpRequestHandler.ts",
+          "version": "repo-file-v1:sha256:c9fa660d16ab89bf1c4d8b429ab05145e0bbce520bbae460005047d4ea15942a"
         }
       ]
     },
@@ -192,7 +192,7 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/main/main.ts",
-          "version": "repo-file-v1:sha256:d170366a26f53a383031af51e9f3e9d427af7a32b16ad468d2fbdaee4f300f13"
+          "version": "repo-file-v1:sha256:cf2b9dc0a837b6dacfdd3fea52ff1e7fea4c3ea8987840978dc8d63e194137d3"
         }
       ]
     },
@@ -201,18 +201,18 @@
       "statement": "gate 要求 FM check v6 的一致性/完整性/有效性、输入未变和 scope 覆盖，API 另需 fresh 投影/摘要匹配。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-agent/src/sensors/native/nativeStageGate.ts",
+          "resource": "repo://libs/evidence-agent-sensors/src/sensors/native/nativeStageGate.ts",
           "version": "repo-file-v1:sha256:f25f4914a0cd3004fe4189df48644f81da67c0d257ce9c526a447c361d96a3ac"
         },
         {
-          "resource": "repo://libs/evidence-agent/src/sensors/sensorsEngine.ts",
+          "resource": "repo://libs/evidence-agent-sensors/src/sensors/sensorsEngine.ts",
           "version": "repo-file-v1:sha256:125e51caa2d7c21c1c118453849ed9104953b0d6f4cd24e5087a4b11b333cc51"
         }
       ]
     },
     {
       "id": "claim_7a6fe659906343718c5dda31b182ac6c",
-      "statement": "根 tsconfig 引用十七个库及 CLI；桌面有自己的 typecheck 和 Forge targets。",
+      "statement": "根 tsconfig 引用二十六个库及 CLI；桌面有自己的 typecheck 和 Forge targets。",
       "evidence": [
         {
           "resource": "repo://apps/desktop/project.json",
@@ -220,7 +220,7 @@
         },
         {
           "resource": "repo://tsconfig.json",
-          "version": "repo-file-v1:sha256:3257d896fda47807b116943d63128d511195c8fc7030e2270e731b8fc799bb3b"
+          "version": "repo-file-v1:sha256:a5d993f399e263ff54f37ecd403817c47fdec144362bd7251c2ef4a29c013100"
         }
       ]
     },
@@ -230,11 +230,11 @@
       "evidence": [
         {
           "resource": "repo://docs/workspace-layout.md",
-          "version": "repo-file-v1:sha256:3dceacc63fbf9300a2bc9ff8650e61ad082fa2119435a718a200594d96484d21"
+          "version": "repo-file-v1:sha256:f68bd16841d07cc7f054d3fa54d7957e92e725f181290353122010be8816514a"
         },
         {
           "resource": "repo://libs/evidence-acceptance/package.json",
-          "version": "repo-file-v1:sha256:d0302309652bebf606c7656d7e2d113247dc77bb77398a8079b6ad3cd8377ba1"
+          "version": "repo-file-v1:sha256:b8320a3654e7f9d80e389ba31def30f6a912824c7d04d623d9b8489761f5e2f7"
         },
         {
           "resource": "repo://libs/evidence-tools/package.json",
@@ -256,7 +256,7 @@
         },
         {
           "resource": "repo://apps/cli/src/router.ts",
-          "version": "repo-file-v1:sha256:3ba75dcdd18e4b4bf904a3db79841c21fdf4bb5378f894a18d404bc82436069a"
+          "version": "repo-file-v1:sha256:19eb4c44fe7bb5c21edd795d6c14b40e914c11ed1eb0c246d4d60bb3f6a83dfe"
         }
       ]
     },
@@ -266,11 +266,11 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/main/artifactPipeline.ts",
-          "version": "repo-file-v1:sha256:d1cbdb5f289ec9f96c3a3501650a0f467d5a232075c97dc7b202403184ba992f"
+          "version": "repo-file-v1:sha256:a7c3c50c909300b602a8d8dc0c624205ba7a26d2995fb61b276aebee3ab358b1"
         },
         {
           "resource": "repo://apps/desktop/src/main/deliveryProjection.ts",
-          "version": "repo-file-v1:sha256:cc1627123f087fa7ba2511abc25f0a40b15b01b08062c4fe99ad50721633bf7e"
+          "version": "repo-file-v1:sha256:137519b639f5f0422a71757d1cd865ceabdb0334948f5cbfea7c1fe5e7b3f5a8"
         }
       ]
     },
@@ -287,6 +287,6 @@
   ],
   "verification": {
     "by": "openwiki/0.9.0",
-    "at": "2026-11-24T13:18:19.740Z"
+    "at": "2026-11-27T13:29:03.591Z"
   }
 }

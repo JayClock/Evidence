@@ -5,7 +5,7 @@ description: Node/pnpm/Nx工具链、显式oasdiff准备、source条件与层边
 tags: [build, packaging, nx, pnpm, eslint, boundaries, electron-forge, ci, openwiki]
 verified:
   - by: openwiki/0.9.0
-    at: 2026-11-24T13:07:09.861Z
+    at: 2026-11-27T13:29:03.591Z
 sources:
   - id: openwiki-source-164e2da859b5277df81c7d94
     resource: repo://.github/workflows/ci.yml
@@ -59,7 +59,7 @@ sources:
     resource: repo://tools/workspace-rules/boundary-drill.mjs
   - id: openwiki-source-df1e4d0dc0a35c64fd0e652b
     resource: repo://tsconfig.base.json
-generated: { by: "pi", at: "2026-11-24T13:07:09.861Z" }
+generated: { by: "pi", at: "2026-11-27T13:29:03.591Z" }
 ---
 
 # 构建、打包与维护
@@ -98,20 +98,8 @@ build 直接 electron-forge package，输出.vite/out，不等全部lib build因
 
 Forge 使用 asar 打包；Vite分别main/preload/main_window。APPLE_ID存在才sign/notarize，无凭据可本地打包；makers为Windows Squirrel、mac ZIP、LinuxRPM/DEB。无skill tree/virtualenv，项目不会覆盖随包指令。
 
-## 根命令与CI
+## 相关页面
 
-pnpm build/test/lint为nx run-many；graph、boundaries:drill、desktop/package/make/test:desktop是薄wrapper。`pnpm evidence` 与 `evidence:inspect`、`evidence:export`、`evidence:diff` 指向 `apps/cli/dist/cli.js`；先执行 `pnpm nx build cli`。没有根typecheck script，直接nx run-many -t typecheck。
-
-CI（main push/PR、Node 22、frozen lock）：安装依赖并检查工作区 `bru --version` → `api:setup` → `example:setup` → `example:test` → drill → PR affected lint 或 push 全量 → 全 typecheck/tests → build CLI 并检查 help/version → 只读核验示例的 OpenAPI + Bruno 产物 → build Desktop。桌面release tag v*.*.* /manual，mac arm64/x64、win x64、linux x64矩阵，Linux装rpm/fakeroot/dpkg，Forge make后收zip/exe/nupkg/RELEASES/deb/rpm，Apple secrets可选。
-
-## OpenWiki维护是可恢复流程
-
-.github/workflows/openwiki-update.yml 当前仅手动 workflow_dispatch，定时更新已暂停，全历史checkout供base diff；独立npm安装OpenWiki0.9.0（可选mermaid/jsdom），DeepSeek的OpenAI-compatible endpoint/flash模型，运行openwiki code --update --print。不是pnpm依赖，也不是源修改后本地自动hook。
-
-workflow对生成步骤continue-on-error，非取消时清transient .run.json并以openwiki、AGENTS、workflow及存在的CLAUDE建PR；即使失败也保存已完成页面，再最后传播失败，让下一次按页面baseline继续。`.last-update.json` 若标记 interrupted，说明尚有未复核债务，不是完整更新证明。不要手改claims/index/log/provenance；host lifecycle顺序begin→plan→逐页read/research/write/submit→next complete→finish，以finish complete为完成依据。
-
-## 常见排错
-
-missing module先查source条件/是否build；CLI dist不存在先build cli；native diff缺失先api:setup或匹配EVIDENCE_OASDIFF_BIN；main import.meta.url错误查Node平台；hoisted下漏依赖靠lint非installer；OpenWiki只更新一部分查看interrupted和队列，不直接重置账本。
-
-相关：[架构](../architecture/overview.md) · [桌面](../desktop/app-shell.md) · [测试](../testing/verification-strategy.md)
+- [系统架构与依赖边界](../architecture/overview.md)
+- [快速开始与任务导航](../quickstart.md)
+- [测试边界与验证策略](../testing/verification-strategy.md)

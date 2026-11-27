@@ -5,7 +5,7 @@ description: 目录工作区发现、模型源树语法、读写与字节摘要�
 tags: [workspace, files, serialization, digest, model-io, cli]
 verified:
   - by: openwiki/0.9.0
-    at: 2026-11-24T13:07:09.861Z
+    at: 2026-11-27T13:29:03.591Z
 sources:
   - id: openwiki-source-52a825b501b0001cef1b2ecc
     resource: repo://apps/cli/src/commands/check.ts
@@ -17,8 +17,8 @@ sources:
     resource: repo://apps/desktop/src/main/projectIpc.ts
   - id: openwiki-source-7d6301f8bedb09df7ce20329
     resource: repo://apps/desktop/src/main/projectStore.ts
-  - id: openwiki-source-eb29c98cfa71901c2675a7e4
-    resource: repo://libs/evidence-agent/src/sensors/native/modelSources.ts
+  - id: openwiki-source-13f52fb4800dd579eb332cd6
+    resource: repo://libs/evidence-agent-sensors/src/sensors/native/modelSources.ts
   - id: openwiki-source-38e18c58a2be3089edddbc1a
     resource: repo://libs/evidence-model-core/src/adapters/modelSourceFiles.ts
   - id: openwiki-source-36b616eafb8331e3eddb8d31
@@ -39,7 +39,7 @@ sources:
     resource: repo://libs/evidence-model-io/src/workspace.ts
   - id: openwiki-source-52858d6130375e8776a048e7
     resource: repo://libs/evidence-schema/src/ast/document.ts
-generated: { by: "pi", at: "2026-11-24T13:07:09.861Z" }
+generated: { by: "pi", at: "2026-11-27T13:29:03.591Z" }
 ---
 
 # 模型工作区与源文件
@@ -66,4 +66,9 @@ CLI 默认从当前目录向上寻找最近的 `.evidence`，不跨 Git 边界�
 
 构建 CLI 后使用 `evidence inspect --json` 查看模型统计，`evidence check --scope <context>` 检查模型和交付范围。`compile` / `lineage` 校验后写到 `.evidence/derived/`。`workspace.spec.ts` 保护初始化与发现边界，modelRoot 和磁盘适配测试保护源文件选择、幂等写入和外部文件；桌面 projectStore/projectIpc 测试保护冲突检查。
 
-相关：[语言](../language/fm-dsl.md) · [桌面存储](../desktop/app-shell.md) · [会话](./commands-and-session.md) · [CLI 工作流](../workflows/cli-governance.md)
+## 相关页面
+
+- [FM v6 语言与严格契约](../language/fm-dsl.md)
+- [桌面宿主与项目生命周期](../desktop/app-shell.md)
+- [受控模型变更、会话与历史](./commands-and-session.md)
+- [统一 CLI 与双门禁验收工作流](../workflows/cli-governance.md)

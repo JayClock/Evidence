@@ -5,7 +5,7 @@ description: FM check v6 如何分开一致性与scope完整性，native cel-js�
 tags: [validation, check, cel, examples, traceability]
 verified:
   - by: openwiki/0.9.0
-    at: 2026-11-24T13:07:09.861Z
+    at: 2026-11-27T13:29:03.591Z
 sources:
   - id: openwiki-source-52a825b501b0001cef1b2ecc
     resource: repo://apps/cli/src/commands/check.ts
@@ -19,10 +19,10 @@ sources:
     resource: repo://apps/desktop/src/renderer/state/useSensorsState.ts
   - id: openwiki-source-74d7b554a01c3f371dc93772
     resource: repo://libs/desktop/feature-story/src/state/journeyPreview.ts
-  - id: openwiki-source-9ad3f46aa18e9c002bf6f482
-    resource: repo://libs/evidence-agent/src/sensors/sensorReport.ts
-  - id: openwiki-source-4e8476923f1a3d656f3339cf
-    resource: repo://libs/evidence-model-core/src/cel/transientSandbox.ts
+  - id: openwiki-source-2da2689c8b8685a06790cacd
+    resource: repo://libs/evidence-agent-sensors/src/sensors/sensorReport.ts
+  - id: openwiki-source-cf9d5eba427ed358972cd1da
+    resource: repo://libs/evidence-cel/src/transientSandbox.ts
   - id: openwiki-source-7f610f2a7e2a332dd6249f23
     resource: repo://libs/evidence-model-core/src/scenario/scenarioStudio.ts
   - id: openwiki-source-39aee7c17098a6b50b3614f9
@@ -39,7 +39,7 @@ sources:
     resource: repo://libs/evidence-schema/src/ast/documentSemantics.ts
   - id: openwiki-source-f3dd6cff8734842de5630223
     resource: repo://libs/evidence-tools/src/index.ts
-generated: { by: "pi", at: "2026-11-24T13:07:09.861Z" }
+generated: { by: "pi", at: "2026-11-27T13:29:03.591Z" }
 ---
 
 # 静态门禁、CEL 与样例求值
@@ -66,7 +66,7 @@ readyScope重建同一scope并校验v6报告的一致/完整/有效、无errors/
 
 ## 原生CEL是解析与求值权威
 
-celEvaluator以@marcbachmann/cel-js Environment(unlistedVariablesAreDyn=true)直接parse，CompiledCel暴露native ParseResult/AST及可重复evaluate。native错误保留range/cause；isCelBuiltin排除内建常量/namespace，identifiers通过scoped walker排除宏局部变量。
+celEvaluator（位于 `libs/evidence-cel`）以@marcbachmann/cel-js Environment(unlistedVariablesAreDyn=true)直接parse，CompiledCel暴露native ParseResult/AST及可重复evaluate。native错误保留range/cause；isCelBuiltin排除内建常量/namespace，identifiers通过scoped walker排除宏局部变量。
 
 Timestamp输入按declared type变Date，Duration与UnsignedInt使用native类型。int/uint为精确bigint，不走double中间态；celValueToJson把safe整数变number，**较宽整数变精确十进制string**，Date/Duration/bytes/Map/容器递归归一化。validateTypedValue允许safe number或在int64/uint64范围的exact decimal string；拒绝unsafe number、越界/格式错误，而不是拒绝所有大于JS安全范围的合法CEL整数。
 
@@ -74,7 +74,7 @@ native scoped AST也用于属性lineage与Inspector诊断，many macro/shadowing
 
 ## 瞬态样例oracle
 
-evaluateRuleOnExample(model,rule,{bindings,asOf})无Node I/O，不读环境时钟，不加载scenario文件。asOf必须RFC3339，拒绝未知alias、缺binding、one/list形态错误、无法解析entity或typed value。now/asOf的timestamp type-only alias由显式asOf注入，用户传不同值拒绝；其他scalar必须提供。
+evaluateRuleOnExample（位于 `libs/evidence-cel`）无Node I/O，不读环境时钟，不加载scenario文件。asOf必须RFC3339，拒绝未知alias、缺binding、one/list形态错误、无法解析entity或typed value。now/asOf的timestamp type-only alias由显式asOf注入，用户传不同值拒绝；其他scalar必须提供。
 
 按模型属性类型转换独立clone的输入，compile/evaluate后celValueToJson，再验证resultType与JSON可表示性；拒绝undefined/non-finite/private runtime泄漏，失败保留rule ID与cause。它是**编译期预期生成器，不是backend simulator**。
 
@@ -96,4 +96,8 @@ fmCheck/scope specs保护v6字段、null complete、digest变化、独立边界�
 
 遇错按层定位：syntax/引用/lineage→修模型；scope gaps→补责任闭环；oracle绑定/期望→修examples或规则；HTTP失败→修实际实现；源变更→重查；工具缺失→显式setup，不编造一个成功结论。
 
-相关：[语言](../language/fm-dsl.md) · [API验收投影](../contracts/api-projection.md) · [CLI双门禁](../workflows/cli-governance.md)
+## 相关页面
+
+- [FM v6 语言与严格契约](../language/fm-dsl.md)
+- [受控模型变更、会话与历史](./commands-and-session.md)
+- [测试边界与验证策略](../testing/verification-strategy.md)

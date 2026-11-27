@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:1c31b76ebdf4b9ed070ba5ef9b244ebc0457710ef20e2cddc22145f12455c179",
+  "pageVersion": "sha256:036e5b10f2f984b3e5395c0753f9fba67b01ca596b3901ac7114a744614bff6a",
   "claims": [
     {
       "id": "claim_4260686904514941808ef785c7ef5562",
@@ -17,8 +17,8 @@
       "statement": "consistent须静态无错且摘要未变，inputChanged附错误。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-model-core/src/validation/fmCheck.ts#L66-L81",
-          "version": "repo-lines-v1:sha256:1a27ac3a17880e98cf2960d425204aea196202d97a067bbd006b2df1f7ff9e48:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxZjk1NjQzMDJjNDYzNDQxMTRmYzk5ZjkxYjQ4YTRmZTZiNDEyNGYzMzlhYjQyMWJhMjQ3MmExMDlmNGIyOGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIyMDkwZjAxMDU1ODRkNzc0MjYyNmYxZTI4YTExMjNkYmYzNjM3NzM2YjM2OTJjNWE4NzBjNTA2NWE2ZGZjZmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJlYTMyYTE5YjdmOTFkMDc2Y2Q3MjZkMjZhMzdhYzEzMzk5ZTRmZjliZjZhZjliYTNhMzYyMzk2MGI2YTdjMDciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ5NGUyZWRiY2JiZDIwYWZmNmVkYWViZGJjYzY0ZTUzYTdhZGQyM2FlYzNiNzA3MWNmMzMwMDY0NGY3NWJmZDQifQ"
+          "resource": "repo://libs/evidence-model-core/src/validation/fmCheck.ts",
+          "version": "repo-file-v1:sha256:506b801fdb331f194490609c91fbfd4ade4fbe0756b9037d24064ef7a1550791"
         }
       ]
     },
@@ -27,8 +27,8 @@
       "statement": "complete无scope为null，有scope须无gap且consistent；valid无error且complete非false，机器不批准业务。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-model-core/src/validation/fmCheck.ts#L74-L90",
-          "version": "repo-lines-v1:sha256:1fdc370522081589b1816c67cd643b7aae2924ef1725e33908405cb0cc22b4d6:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU3YzZkMDRjZWJkYjU3Y2FlYTg2MGUwZGUyZTViMjhmY2EyNWJmZjJiMTUwYTg4ZTU0ZTk3NDQ1MDRiN2FmMGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdiZDg3YjgxMWUyMGRlYWIwMDhkOTYxYjcxNGJiNDJiMjVhY2NhMDYxZThhNjVlYTg4ZGNmYjA5MTBiZWYwYzkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk2MmRjNTgyZTdiM2ZmOWE4ZWMxZDg0YzM0YjY3NTNlMDY4NWMyNjYwMzBjN2NmZDcxYzg4YzA5OGJkMmI3OWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM0ODk5YmM2YmQ5MmI2ODllYWJhNDQwMjA1OTcxYjcyZmIwNGUwZDM1YzA4YjdiZWY0MDM3YWEyY2ZkNDJmMmYifQ"
+          "resource": "repo://libs/evidence-model-core/src/validation/fmCheck.ts",
+          "version": "repo-file-v1:sha256:506b801fdb331f194490609c91fbfd4ade4fbe0756b9037d24064ef7a1550791"
         }
       ]
     },
@@ -37,8 +37,8 @@
       "statement": "scope仅独立Context且不可重复，保留subtree/真实依赖，不因共享Party拖入其他合同。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-model-core/src/validation/scope.ts#L112-L223",
-          "version": "repo-lines-v1:sha256:7b361ce0be7ace89d87c8d0566cc0d4c892aaa2b3fc46f79263d47704edb7119:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEyLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIwM2NkNjAxNjJlM2U0YjZiMjcwNTdlY2IxYzdlZDZiM2UxNTJjOWY3ZDc5ZDQ0MDJmOTc1MWNkMDdkODJmYzEyIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJiYTg0YzU4Y2FhZDYxNmNkMTA1NjE3OGM4MzdjYjRkMjA0ZDk0ZWQ4MDExMjUyYzJhZTM3NWZjOGI3NWI0ZjA1IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIwMzBjN2VkYzU4NzQ4Njk2ZWE2ODE0YTIyMmM0ODZjZTFkNjAwY2ExZDA1Mzk4MzcwZGVhYWUwYjk0MzIwNDU0IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIwNDQwN2UyM2JhYTViMzkxYzE0NWE3OGY2NDQwNTk1MGM4NWM3YTdlMjc2Mjk4MzgzMjJiMjkyMmE4NDVmMDhlIn0"
+          "resource": "repo://libs/evidence-model-core/src/validation/scope.ts",
+          "version": "repo-file-v1:sha256:3d5028b40d543657d79de4e0942189b9da7b551a1296efea91f3c65eb9288b53"
         }
       ]
     },
@@ -57,8 +57,8 @@
       "statement": "瞬态oracle只用显式typed bindings/asOf运行native CEL并验证result/JSON，无suite/机器时钟，不是HTTP模拟器。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-model-core/src/cel/transientSandbox.ts",
-          "version": "repo-file-v1:sha256:8a13d8e2dcc397b0b8137f98fb3de4107a5dbb442768331ac89f8473f7012c69"
+          "resource": "repo://libs/evidence-cel/src/transientSandbox.ts",
+          "version": "repo-file-v1:sha256:287c50b385053fb621cd879d2a3ae691db84d5533b9b3d34b3e6bbefd8796884"
         }
       ]
     },
@@ -82,7 +82,7 @@
         },
         {
           "resource": "repo://apps/cli/src/router.ts",
-          "version": "repo-file-v1:sha256:3ba75dcdd18e4b4bf904a3db79841c21fdf4bb5378f894a18d404bc82436069a"
+          "version": "repo-file-v1:sha256:19eb4c44fe7bb5c21edd795d6c14b40e914c11ed1eb0c246d4d60bb3f6a83dfe"
         }
       ]
     },
@@ -105,8 +105,8 @@
       "statement": "errors折block，gap/inputChanged/advisories折warn，已无FM_NO_SCENARIO。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-agent/src/sensors/sensorReport.ts#L148-L194",
-          "version": "repo-lines-v1:sha256:db25de3278d9f9281b1e28181f6a006d7c084047306778d375501afd88d553f1:eyJzZWxlY3RlZExpbmVDb3VudCI6NDcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI5N2E2NTZlODliYWY0ODM1MzE5NmYwZmE4NWMxNTgzMWY3MDVlZWRjZWY2N2Y3OTlkYWFjYjU3ODU1NTk3ODEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFhMWQxYTYzMzkwMjI5Yzc5ODM0N2U4M2EwNDA1NDQxYzk0MDAwMzUyODRhZDE2OGMxYmY2Y2RmMWQ3MGEzNzAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU5ODI4NzUyZjgwMmVkYWEwNjFjMmFlYWM1YmM0OTMxZmE2NjFmM2EyODUzMzY5ZWFiNDNlM2E5YmE5Nzk4NzYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM2Nzg4ODY5ODkxZWU1M2Q1ZmUyM2I2MjhkYjYzMDZkNGQ5OWFjMjQzZDk1YjFlMGEwNDg4NWU0OTQxYzE5NzMifQ"
+          "resource": "repo://libs/evidence-agent-sensors/src/sensors/sensorReport.ts",
+          "version": "repo-file-v1:sha256:cf70e77f2f70ddf2461ef059201ca979d6775854559cdff6a28b00bc65a31bc8"
         }
       ]
     },
@@ -126,11 +126,11 @@
       "evidence": [
         {
           "resource": "repo://libs/desktop/feature-story/src/state/journeyPreview.ts",
-          "version": "repo-file-v1:sha256:f24bcc09d64d558b8a27c0e2af82ed4ac1d8bca7a494da043921888258399a41"
+          "version": "repo-file-v1:sha256:07b450b33304ec238a6a23e146a0718f6cf79dc9664a2e9546c9b7ed49eed849"
         },
         {
           "resource": "repo://libs/evidence-model-core/src/scenario/scenarioStudio.ts",
-          "version": "repo-file-v1:sha256:c20c9a1d7fd9b33ab6b9312af34c0128e8933ab81fa2b93cd78fb9ccf55f652c"
+          "version": "repo-file-v1:sha256:f35845446b83e0107933bafa9627e4d9a469070081b18983470755f1a8ddaf3d"
         },
         {
           "resource": "repo://libs/evidence-model-core/src/trace/flowAggregator.ts",
@@ -147,12 +147,12 @@
           "version": "repo-file-v1:sha256:12e9e6e7439a714085754a60b7d647c095a8f13e32023b60996e94b29d90b824"
         },
         {
-          "resource": "repo://libs/evidence-model-core/src/validation/scope.ts#L520-L547",
-          "version": "repo-lines-v1:sha256:0cea5978f304ad1d04e85011375cabb6fd75fce6fdb915a732b6daf1c7dc0de4:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVmZGYzNGM5ZjU0ZDNlODNiOWI2N2JjYmFjOGIyMjg0MmRlNzc1OGY0M2FiOTM5YzcyOTdkMjFkYmM0N2ZkMGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVjNDY0YzU1NGE0MjJiMTcwYmNlOThiZmU1NjJiMjA4NTg0NDA2NTAyMDI4NjM1OWZlYWJmZTYyMmU5NDBmMDAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIyOTA3NDk4ZGJkZTg2MzBlZmNmZWVlNTZjODcwMDVkZmYyNWRkZTExNzU3NmEzYjUxY2M2ZWFmYjNiOTBlN2QiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkzOThlNzRiNTY0OGU5M2U0M2YxODJhYzcyMTdkYWQwY2M1ZTRmMjk1ODk0ZGU0OTk2YjRmYjZmNWZiYzEzYjgifQ"
+          "resource": "repo://libs/evidence-model-core/src/validation/scope.ts",
+          "version": "repo-file-v1:sha256:3d5028b40d543657d79de4e0942189b9da7b551a1296efea91f3c65eb9288b53"
         },
         {
-          "resource": "repo://libs/evidence-schema/src/ast/documentSemantics.ts#L743-L757",
-          "version": "repo-lines-v1:sha256:464e119ce912e51809c482b630f30d917a4d77aa1d6d8731c14324f17295bf9c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRhYTZiNDk5MTc1Njk2ZTJkYzkwYTNiY2JhZTY0N2RhODQ5MTkzZjU5ZmVkOGY5NjRkZjkxMmI3YmFjYTBlNTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM4OTZhMDJmZTMxN2ZkNGFiODU0MDQ3NGE5MzRiMGFiNWJhZGI3ZWI0Y2IyZDNhZWNjMmY4Y2Y1MzczZGYxYTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ4NDE2NmQ0OTgwZjFhNjUzZmFhYWE2NDE2MjMxNzFkOWI1MzRjNGRmY2U0NGNjZTc5MjA3MDk3MmNkYmFmZjMifQ"
+          "resource": "repo://libs/evidence-schema/src/ast/documentSemantics.ts",
+          "version": "repo-file-v1:sha256:80a9fa1390c0a955579da5dd4cab6a7156436a81226b3a7565a5782c67d47efa"
         }
       ]
     },
@@ -161,8 +161,8 @@
       "statement": "What-If 模拟读取现有履约事实、评估假设而不写补丁；实际补偿另用写工具。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-tools/src/index.ts#L304-L382",
-          "version": "repo-lines-v1:sha256:e253a5d7bfc3a114f144e4d615cebc02de6a21dab5b9838e0465a63caba294b2:eyJzZWxlY3RlZExpbmVDb3VudCI6NzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVkMGQwNDJmM2RhYWM2NzBlZTllNzc3NmQ2MDZiNDFlMDc2OTJjZWZlMmZlMTEyZGM2MjVjOGNjMmU2YTA5NDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVkMGQwNDJmM2RhYWM2NzBlZTllNzc3NmQ2MDZiNDFlMDc2OTJjZWZlMmZlMTEyZGM2MjVjOGNjMmU2YTA5NDgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNmYmVlMzhmOWEwODQyYmU3NDU1NjBlZmI3ZTU1ZTg3YzU4ZDhkMTRmNmMzNzVmYzY5Y2RhOTE1MzA5ODgzOTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE0Y2ViODkyMzA3OGFmMTcxNWEwMjMwMjkxMmVjNDQ3MDQ2ZWFiMDM1ZDUzNzFmZDYxM2E5YTQ1YmY5OGNjNmIifQ"
+          "resource": "repo://libs/evidence-tools/src/index.ts",
+          "version": "repo-file-v1:sha256:11c035328e17ef44294c1a5bd25a9e265b0641177dd1565efc0126a25af12be3"
         }
       ]
     },
@@ -172,17 +172,17 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/main/artifactPipeline.ts",
-          "version": "repo-file-v1:sha256:d1cbdb5f289ec9f96c3a3501650a0f467d5a232075c97dc7b202403184ba992f"
+          "version": "repo-file-v1:sha256:a7c3c50c909300b602a8d8dc0c624205ba7a26d2995fb61b276aebee3ab358b1"
         },
         {
           "resource": "repo://apps/desktop/src/renderer/state/useSensorsState.ts",
-          "version": "repo-file-v1:sha256:7a2766c72207100dea330d0dc8297f52aba321d601c65ae91c9d40987becbf24"
+          "version": "repo-file-v1:sha256:f066a0d21f5ea7dd77c4f70a4dcd40675ecf05c2b58833e1ff3d3d01c6d40b8f"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.9.0",
-    "at": "2026-11-24T13:07:09.861Z"
+    "at": "2026-11-27T13:29:03.591Z"
   }
 }

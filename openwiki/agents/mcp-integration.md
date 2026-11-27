@@ -5,32 +5,10 @@ description: 外部 IDE 和 CLI Agent 如何经本地 socket 访问桌面实时�
 tags: [mcp, desktop, bridge, ipc, agent, security]
 verified:
   - by: openwiki/0.9.0
-    at: 2026-11-24T13:07:09.861Z
+    at: 2026-11-27T13:29:03.591Z
 sources:
-  - id: openwiki-source-fc371e1f84c3b5d478075b07
-    resource: repo://apps/desktop/src/main/deliveryProjection.ts
   - id: openwiki-source-5d33672c45ec58cd29dce507
     resource: repo://apps/desktop/src/main/main.ts
-  - id: openwiki-source-6479e6f815f2cdaa7733f2f4
-    resource: repo://apps/desktop/src/main/mcpBridgeRuntime.spec.ts
-  - id: openwiki-source-76f615743ac07abb0f83475e
-    resource: repo://apps/desktop/src/main/mcpBridgeRuntime.ts
-  - id: openwiki-source-3d668aeb794fcdd75110893f
-    resource: repo://apps/desktop/src/main/mcpCapture.ts
-  - id: openwiki-source-fca8f598fb50f848ea53e9d4
-    resource: repo://apps/desktop/src/main/mcpDeliveryService.spec.ts
-  - id: openwiki-source-59e7a4a2571d0728d39ecc85
-    resource: repo://apps/desktop/src/main/mcpDeliveryService.ts
-  - id: openwiki-source-13566e226f91d13689bed20c
-    resource: repo://apps/desktop/src/main/mcpIpcHandlers.ts
-  - id: openwiki-source-a16e36dd7202e7e51c3fdc77
-    resource: repo://apps/desktop/src/main/mcpRegistration.ts
-  - id: openwiki-source-c41343a5a37d72fd08c253f1
-    resource: repo://apps/desktop/src/main/mcpRequestHandler.spec.ts
-  - id: openwiki-source-f278221a7db6307920fce03f
-    resource: repo://apps/desktop/src/main/mcpRequestHandler.ts
-  - id: openwiki-source-d7831c2339a015b10b388720
-    resource: repo://apps/desktop/src/main/mcpSensorService.ts
   - id: openwiki-source-96631daa0b2c8e332a97ecb3
     resource: repo://apps/desktop/src/main/windows.ts
   - id: openwiki-source-10c205a4e921b18ced6f317e
@@ -41,8 +19,30 @@ sources:
     resource: repo://apps/desktop/src/renderer/state/useMcpBridge.ts
   - id: openwiki-source-c1447b0a1d84b7b06f5158c2
     resource: repo://libs/desktop/contracts/src/mcpIpc.ts
-  - id: openwiki-source-9ad3f46aa18e9c002bf6f482
-    resource: repo://libs/evidence-agent/src/sensors/sensorReport.ts
+  - id: openwiki-source-29c934d66a454faa733f4e69
+    resource: repo://libs/desktop/services/src/mcpBridgeRuntime.spec.ts
+  - id: openwiki-source-582687140a7ffcc45796a4a5
+    resource: repo://libs/desktop/services/src/mcpBridgeRuntime.ts
+  - id: openwiki-source-af9e9eedd01c7380100306d9
+    resource: repo://libs/desktop/services/src/mcpCapture.ts
+  - id: openwiki-source-a7a3bb5b442026b5d45d6078
+    resource: repo://libs/desktop/services/src/mcpDeliveryService.spec.ts
+  - id: openwiki-source-da7d9ed7229ea1d3aab94a15
+    resource: repo://libs/desktop/services/src/mcpDeliveryService.ts
+  - id: openwiki-source-697d89ca37efe8b1eaf6801e
+    resource: repo://libs/desktop/services/src/mcpIpcHandlers.ts
+  - id: openwiki-source-8c2a2a57a7a95b5a677ada16
+    resource: repo://libs/desktop/services/src/mcpRegistration.ts
+  - id: openwiki-source-fa5e7270b08943dd81045610
+    resource: repo://libs/desktop/services/src/mcpRequestHandler.spec.ts
+  - id: openwiki-source-f914c929c674a53cdbb8b53c
+    resource: repo://libs/desktop/services/src/mcpRequestHandler.ts
+  - id: openwiki-source-2cf337f57f4002cc74947da4
+    resource: repo://libs/desktop/services/src/mcpSensorService.ts
+  - id: openwiki-source-57110244e247dc01b14ea0b1
+    resource: repo://libs/desktop/services/src/readDelivery.ts
+  - id: openwiki-source-2da2689c8b8685a06790cacd
+    resource: repo://libs/evidence-agent-sensors/src/sensors/sensorReport.ts
   - id: openwiki-source-761175c9daae6ba4b731889e
     resource: repo://libs/evidence-mcp/src/bridge/bridge.spec.ts
   - id: openwiki-source-12552feb7d841ed4485ce9a4
@@ -57,12 +57,12 @@ sources:
     resource: repo://libs/evidence-mcp/src/server/toolset.ts
   - id: openwiki-source-f3dd6cff8734842de5630223
     resource: repo://libs/evidence-tools/src/index.ts
-generated: { by: "pi", at: "2026-11-24T13:07:09.861Z" }
+generated: { by: "pi", at: "2026-11-27T13:29:03.591Z" }
 ---
 
 # MCP 工具与桌面桥
 
-`evidence-mcp` 把协议工具与传输分开：stdio 进程定义可调用的行为，桌面主进程负责路由，渲染进程持有实时 `ModelSession`。模型读取/修改面向内存；传感器与交付面向保存后的模型，不能用后者证明未保存编辑已通过检查。
+`evidence-mcp` 把协议工具与传输分开：stdio 进程定义可调用的行为，桌面主进程与 `libs/desktop/services` 负责路由与服务，渲染进程持有实时 `ModelSession`。模型读取/修改面向内存；传感器与交付面向保存后的模型，不能用后者证明未保存编辑已通过检查。
 
 ## 启动与工具面
 
@@ -73,8 +73,8 @@ generated: { by: "pi", at: "2026-11-24T13:07:09.861Z" }
 | 所有者 | 工具 |
 | --- | --- |
 | 渲染会话 | `get_app_state`、`get_domain_model`、`get_selected_entity`、`apply_model_patch` |
-| 主进程传感器 | `get_key_data_audit`、`run_stage_gate` |
-| 主进程交付服务 | `get_delivery_topology`、`export_openapi_contract` |
+| 主进程/services 传感器 | `get_key_data_audit`、`run_stage_gate` |
+| 主进程/services 交付服务 | `get_delivery_topology`、`export_openapi_contract` |
 | 截图协作 | `get_canvas_screenshot` |
 | 共享领域工具 | 建模原型、Context 关系、健康检查、What-If，以及凭证、配对、责任和例外处理算子 |
 
@@ -100,11 +100,11 @@ Unix 启动前清理旧 socket，监听后收紧权限到 `0600`，关闭后删�
 
 客户端每次调用新建 socket，10 秒超时；主进程为 renderer 调用分配 UUID、维护 pending map，15 秒超时。因此无响应通常先在客户端表现为 `RENDERER_UNAVAILABLE`，不会误作空模型。
 
-## 主进程路由与已保存结果
+## 路由与已保存结果
 
-`createMcpRequestHandler` 将实时会话方法转发 renderer。传感器和交付先用 `get_app_state` 查询 active project root；没有项目就抛 `NO_ACTIVE_PROJECT`。MCP 选择的是 `listEditorWindows()` 返回的首个窗口（Map 插入顺序），不是当前焦点窗口；截图测量和模型访问共用这个 WebContents。
+`createMcpRequestHandler`（位于 `libs/desktop/services`）将实时会话方法转发 renderer。传感器和交付先用 `get_app_state` 查询 active project root；没有项目就抛 `NO_ACTIVE_PROJECT`。MCP 选择的是 `listEditorWindows()` 返回的首个窗口（Map 插入顺序），不是当前焦点窗口；截图测量和模型访问共用这个 WebContents。
 
-- 传感器引擎按 root 缓存；无法读取时台账为 `producedBy: unavailable`，门禁为 `passed: false`、退出码 1，不能显示空绿灯。MCP 台账的 `derived` 当前固定为空，不能代表完整派生明细。
+- 传感器服务按 root 缓存；无法读取时台账为 `producedBy: unavailable`，门禁为 `passed: false`、退出码 1，不能显示空绿灯。MCP 台账的 `derived` 当前固定为空，不能代表完整派生明细。
 - 交付服务复用 `readDelivery`（`loadModel` + `buildProjection`），统计各服务路由，返回 routePrefixes、精确 routes、OpenAPI、pathCount 和 limitations。读取或投影失败传播为工具错误，而不是部分契约。
 - 交付以活动工作区的 `.evidence/model` 为输入。
 
@@ -126,7 +126,7 @@ renderer 测量可见画布或目标节点裁剪矩形；无布局/节点在屏�
 | bridge 启动失败 | stderr 记录，桌面继续但没有 MCP |
 | 模型/门禁不可用 | 显式 unavailable 或失败 |
 
-`bridge/bridge.spec.ts` 覆盖真实 socket 往返、0600、超时和端点复用；`toolset.spec.ts` 覆盖输入先验拒绝、25 个工具及其中十二个写工具、PNG、算子提交与拒绝。桌面 `mcpBridgeRuntime.spec.ts` 验证调用计数、renderer 错误、截图恢复和无窗口；`mcpRequestHandler.spec.ts` 验证路由、active root、空截图、未知方法和计数。传感器、交付及客户端注册各有独立测试。
+`libs/evidence-mcp/src/bridge/bridge.spec.ts` 覆盖真实 socket 往返、0600、超时和端点复用；`toolset.spec.ts` 覆盖输入先验拒绝、25 个工具及其中十二个写工具、PNG、算子提交与拒绝。`libs/desktop/services` 的 `mcpBridgeRuntime.spec.ts` 验证调用计数、renderer 错误、截图恢复和无窗口；`mcpRequestHandler.spec.ts` 验证路由、active root、空截图、未知方法和计数。传感器、交付及客户端注册各有独立测试。
 
 ## 相关页面
 

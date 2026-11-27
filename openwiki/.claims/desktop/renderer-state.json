@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:f6de75d49886f3851a670b0e3a34a935ae971fa48f8cda2173176b75cf4587c5",
+  "pageVersion": "sha256:5d9258f969cc1b22734198932369ba6386067c01d48c3dba070fc45f39b365ed",
   "claims": [
     {
       "id": "claim_5bc15eddd9434496a5f9aae91810a602",
@@ -8,11 +8,11 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/renderer/state/useEditorSession.ts",
-          "version": "repo-file-v1:sha256:411827498bf8931b4411cd7b1e690fc87c37dc79b10044d9e137b548eea47f2c"
+          "version": "repo-file-v1:sha256:d7c29147764ee409a89a91c044ba4ab13a0dfdb207f22370253cb88197178e28"
         },
         {
           "resource": "repo://apps/desktop/src/renderer/state/useGraphLayout.ts",
-          "version": "repo-file-v1:sha256:3aca5e864e4edf5b7ebb3517a94369e54937315f5a9c386dec7999c178c4368d"
+          "version": "repo-file-v1:sha256:fdae7258d2473e485c73be276cfeb01bd522975e69948497752deda535adc18e"
         }
       ]
     },
@@ -22,7 +22,7 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/renderer/state/useEditorSession.ts",
-          "version": "repo-file-v1:sha256:411827498bf8931b4411cd7b1e690fc87c37dc79b10044d9e137b548eea47f2c"
+          "version": "repo-file-v1:sha256:d7c29147764ee409a89a91c044ba4ab13a0dfdb207f22370253cb88197178e28"
         }
       ]
     },
@@ -32,7 +32,7 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/renderer/state/useEditorSession.ts",
-          "version": "repo-file-v1:sha256:411827498bf8931b4411cd7b1e690fc87c37dc79b10044d9e137b548eea47f2c"
+          "version": "repo-file-v1:sha256:d7c29147764ee409a89a91c044ba4ab13a0dfdb207f22370253cb88197178e28"
         }
       ]
     },
@@ -42,11 +42,11 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/renderer/screens/EditorScreen.tsx",
-          "version": "repo-file-v1:sha256:d8b8c09310947611b6d2cc8e71cf9a864124191d9b922547793438d36fe0edd8"
+          "version": "repo-file-v1:sha256:cbd74a7c505e3a389f0a9ab70ed72c729d197c03ded6309a36fb95bb4ca1ac1f"
         },
         {
           "resource": "repo://libs/desktop/contracts/src/delivery.ts",
-          "version": "repo-file-v1:sha256:65eee11d9ff37c0b55977fefac45116b50254e37e55eb53d6dab94c81b8e6b81"
+          "version": "repo-file-v1:sha256:2832a58f7d3a4726490d0adb6f47551a5cae1ba1212e71220b38ccac097be879"
         }
       ]
     },
@@ -55,8 +55,8 @@
       "statement": "live bridge 按 editorId 注册，挂载和本地文档变更递增发布 revision，等待最新发布后启动 prompt；selection 或已提交事务重放不重新发布。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/renderer/state/useLiveModelBridge.ts#L35-L142",
-          "version": "repo-lines-v1:sha256:699fc37b5c882e5249b6e3b6391c5dacf29bbef618854f9cb6d27ea9d2738877:eyJzZWxlY3RlZExpbmVDb3VudCI6MTA4LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJlNTU1OTcxNDNlOWFkYzZiYmEyOGRlZDIzOTdjNmIyYjM4ZTNjNDFkOTRmYjkzZTM2MTExMThmZDMzOTk4ZDdiIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0NjRkYjM0ZTIyZDdmMTIwZjFlMzg0NzEyMDUyNzM2ODVkYzA1NmExNmEyOWY1MTdmNWYwOTc5ZmMyYTc2ZDY5IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI3OTQyOGU2N2IxOTQ4ZGIxNDc2NWZiMDBhMTNiNjYzNjk3ZTM5YTI0YzFiMDU1YzY1ZWNmY2Y2OTcxZThkYTM3IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJiNDNhYTAxMjYwYmUzOGY1Yzc1MjIxMjI1MmI0MTBiNjA0YmY0MmU5OGYyMzRhYTU5YmU4ODkzNzIxMWE0ODkwIn0"
+          "resource": "repo://apps/desktop/src/renderer/state/useLiveModelBridge.ts",
+          "version": "repo-file-v1:sha256:eb3397acf8f3508aeea5928a1479cbe43c5be57d0069dccb01b246f6e5268dc0"
         }
       ]
     },
@@ -65,12 +65,8 @@
       "statement": "主进程以最新 live 镜像供工具与传感器读取，拒绝旧 revision，新 revision 清理缓存并重启 debounce。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/main/agentRuntime.ts#L185-L242",
-          "version": "repo-lines-v1:sha256:75263f9fb1f048c2481ecab33afa3c345d2d99853696b183cb7bb1ff9501e3d7:eyJzZWxlY3RlZExpbmVDb3VudCI6NTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZmZWU4ZDY2ZTg0ZWRlZDQxNTExNjcxM2NjNDdmMmFlMjM5NjJmYzE2NDhmYWIyYzY3NWQ0NjU1YjcyNTZkODUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY1OWZiN2MxOWYwMDIzMzdiZDIyOWQ4ZDNlMGQ3YzRjNDc1ZDhmNDYxMjFiMWQ2ZGNkYTJjNDU5YmEzNDk0OTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRhOGFiZDhiZjYwYTI0ODE4ZThhNjkyODIyMjlmZDQwNDg5NDNlMWVjZDZlMDUwYWEwODc2ZWMwMzYwYWNhNzcifQ"
-        },
-        {
-          "resource": "repo://apps/desktop/src/main/agentRuntime.ts#L346-L370",
-          "version": "repo-lines-v1:sha256:3f0910b5314084e1186543bb4d7f51aa7aa9ee11240d619cf79feb6d3f1bc135:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM2Y2Y1Nzg5ZGQ5NjY4OWVkYmE2MTc5MDk4OWM1Mzc3ZmE3OGRhYzFhY2E4OGRiN2NkNzllYTY2Y2NkZjQyYWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNhZTVjYTVlMzUyYTdhMTllOTNkOGI3NGM2YTliMzZlNThmNGM4NWIzNDI1Y2I4YTNiOTIyYTk3M2I3MDY3MjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZlZTQ0ZTk5MWJmNTg4MTYxMTZkZmY0NDgzMWNiMmE5ZDdmODFmMGEwMzQyOWEyMDgzZTc3ZWU3YzI0M2E4NjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3MmY0OGE2Y2JmZjYxMjgzMTExYTMwNThkZmM0NTgzMDg4ZDFhNmZmMTRlZGY3NGVlYTUyN2I5NDEwMzVjNWYifQ"
+          "resource": "repo://apps/desktop/src/main/agentRuntime.ts",
+          "version": "repo-file-v1:sha256:a074724b42fb59b6a96a3beec91c705711065f4a49828fde42fe5af161a0e5dc"
         }
       ]
     },
@@ -79,8 +75,8 @@
       "statement": "加载、同步错误或 revision 不匹配时不给画布诊断，防止旧报告落在当前模型。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/renderer/screens/EditorScreen.tsx#L304-L325",
-          "version": "repo-lines-v1:sha256:79ea9fbbc44b26a9c462163225dac4b44b9db4eddeb862d07ad8215a73b734df:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNmYWVkNGJjNzg5MzY2ZGFlNWM1MzlmZGZmNWFiZDcyNTdlZDYyMGU0Mjk3ODVjOWNkYWEwZGNlNjcxODFjYjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg1NDJiNjUwZWJiMzU3YzFjNzBkMDAzMGJkYzczMDBhMGE3ZDZiZmY4MjIwYzIxNGM1MTVlODZjYTljZmI5MDgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImEyMjk5YjRhYzViZjAyMzgyNDJhNWQ2Yjg0MDlhMzRiZTczNTQwNjgwNTkyY2VhZGU4ZWI0MTdkMjYwZjk2NjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUzZWIzMDk5ZDkxYWY1YzZiZGIyNjNmNmE0N2I0OGFjMjIyMDYxYzEyMTg5OTY4NTAxMzM4NThiN2E3ZGQxY2UifQ"
+          "resource": "repo://apps/desktop/src/renderer/screens/EditorScreen.tsx",
+          "version": "repo-file-v1:sha256:cbd74a7c505e3a389f0a9ab70ed72c729d197c03ded6309a36fb95bb4ca1ac1f"
         }
       ]
     },
@@ -89,8 +85,8 @@
       "statement": "Renderer 重放已提交事务，用 editorId/revision 去重、按序 applyCommittedPatch 并记录 before/after；缺口或基线不符报告同步错误。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/renderer/state/useLiveModelBridge.ts#L66-L142",
-          "version": "repo-lines-v1:sha256:de32329720f4e25cf5674fddde95c2ce01e0d769d060e689f1674bc21883c95b:eyJzZWxlY3RlZExpbmVDb3VudCI6NzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg4MDA1ZDU3MTA2YTM2MmViMDAwZGFmM2RhNDY3NGM4MmI1MThmZjVhMmUyZjY3ZWU4ZTc1N2EzMzNjMmFmNjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ2NGRiMzRlMjJkN2YxMjBmMWUzODQ3MTIwNTI3MzY4NWRjMDU2YTE2YTI5ZjUxN2Y1ZjA5NzlmYzJhNzZkNjkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVhNjQwNzk4OTE2ZDFiOGIzNTE1OGVkMWI5N2M0YmRlY2JiNDkxOTc1Y2JlOWM0ZjdmZGMzODAwYmJhMjc5MjYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI0M2FhMDEyNjBiZTM4ZjVjNzUyMjEyMjUyYjQxMGI2MDRiZjQyZTk4ZjIzNGFhNTliZTg4OTM3MjExYTQ4OTAifQ"
+          "resource": "repo://apps/desktop/src/renderer/state/useLiveModelBridge.ts",
+          "version": "repo-file-v1:sha256:eb3397acf8f3508aeea5928a1479cbe43c5be57d0069dccb01b246f6e5268dc0"
         }
       ]
     },
@@ -100,7 +96,7 @@
       "evidence": [
         {
           "resource": "repo://libs/desktop/feature-agent/src/state/usePatchReview.ts",
-          "version": "repo-file-v1:sha256:256675d5229728b0d28bd56086ddb54b510283e92475fb0a9a914a14094f0750"
+          "version": "repo-file-v1:sha256:d1aeb89ea4e4c8e3875acaf73e540a45b7a7334f204fffcdbc577303cce7bbbd"
         }
       ]
     },
@@ -109,8 +105,8 @@
       "statement": "MCP 单订阅每次直接从 session 取最新 doc/graph，session 事件同步计 revision，支持五 renderer 方法并显式拒绝未知方法。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/renderer/state/useMcpBridge.ts#L199-L315",
-          "version": "repo-lines-v1:sha256:5789dd1ee8c66426d97acf4ce9fe6e0bc314f0926b32092a75964c1db0169e52:eyJzZWxlY3RlZExpbmVDb3VudCI6MTE3LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIwYjE3NDIyYTc2YzJlYzQ0OTM1OTJkMGRiNTg2ZjI4ZmRkZjY4ZGQ4NDI4N2UxZDAxN2NmZmY3OTg2YTEwMmUwIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIwMWJhNDcxOWM4MGI2ZmU5MTFiMDkxYTdjMDUxMjRiNjRlZWVjZTk2NGUwOWMwNThlZjhmOTgwNWRhY2E1NDZiIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI4NWViMzNjOGI2NWMwNjFjYTFhOGJlN2ExNDJiY2ZjNzcxZDk2NjMzNTIzMTEyODQzOTg5MzdlYjdiZTJlOTFlIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJhNGRjYTRiNjA2MzhjMzE0MDc1NWQ0M2QxZDNhYWIwNzQ0ODEzNTliMzdjMzRmN2MzZjE5NzBjMjkwZDRjMTM1In0"
+          "resource": "repo://apps/desktop/src/renderer/state/useMcpBridge.ts",
+          "version": "repo-file-v1:sha256:9763749d2ad3c054e5b6b212ce604d621abf69b01274fcf01bb2e3b7b79c7a77"
         }
       ]
     },
@@ -119,8 +115,8 @@
       "statement": "MCP 一次 applyPatchBatch 原子应用 RFC 6902，真变更才增 revision，之后校验返回 block 诊断而默认不回滚。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/renderer/state/useMcpBridge.ts#L325-L368",
-          "version": "repo-lines-v1:sha256:c1db51263fa644b730840c48efc851de59c1d171f24235bfa3e47a916adde588:eyJzZWxlY3RlZExpbmVDb3VudCI6NDQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI4ZWIzMTYyNmI2MjlmYjBjYWVkMzM4YzEyYzZmOTAyZjRhZWNiZGEwZDA0ZWE2Y2RmMmZkOWRjMWNiY2M5ZmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFhMWQxYTYzMzkwMjI5Yzc5ODM0N2U4M2EwNDA1NDQxYzk0MDAwMzUyODRhZDE2OGMxYmY2Y2RmMWQ3MGEzNzAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRlNTgzNDRjNWE2NWEzNjNmNmM5Y2Y2YmNhMjM1ZTlhYjI4MWE3NTI4ZmJlNWUxY2JjZTk2YzdlYzU4ZTY0YzUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjljYzgxMDk3MmM2ODc1ZjI2Y2ZjOTUxZjU2YjRiYjQ3MWIxZWM0MGM3NWJlNjk1MWEzMTBmMTUwYTQ5M2RhNWYifQ"
+          "resource": "repo://apps/desktop/src/renderer/state/useMcpBridge.ts",
+          "version": "repo-file-v1:sha256:9763749d2ad3c054e5b6b212ce604d621abf69b01274fcf01bb2e3b7b79c7a77"
         }
       ]
     },
@@ -129,16 +125,16 @@
       "statement": "renderer 截取 visible viewport 与 stage/target 交集，整数像素、无布局返回 null、inset0；main capture 前后 finally 切模式。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/main/mcpBridgeRuntime.ts#L112-L136",
-          "version": "repo-lines-v1:sha256:68fffc75debe99f7c3ee9f21e7afeebae0b81c98c64cb3480339b12f02601f78:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkxNmM2ODhiZjI0YTIyMThlODMyZDQyZmUxZTFlODdiNzYyZTdjNWI3MDIyMzI0MjMxNmI3ZDM0ODFlNTI5OWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE3YmYyYTE0ZjFiZjM3ZTdlZTIxZDNlYjUyYzkxNDJhOWRkN2RmNTQ2ZDEwOGNjYmFlMWFkMTU3NzE3Y2Q2ZjgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImEyZGZjZmMyZWUzZjg1NDUyODU3ZDk1OWIwMTJmNzU5Y2ZkOWE5NTc2NzJhNWZjMGEyYTQ0NmE0ZWQ2NjUwOWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgzYjgzNTQzOTFkMDFhYTEyODEyNjhlYWZhZjkzNzU5OWJlYzU2ODgzYTUxYWZjMmI2NzlmMDRiMzRkZGI4NWQifQ"
-        },
-        {
           "resource": "repo://apps/desktop/src/renderer/state/mcpCapture.ts",
           "version": "repo-file-v1:sha256:a73b1d8feeb3a6799e5d99cef1fc12684764a28c0daa9ffc6f85129e4024256b"
         },
         {
-          "resource": "repo://apps/desktop/src/renderer/state/useMcpBridge.ts#L162-L190",
-          "version": "repo-lines-v1:sha256:c2d107ed9b1056e759bb91bc8034596af1330b8e080a733ceed068a54a2b1c46:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNhM2U0NmY5NDI3NmI2ZjZmNGVkMWYwMmFmNzhiZWY2YTJlZTFjNDM5ZGQ1NTg0Yjk3Mzk0ODMxMzIxNGQyYjciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU5NzM5NmUwOGYzZDc5NjMwMmYzYzJlYTYzZTFmMjgzZmE3MjQ0ZGVmMjIzNWZjYWNkNDQ4YTM0YzZjYmMzOWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVlZWNhOWFmY2U1ZjIwMzVkOTdjYjgwNGEwNjI4MmE0YTEyMjM5ZWM1YTI0YWJiNmFlZmVlNzAzZTQ4YjhjODIifQ"
+          "resource": "repo://apps/desktop/src/renderer/state/useMcpBridge.ts",
+          "version": "repo-file-v1:sha256:9763749d2ad3c054e5b6b212ce604d621abf69b01274fcf01bb2e3b7b79c7a77"
+        },
+        {
+          "resource": "repo://libs/desktop/services/src/mcpBridgeRuntime.ts",
+          "version": "repo-file-v1:sha256:72311da822d5831d1433e390e3c49632f2806050cbfaf95624233f25423f80dc"
         }
       ]
     },
@@ -148,11 +144,11 @@
       "evidence": [
         {
           "resource": "repo://libs/desktop/feature-delivery/src/state/useDeliveryHub.spec.tsx",
-          "version": "repo-file-v1:sha256:f5677f3495cb95fd1e92c86a52e6377a807899ee11c5e39cbfbd820d6f86d257"
+          "version": "repo-file-v1:sha256:d301bda1ebf08178618c4ec9e9acde122947d7f0a35e7640b6f9650d244cff53"
         },
         {
           "resource": "repo://libs/desktop/feature-delivery/src/state/useDeliveryHub.ts",
-          "version": "repo-file-v1:sha256:dd1fa5dd696b125ac3c281321a5209dabc7465a899e6c7042656157e7e1ebd4c"
+          "version": "repo-file-v1:sha256:56f6841acfe929b48397d7ede6f2cf4cb23b93a48bdb6538acc3f278cd422f15"
         }
       ]
     },
@@ -161,18 +157,18 @@
       "statement": "`useSensorsState` asks for `latestReport` first and triggers a run only when none exists, filters pushed reports by `rootPath`, and exposes `refresh()` which runs immediately and bypasses the main process debounce.",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/renderer/state/useSensorsState.ts#L15-L87",
-          "version": "repo-lines-v1:sha256:de1476519c0370217ca59b7e90e5f6f460b7f7fbedf5c1eeff9bef4bdaec635b:eyJzZWxlY3RlZExpbmVDb3VudCI6NzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBiOWE5MTU3MDY0ZTI3NjBlODAzOTYxMWVkMzhkNTk0YzY4MWE2NWU5ZDA3NGIwYjAxNjUxNzYxZTZmOGQ1OGEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNiMjQwNTEyZGM3ODM4Yjg1MTcxNjdkODU2ZWNlMzcyYzFiZDE1ZTU3NDkzYWE2NDdlNWZlYzM2YzM2ZGJiZGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQzYzhkMDlhODFmYzA1YzgwYmI5ZjhhOGVjYjgyMWI4NzU4MzBkZmQxZGMxNmUwMDA5NTk4YzJjNzU1OGExOGUifQ"
+          "resource": "repo://apps/desktop/src/renderer/state/useSensorsState.ts",
+          "version": "repo-file-v1:sha256:f066a0d21f5ea7dd77c4f70a4dcd40675ecf05c2b58833e1ff3d3d01c6d40b8f"
         }
       ]
     },
     {
       "id": "claim_a95d922f47f34c84ba1c9ecb464fbb4c",
-      "statement": "useAgentSession 处理文本与思考及最终消息校准，保留 8000 字符上限和 toolCallId 状态；根切换重置，运行中阻止重复 prompt。",
+      "statement": "usePiConversation 处理文本与思考及最终消息校准，保留 toolCallId 状态；根切换重置，运行中阻止重复 prompt。",
       "evidence": [
         {
-          "resource": "repo://libs/desktop/feature-agent/src/state/useAgentSession.ts",
-          "version": "repo-file-v1:sha256:60488e742d8cbb2a8055c676da8df06991a2b9c7d51c85d719e485ea2a074e6f"
+          "resource": "repo://libs/desktop/feature-agent/src/state/usePiConversation.ts",
+          "version": "repo-file-v1:sha256:40cf84cc56cb6ca349b62f790675a08a1118666c92eb8059fbafb9ecf459fb9d"
         }
       ]
     },
@@ -182,7 +178,7 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/renderer/state/useWorkspaceLayoutState.ts",
-          "version": "repo-file-v1:sha256:fe40d7c6918cd2d50f8ed0a7fdb56def6861b75fabf4b4cc1ded5dcc224a08b8"
+          "version": "repo-file-v1:sha256:32adc879bfff70ff5d0008170141d40a6e03bd88b25cdbf44bf941f7cb288c74"
         }
       ]
     },
@@ -192,11 +188,11 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/renderer/state/useWorkspaceViewMode.spec.tsx",
-          "version": "repo-file-v1:sha256:3bf3a090e1b6d3373c02037285109f4aea490a62257a97c50efe7ea8819f743e"
+          "version": "repo-file-v1:sha256:b80dfe907aa0c11acb8f8b35391c12ba39aaf5675e5eb811b8394a6cf4586106"
         },
         {
           "resource": "repo://apps/desktop/src/renderer/state/useWorkspaceViewMode.ts",
-          "version": "repo-file-v1:sha256:7ecf809f06e3cc5d45c3e20f852ee92f8e7341976a4b0798587931e5ea0a9756"
+          "version": "repo-file-v1:sha256:63a681bc1bb057908a9fa5eddc66f639487d9d7f0a3a26e110bb52480b977d78"
         }
       ]
     },
@@ -206,7 +202,7 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/renderer/state/commandRegistry.ts",
-          "version": "repo-file-v1:sha256:f69302b55483d9e3148b994149d8acb1d21d5947ecad87afa16435fe21b596c7"
+          "version": "repo-file-v1:sha256:54f757b683d115eafbefdbaa68840722c8c92fa5b266ba356275f81a257770e4"
         },
         {
           "resource": "repo://apps/desktop/src/renderer/state/useCommandRegistry.ts",
@@ -220,7 +216,7 @@
       "evidence": [
         {
           "resource": "repo://libs/desktop/testing/src/desktopApi.ts",
-          "version": "repo-file-v1:sha256:99265629370f1c7e393e05068a40f7b0da279d6689ef21102a7796783abc8dd6"
+          "version": "repo-file-v1:sha256:f7f38d1a89864d0fa9d5756b668a77fa805212644c5efdb8474890c667e2cd94"
         }
       ]
     },
@@ -230,21 +226,21 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/renderer/screens/EditorScreen.tsx",
-          "version": "repo-file-v1:sha256:d8b8c09310947611b6d2cc8e71cf9a864124191d9b922547793438d36fe0edd8"
+          "version": "repo-file-v1:sha256:cbd74a7c505e3a389f0a9ab70ed72c729d197c03ded6309a36fb95bb4ca1ac1f"
         },
         {
           "resource": "repo://apps/desktop/src/renderer/state/useEditorSession.ts",
-          "version": "repo-file-v1:sha256:411827498bf8931b4411cd7b1e690fc87c37dc79b10044d9e137b548eea47f2c"
+          "version": "repo-file-v1:sha256:d7c29147764ee409a89a91c044ba4ab13a0dfdb207f22370253cb88197178e28"
         },
         {
           "resource": "repo://libs/desktop/feature-story/src/state/useStoryPlayback.ts",
-          "version": "repo-file-v1:sha256:75fa5b750c56a7cd79c161ac3061887b31dd21505da94a242952ea35f49df6be"
+          "version": "repo-file-v1:sha256:a829ea0052be6a0224330dac61053e8d5ba0e46c967898299c2f15c5be616c80"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.9.0",
-    "at": "2026-11-20T12:30:09.424Z"
+    "at": "2026-11-27T13:29:03.591Z"
   }
 }

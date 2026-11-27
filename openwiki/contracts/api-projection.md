@@ -5,7 +5,7 @@ description: 模型与可选 overlay 如何投影 draft API snapshot、OpenAPI 3
 tags: [api, projection, openapi, overlay, diagnostics, cli, contract]
 verified:
   - by: openwiki/0.9.0
-    at: 2026-11-24T13:18:19.740Z
+    at: 2026-11-27T13:29:03.591Z
 sources:
   - id: openwiki-source-0665c978968bd863d445c79a
     resource: repo://apps/cli/src/commands/export.ts
@@ -15,8 +15,8 @@ sources:
     resource: repo://libs/evidence-acceptance/src/renderDeliverables.ts
   - id: openwiki-source-cfb863e81258afec257b30c8
     resource: repo://libs/evidence-acceptance/src/runner/acceptanceRunner.ts
-  - id: openwiki-source-feaf4e64c269397a25f93a3d
-    resource: repo://libs/evidence-agent/src/sensors/native/nativeApiSensor.ts
+  - id: openwiki-source-c04eb3f2becdc2db18da73a3
+    resource: repo://libs/evidence-agent-sensors/src/sensors/native/nativeApiSensor.ts
   - id: openwiki-source-21f4015324deb45fb05f6870
     resource: repo://libs/evidence-api/src/adapter/modelAdapter.ts
   - id: openwiki-source-5ada2ea19d2cb99c0b704bb8
@@ -61,7 +61,7 @@ sources:
     resource: repo://libs/evidence-api/src/schemas/apiSchema.ts
   - id: openwiki-source-b6b6c0e38c718ba7eef29b0f
     resource: repo://libs/evidence-api/src/testing/openapi.ts
-generated: { by: "pi", at: "2026-11-24T13:18:19.740Z" }
+generated: { by: "pi", at: "2026-11-27T13:29:03.591Z" }
 ---
 
 # API 聚合根契约与 HAL 投影
@@ -99,39 +99,14 @@ Overlay 是严格 JSON：schemaVersion=6.0、id、routes(id/path/summary)、jour
 
 ## 超媒体不是虚构执行顺序
 
-POST 的 self 与 Location 指向资源主 GET（同步创建为 201，异步请求受理为 202）；实体 GET 的 self 是自身，集合 GET 的 self 是集合路径。集合用 `_embedded.<业务复数名>` 返回摘要，每项有自己的主 self，并返回非负 total。实体、摘要和集合是分离的 schema。Evidence 间 references 让先决对象 route 指向依赖者 POST，形成 next:<entityRef>；去重排序，模板链接保留 templated。默认 journey 为每个 POST 与获准调用者组合生成可能步骤，http-journeys.json 明确 runtimeValidated=false，不把静态导航当验收已执行。
+超媒体连接表示系统当前知道的可能后续，并不保证运行时环境已具备条件；创建与异步受理的 self 与 Location 始终指向主资源 GET。集合是独立 HAL 视图，内嵌 item 链接。
 
-## OpenAPI 与字段纪律
+## 严格契约与字段边界
 
-`buildDeliveryContract` 产生 OpenAPI 3.1.0，info.version 与 x-evidence-model-version 均来自模型版本，manifest → info，route → operation，读写对象 → component schemas，services 与部署拓扑一致。operation 的 x-evidence-* 追溯 entity、context、service、contract、请求/确认、允许角色、exposure、derived/stamped。
+POST 请求只收 caller 字段且 `additionalProperties=false`；`derived` 与 `stamped` 字段在响应中只读，不能在请求正文中传入。OpenAPI 3.1 规格使用 typed registry 生成，保留操作的 entity、context、service、角色与履约来源。无法推导或需要服务端规则执行的特性明确输出到 limitations。
 
-- POST 请求体只有 caller 字段，additionalProperties=false；派生字段和 stamped 业务时间不作为客户端输入。
-- 响应中 derived/stamped 标 readOnly，派生字段携带 rule 引用；对象 component 要求 HAL `_links`。
-- 201 Location 的 x-evidence-uri-template 是 itemPath；2xx 实体响应为 application/hal+json 并保留 link templates。
-- path 参数必须对应模板，required string；GET 无 body。无真实 participant.party 扮演责任角色的路由仍保留，但标 internal exposure，不悄悄消失。
+## 相关页面
 
-缺 confirmation 或需要服务端执行派生规则等未完成能力在 limitations 明示；不能从生成契约推断后端已经实现。audit_api 在上层统计 evidence-only coverage 并给缺口 warning，投影本身不伪造覆盖评分。
-
-## 内联样例到标准验收
-
-`evidence-acceptance/src/delivery/scenarioProjector.ts` 的 AcceptanceFlow/Step 是临时编译 IR，**不是新持久化 suite 格式**。只有实体 examples[].test 参与：flow、actingRoleRef、asOf、basedOn/pathParameters、预期状态/inputs/expect/tags。
-
-每例须唯一映射 POST 且角色获准；依赖按图排序，拒绝环、未知例、跨 flow、依赖拒绝操作、上游时间晚于当前。正向样例先清除 asserted derived 值，再用原生 CEL 对显式 upstream facts 求值；给定期望与推导不符必须失败，不允许 oracle 读取自己的答案。显式负向状态只生成声明的输入/断言，不能臆造非法案例。
-
-路径参数从上游响应捕获，正向结果携带响应 Schema。导出生成 Bruno 集合及 Evidence 验收元数据；`evidence test` 调用 Bruno 对真实后端执行请求和断言，再根据实际响应校验 Schema。CEL int/uint 在 JSON 边界将安全整数转为 number，较宽的合法 int64/uint64 转为精确十进制 string；输入 unsafe number 或超出 CEL 类型范围的值拒绝，不能静默舍入。
-
-## 命令与写出
-
-`evidence export --openapi` 将聚合契约写到 `.evidence/delivery/release/openapi.json`。完整投影用库的 `renderOutputs`，包含聚合与分服务 OpenAPI、拓扑、路由、projection、HTTP journeys、可选 limitations 以及 manifest。manifest 记录工具、schema、Node、AJV、输入摘要和文件字节摘要。`writeOutput` 使用同级暂存目录和 rename 替换生成树，拒绝不安全的相对路径。
-
-Overlay 是投影库的输入，不是 `evidence export` 或 `evidence diff` 的参数。若已通过库应用 overlay，可比较输出的成品 OpenAPI 文件。
-
-## 验证与消费者
-
-projection specs 保护 overlay/路径/角色、FM_INVALID、无效报告与证据缺口；OpenAPI specs 校验 3.1 元模型、refs/operationId/path 参数/GET body 并编译严格消费者类型。outputRenderer specs 保护稳定排序、重排等价、文件字节和 manifest；apiLoader specs 保护 schema 字节与重复键；acceptance/projector specs 保护 CEL oracle、依赖/角色、负向与整数边界。
-
-桌面和 sensors 使用同步 buildDelivery(document)，renderer 使用 browser-safe field-contract 入口避免 fs。
-
-详见仓库文档 [API 交付规则](../../docs/api-projection-v6.md)。
-
-相关：[路由与差异](./delivery-routes-and-diff.md) · [CLI 双门禁](../workflows/cli-governance.md)
+- [交付路由、快照与契约差异](./delivery-routes-and-diff.md)
+- [FM v6 语言与严格契约](../language/fm-dsl.md)
+- [统一 CLI 与双门禁验收工作流](../workflows/cli-governance.md)

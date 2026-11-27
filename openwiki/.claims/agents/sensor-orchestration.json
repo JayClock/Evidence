@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:418a1c18edf25539fd62e8bee28880bc6aa8c638aaba675a31434fb0e9571119",
+  "pageVersion": "sha256:b91099813f09c414a66dcd61e76eb32262a2f6476b5ad71c4db4dd5e416aa1f3",
   "claims": [
     {
       "id": "claim_a007c15b40764a179f770eb7c0348624",
       "statement": "传感器共享模型、内联 examples 和原始字节摘要；磁盘来源可二次摘要检测变化且拒绝直接 bundle 路径，不再加载独立 validation suite。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-agent/src/sensors/native/modelSources.ts#L38-L123",
-          "version": "repo-lines-v1:sha256:ba91e062a804d0b18fdcf61abaf5119f9f6eae130c7dc3ce655a1825356899df:eyJzZWxlY3RlZExpbmVDb3VudCI6ODYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVjM2U2N2JiODZlZTg0OWU3M2UxOTYwMTkxNzQ5NTcxMDY2MjhkMmE5MTVjZmMyOWEzYTJhMjg2M2ZiNGRkOWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFhMWQxYTYzMzkwMjI5Yzc5ODM0N2U4M2EwNDA1NDQxYzk0MDAwMzUyODRhZDE2OGMxYmY2Y2RmMWQ3MGEzNzAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY2MjU5YWFkNTU2ZWI5M2RhZGQ5ZDVmN2U3M2ZiMDAwMjViYTE5Zjg2NjRhNGZmZmQ5ZDc1Mjg4NTkxOWZjZmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+          "resource": "repo://libs/evidence-agent-sensors/src/sensors/native/modelSources.ts",
+          "version": "repo-file-v1:sha256:c99ce23aa11c82eaf4ff08ecf778f03fb73d9bd4b657e7f05627b25d081d6cf0"
         }
       ]
     },
@@ -17,8 +17,8 @@
       "statement": "FM errors 为 blocking，gaps/inputChanged 为 warning，advisories 保留 code 和定位，已无 FM_NO_SCENARIO。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-agent/src/sensors/sensorReport.ts#L148-L194",
-          "version": "repo-lines-v1:sha256:db25de3278d9f9281b1e28181f6a006d7c084047306778d375501afd88d553f1:eyJzZWxlY3RlZExpbmVDb3VudCI6NDcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI5N2E2NTZlODliYWY0ODM1MzE5NmYwZmE4NWMxNTgzMWY3MDVlZWRjZWY2N2Y3OTlkYWFjYjU3ODU1NTk3ODEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFhMWQxYTYzMzkwMjI5Yzc5ODM0N2U4M2EwNDA1NDQxYzk0MDAwMzUyODRhZDE2OGMxYmY2Y2RmMWQ3MGEzNzAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU5ODI4NzUyZjgwMmVkYWEwNjFjMmFlYWM1YmM0OTMxZmE2NjFmM2EyODUzMzY5ZWFiNDNlM2E5YmE5Nzk4NzYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM2Nzg4ODY5ODkxZWU1M2Q1ZmUyM2I2MjhkYjYzMDZkNGQ5OWFjMjQzZDk1YjFlMGEwNDg4NWU0OTQxYzE5NzMifQ"
+          "resource": "repo://libs/evidence-agent-sensors/src/sensors/sensorReport.ts",
+          "version": "repo-file-v1:sha256:cf70e77f2f70ddf2461ef059201ca979d6775854559cdff6a28b00bc65a31bc8"
         }
       ]
     },
@@ -27,12 +27,8 @@
       "statement": "Key data items that still owe a provider decision become warning KEY_DATA_DECISION_OWED findings with targetNodeId entity#attribute, increment decisionOwedCount, and are capped at 40 emitted findings while the summary still counts the full ledger; a ledger with nothing owed produces one informational KEY_DATA_RESOLVED finding, and owed decisions stay warnings but still keep the stage gate closed.",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-agent/src/sensors/sensorReport.ts#L137-L139",
-          "version": "repo-lines-v1:sha256:74a2bb94681d87a54c0520a8d54a2ef8848946320512f0e8fa71d8a54edd7d7c:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNjA4OTc1MzA2YzY2OGFiY2FmY2JhZjY3YTcyMzQ3ZDdmZDgyODBlNmMzODI3ZDgxMWI1NWM4ZTZhYjExNDEyOSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTkyNjBlYzQ1Yzc3NDU4NWQyNzQzMjZiNTI3YjM4M2U3NDFhOGFiNzEwNjliYjAxNTE1ZWQ4ODY0N2NmYTU1YiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOTU0MjIzNjEzOTE2ZTk5MGExNGQ4YjM5MWNjNGU3ZmRjZWEzOGIwZGJhNDIxZmRjMTcwZjc5MWRkNTU0NDI0MyJ9"
-        },
-        {
-          "resource": "repo://libs/evidence-agent/src/sensors/sensorReport.ts#L197-L244",
-          "version": "repo-lines-v1:sha256:1e7415695658eb0366ea3e1a05b1ed191577b219138a0d8f62c43d57cae12799:eyJzZWxlY3RlZExpbmVDb3VudCI6NDgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE4ZWU2OTI0NzFmZTIzMTQ0ZjBhYTNmZjBjNzRiMjVkNzk2YzY0NDYxZGQ4YjhmYzU5ODhjMWU2OGJkNWNjOWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFhMWQxYTYzMzkwMjI5Yzc5ODM0N2U4M2EwNDA1NDQxYzk0MDAwMzUyODRhZDE2OGMxYmY2Y2RmMWQ3MGEzNzAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVlZWNhOWFmY2U1ZjIwMzVkOTdjYjgwNGEwNjI4MmE0YTEyMjM5ZWM1YTI0YWJiNmFlZmVlNzAzZTQ4YjhjODIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBkMzk4NzE0ZTRjOWIxNWQ5ZjQ4MGEzMDdmMDRkYTg4YjUxMTI4NGM1ODg0M2Y3N2VjNzg4Y2E4MTgyMDg0YjgifQ"
+          "resource": "repo://libs/evidence-agent-sensors/src/sensors/sensorReport.ts",
+          "version": "repo-file-v1:sha256:cf70e77f2f70ddf2461ef059201ca979d6775854559cdff6a28b00bc65a31bc8"
         }
       ]
     },
@@ -41,8 +37,8 @@
       "statement": "报告以 Map 按 issueId 去重，后值覆盖且保持键顺序，重算严重性和零阻塞 verdict。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-agent/src/sensors/sensorReport.ts#L261-L303",
-          "version": "repo-lines-v1:sha256:1095e92e76a3bc608e0e9b62606901261043669aa410418656ca58871d6c8530:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ2NTNjNzc3MmYwZTAzYmZjMTRhNmExMTJmZDkyMDdiYWU4MzExNzFmNTI5MjJmNjk3ZGY4YTNhZjFmNzMxNGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEyZDA2M2E1YjNhNTIzMDhiYjk4ZjgxYWRkY2VkOGE5NmUwYmNiY2FiOTJkNmM2N2RiNWFiY2FmYjQwNWMzNWMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUwMTJmNWFkZTIyZGRjZTA4MWY1MDkyYTFkYzA3MjUyNGEwOGY3ZjNkNWViNDQ1YTBhMDI5YmU0YTUyMDIxNTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjEzNzI0MWQzMzUzZDMzNzg2NWM4MGZlNWZjZDEyNWNjZjE2ZTc2NTQyODk3ZWQ2MDM2YjY1Y2FiM2M2YjJhZjcifQ"
+          "resource": "repo://libs/evidence-agent-sensors/src/sensors/sensorReport.ts",
+          "version": "repo-file-v1:sha256:cf70e77f2f70ddf2461ef059201ca979d6775854559cdff6a28b00bc65a31bc8"
         }
       ]
     },
@@ -52,14 +48,14 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/renderer/components/BottomStatusBar.tsx",
-          "version": "repo-file-v1:sha256:9374da3a41739e834e4d7c265de570f74a1c2123fe0fb350f2a16b6bcf1258c1"
+          "version": "repo-file-v1:sha256:74abc7689db8081f826074bf7f2bc08aca81106cbf46a7ceb73afa9e629751c8"
         },
         {
-          "resource": "repo://libs/evidence-agent/src/sensors/native/nativeSensors.ts",
-          "version": "repo-file-v1:sha256:8eb6c3d9598ad3bfe496273fb6e6d8409988c527512eb014c87728adcbebac3e"
+          "resource": "repo://libs/evidence-agent-sensors/src/sensors/native/nativeSensors.ts",
+          "version": "repo-file-v1:sha256:7997867c745c3d5d552220d41afb9505b17ecdbb1e03c6a6bad524f277b9c67c"
         },
         {
-          "resource": "repo://libs/evidence-agent/src/sensors/sensorReport.ts",
+          "resource": "repo://libs/evidence-agent-sensors/src/sensors/sensorReport.ts",
           "version": "repo-file-v1:sha256:cf70e77f2f70ddf2461ef059201ca979d6775854559cdff6a28b00bc65a31bc8"
         }
       ]
@@ -69,7 +65,7 @@
       "statement": "阶段门禁要求 checkVersion 6、非空覆盖 scope、consistent/complete/valid=true、inputChanged=false、无 errors/gaps，累积所有拒绝原因。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-agent/src/sensors/native/nativeStageGate.ts",
+          "resource": "repo://libs/evidence-agent-sensors/src/sensors/native/nativeStageGate.ts",
           "version": "repo-file-v1:sha256:f25f4914a0cd3004fe4189df48644f81da67c0d257ce9c526a447c361d96a3ac"
         }
       ]
@@ -79,12 +75,12 @@
       "statement": "engine 的阶段目标仅 api，每次 gate 都 fresh run release sensors，再以 supplied 或 fresh FM 报告与非空 scope 判定。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-agent/src/sensors/native/nativeStageGate.ts",
+          "resource": "repo://libs/evidence-agent-sensors/src/sensors/native/nativeStageGate.ts",
           "version": "repo-file-v1:sha256:f25f4914a0cd3004fe4189df48644f81da67c0d257ce9c526a447c361d96a3ac"
         },
         {
-          "resource": "repo://libs/evidence-agent/src/sensors/sensorsEngine.ts",
-          "version": "repo-file-v1:sha256:a43494acff6090d2538627042b6e8e384136cb6db3f6862d05df27dc8e5c62e4"
+          "resource": "repo://libs/evidence-agent-sensors/src/sensors/sensorsEngine.ts",
+          "version": "repo-file-v1:sha256:125e51caa2d7c21c1c118453849ed9104953b0d6f4cd24e5087a4b11b333cc51"
         }
       ]
     },
@@ -93,16 +89,16 @@
       "statement": "测试保护严重性、计数/去重、台账、不可用失败、scope/v6 门禁与 API release 检查。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-agent/src/sensors/native/nativeSensors.spec.ts",
-          "version": "repo-file-v1:sha256:321c123ccc25db60cac9b3b930ae472d559bac9956af8ebaaf714f086b9e50f1"
+          "resource": "repo://libs/evidence-agent-sensors/src/sensors/native/nativeSensors.spec.ts",
+          "version": "repo-file-v1:sha256:cd68e6fda1e04c591d5b3aa7147369e476d757c8ce1d5fcb9dca19350e90c4d9"
         },
         {
-          "resource": "repo://libs/evidence-agent/src/sensors/sensorReport.spec.ts",
+          "resource": "repo://libs/evidence-agent-sensors/src/sensors/sensorReport.spec.ts",
           "version": "repo-file-v1:sha256:80c1aa9b811321a634d7968654881adf1cfa549eb25f6fdd64fcf6cf2fd2e8dc"
         },
         {
-          "resource": "repo://libs/evidence-agent/src/sensors/sensorsEngine.spec.ts",
-          "version": "repo-file-v1:sha256:ca36d058b97d93d08b055bec6e5e7075967a3e8ccaecfbeada9eda7b483fe754"
+          "resource": "repo://libs/evidence-agent-sensors/src/sensors/sensorsEngine.spec.ts",
+          "version": "repo-file-v1:sha256:3a62fa38187a9673e02faf664518c8f44d5092f645048c2c41419f28d7d7b855"
         }
       ]
     },
@@ -111,7 +107,7 @@
       "statement": "SensorIssue 以 source:code:message 标识，来源为 FM 检查、关键数据、API 或阶段门禁；可携带目标对象、上下文与建议。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-agent/src/sensors/sensorReport.ts",
+          "resource": "repo://libs/evidence-agent-sensors/src/sensors/sensorReport.ts",
           "version": "repo-file-v1:sha256:cf70e77f2f70ddf2461ef059201ca979d6775854559cdff6a28b00bc65a31bc8"
         }
       ]
@@ -121,8 +117,8 @@
       "statement": "内存 document 使用固定摘要，rereadDigest 不变，不产生磁盘 FM_INPUT_CHANGED。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-agent/src/sensors/native/modelSources.ts#L69-L80",
-          "version": "repo-lines-v1:sha256:5a57c02c4b620c87af2ce85d880e7e9f00dc663f9a13e816761845166e70c66f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQwYzE4MDQ4Mzg2ZTk2Y2ZlNDQ5ZGJhMTFmN2ZjMWY4MjFjY2ZhNDEwZWM0YjYxOGUyODU2YzdkYmM5ODU3YTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM0YTc2MDI3ZDY4ZTM2ZDRiYTczYmE0ZTJkNzRjNTczMjJjMTQwMWZjZTg0NzNhOWJjMWUxZWEyNmI3ZmQ2NjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU0Y2EwYTBhODA3NWE2MTY0OTU0MjZlY2MyMzA5MDE0M2MyNWFjMzI5ODA5OWU4N2EyNGYzNDhjNTM0YmYyMzYifQ"
+          "resource": "repo://libs/evidence-agent-sensors/src/sensors/native/modelSources.ts",
+          "version": "repo-file-v1:sha256:c99ce23aa11c82eaf4ff08ecf778f03fb73d9bd4b657e7f05627b25d081d6cf0"
         }
       ]
     },
@@ -131,8 +127,8 @@
       "statement": "API 传感器仅统计 evidence 覆盖，oasdiff level>=2 在 draft 警告/release 阻塞，无问题输出 API_ALIGNED，不再手工输出 derivation drift。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-agent/src/sensors/native/nativeApiSensor.ts#L26-L105",
-          "version": "repo-lines-v1:sha256:6d862e6c267c5e7321f659d5d6be138e62dcd960a60d8e1f6d5b91c0d39e2052:eyJzZWxlY3RlZExpbmVDb3VudCI6ODAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRlYmVjNzhkOWJlYmRhMmZlYzRiMDQ4ZmU4ODdmNjg0NTU2ZGNmNzE2OTUzY2QxODdlNWYyMTU5MTY3OTdiNmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFhMWQxYTYzMzkwMjI5Yzc5ODM0N2U4M2EwNDA1NDQxYzk0MDAwMzUyODRhZDE2OGMxYmY2Y2RmMWQ3MGEzNzAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFkZjU2NDdkNzg4ZmVlNWI4ZTRlMjk2ODhjOGMyMTZkMGY3MmRlYWFjYjA0YTgzNjk5NWE3MjRjZmFiMjA4NWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+          "resource": "repo://libs/evidence-agent-sensors/src/sensors/native/nativeApiSensor.ts",
+          "version": "repo-file-v1:sha256:ff7d0e15ed3c38c2d2c5879afff0fd2b2c3d24d8437ae45caf48bdf8a7a3d0a6"
         }
       ]
     },
@@ -141,8 +137,8 @@
       "statement": "API 异常保留 FM/台账，追加 audit_api unavailable 的 blocking 诊断。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-agent/src/sensors/native/nativeSensors.ts#L73-L110",
-          "version": "repo-lines-v1:sha256:e707af5781e7f7429b50c31dc6984c534ff1cdda715b49dd4012fba7db8201bc:eyJzZWxlY3RlZExpbmVDb3VudCI6MzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ3Yzk1NTc3MDNjOGExNDcwOTRhMWJmMzg0MDk5MjA4ZDkyZDRhMzdkOWM5M2IxNDU4MGVmMWM4NzgzYTgyZjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFhMWQxYTYzMzkwMjI5Yzc5ODM0N2U4M2EwNDA1NDQxYzk0MDAwMzUyODRhZDE2OGMxYmY2Y2RmMWQ3MGEzNzAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVjMjUxZDdlYmFkODBhZDcxYzI0ZGU5MDlkMjhlNTU5NzAzNzIzY2JlOGY4MTRjNjFhMjEzMDgxOGViMzMyODIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+          "resource": "repo://libs/evidence-agent-sensors/src/sensors/native/nativeSensors.ts",
+          "version": "repo-file-v1:sha256:7997867c745c3d5d552220d41afb9505b17ecdbb1e03c6a6bad524f277b9c67c"
         }
       ]
     },
@@ -151,12 +147,12 @@
       "statement": "API gate 每次重新跑 release sensors，收集全部高于 info 的 audit_api findings；拒绝 supplied FM 报告与 fresh digest 不同，visualization target 已删除。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-agent/src/sensors/sensorsEngine.spec.ts",
-          "version": "repo-file-v1:sha256:ca36d058b97d93d08b055bec6e5e7075967a3e8ccaecfbeada9eda7b483fe754"
+          "resource": "repo://libs/evidence-agent-sensors/src/sensors/sensorsEngine.spec.ts",
+          "version": "repo-file-v1:sha256:3a62fa38187a9673e02faf664518c8f44d5092f645048c2c41419f28d7d7b855"
         },
         {
-          "resource": "repo://libs/evidence-agent/src/sensors/sensorsEngine.ts",
-          "version": "repo-file-v1:sha256:a43494acff6090d2538627042b6e8e384136cb6db3f6862d05df27dc8e5c62e4"
+          "resource": "repo://libs/evidence-agent-sensors/src/sensors/sensorsEngine.ts",
+          "version": "repo-file-v1:sha256:125e51caa2d7c21c1c118453849ed9104953b0d6f4cd24e5087a4b11b333cc51"
         }
       ]
     },
@@ -166,15 +162,11 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/main/agentRuntime.spec.ts",
-          "version": "repo-file-v1:sha256:319addedc24499d60379d1aeb28572e12ff21c226bf33dc8382168db4995d25b"
+          "version": "repo-file-v1:sha256:d793fb9ccaa38ae99eef94fd9b87a223ab7c26d22bb48b72ef275f791795efc7"
         },
         {
           "resource": "repo://apps/desktop/src/main/agentRuntime.ts",
-          "version": "repo-file-v1:sha256:62310bb59183347c10567e9564bb565496d9e582f8837419d5b8f7a02200e482"
-        },
-        {
-          "resource": "repo://apps/desktop/src/main/sensorRuntime.ts",
-          "version": "repo-file-v1:sha256:c1db0a9ae535d8d687546ae7ed9bbba8088a8451677f79036c7349887d119ce1"
+          "version": "repo-file-v1:sha256:a074724b42fb59b6a96a3beec91c705711065f4a49828fde42fe5af161a0e5dc"
         }
       ]
     },
@@ -183,12 +175,12 @@
       "statement": "useSensorsState 订阅按根路径过滤的报告推送，初始化先读取 latestReport，无缓存时才触发检查。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/main/agentIpcHandlers.ts#L156-L173",
-          "version": "repo-lines-v1:sha256:b399bace5a8b11fab3b99d5dd7e26355af287646540df33bab4adce921271bec:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ1ZGZkMDMxMGU3MjQzNTU3MjI0NTM5MjY4YWY1YWI5YzcxNjU3Yzk0MTE1ZGY2YmUyNmM3MDc2MzAyNTQ3NjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM2ZjVjYjUzNDhjZWRiMDZhZmI0Y2YyZDQ0MzM3NGRhYTcyYWRjM2JjM2ExMzRlOGM3OGI1Njk2ZjcxNTk2NTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM4OWE5MDE2OWY2NDljMzEwMTUyY2YwMjViODQ2ZjFlODllNTk4Mzc3YThmZGYyNTlhYjI1MGMzNDIyNjYwNDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRlNzQ2OTE2NjdhZTcxMTlhMTA4Y2Q0ODY3YzBkN2M0OGRhMWJiYjI3ZWRlMjFhMDFkMWQxZjc4YjBhMmZkZWQifQ"
+          "resource": "repo://apps/desktop/src/main/agentIpcHandlers.ts",
+          "version": "repo-file-v1:sha256:28a527072c08ab37c74d226740137db3bc4bdea351bee0c4e5af8c975cdac349"
         },
         {
-          "resource": "repo://apps/desktop/src/renderer/state/useSensorsState.ts#L47-L87",
-          "version": "repo-lines-v1:sha256:34c8174541eda729543489ed8a0ff48c93cf860ccc1e31536994a01f41f3faf8:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5NjZmYmZhODg5OThkYTc0NjU2YzUwMTk0OTU2YzI1ZjA4NDk0NTc2NjBjMDA5ZmU2M2QxZTlmYTlkYzkzMWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBiOWE5MTU3MDY0ZTI3NjBlODAzOTYxMWVkMzhkNTk0YzY4MWE2NWU5ZDA3NGIwYjAxNjUxNzYxZTZmOGQ1OGEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjlkYjBlNTA4YzhlNGRmNGZjN2JlMjM2NmMyOTdhNTc4Zjk4MDhmOWQwMjNmZDNlNjM3NjBlYzJjMzNmMzJmZGYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQzYzhkMDlhODFmYzA1YzgwYmI5ZjhhOGVjYjgyMWI4NzU4MzBkZmQxZGMxNmUwMDA5NTk4YzJjNzU1OGExOGUifQ"
+          "resource": "repo://apps/desktop/src/renderer/state/useSensorsState.ts",
+          "version": "repo-file-v1:sha256:f066a0d21f5ea7dd77c4f70a4dcd40675ecf05c2b58833e1ff3d3d01c6d40b8f"
         }
       ]
     },
@@ -197,12 +189,12 @@
       "statement": "createDiagnosticIndex attaches a finding to a node only through an explicit reference: it splits targetNodeId at # and accepts the id only if it exists in the current document, otherwise falls back to contextRef only when that id is a context entity, drops anything else, de-duplicates by issueId and keeps the highest severity for the node, so an id merely mentioned in a message attaches nothing.",
       "evidence": [
         {
-          "resource": "repo://libs/desktop/feature-canvas/src/diagnosticIndex.spec.tsx#L37-L89",
-          "version": "repo-lines-v1:sha256:ed2a19c832d8761310a582058d6cedfdc392ce8236663dc20cccb9807d504639:eyJzZWxlY3RlZExpbmVDb3VudCI6NTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRkNWNkMmZiNGYzZGY4ODQ1MTUyNTViMzk1MjNmMmY4YjU0NzJiZWVhOWY1NjZmZmNhMjA0ZGI4MDI1NjEwNDEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY2ZjViNDBiMTU4NDU3ZDE3ODY0ZjIxNzkwNzg2ZGQ1YTJlY2RiNjRiNjZhNjUxZjc4OGQ0ZTI1Y2QzMzAzZDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUzNzM1NWE1Zjg2MTU0OWYyNGNjMTM4NDUyOTA1OGExZmRhZjY4Zjc0NWQ4NjYwZTUwMzRmMzgyNGRhYjUwZWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+          "resource": "repo://libs/desktop/feature-canvas/src/diagnosticIndex.spec.tsx",
+          "version": "repo-file-v1:sha256:be8b0ccb647d0af7fb011460286164787d027dc00f0205556b0e220ebba607c9"
         },
         {
-          "resource": "repo://libs/desktop/feature-canvas/src/diagnosticIndex.ts#L14-L56",
-          "version": "repo-lines-v1:sha256:bf7a2ca5d0d01b7022f331a475b856496450cfcf491c9b0e5d529e4487660da0:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc0NjQzMTNlYmJmYWQ1ZDExZDFlN2UyOWRiMjE2YWM4NjExZmYyMGZlNTFlY2M5MGJhYWY3MjFjNGMxZDZkNzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFhMWQxYTYzMzkwMjI5Yzc5ODM0N2U4M2EwNDA1NDQxYzk0MDAwMzUyODRhZDE2OGMxYmY2Y2RmMWQ3MGEzNzAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFiMzY0NGQzMGZiOTM5Y2Y2ZTI5ZjNiNjE3NDdlMWI1MGY2ODMyNzZkYmIzZmViMjg5ZTg1NGM2ZDg5N2RlYTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+          "resource": "repo://libs/desktop/feature-canvas/src/diagnosticIndex.ts",
+          "version": "repo-file-v1:sha256:3955f83f362c619ea4f2b5907de41acd0a5e26274f5aabfc60260017af96baec"
         }
       ]
     },
@@ -211,8 +203,8 @@
       "statement": "ProblemsPanel 支持停靠与悬浮、严重级筛选和报告计数，标记过期和当前行，仅在可定位时显示定位动作，并区分机器检查和业务批准。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/renderer/components/console/ProblemsPanel.tsx#L49-L204",
-          "version": "repo-lines-v1:sha256:650d754730fae4daf0fa27d2d5ec2d9ed915f30e838f636c3b3a90dbdee45845:eyJzZWxlY3RlZExpbmVDb3VudCI6MTU2LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIwOWU2OThlMmViMTc5ZmNiOTYzMjEyNzBhNzA5Yzk3ODExNTNmMDFmMmQ1ZGNhYjI4ZGFjMmRhZmRjYzgxMzZkIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI4MmYzY2ZkMTFkYTYxNTAxOTdhY2VlZDA4NDA2YWM2NGIwNTAzNDBkZTdiYzA0MTI0YTRjYjdlZmE2NzEzNDBiIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI3OTNjMTViNGQ5MTVkY2ZhY2ZlOWIyOTcyNDQyN2Q2ODQzOWZlM2Y2MTI1OTlmYjA2NmNiNjc4NTVjNDA2MWM3IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI3NWY5ZmZlZTUxM2Y4ZDZiODcyNGMwYjBhOTczNDljNmQ0NzQxMmU1NTNlNjRmMjg3YTcxNWM0ZGVlMGU3MzE0In0"
+          "resource": "repo://libs/desktop/feature-diagnostics/src/ProblemsPanel.tsx",
+          "version": "repo-file-v1:sha256:24197d0b715224c494c6d47d2c836a6b03d08cbbb7f4220bece2e6fa84287abe"
         }
       ]
     },
@@ -221,14 +213,14 @@
       "statement": "画布诊断只接受与 live revision 相符且同步无加载或错误的报告；保存后触发重新检查。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/renderer/screens/EditorScreen.tsx#L304-L325",
-          "version": "repo-lines-v1:sha256:79ea9fbbc44b26a9c462163225dac4b44b9db4eddeb862d07ad8215a73b734df:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNmYWVkNGJjNzg5MzY2ZGFlNWM1MzlmZGZmNWFiZDcyNTdlZDYyMGU0Mjk3ODVjOWNkYWEwZGNlNjcxODFjYjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg1NDJiNjUwZWJiMzU3YzFjNzBkMDAzMGJkYzczMDBhMGE3ZDZiZmY4MjIwYzIxNGM1MTVlODZjYTljZmI5MDgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImEyMjk5YjRhYzViZjAyMzgyNDJhNWQ2Yjg0MDlhMzRiZTczNTQwNjgwNTkyY2VhZGU4ZWI0MTdkMjYwZjk2NjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUzZWIzMDk5ZDkxYWY1YzZiZGIyNjNmNmE0N2I0OGFjMjIyMDYxYzEyMTg5OTY4NTAxMzM4NThiN2E3ZGQxY2UifQ"
+          "resource": "repo://apps/desktop/src/renderer/screens/EditorScreen.tsx",
+          "version": "repo-file-v1:sha256:cbd74a7c505e3a389f0a9ab70ed72c729d197c03ded6309a36fb95bb4ca1ac1f"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.9.0",
-    "at": "2026-11-20T12:30:09.424Z"
+    "at": "2026-11-27T13:29:03.591Z"
   }
 }

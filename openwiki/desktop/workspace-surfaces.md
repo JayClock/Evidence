@@ -5,7 +5,7 @@ description: 编辑器如何通过左侧导轨切换台账、打开诊断与对�
 tags: [desktop, workspace, ledger, delivery, shortcuts]
 verified:
   - by: openwiki/0.9.0
-    at: 2026-11-20T12:30:09.424Z
+    at: 2026-11-27T13:29:03.591Z
 sources:
   - id: openwiki-source-2ff5ad29deef1166ab3731d6
     resource: repo://apps/desktop/src/renderer/components/canvas/CanvasFloatingHud.tsx
@@ -13,8 +13,6 @@ sources:
     resource: repo://apps/desktop/src/renderer/components/command/CommandPalette.tsx
   - id: openwiki-source-29f60f1a4fe3d6d3c2e49178
     resource: repo://apps/desktop/src/renderer/components/layout/ActivityRail.tsx
-  - id: openwiki-source-2d6589cf155ad31cb61c2eb3
-    resource: repo://apps/desktop/src/renderer/components/ledger/useEntityLedger.ts
   - id: openwiki-source-74158507676a0014907d29c4
     resource: repo://apps/desktop/src/renderer/screens/EditorScreen.spec.tsx
   - id: openwiki-source-9459ee1a8fc917f2d94619ce
@@ -35,9 +33,11 @@ sources:
     resource: repo://libs/desktop/feature-inspector/src/inspector/KeyDataLedgerSheet.tsx
   - id: openwiki-source-329e2fdd1b963b693d975c9a
     resource: repo://libs/desktop/feature-inspector/src/RightInspector.tsx
+  - id: openwiki-source-42551ef7554748ac06244f9a
+    resource: repo://libs/desktop/feature-ledger/src/useEntityLedger.ts
   - id: openwiki-source-245f4a200cbde2a0d89ec4b6
     resource: repo://libs/desktop/feature-story/src/state/useStoryPlayback.ts
-generated: { by: "pi", at: "2026-11-20T12:30:09.424Z" }
+generated: { by: "pi", at: "2026-11-27T13:29:03.591Z" }
 ---
 
 # 工作区、台账与交付
@@ -74,4 +74,9 @@ Mod 在 macOS 为 ⌘，处理程序也接受 Ctrl。Mod+Shift+K 打开命令面
 
 `ActivityRail.spec.tsx` 固定三个入口及顺序，`useWorkspaceLayoutState.spec.ts` 验证快捷键、目录、诊断和交付状态。`EditorScreen.spec.tsx` 联测实体表定位和 CSV、诊断、画布 Storming、卡片 Inquiry、放映和补丁复核。
 
-相关：[渲染状态](./renderer-state.md) · [画布](./canvas-and-inspector.md) · [交付](../contracts/delivery-routes-and-diff.md) · [补丁审查](./ingestion-and-patch-review.md)
+## 相关页面
+
+- [渲染会话、异步布局与实时同步](./renderer-state.md)
+- [业务泳道画布与属性检查器](./canvas-and-inspector.md)
+- [交付路由、快照与契约差异](../contracts/delivery-routes-and-diff.md)
+- [资料摄取与补丁审查](./ingestion-and-patch-review.md)

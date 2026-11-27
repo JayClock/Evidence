@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:493b9cbeb024d23014e351f8bc2ba0494556366c827750d64efc7a70e94b44d9",
+  "pageVersion": "sha256:5da39e04e52015e1036ca49baa89f0d08416c54eea050eff7eb1ce47cef7d85c",
   "claims": [
     {
       "id": "claim_43d00c9569fe434d960f89fac57a8acd",
@@ -30,11 +30,11 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/main/agentRuntime.spec.ts",
-          "version": "repo-file-v1:sha256:a385ba886bb5e7717beaaaaf88e75f4c9ff765d5c17d14fbfc4430c9cdb2c9bf"
+          "version": "repo-file-v1:sha256:d793fb9ccaa38ae99eef94fd9b87a223ab7c26d22bb48b72ef275f791795efc7"
         },
         {
           "resource": "repo://libs/desktop/testing/src/desktopApi.ts",
-          "version": "repo-file-v1:sha256:21db99c237324b424513e4a305aa4fcf794db2e29b212b3b12f6fb28462203ca"
+          "version": "repo-file-v1:sha256:f7f38d1a89864d0fa9d5756b668a77fa805212644c5efdb8474890c667e2cd94"
         },
         {
           "resource": "repo://libs/evidence-agent/src/session/evidenceAgentSession.spec.ts",
@@ -67,8 +67,8 @@
       "statement": "桌面组合测试验证采购源树解析、严格校验、泳道几何与一跳高亮。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/tests/integration.spec.ts#L46-L100",
-          "version": "repo-lines-v1:sha256:1591a22d5aa8bd03ee1e2e293ffdc0c5a5ec5b7c3f4e18b7ea75aa400ae14af4:eyJzZWxlY3RlZExpbmVDb3VudCI6NTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE4N2ZkNjE5M2NkYzMzNTkxNGUzMjM3ZTE4ZmI2ZjNlYzk1NjgzOTA0YTFmOGFiNjc3YWI2YTk1MGM4YjRmNzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNhM2U0NmY5NDI3NmI2ZjZmNGVkMWYwMmFmNzhiZWY2YTJlZTFjNDM5ZGQ1NTg0Yjk3Mzk0ODMxMzIxNGQyYjciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjYwM2JlNjlhNTJjNDNhMmJmNDkyODIwYzI4Nzc2ZDZiNjcyODBiNDg1ZmY2NjVkMjM3YTE4ZThlMDQ4YzA5NDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU1NzE5ZDA1ZDU2ZThjMTlmZjlhMTUzZjAwZjMyZjhiYTBjNWNhOTI3YTE2ODk0MjNhZWFlZjM1Y2RiZGQ3NTUifQ"
+          "resource": "repo://apps/desktop/tests/integration.spec.ts",
+          "version": "repo-file-v1:sha256:d232ecaad58c468259ed5309afdb2be38ad34a6cc51240bea31f45fbc3da935d"
         }
       ]
     },
@@ -77,8 +77,8 @@
       "statement": "integration保护双save零churn、再parse、50mutations/undo及稳定字节。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/tests/integration.spec.ts#L102-L203",
-          "version": "repo-lines-v1:sha256:a6fa068846357241a73dcc0e358464ae7061874693de516528f57b437a9041b9:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAyLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJkZWQyNDJiMDNmNzI0OTk2Y2NhYTg4YTJkMGY0OGYyZmUwOWQ3MTMzNWNjYjM0OGVlNjBjZmRkN2JkMDI4ODBmIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJmNmY1YjQwYjE1ODQ1N2QxNzg2NGYyMTc5MDc4NmRkNWEyZWNkYjY0YjY2YTY1MWY3ODhkNGUyNWNkMzMwM2QyIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJkNWZjOWZlMDhhYzE2MjU2MTJkNDU3ZjAwMzJkMGVkM2RhNjY3OTFmMjkwOGI1OWE3MWQ3MzcxZTVjZDdmZGUzIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MCwiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1In0"
+          "resource": "repo://apps/desktop/tests/integration.spec.ts",
+          "version": "repo-file-v1:sha256:d232ecaad58c468259ed5309afdb2be38ad34a6cc51240bea31f45fbc3da935d"
         }
       ]
     },
@@ -88,7 +88,7 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/tests/phase-3-loop.spec.ts",
-          "version": "repo-file-v1:sha256:b48af64e6a98cb4d5aa7a0d9c3e119b54ac67307e899aa6cd808b7d02daa7794"
+          "version": "repo-file-v1:sha256:0045999d1287695f70f098a10fd2003eb2857d905ca7c03ad6c6630f5a00535e"
         }
       ]
     },
@@ -98,11 +98,11 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/tests/phase-3-loop.spec.ts",
-          "version": "repo-file-v1:sha256:b48af64e6a98cb4d5aa7a0d9c3e119b54ac67307e899aa6cd808b7d02daa7794"
+          "version": "repo-file-v1:sha256:0045999d1287695f70f098a10fd2003eb2857d905ca7c03ad6c6630f5a00535e"
         },
         {
           "resource": "repo://libs/desktop/testing/src/desktopApi.ts",
-          "version": "repo-file-v1:sha256:21db99c237324b424513e4a305aa4fcf794db2e29b212b3b12f6fb28462203ca"
+          "version": "repo-file-v1:sha256:f7f38d1a89864d0fa9d5756b668a77fa805212644c5efdb8474890c667e2cd94"
         }
       ]
     },
@@ -112,7 +112,7 @@
       "evidence": [
         {
           "resource": "repo://libs/evidence-api/package.json",
-          "version": "repo-file-v1:sha256:d56c843b66787b079a0273a80088f34aa0d3d25afc556fcf0a7c695f3456d421"
+          "version": "repo-file-v1:sha256:4855ff68d8e98373591771319c14889c7df6e8014c3943cfefafa0a1d55d8265"
         },
         {
           "resource": "repo://libs/evidence-api/src/testing/fixtures.ts",
@@ -148,11 +148,11 @@
         },
         {
           "resource": "repo://libs/evidence-api/src/openapi/openapi.spec.ts",
-          "version": "repo-file-v1:sha256:0456f4324b16363568520f746375bfa90ac978f0ccfe0935d2418dc2dcddb78c"
+          "version": "repo-file-v1:sha256:1333320b1426713be756d6946abc5bca825b9dd69b03ef2b62050fc994de8418"
         },
         {
           "resource": "repo://tools/workspace-rules/boundary-drill.mjs",
-          "version": "repo-file-v1:sha256:ba5e79dcdcb03ef2b8bd00a9c24d761f81769cd7d3de6a1320f9aee1bc77291a"
+          "version": "repo-file-v1:sha256:44636012da3674946ad8327e86b365afb203654413d6503e2ca2a9df418f0907"
         }
       ]
     },
@@ -191,6 +191,6 @@
   ],
   "verification": {
     "by": "openwiki/0.9.0",
-    "at": "2026-11-24T13:18:19.740Z"
+    "at": "2026-11-27T13:29:03.591Z"
   }
 }

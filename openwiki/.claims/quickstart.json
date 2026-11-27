@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:8416d2be32f9f399572c40845219052cbfe95ff9b8ddaaae7439bae5e222b8ae",
+  "pageVersion": "sha256:9d0b5b23c2bd59d5767af43a6b5f9c47f341aedb5ed9eedd087e808402a023dd",
   "claims": [
     {
       "id": "claim_df5076f9176f4575a1cdc338083b09af",
@@ -12,7 +12,7 @@
         },
         {
           "resource": "repo://libs/evidence-schema/src/ast/entity.ts",
-          "version": "repo-file-v1:sha256:5dc9df1a05c91da67fcdd73596e6d54e5ca6957a2beba87c8ec8e4ef43a7747f"
+          "version": "repo-file-v1:sha256:906fb9e4eadc1ecf2749fbe4a00fbf11a44ea86822390ddbb93c084445e6f399"
         },
         {
           "resource": "repo://libs/evidence-schema/src/ast/rule.ts",
@@ -22,7 +22,7 @@
     },
     {
       "id": "claim_d1426e9010cc4646a5e2c5090221d33b",
-      "statement": "工作区有两个应用和十七个库；pnpm 安装固定 Bruno CLI，另用 api:setup 和 example:setup 准备 oasdiff 与独立 Fastify 测试服务。",
+      "statement": "工作区有两个应用和二十六个库；pnpm 安装固定 Bruno CLI，另用 api:setup 和 example:setup 准备 oasdiff 与独立 Fastify 测试服务。",
       "evidence": [
         {
           "resource": "repo://ENVIRONMENT.md",
@@ -30,7 +30,7 @@
         },
         {
           "resource": "repo://tsconfig.json",
-          "version": "repo-file-v1:sha256:3257d896fda47807b116943d63128d511195c8fc7030e2270e731b8fc799bb3b"
+          "version": "repo-file-v1:sha256:a5d993f399e263ff54f37ecd403817c47fdec144362bd7251c2ef4a29c013100"
         }
       ]
     },
@@ -44,7 +44,7 @@
         },
         {
           "resource": "repo://package.json",
-          "version": "repo-file-v1:sha256:f84a2c22acac2b3f6be85de2e51aaf810ba83e49054580ba9a457767a4994085"
+          "version": "repo-file-v1:sha256:8e27e6991e9b87d3a10bb0b56103966a3d60a554c8a1002c4722da7b09ec4a6c"
         }
       ]
     },
@@ -76,7 +76,7 @@
         },
         {
           "resource": "repo://apps/cli/src/router.ts",
-          "version": "repo-file-v1:sha256:3ba75dcdd18e4b4bf904a3db79841c21fdf4bb5378f894a18d404bc82436069a"
+          "version": "repo-file-v1:sha256:19eb4c44fe7bb5c21edd795d6c14b40e914c11ed1eb0c246d4d60bb3f6a83dfe"
         }
       ]
     },
@@ -89,8 +89,8 @@
           "version": "repo-file-v1:sha256:2db338ded3d58254e8ffbb1bdd6cad82c75919427ac73376cfe2cc6c31517c6a"
         },
         {
-          "resource": "repo://libs/evidence-model-core/src/validation/fmCheck.ts#L9-L27",
-          "version": "repo-lines-v1:sha256:f1012a5538ad7392afcbcad19b594b6fd936d1ac97c776a145bc20554f2764c5:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRmZjE0YzUzZTA1MzBmZGE1Nzk2OWI1YzVhZWIxOWU1MzNjNzhkY2E0MmQ4NmNmNDcwZmYxZjM1MzJiOThlNGMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI3NjMxOWFjZWUzZWQxNjBiNjcyNzQ5YjdlYTFiZWUxMjQ5ZjdkNDc5NTBkYTY2NjI2MjY2ZjNmZWEzZjY2N2MiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFlOWNlMjkzNDFjMTcyYTUzYzEyYzBhZjFlMjM1YTRjNGZjMjZkZDY5NjllYzdiODY1YThmNzkzMmY1MTUyMDQifQ"
+          "resource": "repo://libs/evidence-model-core/src/validation/fmCheck.ts",
+          "version": "repo-file-v1:sha256:506b801fdb331f194490609c91fbfd4ade4fbe0756b9037d24064ef7a1550791"
         }
       ]
     },
@@ -100,11 +100,11 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/main/main.ts",
-          "version": "repo-file-v1:sha256:d170366a26f53a383031af51e9f3e9d427af7a32b16ad468d2fbdaee4f300f13"
+          "version": "repo-file-v1:sha256:cf2b9dc0a837b6dacfdd3fea52ff1e7fea4c3ea8987840978dc8d63e194137d3"
         },
         {
           "resource": "repo://apps/desktop/src/renderer/state/useMcpBridge.ts",
-          "version": "repo-file-v1:sha256:bedf2da29b47006fbb7d2777762526ba7745711bb02d3a06df193773d626d6c3"
+          "version": "repo-file-v1:sha256:9763749d2ad3c054e5b6b212ce604d621abf69b01274fcf01bb2e3b7b79c7a77"
         },
         {
           "resource": "repo://libs/evidence-mcp/src/server/toolset.ts",
@@ -136,7 +136,7 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/main/artifactPipeline.ts",
-          "version": "repo-file-v1:sha256:d1cbdb5f289ec9f96c3a3501650a0f467d5a232075c97dc7b202403184ba992f"
+          "version": "repo-file-v1:sha256:a7c3c50c909300b602a8d8dc0c624205ba7a26d2995fb61b276aebee3ab358b1"
         },
         {
           "resource": "repo://apps/desktop/src/main/livePersistence.ts",
@@ -147,6 +147,6 @@
   ],
   "verification": {
     "by": "openwiki/0.9.0",
-    "at": "2026-11-24T13:18:19.740Z"
+    "at": "2026-11-27T13:29:03.591Z"
   }
 }

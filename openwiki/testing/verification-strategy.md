@@ -5,7 +5,7 @@ description: 按Zod契约、Immer事务、native CEL、业务泳道、Node I/O�
 tags: [testing, vitest, fixtures, digests, injection, desktop, cli, acceptance]
 verified:
   - by: openwiki/0.9.0
-    at: 2026-11-24T13:18:19.740Z
+    at: 2026-11-27T13:29:03.591Z
 sources:
   - id: openwiki-source-164e2da859b5277df81c7d94
     resource: repo://.github/workflows/ci.yml
@@ -53,7 +53,7 @@ sources:
     resource: repo://tools/workspace-rules/boundary-drill.mjs
   - id: openwiki-source-b58f839a189d87a7e1f37d39
     resource: repo://vitest.config.mts
-generated: { by: "pi", at: "2026-11-24T13:07:09.861Z" }
+generated: { by: "pi", at: "2026-11-27T13:29:03.591Z" }
 ---
 
 # 测试边界与验证策略
@@ -98,24 +98,8 @@ pnpm exec nx run-many -t typecheck lint --all
 
 model-core valid-traceable-subscription现在是静态责任模型，两条派生链、一个key-data待决；invalid-missing-confirmation一致但不完整。可执行 acceptance examples 在 examples/b2b-escrow；独立 ts-fastify 使用自己的 frozen lockfile，先 example:setup 再 example:test。原生测试跟随创建 Location 主 GET 并检查 HAL 集合，真实 HTTP 故障测试分别破坏金额、业务时钟与 payload。
 
-schema product-procurement是稳定真实树快照，validator case clone后修改；API full-lifecycle/overlay/OpenAPI fixture 及 evidence-api/testing生成真实FM报告，不手写虚假check。API fixtures 通过 test-only export 复用，其他跨包按既有路径复用，工作区 fixture 使用 `.evidence/model`，库 fixture 也可直接保存源树。当前测试保护 SHA-256 格式、路径和字节变化以及 canonical 一致性。
+## 相关页面
 
-## 桌面组合回路
-
-integration把采购fixture复制temp：parse/strict、业务泳道对象/Context/配对几何、一跳highlight、real store两次save第二零churn/再parse、50mutations+50undos回原文档、编辑后再save字节不变。
-
-phase-3-loop把real runtime、fake Pi、transport和real ModelSession接起来，校验工具注册、主进程无需 renderer 确认即可提交、重放已提交 RFC 6902 补丁后一步撤销；完整传感器检查验证本地静态管线。Renderer suites 保护审查、画布生长、交付预览和键盘交互，不启动真实LLM。
-
-## CLI与CI的两种“测试”
-
-常规 CI 安装锁定依赖并检查工作区 Bruno CLI，准备 oasdiff 与独立 Fastify 后运行原生测试、七条边界验证、lint/typecheck/test、CLI 构建与入口检查、示例产物只读核验及 Desktop 构建。drill临时写probe，需在允许修改源码环境运行，不在wiki生成页循环中运行。
-
-Evidence Governance另有产品门禁：静态check→generated artifacts只读--verify→从不可变Git SHA物化baseline→oasdiff破坏性gate；成功后四种独立实现矩阵分别对隔离 SUT 执行 strict regression/DoD并保JSON/Markdown/JUnit。Git show失败不能退到当前模型伪造baseline，expected backend failure/DoD pending与CI allow-pending豁免不得混淆。
-
-`evidence test` 对已生成的 Bruno 集合执行 HTTP 验收，不是 Vitest 源码测试；空筛选/未执行不得当绿，static check testExampleCount只是声明数。详见[CLI工作流](../workflows/cli-governance.md)。
-
-## 执行结果如何记录
-
-每次改动选择最窄unit→必要integration；需要dist先build，需要native diff先setup；保留完整失败stdout/stderr，不只截“1 failed”。执行结果应记录在具体变更说明中，并注明 Node 版本、测试范围与失败后重跑；不能把本页测试地图视作永久的 CI 通过凭据。
-
-相关：[构建](../operations/build-and-package.md) · [静态与CEL](../model/checks-and-simulation.md) · [API](../contracts/api-projection.md)
+- [静态门禁、CEL 与样例求值](../model/checks-and-simulation.md)
+- [构建、打包与维护](../operations/build-and-package.md)
+- [统一 CLI 与双门禁验收工作流](../workflows/cli-governance.md)

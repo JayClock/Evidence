@@ -5,7 +5,7 @@ description: 业务文本、协议和蓝图如何先变成可修正草稿再创�
 tags: [ingestion, draft, blueprint, contract-clauses, patch-review, desktop]
 verified:
   - by: openwiki/0.9.0
-    at: 2026-11-20T12:30:09.424Z
+    at: 2026-11-27T13:29:03.591Z
 sources:
   - id: openwiki-source-55138c775f581f8c989ca7dc
     resource: repo://apps/desktop/src/main/agentRuntime.ts
@@ -13,10 +13,6 @@ sources:
     resource: repo://apps/desktop/src/main/ingestionIpc.ts
   - id: openwiki-source-1c1b4203dc4b1050778717b6
     resource: repo://apps/desktop/src/main/ingestionModelReader.ts
-  - id: openwiki-source-994f4cca911f6ec646914d74
-    resource: repo://apps/desktop/src/renderer/components/ingestion/DraftReviewPanel.tsx
-  - id: openwiki-source-b1e4b88f095ce314032a1b95
-    resource: repo://apps/desktop/src/renderer/components/ingestion/IngestDraftModal.tsx
   - id: openwiki-source-74158507676a0014907d29c4
     resource: repo://apps/desktop/src/renderer/screens/EditorScreen.spec.tsx
   - id: openwiki-source-9459ee1a8fc917f2d94619ce
@@ -35,37 +31,41 @@ sources:
     resource: repo://libs/desktop/feature-agent/src/state/usePatchReview.spec.tsx
   - id: openwiki-source-0c662531e68a2db936eccc7f
     resource: repo://libs/desktop/feature-agent/src/state/usePatchReview.ts
+  - id: openwiki-source-3de36534a91cd7bc566fa73b
+    resource: repo://libs/desktop/feature-ingestion/src/DraftReviewPanel.tsx
+  - id: openwiki-source-4118fb8b792cfa64e27f061d
+    resource: repo://libs/desktop/feature-ingestion/src/IngestDraftModal.tsx
   - id: openwiki-source-3b4892a0d4698c5c4f9afc2f
     resource: repo://libs/evidence-agent/src/prompts/ingestion.ts
-  - id: openwiki-source-bf13ded6fe2f54bd89054e61
-    resource: repo://libs/evidence-model-core/src/ingestion/blueprintParser.spec.ts
-  - id: openwiki-source-b32abf20c1d13dec210f4f30
-    resource: repo://libs/evidence-model-core/src/ingestion/blueprintParser.ts
-  - id: openwiki-source-8d95d250382980db9c471b3f
-    resource: repo://libs/evidence-model-core/src/ingestion/compileDraft.spec.ts
-  - id: openwiki-source-f02b234edea2573a78a178f1
-    resource: repo://libs/evidence-model-core/src/ingestion/compileDraft.ts
-  - id: openwiki-source-ebb95bca4298333baa2fd5e5
-    resource: repo://libs/evidence-model-core/src/ingestion/contractAnnotator.spec.ts
-  - id: openwiki-source-d50af13687ca3e2709155692
-    resource: repo://libs/evidence-model-core/src/ingestion/contractAnnotator.ts
-  - id: openwiki-source-8ad42f5ce30c7e59de3fd41e
-    resource: repo://libs/evidence-model-core/src/ingestion/contractReader.spec.ts
-  - id: openwiki-source-6cd8fa37e318826bb59eba39
-    resource: repo://libs/evidence-model-core/src/ingestion/contractReader.ts
-  - id: openwiki-source-e3a4e522fbf80fe664a643eb
-    resource: repo://libs/evidence-model-core/src/ingestion/draftAssembly.ts
-  - id: openwiki-source-7662329943ea91b1ab874202
-    resource: repo://libs/evidence-model-core/src/ingestion/draftSupport.ts
-  - id: openwiki-source-4ed850c6805e6da902ae831e
-    resource: repo://libs/evidence-model-core/src/ingestion/readDraftJson.ts
-  - id: openwiki-source-b586546b5d89128eb26f1b18
-    resource: repo://libs/evidence-model-core/src/ingestion/textExtractor.spec.ts
+  - id: openwiki-source-e7a0163cee12c286486c9e09
+    resource: repo://libs/evidence-ingestion/src/blueprintParser.spec.ts
+  - id: openwiki-source-a8401c74bdabce3583ee0faa
+    resource: repo://libs/evidence-ingestion/src/blueprintParser.ts
+  - id: openwiki-source-c42b13ef1a37b9815f238e72
+    resource: repo://libs/evidence-ingestion/src/compileDraft.spec.ts
+  - id: openwiki-source-c72f3ae3bdeedab3b69531aa
+    resource: repo://libs/evidence-ingestion/src/compileDraft.ts
+  - id: openwiki-source-981e7780f12aa16a4cbad7c0
+    resource: repo://libs/evidence-ingestion/src/contractAnnotator.spec.ts
+  - id: openwiki-source-d05386d298648515951c1601
+    resource: repo://libs/evidence-ingestion/src/contractAnnotator.ts
+  - id: openwiki-source-28fbdef6d24bd368fb32ac63
+    resource: repo://libs/evidence-ingestion/src/contractReader.spec.ts
+  - id: openwiki-source-63090b1842811e6d7feab22a
+    resource: repo://libs/evidence-ingestion/src/contractReader.ts
+  - id: openwiki-source-87d1f635bdcebe6ba2d509a2
+    resource: repo://libs/evidence-ingestion/src/draftAssembly.ts
+  - id: openwiki-source-bea3b070120987aa7086cae7
+    resource: repo://libs/evidence-ingestion/src/draftSupport.ts
+  - id: openwiki-source-545d5fdc074fc194a9f1ab0b
+    resource: repo://libs/evidence-ingestion/src/readDraftJson.ts
+  - id: openwiki-source-f493d1fe2a59521ae7006150
+    resource: repo://libs/evidence-ingestion/src/textExtractor.spec.ts
   - id: openwiki-source-b4abb2821db0f045818014a1
     resource: repo://libs/evidence-model-core/src/session/createModelSession.ts
   - id: openwiki-source-8527abf116e660a4c6e52d8a
     resource: repo://libs/evidence-schema/src/ingestion/draft.ts
-generated: { by: "pi", at: "2026-11-20T12:30:09.424Z" }
+generated: { by: "pi", at: "2026-11-27T13:29:03.591Z" }
 ---
 
 # 资料摄取与补丁审查
@@ -76,7 +76,7 @@ generated: { by: "pi", at: "2026-11-20T12:30:09.424Z" }
 
 main 的 ingestion:draft/compile 承担模型调用与落盘，renderer 无文件系统。kind=contract 先分句离线阅读；blueprint 用确定性表格解析；text 优先配置模型，不可用或返回不可读结果时回退本地规则。结果显式 reader=contract/blueprint/text-model/text-rules，fallback 带原因与原/新问题，不能把失败说成“业务没有内容”。
 
-协议 annotator 按程序/风险分配 → 业务动作 → 计算的优先级分类 business/domain/boilerplate，防“提交仲裁”被误当履约。annotation 保留原句、1-based locator、原因、computesValue 与 charStart/charEnd 字符偏移。模糊或程序/义务混合条款报告待人判断，法律文字仍可展开阅读，不默默丢弃。contract reader 对业务句复用 row reader，计算条款生成有名称的 domain calculator/checker thing，去重并附“第N句”来源；不能命名则留缺口，不编一个公式。草稿 sourceDocument 保留协议全文及条款切片；仅唯一精确匹配才把对象 provenance 连接到 clauseIndex/字符范围，重复句子不猜位置，编译后保留为 manifest.sourceDocument 与 entity.sourceSnippet。完全无业务句明确报告。
+协议 annotator（位于 `libs/evidence-ingestion`）按程序/风险分配 → 业务动作 → 计算的优先级分类 business/domain/boilerplate，防“提交仲裁”被误当履约。annotation 保留原句、1-based locator、原因、computesValue 与 charStart/charEnd 字符偏移。模糊或程序/义务混合条款报告待人判断，法律文字仍可展开阅读，不默默丢弃。contract reader 对业务句复用 row reader，计算条款生成有名称的 domain calculator/checker thing，去重并附“第N句”来源；不能命名则留缺口，不编一个公式。草稿 sourceDocument 保留协议全文及条款切片；仅唯一精确匹配才把对象 provenance 连接到 clauseIndex/字符范围，重复句子不猜位置，编译后保留为 manifest.sourceDocument 与 entity.sourceSnippet。完全无业务句明确报告。
 
 模型 reader 是 tool-less 读法，不是项目 Agent：使用主进程统一 AI 配置的显式模型依赖，临时目录、noTools=all、120秒、收 text deltas 并以最终助理消息校准、agent-error 转失败、finally 清会话/临时目录。随包 prompt 要求合同/双方角色、签约时点、前合同 rfp/proposal、请求时段/确认时刻（用 timeRole 绑定实际字段）、补偿新履约、domain thing/计算与逐句来源，禁止补造配对或把法律条款改义务，JSON-only。
 
@@ -86,7 +86,7 @@ readIngestionDraftJson 从 fence/文本取对象，缺集合补空、错误类�
 
 ## 人工修正与编译
 
-IngestDraftModal 支持粘贴或载入本地文件，拒空文本，读取后展示 DraftReviewPanel：reader、evidence/participant/pair 数、删改断开的 pair、条款分类和被过滤法律句、来源 locator 与缺口。可改 evidence label/kind/drop，本地变更不写模型；移除 pair 端点后计数相应减少。不能靠面板替编译器编造缺失的合同另一方。
+IngestDraftModal（位于 `libs/desktop/feature-ingestion`）支持粘贴或载入本地文件，拒空文本，读取后展示 DraftReviewPanel：reader、evidence/participant/pair 数、删改断开的 pair、条款分类和被过滤法律句、来源 locator 与缺口。可改 evidence label/kind/drop，本地变更不写模型；移除 pair 端点后计数相应减少。不能靠面板替编译器编造缺失的合同另一方。
 
 提交才选目标并 compile。compileIngestionDraft 为对象重编稳定 schema ID，重复 label 加后缀；以 monotone fixpoint 决定可写对象，删除合同会传递删除失根 Context、成员、pair，每个 droppedId 报一次。只有 pair 两端存在、同合同且引用成立，并能找到请求的起止时标与确认时点，才生成完成规则；缺引用可明确连接，缺业务时标则报告并跳过。最后仍由 strictValidateDomainModel 判断。
 
@@ -98,14 +98,10 @@ main 强制用户名称，零 surviving entities 拒绝且不写盘；成功 pro
 
 usePatchReview 从 diffDomainModels 的 contexts/entities 生成 added/removed/modified IDs、rationale/op 名称和 overlay；只标现有变更对象，不加 ghost，不宣称列出所有关系/规则 diff。InlinePatchCard 提供 counts、说明、可定位 chips（removed 无法定位）、保留/撤销和过期提示；画布全局 Storming 和凭证原位 Inquiry 共用唯一 review state。
 
-## 为什么不能撤销后来的工作
+撤销应用 Immer inverse patches；仅当前模型与 after 引用相同时才执行，否则保留用户后续编辑只关闭审阅。
 
-ModelSession 为整批保存 Immer forward/inverse patches，undo 一步回该批之前。review 的安全条件是 `session.getDocument() === patched.after`，不是深比较。若后面人或另一补丁已改动，就只关闭 review，不 undo，提示到普通历史逐步回退；accept 始终只清 review，不再修改模型。
+## 相关页面
 
-键由 editor shortcut 统一仲裁：仅 pending 时提供 acceptPatch/revertPatch。Escape 在 typing guard 前尝试 revert，Mod+Enter 在 guard 后 accept。没有 review 时 Escape 交给画布弹层、播放或选区等优先链，不能用一个全局 handler 抢所有弹层。
-
-## 验证入口
-
-ingestionIpc/modelReader specs 保护三个 reader、模型失败 fallback、空/覆盖拒绝、tool-less/timeout；core contract/blueprint/text/readDraftJson/compile specs 保护来源、条款分类、JSON修复报告、传递 drops、配对和普通 schema 接受。useLiveModelBridge/usePatchReview specs 保护原子补丁、no-op、计数/overlay、accept、不撤销后续编辑与撤销最新；EditorScreen/shortcuts specs 保护 Escape/保留的端到端仲裁。
-
-相关：[Pi 工具](../agents/pi-harness.md) · [会话事务](../model/commands-and-session.md) · [桌面宿主](./app-shell.md) · [来源台账](../language/key-data-and-provenance.md)
+- [工作区、台账与交付](./workspace-surfaces.md)
+- [Pi 建模 Agent 与受控工具](../agents/pi-harness.md)
+- [模型工作区与源文件](../model/source-formats.md)

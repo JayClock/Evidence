@@ -5,7 +5,7 @@ description: 共享 SensorReport 如何承载 FM 静态检查、关键数据和 
 tags: [sensors, stage-gate, diagnostics]
 verified:
   - by: openwiki/0.9.0
-    at: 2026-11-20T12:30:09.424Z
+    at: 2026-11-27T13:29:03.591Z
 sources:
   - id: openwiki-source-f85ce0e3a462797434d822a8
     resource: repo://apps/desktop/src/main/agentIpcHandlers.ts
@@ -13,12 +13,8 @@ sources:
     resource: repo://apps/desktop/src/main/agentRuntime.spec.ts
   - id: openwiki-source-55138c775f581f8c989ca7dc
     resource: repo://apps/desktop/src/main/agentRuntime.ts
-  - id: openwiki-source-bc335f19a22e1758f9ecea1e
-    resource: repo://apps/desktop/src/main/sensorRuntime.ts
   - id: openwiki-source-34616781ee43c94607ccca92
     resource: repo://apps/desktop/src/renderer/components/BottomStatusBar.tsx
-  - id: openwiki-source-54bfa14340461b5df12c5a93
-    resource: repo://apps/desktop/src/renderer/components/console/ProblemsPanel.tsx
   - id: openwiki-source-9459ee1a8fc917f2d94619ce
     resource: repo://apps/desktop/src/renderer/screens/EditorScreen.tsx
   - id: openwiki-source-694f14a9d64dcf9f23bb8a3b
@@ -27,30 +23,32 @@ sources:
     resource: repo://libs/desktop/feature-canvas/src/diagnosticIndex.spec.tsx
   - id: openwiki-source-f172557f5294fb7b6d40b660
     resource: repo://libs/desktop/feature-canvas/src/diagnosticIndex.ts
-  - id: openwiki-source-eb29c98cfa71901c2675a7e4
-    resource: repo://libs/evidence-agent/src/sensors/native/modelSources.ts
-  - id: openwiki-source-feaf4e64c269397a25f93a3d
-    resource: repo://libs/evidence-agent/src/sensors/native/nativeApiSensor.ts
-  - id: openwiki-source-925f1915fe23c3f1c07b66e9
-    resource: repo://libs/evidence-agent/src/sensors/native/nativeSensors.spec.ts
-  - id: openwiki-source-819cda3e1e556eb778e9f02b
-    resource: repo://libs/evidence-agent/src/sensors/native/nativeSensors.ts
-  - id: openwiki-source-a51a313ecc5551e788fbf06c
-    resource: repo://libs/evidence-agent/src/sensors/native/nativeStageGate.ts
-  - id: openwiki-source-c1e4281890861794f7ffa119
-    resource: repo://libs/evidence-agent/src/sensors/sensorReport.spec.ts
-  - id: openwiki-source-9ad3f46aa18e9c002bf6f482
-    resource: repo://libs/evidence-agent/src/sensors/sensorReport.ts
-  - id: openwiki-source-42da6cbec5d78ace581498c6
-    resource: repo://libs/evidence-agent/src/sensors/sensorsEngine.spec.ts
-  - id: openwiki-source-ebeef9d445379fe3773732df
-    resource: repo://libs/evidence-agent/src/sensors/sensorsEngine.ts
-generated: { by: "pi", at: "2026-11-20T12:30:09.424Z" }
+  - id: openwiki-source-a27fc3a5c37a02b5a2e16bcd
+    resource: repo://libs/desktop/feature-diagnostics/src/ProblemsPanel.tsx
+  - id: openwiki-source-13f52fb4800dd579eb332cd6
+    resource: repo://libs/evidence-agent-sensors/src/sensors/native/modelSources.ts
+  - id: openwiki-source-c04eb3f2becdc2db18da73a3
+    resource: repo://libs/evidence-agent-sensors/src/sensors/native/nativeApiSensor.ts
+  - id: openwiki-source-62d32de2cdcb9ce8b6e6ae9d
+    resource: repo://libs/evidence-agent-sensors/src/sensors/native/nativeSensors.spec.ts
+  - id: openwiki-source-1dfebe4ac03aac402d4eeba9
+    resource: repo://libs/evidence-agent-sensors/src/sensors/native/nativeSensors.ts
+  - id: openwiki-source-1f91a0904801fda4a6bbc7e4
+    resource: repo://libs/evidence-agent-sensors/src/sensors/native/nativeStageGate.ts
+  - id: openwiki-source-961040e0ec25738ab11121de
+    resource: repo://libs/evidence-agent-sensors/src/sensors/sensorReport.spec.ts
+  - id: openwiki-source-2da2689c8b8685a06790cacd
+    resource: repo://libs/evidence-agent-sensors/src/sensors/sensorReport.ts
+  - id: openwiki-source-0f0160530ca13468303f5c14
+    resource: repo://libs/evidence-agent-sensors/src/sensors/sensorsEngine.spec.ts
+  - id: openwiki-source-6f04de9cd5b37856e059a081
+    resource: repo://libs/evidence-agent-sensors/src/sensors/sensorsEngine.ts
+generated: { by: "pi", at: "2026-11-27T13:29:03.591Z" }
 ---
 
 # 原生传感器与阶段门禁
 
-`libs/evidence-agent/src/sensors` 分三层：native 传感器计算事实，sensorReport 折叠诊断，sensorsEngine 决定下游交付门禁。它们分析而不写模型。静态通过不是 HTTP 后端验收，也不是业务批准。
+`libs/evidence-agent-sensors/src/sensors` 分三层：native 传感器计算事实，sensorReport 折叠诊断，sensorsEngine 决定下游交付门禁。它们分析而不写模型。静态通过不是 HTTP 后端验收，也不是业务批准。
 
 ## 一份输入与报告协议
 
@@ -81,7 +79,7 @@ engine 的 target 仅 api，每次都跑 fresh sensors，并使用 release 模�
 
 editor 在 loading/error、live bridge 错误或 report revision 不等于当前 revision 时，给画布空报告，防旧诊断污染。`createDiagnosticIndex` 仅接受明确引用：targetNodeId 的 # 前缀须存在，否则 contextRef 必须真是 context；不从消息猜 ID。每节点去重并取最高 severity。
 
-ProblemsPanel 以悬浮或停靠布局展示严重级别筛选、报告计数、过期标记、active row、code/target/建议；仅对可定位的行展示定位动作。filterIssues 在组件外可独立测试。定位支持 entity#attribute、context 或关系。空状态明确“机器检查不等于业务批准”。旧 reviewPreview/离线审查入口已移除。
+ProblemsPanel（位于 `libs/desktop/feature-diagnostics`）以悬浮或停靠布局展示严重级别筛选、报告计数、过期标记、active row、code/target/建议；仅对可定位的行展示定位动作。filterIssues 在组件外可独立测试。定位支持 entity#attribute、context 或关系。空状态明确“机器检查不等于业务批准”。旧 reviewPreview/离线审查入口已移除。
 
 ## 验证与邻接
 

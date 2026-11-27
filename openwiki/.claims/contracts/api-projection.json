@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:66c4d7e2c1146d7351e1e7e4b377a25964479280d7edf6e237e9283db7b2e1b3",
+  "pageVersion": "sha256:d03a018534daacac08aa59266d4f599a163cff77f1f2677e21332d5138bea9c6",
   "claims": [
     {
       "id": "claim_1ccbd29e511e46929319ccbea00159be",
@@ -40,7 +40,7 @@
       "evidence": [
         {
           "resource": "repo://libs/evidence-api/src/openapi/openapi.spec.ts",
-          "version": "repo-file-v1:sha256:0456f4324b16363568520f746375bfa90ac978f0ccfe0935d2418dc2dcddb78c"
+          "version": "repo-file-v1:sha256:1333320b1426713be756d6946abc5bca825b9dd69b03ef2b62050fc994de8418"
         },
         {
           "resource": "repo://libs/evidence-api/src/projection.spec.ts",
@@ -142,7 +142,7 @@
         },
         {
           "resource": "repo://libs/evidence-api/src/delivery/modelDelivery.ts",
-          "version": "repo-file-v1:sha256:2ef96820a22aa5df033694ae7ca707cd8b2df8e9d230b8a79e8fd92ca3620da6"
+          "version": "repo-file-v1:sha256:1818aa6a2dfa5b4f54fe1582c264350c412097b368a2641e5ed49f3ca7167740"
         },
         {
           "resource": "repo://libs/evidence-api/src/http/hateoasWeaver.ts",
@@ -156,7 +156,7 @@
       "evidence": [
         {
           "resource": "repo://libs/evidence-api/src/delivery/modelDelivery.ts",
-          "version": "repo-file-v1:sha256:2ef96820a22aa5df033694ae7ca707cd8b2df8e9d230b8a79e8fd92ca3620da6"
+          "version": "repo-file-v1:sha256:1818aa6a2dfa5b4f54fe1582c264350c412097b368a2641e5ed49f3ca7167740"
         }
       ]
     },
@@ -170,7 +170,7 @@
         },
         {
           "resource": "repo://libs/evidence-api/src/delivery/modelDelivery.ts",
-          "version": "repo-file-v1:sha256:2ef96820a22aa5df033694ae7ca707cd8b2df8e9d230b8a79e8fd92ca3620da6"
+          "version": "repo-file-v1:sha256:1818aa6a2dfa5b4f54fe1582c264350c412097b368a2641e5ed49f3ca7167740"
         }
       ]
     },
@@ -180,7 +180,7 @@
       "evidence": [
         {
           "resource": "repo://libs/evidence-api/src/openapi/openapi.spec.ts",
-          "version": "repo-file-v1:sha256:0456f4324b16363568520f746375bfa90ac978f0ccfe0935d2418dc2dcddb78c"
+          "version": "repo-file-v1:sha256:1333320b1426713be756d6946abc5bca825b9dd69b03ef2b62050fc994de8418"
         },
         {
           "resource": "repo://libs/evidence-api/src/testing/openapi.ts",
@@ -198,7 +198,7 @@
         },
         {
           "resource": "repo://libs/evidence-api/src/delivery/modelDelivery.ts",
-          "version": "repo-file-v1:sha256:2ef96820a22aa5df033694ae7ca707cd8b2df8e9d230b8a79e8fd92ca3620da6"
+          "version": "repo-file-v1:sha256:1818aa6a2dfa5b4f54fe1582c264350c412097b368a2641e5ed49f3ca7167740"
         }
       ]
     },
@@ -207,7 +207,7 @@
       "statement": "模型 evidence-only coverage 在 agent API sensor 统计，缺路由为 warn/API_COVERAGE_GAP，不把角色当 CRUD。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-agent/src/sensors/native/nativeApiSensor.ts",
+          "resource": "repo://libs/evidence-agent-sensors/src/sensors/native/nativeApiSensor.ts",
           "version": "repo-file-v1:sha256:ff7d0e15ed3c38c2d2c5879afff0fd2b2c3d24d8437ae45caf48bdf8a7a3d0a6"
         }
       ]
@@ -218,7 +218,7 @@
       "evidence": [
         {
           "resource": "repo://libs/evidence-api/src/delivery/modelDelivery.ts",
-          "version": "repo-file-v1:sha256:2ef96820a22aa5df033694ae7ca707cd8b2df8e9d230b8a79e8fd92ca3620da6"
+          "version": "repo-file-v1:sha256:1818aa6a2dfa5b4f54fe1582c264350c412097b368a2641e5ed49f3ca7167740"
         },
         {
           "resource": "repo://libs/evidence-api/src/projector.ts",
@@ -347,6 +347,6 @@
   ],
   "verification": {
     "by": "openwiki/0.9.0",
-    "at": "2026-11-24T13:18:19.740Z"
+    "at": "2026-11-27T13:29:03.591Z"
   }
 }

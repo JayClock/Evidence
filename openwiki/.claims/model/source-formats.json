@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:39a0cd495dc8c14d9d9d211015bd503b200a43b3e59a01ed1a44f900366e6587",
+  "pageVersion": "sha256:a395faa19b6d033345e416c9e815ab3c91c1de408acd2955e960ee52a41e6d00",
   "claims": [
     {
       "id": "claim_bda93da0553b4aee8e3362edf44058c2",
@@ -21,8 +21,8 @@
       "statement": "Tree file names are a deterministic function of object identity (category-kind--slug for entities, relation--slug, rule--slug), and colliding slugs get -2, -3 suffixes so no object is lost.",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-model-core/src/adapters/modelSourceFiles.ts#L93-L142",
-          "version": "repo-lines-v1:sha256:7fe5936612a9ce89b9892419c466ef6b88179672de1db28f786cf1e9540db622:eyJzZWxlY3RlZExpbmVDb3VudCI6NTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ0YTZmNmVlZjc4ODkxYmVlZWI0YmM1MGUyOTcwZTVkNmU2ODA3ZTZlNjQ4ODNiNTc0N2U5NWRjNWVmZjQ2MTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ2M2ZlOWU1MTliNzAzYThhMDY4N2E0MjY0ZjMzMzExNzRiODVjMzU5NDg5ZWMwMjhkNDY5ZmY2MzE2OTU0MDEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk4MTkyMjk5ZmY3NzNiNjc0ZTJiNGVmYzdiZTFhMWIzNDM2M2IyZWY1OTk0YjIxODgzOWM5MmJkNTU5MTc4ODgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIzOTNlOTY5MTE4ZTVmNTlmYmI0ZmFhODI0MTE5NDMyMWM4YTZjNWFhZmI3NWZlODk1YzcwNzYzZTJkMWFkOWIifQ"
+          "resource": "repo://libs/evidence-model-core/src/adapters/modelSourceFiles.ts",
+          "version": "repo-file-v1:sha256:f6da45308e69b717104067aaad0f0a36a43e05cd15e832cc729a0a618a8823dd"
         }
       ]
     },
@@ -31,8 +31,8 @@
       "statement": "Serialization writes two-space JSON with a trailing newline, sorts keys only when asked, and orders files manifest first then entities, relationships and rules, each sorted by path.",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-model-core/src/adapters/modelSourceFiles.ts#L159-L215",
-          "version": "repo-lines-v1:sha256:f2d7204cc058b7241d0380ef53793457e5ebf99e084d99f2a542c746f5404cb4:eyJzZWxlY3RlZExpbmVDb3VudCI6NTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5MTkwN2FlNzA5NGFlNzk0OGUzZGMyN2UzNmM4MWVmYWI0ZjY2N2E1MmQzMjEwMTU5NzcyYjYxNTRkMDJhNWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ4NGM4MDA1NWNlZTY5MGQwMjhlMWRmNGRlYWI2MmVhM2NlNWUwZmRhZThkYjA2NzdiNDMwMTliMzAyNWNjMTgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJkMDRmZWIyMjdhZTI0MDE5ZTRhYjBiMTFlODU1OGY2NjEwMjAxZjQ3MzU1ZmUwYjE4MjZlMTliNWE3ODhlMGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJmNTQ4ZTY5MmY5MDA3MDdjYTA2NThjMWRmNmZhZDllZjA2OWZmMmJiMWIwMWJkOTkzNTk0Mzk1MDQwNmQ5YjMifQ"
+          "resource": "repo://libs/evidence-model-core/src/adapters/modelSourceFiles.ts",
+          "version": "repo-file-v1:sha256:f6da45308e69b717104067aaad0f0a36a43e05cd15e832cc729a0a618a8823dd"
         }
       ]
     },
@@ -61,8 +61,8 @@
       "statement": "检查 reader 读取 manifest、根 README 及三类模型源文件，忽略无关和生成目录。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-model-io/src/adapters/modelRoot.ts#L14-L119",
-          "version": "repo-lines-v1:sha256:ac3498f6bf3bb29f8ef7505661f6f47b016d32f68f95444c812e086d1f73dda3:eyJzZWxlY3RlZExpbmVDb3VudCI6MTA2LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIxYzU3NmRhNTJiODIxZTJhYTY3MDFhOGQ1MjY4NjE4ZTVjMTM0MTYxNGU0ZmJkZWRlZjFhZTJlNjU0YjY5MTcxIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIwMWJhNDcxOWM4MGI2ZmU5MTFiMDkxYTdjMDUxMjRiNjRlZWVjZTk2NGUwOWMwNThlZjhmOTgwNWRhY2E1NDZiIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI5Y2E1ZWNkM2E3NjE1NWVkN2U1NDA0NzcyMjA5MmZjN2Q2MGY2NmZlZjlhZjQ2YmUwNGNmZTE1MDU2MTc0YTYwIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIwMmQ2NzMxNWE2OGU4NTQ0NTI4MjE0ZjBhNGU4MGM3NTczNGYzZWNiZWIwNTkxNTdlMDcxNjk3ODkxMjk1ZjJiIn0"
+          "resource": "repo://libs/evidence-model-io/src/adapters/modelRoot.ts",
+          "version": "repo-file-v1:sha256:4359bcc56b904e373e69d7eb925b259f6049af3b2ea0fc27dbdce6716ac79b28"
         }
       ]
     },
@@ -71,8 +71,8 @@
       "statement": "`modelDigestOf` hashes each file, builds a sorted path → sha256 map, serializes that map and hashes it with a `sha256:` prefix, making the digest independent of tree location and generated output but sensitive to path renames.",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-model-io/src/adapters/modelRoot.ts#L125-L144",
-          "version": "repo-lines-v1:sha256:b4f6747c9c3ced74e0f64aba7f80406b79b9a272e502fe210ee4c7396fb11fb5:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ5YzY5NWE0MzE3YjIyNzk1YzJhZGYwZTk3ZjUwNzJkNTA4MjNhMDgwOTM0YmY0NzcxODdhY2Q0MzU0ZDYwZjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRiNDAzYzZiYWJjY2UyMTU2NWNjZjk5MGZlZjRhOWQ0Y2NhYTU0ZjE2NjU1ODMxNjkxNjY1N2QxMTQ5NGVlZTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMxZmRiMmE0YjQ1M2M0N2I5NTAxMGY5YmI0YzYxYzg3Mzk3MDRiZmQ5MTQ3OTBlNzE1YjU5M2E4ZTE5NGM1MjEifQ"
+          "resource": "repo://libs/evidence-model-io/src/adapters/modelRoot.ts",
+          "version": "repo-file-v1:sha256:4359bcc56b904e373e69d7eb925b259f6049af3b2ea0fc27dbdce6716ac79b28"
         }
       ]
     },
@@ -95,12 +95,12 @@
       "statement": "`purity.spec.ts` fails if model-core bundles any Node builtin, and model-core's own specs use a test-only mirror reader in `tests/support/modelRoot.ts` instead of importing the production reader from model-io.",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-model-core/src/purity.spec.ts#L1-L35",
-          "version": "repo-lines-v1:sha256:d73ab5df15f49459a9d72808d4636d871dd34ba4aaafd57473eac350c7e27985:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg5OTU2NWQ2NzE1OGZjYjQ0ZDY2NmFmMzg4YjQzNGJhMTAxYjgyOWM4ZDVhMWFkZGZkMzI4OTdiMjc2Zjk4ZTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY2ZjViNDBiMTU4NDU3ZDE3ODY0ZjIxNzkwNzg2ZGQ1YTJlY2RiNjRiNjZhNjUxZjc4OGQ0ZTI1Y2QzMzAzZDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+          "resource": "repo://libs/evidence-model-core/src/purity.spec.ts",
+          "version": "repo-file-v1:sha256:d73ab5df15f49459a9d72808d4636d871dd34ba4aaafd57473eac350c7e27985"
         },
         {
-          "resource": "repo://libs/evidence-model-core/tests/support/modelRoot.ts#L1-L14",
-          "version": "repo-lines-v1:sha256:bf056e7666511311a992a3f8252e5cd9ce8e32f9f499bbc83568ffbe996cb93b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM3MGJlNWU1ZGYyMjgwNzFkMGE0ZjVjMTkyNDMwMzNjZDUxODBlMjUxYmViYmJlZmVmZmI1NjUxOTkxNzJlYjIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhiYTQ3NzU4MGEyNzIyNDNhYzA4YThlYTJlYmM2YTMxMzIxNDZmZjk1OGNmNDg3Yzc0MDVmOTk1MWRhZmVjMTMifQ"
+          "resource": "repo://libs/evidence-model-core/tests/support/modelRoot.ts",
+          "version": "repo-file-v1:sha256:86c779afe85fa2349221069de06c2a599f0b6db50fa843fa153b212690a85373"
         }
       ]
     },
@@ -109,12 +109,12 @@
       "statement": "目录 reader 与检查 reader 都复用 parseModelSourceFiles；目录 reader 只读清单和三类模型树。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-model-io/src/adapters/diskAdapter.ts#L81-L107",
-          "version": "repo-lines-v1:sha256:01b5e135cb007e88461c809ea958ee716376788fe7985743ce0606bc340666bf:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIyZDExY2FmNDNlOTdlZjM2OWU2YmVlZDFhMjY4YmQwNTgzOGYyOWI5ZGQyNTRiZjY5YmE2NDg4NDE0NzIzNGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVmZDBjNTZiMTAyOGIzZWQzNTRhODc3ZDA4NzRhMDY4ODNhZDI2MjI4OGE5MDkwMzBmYTlmOTFmNzJmMzdhNWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg1M2U5YjZlNzkyMjc1ZjZhMDU0MzNjZDc2MzA5ZDNjYTU4ODFjZmUxMjI1YjI2ZDAzZDM2OGZmMGViZmYwNjAifQ"
+          "resource": "repo://libs/evidence-model-io/src/adapters/diskAdapter.ts",
+          "version": "repo-file-v1:sha256:832c5dea99b9e511e2398b777a7f2744817d273c5b33094e45307bc8376b5b64"
         },
         {
-          "resource": "repo://libs/evidence-model-io/src/adapters/modelRoot.ts#L143-L151",
-          "version": "repo-lines-v1:sha256:0ffa91c7f0495a0ec19df610adec5e3a1d35030997829e2dacc6a50a33cb7e5e:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYWExZDFhNjMzOTAyMjljNzk4MzQ3ZTgzYTA0MDU0NDFjOTQwMDAzNTI4NGFkMTY4YzFiZjZjZGYxZDcwYTM3MCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiM2M0YTVhMDU4Yzc3MDc1NTk4ZDM3OWJlZTUxY2YzOTliNjJiMDQxZTJkNzBhZWQ0MzkyMjRiMjBiOGVhYTA0MSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjAsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSJ9"
+          "resource": "repo://libs/evidence-model-io/src/adapters/modelRoot.ts",
+          "version": "repo-file-v1:sha256:4359bcc56b904e373e69d7eb925b259f6049af3b2ea0fc27dbdce6716ac79b28"
         }
       ]
     },
@@ -123,12 +123,12 @@
       "statement": "currentDigest/rereadDigest检测检查中变化，附inputChanged/error并使consistent false。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-agent/src/sensors/native/modelSources.ts#L88-L113",
-          "version": "repo-lines-v1:sha256:bede526ab17a065a5cda2bf3ce590239514f5d82da73ba819d69533ec8be3fd1:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc1OWU3ZWZmMzFiNGE3NDA5ZTJiNzFjNGMzNzhhMTRhZTkzYzE3NWVlNmFkNGEyZGI1YWRlZGIwYWIwNmFlMGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFhMWQxYTYzMzkwMjI5Yzc5ODM0N2U4M2EwNDA1NDQxYzk0MDAwMzUyODRhZDE2OGMxYmY2Y2RmMWQ3MGEzNzAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZjZGU0NzhmOTliNzViMDZkODY0ZjU0ZTBkMDViMDIyY2RkNDQ0ODU5NmFjNTlkYTFhMzlmYzliYTgwZjRjOGYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+          "resource": "repo://libs/evidence-agent-sensors/src/sensors/native/modelSources.ts",
+          "version": "repo-file-v1:sha256:c99ce23aa11c82eaf4ff08ecf778f03fb73d9bd4b657e7f05627b25d081d6cf0"
         },
         {
-          "resource": "repo://libs/evidence-model-core/src/validation/fmCheck.ts#L66-L81",
-          "version": "repo-lines-v1:sha256:1a27ac3a17880e98cf2960d425204aea196202d97a067bbd006b2df1f7ff9e48:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxZjk1NjQzMDJjNDYzNDQxMTRmYzk5ZjkxYjQ4YTRmZTZiNDEyNGYzMzlhYjQyMWJhMjQ3MmExMDlmNGIyOGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIyMDkwZjAxMDU1ODRkNzc0MjYyNmYxZTI4YTExMjNkYmYzNjM3NzM2YjM2OTJjNWE4NzBjNTA2NWE2ZGZjZmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJlYTMyYTE5YjdmOTFkMDc2Y2Q3MjZkMjZhMzdhYzEzMzk5ZTRmZjliZjZhZjliYTNhMzYyMzk2MGI2YTdjMDciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ5NGUyZWRiY2JiZDIwYWZmNmVkYWViZGJjYzY0ZTUzYTdhZGQyM2FlYzNiNzA3MWNmMzMwMDY0NGY3NWJmZDQifQ"
+          "resource": "repo://libs/evidence-model-core/src/validation/fmCheck.ts",
+          "version": "repo-file-v1:sha256:506b801fdb331f194490609c91fbfd4ade4fbe0756b9037d24064ef7a1550791"
         }
       ]
     },
@@ -137,12 +137,12 @@
       "statement": "桌面 fingerprint 返回模型源文件摘要，无法读取时为 null；主进程用摘要识别外部改写。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/main/projectIpc.ts#L205-L227",
-          "version": "repo-lines-v1:sha256:97e5daa92f25ac6b3997192ef157c9777d6450f5be68ca656b92d1ef3628bc80:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk0ZDdlMGI2N2EwNjA1ZGRlYmZiYmYzMjc5MTkxNGQ4NmEzZTNlNzIwMzI3NTcxMDk0YTQ5MGMzM2YyZDg4ZjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUxMjM3YjU2NjM1ZjAyNDE4YzQzY2FiMGNiY2VmZDZhMDVkODBlOTA5MmNlNDk1Yzg5M2VhZGIxMjA5YzVmYTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBiMmI3OGE5ODQzZjUwZWEzOWI4NjU3ODEwODI3MDM4OGRhYjIxZTA2ZDUyNTZjYmNmNzlmOTNlYjJhOTE2MjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI2MWNjYzM2YmZlYjA1ODkyMTE5YzZmM2M3OWJmMjc2NTRhMGQ0Mzk3MzMxN2E0MDBmNGFiMmJiNGY5MDg2NzcifQ"
+          "resource": "repo://apps/desktop/src/main/projectIpc.ts",
+          "version": "repo-file-v1:sha256:ea7c8bcefa9469f1a7d34a729454867ffe3de7572437154ff4a6c811cc202f7b"
         },
         {
-          "resource": "repo://apps/desktop/src/main/projectStore.ts#L147-L154",
-          "version": "repo-lines-v1:sha256:af25f309f8c7c87ed930201668a5fe879230bcad1740130ee1a415808037c726:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZmZkYjkyZmMxOGMzYTcwNmJjMTFlYjdjZDFiZmMxMWYwNjgwMzdlNzNjZDBlYTBkODI1MzkyMjM0N2M3MThkOSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDJhMmNiMjVhMTIyYjQ0MjIxYTYyMzRlYzY2MGE3YjVmYjdmOWJkZTdiM2I5ZTJiM2M1NTlhMGQ5NmZhYzczOSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDc0YjdiYTQ1NWNlZjFlZWY2ODM0YzY5MmQ1MzMyODY2NDY0MWNkMjUxNGUxYjQ1NWU5ODc4NTdkZWYxOWFhNSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDJkNTg0NmY2ZjM4NTExZTc5NWNjZmViNzU2ZDE1MzEwNDI1NzM5NzRmY2VjNmU5YjM2Mzg4NzMwMjE2NjJhNSJ9"
+          "resource": "repo://apps/desktop/src/main/projectStore.ts",
+          "version": "repo-file-v1:sha256:f0db303dad0822c10293dd64e424da38948516797e71af7929838ed7579e7f16"
         }
       ]
     },
@@ -165,8 +165,8 @@
       "statement": "工作区写入比较磁盘版本与来源摘要，并对受管文件检查 expectedFiles，避免覆盖外部更改。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/main/projectStore.ts#L212-L253",
-          "version": "repo-lines-v1:sha256:8f2822ec3dff026e095d41b537e73c558f2e025426279a6b524b49b47cae3036:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBjYjJiNzgwNzE0OTIyZjg4MWU1YTZmNDY1MGIwZmMyN2Q3MDkxMjI0Y2I5NTJhZjEwZmY0NTZmNDAzZTdlMjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVlM2UxNWNhZWQzNTJjZDg5ODhiMjJhMTM3YTAxMzE5ZTkxNzllM2IxZDVlMWE0ZmExYTg3NzVhMWIyOTUyMjMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk3MWZhOTJjNTJmYzA4Y2UwZDMyM2VhNmI4ODk4YzcyMWJhNzg4ODQ5ZWJiYzg2MjljYTE3M2ViYmU0MTZiNzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjczOTkwZTUzYTViNzllODE2N2ZhZWRiNTU4Yjg4ODA4YWVmMTEwMTBkMDlmZTVlYzY2Y2Q1YTIyZmU2MWMwNzYifQ"
+          "resource": "repo://apps/desktop/src/main/projectStore.ts",
+          "version": "repo-file-v1:sha256:f0db303dad0822c10293dd64e424da38948516797e71af7929838ed7579e7f16"
         },
         {
           "resource": "repo://libs/evidence-model-io/src/adapters/diskAdapter.ts",
@@ -184,7 +184,7 @@
         },
         {
           "resource": "repo://apps/desktop/src/main/projectIpc.ts",
-          "version": "repo-file-v1:sha256:833a5f982eb2b4f572795e86aa6ad03dd45a570df6b8bcbb6e56026809fba856"
+          "version": "repo-file-v1:sha256:ea7c8bcefa9469f1a7d34a729454867ffe3de7572437154ff4a6c811cc202f7b"
         }
       ]
     },
@@ -217,12 +217,12 @@
       "statement": "树 manifest 版本必须为 6.0，不匹配报告 model.schema-version。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-model-core/src/adapters/modelSourceFiles.ts#L283-L301",
-          "version": "repo-lines-v1:sha256:cf296f1cf21cd20f20997e2e59000c004b3e3cf4ca1658b0204f240f3ac70103:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU0ZTEwMjk2ZjVmMmM2MjI2NDU1NjliOTcwNjNhNzU3NjcyZTM1ZDEyMmJiMjQ3MjA3YWY5ZTJmMmIyMDEwNjgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ0YTMxOWE1ZDM5YmRmMjJiMGQ2ZjcyZmYyZWRhMDIxOTJlODgwYzA0MDc1MjhmNjhkOTgxMDcyYWFhNjdlMTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjEzNTk3ZGU2ODczY2I5NTZkNGMzOTY0MzRiNGM4ZWNiZDk2NDhjMDExZGY4NDMyNjExNTlkZGMxNjE5ODVjMTQifQ"
+          "resource": "repo://libs/evidence-model-core/src/adapters/modelSourceFiles.ts",
+          "version": "repo-file-v1:sha256:f6da45308e69b717104067aaad0f0a36a43e05cd15e832cc729a0a618a8823dd"
         },
         {
-          "resource": "repo://libs/evidence-schema/src/ast/document.ts#L10-L18",
-          "version": "repo-lines-v1:sha256:2316692d91433eb1a2bf9af728f2a9a30d0683fba7ad491c49dce9eadd0c6840:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMTI0OTcxYzU2MmFlODI4MzkyM2IzMjU3MGE0NTBjZDI5ZTc2YTY0YzQ0ZWFjZjkwZjFhZTU4MDk0MGVhMWZhMSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMWQ4YjNiOGE2NTAyMGZkNjUyYWUyNDU2ZmViY2U1NmQzZTUwOWExMjM4Y2Q0YjlmMGU0MjVjMTViMzEzZDcxMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzEyZDhjZDBjZDM1YzI1N2JiYzA1NWViZjJmYTc5OGU2Y2JhMmIwODliNzYxMGVmZDMzMDQ4NjM0ZmZiYzgyNyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOWU4NmViMmI0M2MyZGEzYWY2OGM2ZDBlMjM5OWU3MmQ3N2E5NWM3OGIyYTM2NmY4N2NmYjU4NDNkZmQ2M2I3NiJ9"
+          "resource": "repo://libs/evidence-schema/src/ast/document.ts",
+          "version": "repo-file-v1:sha256:83ad812514f0b60c00cf089890de7e9c00669a462d412835afdcba5fd12e9ee7"
         }
       ]
     },
@@ -245,14 +245,14 @@
       "statement": "源摘要由路径和每个文件的字节摘要确定，与工作区位置无关。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-model-io/src/adapters/modelRoot.ts#L120-L142",
-          "version": "repo-lines-v1:sha256:1587de4f72cf12c6ef09849c8b926caf256d0ea9471caf78906ceb642983817d:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEyYzk3NTJhZjExODk2ZmZiZGE4ZGZjMDgzNmMyMGU5OWRlYzVmODFjZDQ0ODhiYzcxODM4MmM5ZWRhMzllZjEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA5NGZjMGMxNzNkMWVjM2ZjNTAxZDdkZmE5Mjg1NTAxYzUyN2NmYjQ3MTI1ODNkYTNjYzM2MTgwNTY2YjRiZTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIxY2I1OGM1ZjUyODBiNzFjMGVmNjQ0YjgxMDlkNjA2NWE1ZGYwY2NkODZiMWJjODlhOTQyMmU1MGI2ZjNjNTMifQ"
+          "resource": "repo://libs/evidence-model-io/src/adapters/modelRoot.ts",
+          "version": "repo-file-v1:sha256:4359bcc56b904e373e69d7eb925b259f6049af3b2ea0fc27dbdce6716ac79b28"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.9.0",
-    "at": "2026-11-24T13:07:09.861Z"
+    "at": "2026-11-27T13:29:03.591Z"
   }
 }

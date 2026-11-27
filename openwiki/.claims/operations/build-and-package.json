@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:d2d53ea2767d5cb151284a4c8469772a5fee54ad78856d0cbcc296076b71a56a",
+  "pageVersion": "sha256:3c0ed05e91e8f37765dd9693f437352d01cb610c8023367a6f23b01eaefeea5d",
   "claims": [
     {
       "id": "claim_567a05d269c14d5e97a102d43a9b3bcf",
@@ -12,7 +12,7 @@
         },
         {
           "resource": "repo://libs/evidence-acceptance/package.json",
-          "version": "repo-file-v1:sha256:d0302309652bebf606c7656d7e2d113247dc77bb77398a8079b6ad3cd8377ba1"
+          "version": "repo-file-v1:sha256:b8320a3654e7f9d80e389ba31def30f6a912824c7d04d623d9b8489761f5e2f7"
         }
       ]
     },
@@ -21,8 +21,8 @@
       "statement": "pnpm-workspace.yaml sets nodeLinker hoisted because Electron Forge's flora-colossus does not follow pnpm symlinks, disables blockExoticSubdeps for electron-winstaller's git dependency, approves six lifecycle-script packages, and exempts the exact @earendil-works/pi-* 1.5.2 versions from the release-age quarantine.",
       "evidence": [
         {
-          "resource": "repo://pnpm-workspace.yaml#L1-L36",
-          "version": "repo-lines-v1:sha256:4d013ba818fcaeddb3c991f66061ba5c4c1ee198dd792444ea120dc1e4ae5bc3:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkYjA3NmViODBhZGUxOWZlYTNlMGE0MzE5ODZiNjU1ZjVmYTU5ZWQ2MjY3ZTEwN2Q2ODhiNjFjM2Y0MjE3OTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkxMDQ2ZjM2MTc0MzYwMDAyZjZjNjhjZGUxYzYzOGI0MzUyN2E0OWZiYjZlYWExZTFhZDRiMzM2Yjg1NDNkOWYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+          "resource": "repo://pnpm-workspace.yaml",
+          "version": "repo-file-v1:sha256:4d013ba818fcaeddb3c991f66061ba5c4c1ee198dd792444ea120dc1e4ae5bc3"
         }
       ]
     },
@@ -41,12 +41,12 @@
       "statement": "Workspace packages export a @evidence-poc/source condition pointing at src before types/import, and tsconfig.base.json sets customConditions to the same name, so the type checker reads sources without a paths table.",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-model-core/package.json#L9-L24",
-          "version": "repo-lines-v1:sha256:7b42e5ff5f7fd33db64f1576507d08eb23b06849aa9ba6f62dabd538f871c9d7:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNjMDViYjlmNGE4Yjk4NDUxMGY4MTVhNWZjNDA3OGQ3N2M1YTIwZTkzZjMzNzNkYzVkZGU0YTM0MWQxYjQwYzgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRjYWJmMTk0ZjIxZjMyZjI0ZDEzZGZlYjJkM2Q3OTQxYTEwZDBhZTkwM2UwYjM4ZmE2NGRlZjQzZWFhYjlkYTkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk2ZmQyYmU2YjU3N2JhOTcxMDQ0OGE1NGYzN2EwZmY2MTNlMTM5YTEzZWM2MDgxMzcwYTRlODQyY2M4ZmUzYzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk3ZWJkYTA0ZjAyNDQxZTZhZDRhMTA3ZDI0NDYwMjYwZDVkNjE1Zjc4NWM1ZTgzOGNjOTRhYzQ5NmQ3YTM3YzUifQ"
+          "resource": "repo://libs/evidence-model-core/package.json",
+          "version": "repo-file-v1:sha256:475792a753e2df22951d854601c8bcda0c24921d8ae1637415e3127b2fe08cfd"
         },
         {
-          "resource": "repo://tsconfig.base.json#L2-L20",
-          "version": "repo-lines-v1:sha256:23b09d16a4ae906c9303ccdab7dd3e48300ba5db99d2364b9ba9407e708fa057:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjliMGNkOTc0ZWU2ZjM2NjYwMjI0MzRhNmRlODBkZDlmMTA3Zjk5MGYwZDk4MzM1ZjRkYWM2OWYwZGEyYWNkOWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3ZTU3ODhkNWQ5ZDczZDI0YTgxZGJjMGE1YTc0YmZhODJjOWMzYjNhZjk5ZTUyYWY3OTZlOTBiNDY4YThhM2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoxLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE2ZmIwOGZkYTFhY2I5NTdiNjExNmJkMzc4MTFhMWZlNDFhMDE2MTFjMDYzMWVkYmY3ODZkNjg4OWEyN2E1NWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+          "resource": "repo://tsconfig.base.json",
+          "version": "repo-file-v1:sha256:331491f84340ca023402ea4d278950a4bd865f76b6c584496092cabe1d205cc2"
         }
       ]
     },
@@ -55,16 +55,16 @@
       "statement": "model-core测试现在显式source条件；desktop按browser/SSR条件解析，其他无条件项目依^build，配置不应一概而论。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/vitest.config.mts#L14-L25",
-          "version": "repo-lines-v1:sha256:60c44d2489be6e98935bd1a9d257483ccb466275c4a665ca8a325239244e6daf:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQzOTZjN2Q0MmM0MGY0NzljNjZhNjAwMmVhODJjNDE2NDdjZTk0N2VkZmFlNGUwYTI3NTIyZDVmMWNiNzE4ZmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5MzZkZjdhNWEzYWFmMTgwY2ZmZDFkNjVjNjQ2ZWY2YWVhMzUyY2MyNzc3NDY4NjE5OWNkOGZiM2U4OTljN2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgyZDYwNTVmOTJmZGM0ZGI3MjQxOThmMzQwN2RkYWIwMGYzNjM0OGRhMTIzZmY2OTY0MzFjZjRlYWQ2YzBlNDciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYzZWEzNzU0NWMwZDg4ODQzOWU4NGY3MzM4ZTYzNmEyNDhiM2FjNzZkNWFjYzIyMThiMDRlMjE3MmU0OWIzZWIifQ"
+          "resource": "repo://apps/desktop/vitest.config.mts",
+          "version": "repo-file-v1:sha256:9ef7099f8d73124acc5ccd82ede873d034a7700d7f0ce432e17f57510d9dd00e"
         },
         {
           "resource": "repo://libs/evidence-model-core/vitest.config.mts",
           "version": "repo-file-v1:sha256:d2d3ecd753bb3d397d0f692cd02db0d7edcfadc79f1955d6b4841e503a7ba212"
         },
         {
-          "resource": "repo://nx.json#L64-L69",
-          "version": "repo-lines-v1:sha256:efe4a899718a8b98be7cf4c9a39d3d984bf27924ed9b13e4cea10bc708824c92:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYjEwOTU5NjUyYzBkN2Q5MmVlODRhMWY3NTQ0MmRiNzQ5NTgxZjVlNmUwMWIwOWNjYTQ2Njc1YWQ5YWYxMThmYSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOGY1Y2VkOTNkMzhiNjAxZDRhZDRkZmRkODBjYjVjMDEzNzVhYjg0MDY2YzExMmIxODg2NTJjMDZhMDgyODk3ZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTA3ZTNlNzg2ZTY1NmIxZTYxZjRhMTEyNDdiZjNkYjE1OWE3ZDU5NTFkZTQ2YjA4ZjNlZmQwMjY1YWFmODdkMCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNTY3MDEzYjY3ZWJhN2VjMDkyNDE2MTUzMWRkMGFkNmVkMDI3MTFjYjViYjIwZTQ2MDM0YmEzZDJhZTlkZDdkMSJ9"
+          "resource": "repo://nx.json",
+          "version": "repo-file-v1:sha256:ae45f790404894fd91cd4be145325cb2ec0870c09f5753a05e7b8c64d76c2e25"
         }
       ]
     },
@@ -74,7 +74,7 @@
       "evidence": [
         {
           "resource": "repo://eslint.config.mjs",
-          "version": "repo-file-v1:sha256:a6e31878842bb2472aaed2802e9d8746f59424cac61ff2eb702ec1e6de0299ed"
+          "version": "repo-file-v1:sha256:042980a9908b852c07d867288208bc929b5901d2be4eb093529bcffcf39376c9"
         }
       ]
     },
@@ -94,7 +94,7 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/forge.config.mjs",
-          "version": "repo-file-v1:sha256:22ad6e80c996e85632f1fa7af254169aa99b2be1745c89880009709adfc62e11"
+          "version": "repo-file-v1:sha256:70437df91a41a5320fa00f28325baecbd63c9c3878de0b0cc72fdd164fbbea4e"
         }
       ]
     },
@@ -103,12 +103,12 @@
       "statement": "The main Vite config sets rolldownOptions.platform to node so import.meta.url survives CJS output and createRequire works, and preload pins the emitted entry file name to preload.js because Forge names bundles after the entry.",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/vite.main.config.mjs#L14-L24",
-          "version": "repo-lines-v1:sha256:ab0e114ec769b4ce8be3ea52119b90bcc7e6fa01f4b2a76304eea23ca31c2f63:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIxMDI5ZGVkYWZmOWI4YWI4YjdlOTBiNmQ1NzFlMWJhMTNjNWYxOThlNzhiMWZjNmRkODIyNzA4NGVmMzA4NTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI4YWNjNmI5NDhjMjI1ZTRkMjY4NDZlOTM3ODYxMmIyOTE3OWJkMjVlZmUzNmQwNTBmYTAxOTIxYzIwNzI5ZGMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBmYTc5NmVmNmMwZmFkODc5NjBmMTgwMGM5ODA4ZWVkNTlhM2Y2NmRlNWQ0YWQyZWI4NTczMDIwMzdhMTAxMTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBiYzc2OWQyYTZiMGQzYjgyOGVmMWQwM2JjYzMwNjZhMjBjMTZkYTJkMjZhZjdjOWMwMjI1NmVmMjA1OWQ5MjQifQ"
+          "resource": "repo://apps/desktop/vite.main.config.mjs",
+          "version": "repo-file-v1:sha256:f50295f8270b616f4b9bc79d53bafe1ca3f1e8efe62bcc5bc9d4ccc1e0f3dd98"
         },
         {
-          "resource": "repo://apps/desktop/vite.preload.config.mjs#L1-L24",
-          "version": "repo-lines-v1:sha256:715625f408764656c35b44d9f4b26c16bb9331d792e2aaeaee3843070d29b2aa:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcxZDAyMTI3OTkzMzU4NzY1OTg0Mjk3ZGQzMzgzNWUwMGYyMjc0MjRjYmQ2NGMyY2JmMDJjYjcxMTQ1Y2ZmMmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY2ZjViNDBiMTU4NDU3ZDE3ODY0ZjIxNzkwNzg2ZGQ1YTJlY2RiNjRiNjZhNjUxZjc4OGQ0ZTI1Y2QzMzAzZDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+          "resource": "repo://apps/desktop/vite.preload.config.mjs",
+          "version": "repo-file-v1:sha256:715625f408764656c35b44d9f4b26c16bb9331d792e2aaeaee3843070d29b2aa"
         }
       ]
     },
@@ -117,8 +117,8 @@
       "statement": "The release workflow builds a four-way matrix (macOS arm64/x64, Windows x64, Linux x64), installs rpm/fakeroot/dpkg on Linux, runs desktop:make per architecture, collects zip/exe/nupkg/RELEASES/deb/rpm artifacts and publishes a GitHub Release.",
       "evidence": [
         {
-          "resource": "repo://.github/workflows/release-desktop.yml#L1-L120",
-          "version": "repo-lines-v1:sha256:e78cad2b2675c29142457c5cf8d4b7019d11d3ebf62ced96360d3f3674f7c32b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIwLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJlMjkyNzNkNDJmOTdlNjg5YzgyYWE3NWZiNTI5OWRkZDM5OGRhYjZlOGJlZGFhNzQ2YmJlNjZiMTcxMDI1ZDdjIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIwYjMyYjk4NzI2M2RmMjE2M2U3MjZkNDhiOTJmNmY5NjUxNDhjYjZiNmQyODMxNzkxNTE0YzkzOWY4MzdhMTQyIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MCwicHJlY2VkaW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI2ZTVlMTQyN2FiZjkwMWMzOWUxYzkwZDI3M2I4YWE0OTU1NjA1MTgwNjFiYzIzNWY0YTdiY2NlYTFhMjYxYzg1In0"
+          "resource": "repo://.github/workflows/release-desktop.yml",
+          "version": "repo-file-v1:sha256:d642723f27a2bd061bf68443fb691ffeb2402effdcadc663ca9328657dfdd1c4"
         }
       ]
     },
@@ -128,7 +128,7 @@
       "evidence": [
         {
           "resource": "repo://package.json",
-          "version": "repo-file-v1:sha256:f84a2c22acac2b3f6be85de2e51aaf810ba83e49054580ba9a457767a4994085"
+          "version": "repo-file-v1:sha256:8e27e6991e9b87d3a10bb0b56103966a3d60a554c8a1002c4722da7b09ec4a6c"
         },
         {
           "resource": "repo://pnpm-workspace.yaml",
@@ -146,7 +146,7 @@
         },
         {
           "resource": "repo://docs/workspace-layout.md",
-          "version": "repo-file-v1:sha256:3dceacc63fbf9300a2bc9ff8650e61ad082fa2119435a718a200594d96484d21"
+          "version": "repo-file-v1:sha256:f68bd16841d07cc7f054d3fa54d7957e92e725f181290353122010be8816514a"
         }
       ]
     },
@@ -160,11 +160,11 @@
         },
         {
           "resource": "repo://eslint.config.mjs",
-          "version": "repo-file-v1:sha256:a6e31878842bb2472aaed2802e9d8746f59424cac61ff2eb702ec1e6de0299ed"
+          "version": "repo-file-v1:sha256:042980a9908b852c07d867288208bc929b5901d2be4eb093529bcffcf39376c9"
         },
         {
           "resource": "repo://libs/evidence-agent/package.json",
-          "version": "repo-file-v1:sha256:0d4c144c9da8c389f1b3c3f9f998ae722c30a43006a98c6cda21d62891171872"
+          "version": "repo-file-v1:sha256:dfed7046a0b01cadf8606d9ef0bb7f06b23d7cfa2a7acbb43b4b6d78784097df"
         }
       ]
     },
@@ -173,12 +173,12 @@
       "statement": "Because the hoisted linker lets an undeclared import resolve, the @nx/dependency-checks rule configured in each project's eslint.config.mjs (together with the workspace:* protocol) is the guard against missing or unused dependency declarations.",
       "evidence": [
         {
-          "resource": "repo://docs/workspace-layout.md#L67-L68",
-          "version": "repo-lines-v1:sha256:db6553e035f6e2127a0f1a15ef6a56f6557df41bce8a4e5e77e04debfc0d5586:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTQ0YmM3Njg0MGRlMjk1YmFjZWI0ZWYwMzE1YWQzNmU4NmJkZDNkZWY4YTRkZjY2NDRiZWMxNzExMDBjNDY0ZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNGZiN2IxZmQ1NjBmZWRjNTIwMjExNDkxZDNhOGFlZGRiMmM2ZGQ0YmQ4MTY0ODNhNTU1NzRiMDljNDEwNTQ3NCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDY1M2Y1ZjE4NGYwOGQ3NzVkMDljM2FiNmNjYzg1YWYwNmEwOTAyOGY1OWJiZmEzYzg0ZTNiMDVmYWNjZTJhZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzE5MGY4OGJlZThkYWRjZjVlODZhZDUwNWIyN2MxYmFjYzg3NzI4YjdjZWQ5YTAzMzk2ODBjYWI3MmU4MzMxNSJ9"
+          "resource": "repo://docs/workspace-layout.md",
+          "version": "repo-file-v1:sha256:f68bd16841d07cc7f054d3fa54d7957e92e725f181290353122010be8816514a"
         },
         {
-          "resource": "repo://libs/evidence-api/eslint.config.mjs#L6-L20",
-          "version": "repo-lines-v1:sha256:fcb53c69e0675616de0d2c04e0e80aee47ec5ad22e79713aabd4332e35c40e53:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM0NGNmM2I0ODBkZjdlZGRmNDk5NjQ1ZWU1OTEwMzE3N2Q1Y2Q3ZDc5Mjc2MGRjNDdkYTU2YjVlYjdiMzk4ZGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmMGNkYjk3MmE3YmZiN2VkMjQ2ZjlmZjY3MjM4NWU1NWY0OTY4ZmMxMTA0M2RjNWI2ODRkNTFkZmEzMWRiY2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNiZGViNmZjYTMwN2YxZWMzNzc3MzQzMjc2YmI1OGJiYzM2NTgyNmQ1NjAzYzAzODczMmE2OWVkZDA3NTk5N2QiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdmNjIyN2UxZWRhNzkxNGI4MDM3MGE2NzYwZmJlNzQyYmFiOTc2YmEzYTU5ZTkzNjNkNTg5MjZmMTgwMjI2NmQifQ"
+          "resource": "repo://libs/evidence-api/eslint.config.mjs",
+          "version": "repo-file-v1:sha256:548ff35f37fcd719ee519b628e51185f89c2f1ad858a3e3d92ade516a2e6368a"
         }
       ]
     },
@@ -187,8 +187,8 @@
       "statement": "nx.json lists tools/eslint/**/* in namedInputs.sharedGlobals so an edit to a shared lint rule invalidates cached lint results, and its production input excludes specs, eslint configs, tsconfig.spec.json, test setup and src/test/** so test-only changes do not invalidate production builds.",
       "evidence": [
         {
-          "resource": "repo://nx.json#L4-L16",
-          "version": "repo-lines-v1:sha256:9b3572fd5237051cc098274b4ee58f274a30803bc64f430f3e1344e76d063dd3:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk2ZjdhMzA5MzIxZWJkYTcwZTc4OWVhMmZkZjIxYTc0OTA4MzEyMDA1ZjdhMDhlZWFhZDM2OTUyYThjZTAyM2YiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRkNWNkMmZiNGYzZGY4ODQ1MTUyNTViMzk1MjNmMmY4YjU0NzJiZWVhOWY1NjZmZmNhMjA0ZGI4MDI1NjEwNDEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI0MjhiMjAzYjliMzQwYzY5ZDIxYmNhMGZhMDk3YmE1Y2JmZGMzODg5Nzg0ZjI1NjMzN2FiYzI4NTEyZGIxY2YiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVlNWQyNDJhZWNhN2E5MWE3NjRlMWEzZmM4NzAwZmZhNmU4YzY2MWUyNzkzNjczODZiM2EwMzM3NDlmZGM3ZjIifQ"
+          "resource": "repo://nx.json",
+          "version": "repo-file-v1:sha256:ae45f790404894fd91cd4be145325cb2ec0870c09f5753a05e7b8c64d76c2e25"
         }
       ]
     },
@@ -208,7 +208,7 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/forge.config.mjs",
-          "version": "repo-file-v1:sha256:22ad6e80c996e85632f1fa7af254169aa99b2be1745c89880009709adfc62e11"
+          "version": "repo-file-v1:sha256:70437df91a41a5320fa00f28325baecbd63c9c3878de0b0cc72fdd164fbbea4e"
         }
       ]
     },
@@ -217,12 +217,12 @@
       "statement": "The main Vite config must set rolldownOptions.platform to 'node' because Forge's Vite plugin emits CJS without build.ssr and Vite 8 would otherwise turn import.meta.url into undefined and break createRequire, and the preload config pins output.entryFileNames to preload.js because Forge names bundles after the entry file.",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/vite.main.config.mjs#L17-L24",
-          "version": "repo-lines-v1:sha256:9168c8556899ed50d22cac55cffbdb752edd28b2156c1b18200ad875ecc66435:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYjhhY2M2Yjk0OGMyMjVlNGQyNjg0NmU5Mzc4NjEyYjI5MTc5YmQyNWVmZTM2ZDA1MGZhMDE5MjFjMjA3MjlkYyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMGI5MWRjNGYxMTNhZWQzZjIxYjBhOWVmNGJlNDM1OGM4NGMyOTFmMDllOTU0NDZkZTI4MDhlM2I2MmI2N2JjOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMGJjNzY5ZDJhNmIwZDNiODI4ZWYxZDAzYmNjMzA2NmEyMGMxNmRhMmQyNmFmN2M5YzAyMjU2ZWYyMDU5ZDkyNCJ9"
+          "resource": "repo://apps/desktop/vite.main.config.mjs",
+          "version": "repo-file-v1:sha256:f50295f8270b616f4b9bc79d53bafe1ca3f1e8efe62bcc5bc9d4ccc1e0f3dd98"
         },
         {
-          "resource": "repo://apps/desktop/vite.preload.config.mjs#L9-L22",
-          "version": "repo-lines-v1:sha256:3e49b874f4b57a17890529ba9be9247912042204a6967f5f730c7499504a3880:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3MmE0MjkzODJiMmUxNDcxOGUwZTM3YjA1NzBhOGExNzAyOTkxZmNkODQ5OGNkODQwNjBhOGJmNGYwNTAxN2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmMGNkYjk3MmE3YmZiN2VkMjQ2ZjlmZjY3MjM4NWU1NWY0OTY4ZmMxMTA0M2RjNWI2ODRkNTFkZmEzMWRiY2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ3MDZkY2U0NGYxNDcyNTkyNDk2MDVmNTRlZmI0MTFiZWY3MWI1NDY0MGVkMTMwNWY5Mjk5NDk5NzhjYmUyMWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI4M2MwM2ZiZGY5YjM0NmFhNTUyNzg2YjVlZWJiM2FhZDRmYWM4M2FiOWU1YzZiNWQ1MTVhM2ViNTljZWVkNTIifQ"
+          "resource": "repo://apps/desktop/vite.preload.config.mjs",
+          "version": "repo-file-v1:sha256:715625f408764656c35b44d9f4b26c16bb9331d792e2aaeaee3843070d29b2aa"
         }
       ]
     },
@@ -236,7 +236,7 @@
         },
         {
           "resource": "repo://package.json",
-          "version": "repo-file-v1:sha256:f84a2c22acac2b3f6be85de2e51aaf810ba83e49054580ba9a457767a4994085"
+          "version": "repo-file-v1:sha256:8e27e6991e9b87d3a10bb0b56103966a3d60a554c8a1002c4722da7b09ec4a6c"
         }
       ]
     },
@@ -250,7 +250,7 @@
         },
         {
           "resource": "repo://tools/eslint/browser-platform.mjs",
-          "version": "repo-file-v1:sha256:f2ce737e9dd0594973cec41dbf6b11aa4ae827a6b401708e71214ef17294266d"
+          "version": "repo-file-v1:sha256:1609f1f42274f78cf855cf94351541b1bc9d2cbf3ee38c6738e36869d299ac7f"
         }
       ]
     },
@@ -259,8 +259,8 @@
       "statement": "libs/evidence-model-core/src/purity.spec.ts bundles the package with Vite and a resolver plugin that throws on any Node builtin, so a universal library cannot quietly acquire a Node-only import even where the lint rule is absent.",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-model-core/src/purity.spec.ts#L6-L34",
-          "version": "repo-lines-v1:sha256:65d6c9978e0bdbf7d36f7af90e7de0171ae93bc8e0e913ba5d6b44a40a318573:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY4ZGZjNTRmZTgyZWZmNTYzYzYxNjE1ODhiMzAyNzMzYzA2ZDQxZTVkOWYzZjBiZTUzMTgzZjYxODI4MGJlODgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNhM2U0NmY5NDI3NmI2ZjZmNGVkMWYwMmFmNzhiZWY2YTJlZTFjNDM5ZGQ1NTg0Yjk3Mzk0ODMxMzIxNGQyYjciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA3ZmU2OTU1M2VhZTc0NjI2OTNjMWM5MWI1MmY0NzU5NGRlMWZhOGE1NGU3MzVlNTQzMzlkZjViYjYyY2FlOGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY2ZjViNDBiMTU4NDU3ZDE3ODY0ZjIxNzkwNzg2ZGQ1YTJlY2RiNjRiNjZhNjUxZjc4OGQ0ZTI1Y2QzMzAzZDIifQ"
+          "resource": "repo://libs/evidence-model-core/src/purity.spec.ts",
+          "version": "repo-file-v1:sha256:d73ab5df15f49459a9d72808d4636d871dd34ba4aaafd57473eac350c7e27985"
         }
       ]
     },
@@ -270,7 +270,7 @@
       "evidence": [
         {
           "resource": "repo://tools/workspace-rules/boundary-drill.mjs",
-          "version": "repo-file-v1:sha256:ba5e79dcdcb03ef2b8bd00a9c24d761f81769cd7d3de6a1320f9aee1bc77291a"
+          "version": "repo-file-v1:sha256:44636012da3674946ad8327e86b365afb203654413d6503e2ca2a9df418f0907"
         }
       ]
     },
@@ -279,8 +279,8 @@
       "statement": "CI 用 Node 22 冻结安装并查验工作区 Bruno CLI，显式准备 oasdiff 与独立 Fastify，再运行原生测试、边界验证、lint/typecheck/test、CLI 检查、示例只读核验和桌面构建。",
       "evidence": [
         {
-          "resource": "repo://.github/workflows/ci.yml#L26-L76",
-          "version": "repo-lines-v1:sha256:8c60167274631b078de493edaf0b88230677cd67e714c2e63e3e31d92d693a48:eyJzZWxlY3RlZExpbmVDb3VudCI6NTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM2ZDcxMGExNzYyODk1Y2Q0YzkzYzZhMmEyOWU2MjkyNGQ2ZjczMGQ5NWUyYWQxNzdjYTUwNDhlYjU2OWM5YWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ1MTZhMTM3Y2ExYTgyMjk3MDcyNWI1NmJhYTljMzJiMzM2ZGIwNjAxNDcxMDJiZTk2NzIyZDcwMjI0MDBlZGMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFiODg2OGJmZTBhMGMxM2U2MmJlMWE2MTdkNDllYjhjODcwZGUyNmZjNGRiMTliY2JmMGFmZWE1OWUyNGEzMTciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+          "resource": "repo://.github/workflows/ci.yml",
+          "version": "repo-file-v1:sha256:3c6460388d810d40ec85ae619b919bc7d73e7458b32e4a84b190efe0bee3cf8f"
         }
       ]
     },
@@ -289,8 +289,8 @@
       "statement": "The release workflow builds a four-way matrix (macOS arm64, macOS x64, Windows x64, Linux x64), installs rpm/fakeroot/dpkg on Linux, runs nx run desktop:make with an arch argument, collects .zip, .exe, .nupkg, RELEASES, .deb and .rpm from apps/desktop/out/make, and publishes a GitHub Release; Apple secrets are optional, so macOS artifacts are unsigned without them.",
       "evidence": [
         {
-          "resource": "repo://.github/workflows/release-desktop.yml#L1-L126",
-          "version": "repo-lines-v1:sha256:d642723f27a2bd061bf68443fb691ffeb2402effdcadc663ca9328657dfdd1c4:eyJzZWxlY3RlZExpbmVDb3VudCI6MTI2LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJlMjkyNzNkNDJmOTdlNjg5YzgyYWE3NWZiNTI5OWRkZDM5OGRhYjZlOGJlZGFhNzQ2YmJlNjZiMTcxMDI1ZDdjIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODY4NTJmNzJlNTE0M2QzNTlhNTgzNWM0MjZjNDk1YjczOTU2MzMxOGUyYzRkYWQxZWJkYmEyMzMwOTUyMDEyIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MCwicHJlY2VkaW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MCwiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1In0"
+          "resource": "repo://.github/workflows/release-desktop.yml",
+          "version": "repo-file-v1:sha256:d642723f27a2bd061bf68443fb691ffeb2402effdcadc663ca9328657dfdd1c4"
         }
       ]
     },
@@ -311,6 +311,6 @@
   ],
   "verification": {
     "by": "openwiki/0.9.0",
-    "at": "2026-11-24T13:07:09.861Z"
+    "at": "2026-11-27T13:29:03.591Z"
   }
 }

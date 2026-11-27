@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:89effaa314fb9cf55fbcd8c637f69693744ff808de8622f7638f3751e7f91e5b",
+  "pageVersion": "sha256:aa9000c199877025908c957aa7df6e860b1499dd9ffc263c2d38efe1ee02b287",
   "claims": [
     {
       "id": "claim_5a482b78f8f34865acfedfb1f251ddba",
@@ -8,7 +8,7 @@
       "evidence": [
         {
           "resource": "repo://libs/evidence-api/src/delivery/modelDelivery.ts",
-          "version": "repo-file-v1:sha256:2ef96820a22aa5df033694ae7ca707cd8b2df8e9d230b8a79e8fd92ca3620da6"
+          "version": "repo-file-v1:sha256:1818aa6a2dfa5b4f54fe1582c264350c412097b368a2641e5ed49f3ca7167740"
         },
         {
           "resource": "repo://libs/evidence-api/src/delivery/topology.ts",
@@ -128,7 +128,7 @@
       "evidence": [
         {
           "resource": "repo://libs/evidence-api/src/delivery/modelDelivery.ts",
-          "version": "repo-file-v1:sha256:2ef96820a22aa5df033694ae7ca707cd8b2df8e9d230b8a79e8fd92ca3620da6"
+          "version": "repo-file-v1:sha256:1818aa6a2dfa5b4f54fe1582c264350c412097b368a2641e5ed49f3ca7167740"
         }
       ]
     },
@@ -166,7 +166,7 @@
         },
         {
           "resource": "repo://apps/cli/src/router.ts",
-          "version": "repo-file-v1:sha256:3ba75dcdd18e4b4bf904a3db79841c21fdf4bb5378f894a18d404bc82436069a"
+          "version": "repo-file-v1:sha256:19eb4c44fe7bb5c21edd795d6c14b40e914c11ed1eb0c246d4d60bb3f6a83dfe"
         },
         {
           "resource": "repo://libs/evidence-acceptance/src/commands.ts",
@@ -184,7 +184,7 @@
         },
         {
           "resource": "repo://apps/desktop/src/main/deliveryProjection.ts",
-          "version": "repo-file-v1:sha256:cc1627123f087fa7ba2511abc25f0a40b15b01b08062c4fe99ad50721633bf7e"
+          "version": "repo-file-v1:sha256:137519b639f5f0422a71757d1cd865ceabdb0334948f5cbfea7c1fe5e7b3f5a8"
         }
       ]
     },
@@ -217,8 +217,8 @@
       "statement": "API error diagnostics 为 block，breaking 在 draft 为 warn、release 为 block，草稿可审查不等于可发布。",
       "evidence": [
         {
-          "resource": "repo://libs/evidence-agent/src/sensors/native/nativeApiSensor.ts#L70-L93",
-          "version": "repo-lines-v1:sha256:34b5d93eeca7e9cb28b2b83325d759484ceadd8d24349bfb9bef83463306381a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3ZTU3ODhkNWQ5ZDczZDI0YTgxZGJjMGE1YTc0YmZhODJjOWMzYjNhZjk5ZTUyYWY3OTZlOTBiNDY4YThhM2QiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZlMzhkNjJiYjViZjg0YWM4MDQxM2VjMjU0NzQ5MzExYjY2NTc2MGEzZmVjZTJhZDUzZWMxZDRjYmQzODIyMzUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjkzZDk4NWM4YTBjMDdiMDExZWRkYmMzZWM0YWJkZTExNjI0NmNmNjBlMGMxYTlhYzY5MDJjMzVkNWJhNjg2YmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAyODUyYjg2YWM2ZTMwN2E1OGZmOTRjMzM2YzU3YmYzNTUwZGJjMDIxNjg4M2VlYTQ4ODg0NWExNDkxNWM5YTYifQ"
+          "resource": "repo://libs/evidence-agent-sensors/src/sensors/native/nativeApiSensor.ts",
+          "version": "repo-file-v1:sha256:ff7d0e15ed3c38c2d2c5879afff0fd2b2c3d24d8437ae45caf48bdf8a7a3d0a6"
         }
       ]
     },
@@ -227,12 +227,12 @@
       "statement": "live bindings 经 provider 供画布，MCP topology/OpenAPI 则从 saved readDelivery 读取相同领域边界。",
       "evidence": [
         {
-          "resource": "repo://apps/desktop/src/main/mcpDeliveryService.ts",
-          "version": "repo-file-v1:sha256:6091238149737c63a80089803600f54aba2415810b96ff6e55a578d34e74a1b9"
-        },
-        {
           "resource": "repo://libs/desktop/feature-canvas/src/LiveApiContext.tsx",
           "version": "repo-file-v1:sha256:2de6bb448970d7d41005581ac7e0cecf6e20f82183522227b9a66d40f0b0c31e"
+        },
+        {
+          "resource": "repo://libs/desktop/services/src/mcpDeliveryService.ts",
+          "version": "repo-file-v1:sha256:458e6f6e9f2fa55cfbc040ce7e2798b9510172b3b7d959f811f4ddf20c0cb930"
         },
         {
           "resource": "repo://libs/evidence-mcp/src/server/toolset.ts",
@@ -250,7 +250,7 @@
         },
         {
           "resource": "repo://libs/evidence-api/src/delivery/modelDelivery.ts",
-          "version": "repo-file-v1:sha256:2ef96820a22aa5df033694ae7ca707cd8b2df8e9d230b8a79e8fd92ca3620da6"
+          "version": "repo-file-v1:sha256:1818aa6a2dfa5b4f54fe1582c264350c412097b368a2641e5ed49f3ca7167740"
         },
         {
           "resource": "repo://libs/evidence-api/src/delivery/routes.ts",
@@ -264,13 +264,13 @@
       "evidence": [
         {
           "resource": "repo://apps/desktop/src/main/artifactPipeline.ts",
-          "version": "repo-file-v1:sha256:d1cbdb5f289ec9f96c3a3501650a0f467d5a232075c97dc7b202403184ba992f"
+          "version": "repo-file-v1:sha256:a7c3c50c909300b602a8d8dc0c624205ba7a26d2995fb61b276aebee3ab358b1"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.9.0",
-    "at": "2026-11-24T13:07:09.861Z"
+    "at": "2026-11-27T13:29:03.591Z"
   }
 }

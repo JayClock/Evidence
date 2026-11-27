@@ -5,30 +5,30 @@ description: 九类来源分类、关键数据台账与 native CEL 属性依赖�
 tags: [key-data, provider, provenance, ledger, lineage, business-time, sensors]
 verified:
   - by: openwiki/0.9.0
-    at: 2026-11-20T12:30:09.424Z
+    at: 2026-11-27T13:29:03.591Z
 sources:
   - id: openwiki-source-14c1bd0ebaba9f1349ef58a4
     resource: repo://libs/desktop/feature-inspector/src/inspector/AttributeDataGrid.spec.tsx
-  - id: openwiki-source-3046611767bc0c00a44d0bdb
-    resource: repo://libs/desktop/feature-inspector/src/inspector/KeyDataProvenancePicker.tsx
-  - id: openwiki-source-80031f5421964a543e95e5ba
-    resource: repo://libs/evidence-agent/src/sensors/native/nativeKeyDataAudit.ts
-  - id: openwiki-source-819cda3e1e556eb778e9f02b
-    resource: repo://libs/evidence-agent/src/sensors/native/nativeSensors.ts
-  - id: openwiki-source-c1e4281890861794f7ffa119
-    resource: repo://libs/evidence-agent/src/sensors/sensorReport.spec.ts
-  - id: openwiki-source-9ad3f46aa18e9c002bf6f482
-    resource: repo://libs/evidence-agent/src/sensors/sensorReport.ts
+  - id: openwiki-source-907db0a62784e18d1d287ccf
+    resource: repo://libs/desktop/feature-inspector/src/inspector/KeyDataProvenanceView.tsx
+  - id: openwiki-source-6cc38c2243cbfe09af6a689e
+    resource: repo://libs/evidence-agent-sensors/src/sensors/native/nativeKeyDataAudit.ts
+  - id: openwiki-source-1dfebe4ac03aac402d4eeba9
+    resource: repo://libs/evidence-agent-sensors/src/sensors/native/nativeSensors.ts
+  - id: openwiki-source-961040e0ec25738ab11121de
+    resource: repo://libs/evidence-agent-sensors/src/sensors/sensorReport.spec.ts
+  - id: openwiki-source-2da2689c8b8685a06790cacd
+    resource: repo://libs/evidence-agent-sensors/src/sensors/sensorReport.ts
   - id: openwiki-source-ece7f3389ee03e6d65881863
     resource: repo://libs/evidence-agent/src/story/flowStoryProjector.ts
   - id: openwiki-source-484dbf9c991f78fe31f89b8f
     resource: repo://libs/evidence-agent/src/story/storyAgent.ts
   - id: openwiki-source-e2bfe2b62dac07a26ade079e
     resource: repo://libs/evidence-api/src/delivery/modelDelivery.ts
+  - id: openwiki-source-c72f3ae3bdeedab3b69531aa
+    resource: repo://libs/evidence-ingestion/src/compileDraft.ts
   - id: openwiki-source-bab9cd022cd0c06c4edacf32
     resource: repo://libs/evidence-model-core/src/diff/modelDiff.ts
-  - id: openwiki-source-f02b234edea2573a78a178f1
-    resource: repo://libs/evidence-model-core/src/ingestion/compileDraft.ts
   - id: openwiki-source-f4983b717b76eb5f0cfd69e1
     resource: repo://libs/evidence-model-core/src/keyData/keyDataLedger.spec.ts
   - id: openwiki-source-affb6c00c48ce99fa8d2ada0
@@ -53,7 +53,7 @@ sources:
     resource: repo://libs/evidence-schema/src/ast/provenance.ts
   - id: openwiki-source-f3dd6cff8734842de5630223
     resource: repo://libs/evidence-tools/src/index.ts
-generated: { by: "pi", at: "2026-11-20T12:30:09.424Z" }
+generated: { by: "pi", at: "2026-11-27T13:29:03.591Z" }
 ---
 
 # 关键数据、派生与来源追溯
@@ -94,14 +94,12 @@ cel-js运行时int/uint用bigint精确运算。JSON输入允许safe number或CEL
 
 ## 文本来源是元素级记录
 
-draft element.provenance的text/locator/source(kind contract/prd/interview/blueprint/unknown)经compileDraft复制到entity.sourceSnippet；Zod EntityBase明确允许ProvenanceSnippetSchema，DraftAttribute没有独立来源字段。手写模型可以省略；导入时可记录合同全文与条款范围，检查器可显示已选对象自己的来源片段。annotation 的分类与理由是对文本的解读。
+draft element.provenance的text/locator/source(kind contract/prd/interview/blueprint/unknown)经compileDraft（位于 `libs/evidence-ingestion`）复制到entity.sourceSnippet；Zod EntityBase明确允许ProvenanceSnippetSchema，DraftAttribute没有独立来源字段。手写模型可以省略；导入时可记录合同全文与条款范围，检查器可显示已选对象自己的来源片段。annotation 的分类与理由是对文本的解读。
 
 native sensors不对照访谈记录，模型是唯一输入；interview仅是来源kind。对话里说过但未落成模型不算验证证据。公开 API 与 flow story 投影不输出 sourceDocument/sourceSnippet；旧离线 workbench 已撤除，作者可以看模型不等于有权看来源材料。
 
-## 邻接与验证
+## 相关页面
 
-diffDomainModels复算两侧ledger，报告source/rule/expression变化、hasKeyDataDrift和两侧owed计数；这是模型比较能力，不表示桌面有 branch API。
-
-keyDataLedger/keyData specs保护九类分类优先级、counts、other局限和未标排除；traceability/celAnalysis specs保护native成员/macro/shadowing、动态索引、cycle、scalar纪律。FM/sensor specs保护warn/block区分，Inspector specs保护来源展示/绑定/撤回的一次撤销与Sheet header。审查还需补问未标金额、other提供方、语义正确性、真实HTTP实现和scope闭环。
-
-相关：[语言](./fm-dsl.md) · [静态/CEL](../model/checks-and-simulation.md) · [传感器](../agents/sensor-orchestration.md) · [Inspector](../desktop/canvas-and-inspector.md)
+- [FM v6 语言与严格契约](./fm-dsl.md)
+- [原生传感器与阶段门禁](../agents/sensor-orchestration.md)
+- [业务泳道画布与属性检查器](../desktop/canvas-and-inspector.md)
