@@ -979,7 +979,7 @@ describe('EditorScreen', () => {
       await within(details).findByText('采购方签署《采购协议》。'),
     ).toBeVisible();
     fireEvent.click(
-      container.querySelector('[data-node-id="evidence.request"]')!,
+      screen.getByRole('button', { name: /^交付请求（Delivery Request）/ }),
     );
     expect(
       within(details).getByText(
@@ -1057,6 +1057,54 @@ describe('EditorScreen', () => {
     expect(unsubscribe).toHaveBeenCalled();
     expect(container.querySelector('.evidence-story-active')).toBeNull();
     expect(screen.getByLabelText('聚焦范围')).toHaveValue('context.catalog');
+  });
+
+  it('opens playback on the selected canvas example and follows a node into its own flow', async () => {
+    const document = createDesktopStoryFixture();
+    const request = document.entities.find(
+      ({ id }) => id === 'evidence.request',
+    );
+    if (!request) throw new Error('Missing request fixture');
+    document.entities.push({
+      ...request,
+      id: 'request.refund',
+      label: '退款请求',
+      examples: [
+        {
+          label: '退还定金',
+          value: {},
+          test: {
+            flow: '退款业务',
+            actingRoleRef: 'role.supplier',
+            asOf: '2026-11-12T08:00:00Z',
+          },
+        },
+      ],
+    });
+    const api = readyProject(document);
+    api.story.load = vi.fn(async ({ document, preferredFlowId }) =>
+      storySnapshot(collectFlowScenarios(document!), preferredFlowId),
+    );
+    render(<EditorScreen rootPath="/models/procurement" />);
+    await readyCanvas();
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: '交付确认（Delivery Confirmation）（履约确认）',
+      }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: '放映业务流' }));
+    expect(await screen.findByText('第 3/3 步')).toBeVisible();
+    fireEvent.mouseDown(screen.getByRole('tab', { name: '推演与分支' }), {
+      button: 0,
+    });
+    fireEvent.click(screen.getByRole('button', { name: /^退款请求（/ }));
+    expect(await screen.findByText('第 1/1 步')).toBeVisible();
+    expect(screen.getByRole('combobox', { name: '选择业务流' })).toHaveValue(
+      '退款业务',
+    );
+    expect(
+      screen.getByRole('tab', { name: '推演与分支', selected: true }),
+    ).toBeVisible();
   });
 
   it('loads the adopted disk version for a new walkthrough', async () => {

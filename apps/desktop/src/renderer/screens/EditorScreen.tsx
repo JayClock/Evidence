@@ -251,9 +251,6 @@ const EditorWorkspace = ({
     [state.document],
   );
   const canPlayStory = hasPlaybackInput;
-  const openStory = useCallback(() => {
-    if (!ledgerActive && canPlayStory) setStoryEntry('script');
-  }, [ledgerActive, canPlayStory]);
   const manualSensors = useSensorsState(project.rootPath);
   const artifacts = useArtifactStatus(
     state.persistenceId,
@@ -380,6 +377,12 @@ const EditorWorkspace = ({
             return after;
           },
   });
+  const { openAtEntityExample } = story;
+  const openStory = useCallback(() => {
+    if (ledgerActive || !canPlayStory) return;
+    if (state.selection.nodeId) openAtEntityExample(state.selection.nodeId);
+    setStoryEntry('script');
+  }, [ledgerActive, canPlayStory, state.selection.nodeId, openAtEntityExample]);
   // Findings must describe the exact live revision, including undo/redo.
   const diagnosticsStale =
     report === null || sensors.loading || sensors.error !== null;
@@ -1024,18 +1027,7 @@ const EditorWorkspace = ({
             }
           }}
           onSelect={(nodeId) => {
-            if (storyActive) {
-              const scene =
-                story.anchoredStep?.entityId === nodeId
-                  ? story.anchoredScene
-                  : story.scenes.find(
-                      ({ activity }) => activity.workObject.entityId === nodeId,
-                    );
-              if (scene) {
-                story.jumpToStep(scene.stepIndex);
-                return;
-              }
-            }
+            if (storyActive && openAtEntityExample(nodeId)) return;
             state.session.select(nodeId);
           }}
           onClearSelection={() => state.session.clearSelection()}

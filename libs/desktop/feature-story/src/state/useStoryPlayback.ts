@@ -576,6 +576,51 @@ export const useStoryPlayback = ({
     setIsPlaying(false);
     moveTo(target);
   };
+  const openAtEntityExample = useCallback(
+    (entityId: string) => {
+      if (ready && flow && !rehearsing) {
+        const target =
+          anchoredStep?.entityId === entityId
+            ? anchoredIndex
+            : flow.steps.findIndex((step) => step.entityId === entityId);
+        if (target >= 0) {
+          setIsPlaying(false);
+          moveTo(target);
+          return true;
+        }
+      }
+      const examples = document.entities.find(
+        ({ id }) => id === entityId,
+      )?.examples;
+      const selected =
+        examples?.find(
+          ({ label, test }) =>
+            anchoredStep?.entityId === entityId &&
+            test?.flow === activeFlowId &&
+            label === anchoredStep.exampleLabel,
+        ) ??
+        examples?.find(({ test }) => test && test.flow === activeFlowId) ??
+        examples?.find(({ test }) => test?.flow);
+      if (!selected?.test) return false;
+      const flowId = selected.test.flow;
+      setIsPlaying(false);
+      setCursor(undefined);
+      setPosition({ flowId, ref: `${entityId}#${selected.label}`, index: 0 });
+      setPreferRehearsal(false);
+      setPreferredFlowId(flowId);
+      return true;
+    },
+    [
+      ready,
+      flow,
+      rehearsing,
+      anchoredStep,
+      anchoredIndex,
+      moveTo,
+      document,
+      activeFlowId,
+    ],
+  );
 
   // Sandbox state is scoped to the entire displayed revision, not just its step.
   const sceneScope = useMemo(
@@ -991,24 +1036,14 @@ export const useStoryPlayback = ({
       setPreferRehearsal(false);
       setPreferredFlowId(flowId);
     },
+    openAtEntityExample,
     openAtRequest: (requestId: string) => {
       const request = requestOptions.find(({ id }) => id === requestId);
-      if (!request) return;
+      if (!request || openAtEntityExample(requestId)) return;
       setIsPlaying(false);
       setCursor(undefined);
-      const examples = request.examples?.filter(({ test }) => test?.flow);
-      const example =
-        examples?.find(({ test }) => test?.flow === activeFlowId) ??
-        examples?.[0];
-      if (example?.test) {
-        const flowId = example.test.flow;
-        setPreferredFlowId(flowId);
-        setPosition({ flowId, ref: `${requestId}#${example.label}`, index: 0 });
-        setPreferRehearsal(false);
-      } else {
-        setAssumption({ document, requestId, hours: '' });
-        setPreferRehearsal(true);
-      }
+      setAssumption({ document, requestId, hours: '' });
+      setPreferRehearsal(true);
     },
     previous: () => {
       if (ready && !rehearsing && previousIndex >= 0) {
