@@ -8,7 +8,6 @@ import {
   projectStoryFacts,
   simulateWhatIf,
   storyHistoryItem,
-  type BusinessStoryProjection,
   type StoryAgent,
   type StoryStepHistoryItem,
   type EvidenceModelOptions,
@@ -16,6 +15,8 @@ import {
 import {
   buildFmCheckReport,
   collectFlowScenarios,
+  createDomainGraph,
+  type DomainGraph,
 } from '@evidence-poc/evidence-model-core';
 import {
   openWorkspace,
@@ -34,6 +35,7 @@ import {
   type StoryEnrichStepResult,
   type StoryStepRequest,
   type StorySnapshot,
+  type StoryProjectResult,
   type StoryWhatIfInput,
 } from '@evidence-poc/desktop-contracts/story';
 import { createStoryNarrationCache } from './storyNarrationCache';
@@ -59,7 +61,7 @@ const readSavedModel = async (
 type WindowStory = {
   rootPath: string;
   loadId?: string;
-  selected?: BusinessStoryProjection;
+  selected?: StoryProjectResult & { graph: DomainGraph };
   narrator?: ReturnType<typeof createStoryNarrator>;
   pending?: { identity: StoryStepRequest; controller: AbortController };
 };
@@ -69,7 +71,7 @@ const validId = (value: unknown): value is string =>
 
 const historyFor = (
   input: StoryEnrichStepInput,
-  projection: BusinessStoryProjection,
+  projection: StoryProjectResult['projection'],
 ): StoryStepHistoryItem[] => {
   const prior = projection.scenes.filter(
     ({ stepIndex }) => stepIndex < input.stepIndex,
@@ -212,7 +214,7 @@ export const registerStoryIpc = ({
         flows[0];
       if (!flow) return { snapshotId, flows };
       const projection = projectStoryFacts(flow, model);
-      state.selected = projection;
+      state.selected = { projection, flow, graph: createDomainGraph(model) };
       return { snapshotId, flows, selected: { flow, projection } };
     },
   );
@@ -243,13 +245,16 @@ export const registerStoryIpc = ({
         !ownsProject(sender, input.rootPath)
       )
         throw new Error('业务流快照已过期。');
-      const scene = state.selected.scenes.find(
+      const { projection, flow, graph } = state.selected;
+      const current = flow.steps.find(
+        ({ sequence }) => sequence === input.stepIndex,
+      );
+      const scene = projection.scenes.find(
         ({ stepIndex }) => stepIndex === input.stepIndex,
       );
-      if (!scene || scene.stepHash !== input.stepHash)
+      if (!current || !scene || scene.stepHash !== input.stepHash)
         throw new Error('业务步骤已变化，请刷新放映后重试。');
-      const history = historyFor(input, state.selected);
-      if (scene.narrative.status === 'authored') return null;
+      const history = historyFor(input, projection);
       if (state.pending?.identity.requestId === input.requestId)
         throw new Error('业务故事步骤已在生成中。');
       stop(state);
@@ -263,6 +268,8 @@ export const registerStoryIpc = ({
       try {
         const narrator = (state.narrator ??= newNarrator(state.rootPath));
         const result = await narrator.enrichStep(scene, history, {
+          flowId: flow.flowId,
+          challengeSource: { steps: flow.steps, current, graph },
           signal,
           cacheOnly: input.cacheOnly === true,
         });
@@ -312,6 +319,15 @@ export const registerStoryIpc = ({
       )
         throw new Error('无效的业务沙盘模式。');
       if (
+        (input.localOnly !== undefined &&
+          typeof input.localOnly !== 'boolean') ||
+        (input.localOnly && !input.hypothesisDraft) ||
+        (input.targetedRuleId !== undefined &&
+          (typeof input.targetedRuleId !== 'string' ||
+            !input.targetedRuleId.trim()))
+      )
+        throw new Error('无效的推演挑战。');
+      if (
         !Number.isSafeInteger(input.currentStepSequence) ||
         input.currentStepSequence < 1
       )
@@ -328,13 +344,15 @@ export const registerStoryIpc = ({
           flow,
           currentStepSequence: input.currentStepSequence,
           hypothesisQuestion: input.question.trim(),
+          hypothesis: input.hypothesisDraft,
+          ruleId: input.targetedRuleId,
           ...(input.allowSpeculative === true
             ? { allowSpeculative: true }
             : {}),
         },
-        {
-          agent: createAgent(await getModelOptions?.()),
-        },
+        input.localOnly
+          ? { localOnly: true }
+          : { agent: createAgent(await getModelOptions?.()) },
       );
     },
   );

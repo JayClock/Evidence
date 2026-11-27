@@ -14,7 +14,9 @@ let a: string;
 let b: string;
 const signal = new AbortController().signal;
 const key = (index: number) => index.toString(16).padStart(64, '0');
-const draft = (prose: string) => ({ headline: '业务故事', prose });
+const draft = (prose: string) => ({
+  narrative: { headline: '业务故事', prose },
+});
 
 beforeEach(async () => {
   directory = await mkdtemp(path.join(os.tmpdir(), 'story-narration-cache-'));
@@ -64,7 +66,14 @@ it('bounds each project and treats corrupt, stale-version, and oversized files a
   for (const contents of [
     '{incomplete',
     JSON.stringify({ version: 1, entries: [[key(1), '旧旁白']] }),
-    JSON.stringify({ version: 2, entries: [[key(1), { prose: '缺少标题' }]] }),
+    JSON.stringify({
+      version: 2,
+      entries: [[key(1), { headline: '旧草稿', prose: '缺少场景标识' }]],
+    }),
+    JSON.stringify({
+      version: 3,
+      entries: [[key(1), { narrative: { prose: '缺少标题' } }]],
+    }),
     'x'.repeat(1024 * 1024 + 1),
   ]) {
     await writeFile(file, contents);

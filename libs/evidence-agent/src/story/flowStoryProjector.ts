@@ -421,7 +421,9 @@ export const createFlowStoryProjector = (
       const history: StoryStepHistoryItem[] = [];
       const scenes: StoryScene[] = [];
       for (const scene of baseline.scenes) {
-        const draft = await narrator.enrichStep(scene, history);
+        const draft = await narrator.enrichStep(scene, history, {
+          flowId: trace.flowId,
+        });
         const resolved: StoryScene = draft
           ? { ...scene, narrative: { ...draft.narrative, status: 'ready' } }
           : scene;

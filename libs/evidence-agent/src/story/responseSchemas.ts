@@ -29,3 +29,38 @@ export const HypothesisSchema = z
 export const ImpactExplanationSchema = z
   .object({ businessImpactExplanation: text })
   .strict();
+
+const challengeList = z
+  .array(
+    z
+      .object({
+        id: text.max(128),
+        category: z.enum([
+          'overdue',
+          'deficit',
+          'condition_gap',
+          'actor_mismatch',
+        ]),
+        label: text.max(100),
+        question: text.max(4000),
+        targetedRuleId: text.optional(),
+        hypothesisDraft: HypothesisSchema.optional(),
+      })
+      .strict(),
+  )
+  .max(3);
+
+export const WhatIfChallengesSchema = z
+  .object({ challenges: challengeList })
+  .strict();
+
+// Authored prose lives in the model. Its cache entry only needs the challenges.
+export const StoryDraftSchema = z
+  .object({
+    narrative: NarrationSchema.optional(),
+    challenges: challengeList.optional(),
+  })
+  .strict()
+  .refine(
+    (draft) => draft.narrative !== undefined || draft.challenges !== undefined,
+  );

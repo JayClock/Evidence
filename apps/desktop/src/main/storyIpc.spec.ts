@@ -5,6 +5,10 @@ import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { collectFlowScenarios } from '@evidence-poc/evidence-model-core';
 import {
+  WHAT_IF_CHALLENGE_SUGGESTION_PROMPT,
+  type StoryAgent,
+} from '@evidence-poc/evidence-agent';
+import {
   initializeWorkspace,
   readModelDirectory,
 } from '@evidence-poc/evidence-model-io';
@@ -82,6 +86,145 @@ afterEach(() => {
 });
 
 describe('story IPC', () => {
+  it('enriches an eligible scene in parallel, verifies its draft, and restores it offline until the rules change', async () => {
+    const rootPath = await mkdtemp(path.join(os.tmpdir(), 'story-challenges-'));
+    const document = model();
+    const rule = {
+      ...document.rules[0]!,
+      id: 'rule.late',
+      kind: 'breach' as const,
+      label: '付款逾期',
+      expression: 'asOf > request.expired_at',
+      resultType: 'bool' as const,
+      bindings: {
+        request: { ref: 'request.payment' },
+        asOf: { type: 'timestamp' as const },
+      },
+    };
+    delete rule.target;
+    document.rules.push(rule);
+    await initializeWorkspace(rootPath, document);
+    const card = {
+      id: 'late',
+      label: '逾期三天未付款',
+      category: 'overdue',
+      question: '如果超过付款期限三天仍未付款，会怎样？',
+      targetedRuleId: rule.id,
+      hypothesisDraft: { asOf: '2026-04-04T10:00:00Z' },
+    };
+    const jobs = new Map<string, (response: unknown) => void>();
+    const generate = vi.fn<StoryAgent['generate']>(
+      ({ systemPrompt }) =>
+        new Promise((resolve) => jobs.set(systemPrompt, resolve)),
+    );
+    const createAgent = vi.fn(() => ({ generate }));
+    let ipc = register({ createAgent });
+    const window = sender();
+    const load = () =>
+      invoke<StorySnapshot>(
+        STORY_IPC_CHANNELS.LOAD,
+        { rootPath, document },
+        window,
+      );
+    try {
+      const scene = request(await load(), 1, rootPath);
+      const pending = enrich(scene, window);
+      await vi.waitFor(() => expect(jobs.size).toBe(2));
+      const prompt = generate.mock.calls.find(
+        ([job]) => job.systemPrompt === WHAT_IF_CHALLENGE_SUGGESTION_PROMPT,
+      )![0];
+      expect(JSON.parse(prompt.userPrompt)).toMatchObject({
+        currentActivity: {
+          workObject: 'payment request',
+          fulfillment: { phase: 'request' },
+        },
+        inputAttributes: expect.arrayContaining([
+          expect.objectContaining({ name: 'quantity' }),
+        ]),
+        commitments: [
+          expect.objectContaining({ entityId: 'contract.agreement' }),
+        ],
+        decisionRules: [expect.objectContaining({ id: rule.id })],
+        expectation: expect.any(Object),
+      });
+      for (const [purpose, finish] of jobs)
+        finish(
+          purpose === WHAT_IF_CHALLENGE_SUGGESTION_PROMPT
+            ? {
+                challenges: [
+                  card,
+                  {
+                    ...card,
+                    id: 'bad',
+                    question: '未建模的字段',
+                    hypothesisDraft: { values: { invented: 5 } },
+                  },
+                  {
+                    ...card,
+                    id: 'early',
+                    question: '按时付款',
+                    hypothesisDraft: { asOf: '2026-04-01T10:00:00Z' },
+                  },
+                ],
+              }
+            : draft,
+        );
+      await expect(pending).resolves.toMatchObject({
+        cached: false,
+        challenges: [card],
+      });
+      await expect(enrich(scene, window)).resolves.toMatchObject({
+        cached: true,
+        challenges: [card],
+      });
+      await vi.waitFor(async () =>
+        expect(
+          (
+            await createStoryNarrationCache()(rootPath).read(
+              new AbortController().signal,
+            )
+          ).size,
+        ).toBe(1),
+      );
+      ipc.dispose();
+      createAgent.mockClear();
+      ipc = register({ createAgent });
+      const restored = await load();
+      await expect(
+        enrich({ ...request(restored, 1, rootPath), cacheOnly: true }, window),
+      ).resolves.toMatchObject({ cached: true, challenges: [card] });
+      await expect(
+        invoke(
+          STORY_IPC_CHANNELS.WHAT_IF,
+          {
+            rootPath,
+            document,
+            flowId: restored.selected!.flow.flowId,
+            currentStepSequence: scene.stepIndex,
+            stepHash: scene.stepHash,
+            question: card.question,
+            hypothesisDraft: card.hypothesisDraft,
+            targetedRuleId: rule.id,
+            localOnly: true,
+          },
+          window,
+        ),
+      ).resolves.toMatchObject({
+        isSpeculative: false,
+        ruleOutcome: { ruleId: rule.id, result: true },
+      });
+      rule.expression = 'false';
+      const edited = request(await load(), 1, rootPath);
+      expect(edited.stepHash).toBe(scene.stepHash);
+      await expect(
+        enrich({ ...edited, cacheOnly: true }, window),
+      ).resolves.toBeNull();
+      expect(createAgent).not.toHaveBeenCalled();
+    } finally {
+      ipc.dispose();
+      await rm(rootPath, { recursive: true, force: true });
+    }
+  });
   it('returns flow inventory and factual cards without accessing AI or reading disk for a live snapshot', async () => {
     const getModelOptions = vi.fn(async () => {
       throw new Error('AI_NOT_CONFIGURED');

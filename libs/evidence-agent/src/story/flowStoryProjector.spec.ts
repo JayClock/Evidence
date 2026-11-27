@@ -4,6 +4,9 @@ import {
   projectStoryFacts,
 } from './flowStoryProjector.js';
 import { createStoryNarrator } from './storyNarrator.js';
+import { createDomainGraph } from '@evidence-poc/evidence-model-core';
+import { WHAT_IF_CHALLENGE_SUGGESTION_PROMPT } from './prompts.js';
+import type { StoryAgent } from './types.js';
 import { isFulfillmentRequest } from '@evidence-poc/evidence-schema';
 import {
   flowFixture,
@@ -279,22 +282,102 @@ it('keys drafts by story history and local facts, and validates model output', a
     .mockResolvedValueOnce({ ...draft, documentCard: {} })
     .mockResolvedValue(draft);
   const narrator = createStoryNarrator({ agent: { generate } });
-  await expect(narrator.enrichStep(scene, history)).rejects.toThrow();
-  await expect(narrator.enrichStep(scene, history)).resolves.toEqual({
+  await expect(
+    narrator.enrichStep(scene, history, { flowId: 'purchase' }),
+  ).rejects.toThrow();
+  await expect(
+    narrator.enrichStep(scene, history, { flowId: 'purchase' }),
+  ).resolves.toEqual({
     narrative: draft,
     cached: false,
   });
   await expect(
-    narrator.enrichStep(scene, history, { cacheOnly: true }),
+    narrator.enrichStep(scene, history, {
+      flowId: 'purchase',
+      cacheOnly: true,
+    }),
   ).resolves.toEqual({ narrative: draft, cached: true });
   const revised = [{ ...history[0]!, summary: '账期为五天' }];
   await expect(
-    narrator.enrichStep(scene, revised, { cacheOnly: true }),
+    narrator.enrichStep(scene, revised, {
+      flowId: 'purchase',
+      cacheOnly: true,
+    }),
   ).resolves.toBeUndefined();
-  await expect(narrator.enrichStep(scene, revised)).resolves.toMatchObject({
+  await expect(
+    narrator.enrichStep(scene, revised, { flowId: 'purchase' }),
+  ).resolves.toMatchObject({
     cached: false,
   });
   expect(generate).toHaveBeenCalledTimes(3);
+});
+
+it('retries a malformed challenge list without regenerating prose and keeps authored scenes intact', async () => {
+  const model = baseModelFixture();
+  model.rules.push({
+    type: 'rule',
+    id: 'rule.deficit',
+    kind: 'breach',
+    contextRef: 'context.purchase',
+    label: '交付不足',
+    description: '低于约定金额',
+    expression: 'self.amount < 100',
+    bindings: { self: { ref: 'request.payment' } },
+    resultType: 'bool',
+  });
+  const flow = flowFixture();
+  const scene = projectStoryFacts(flow, model).scenes[0]!;
+  const options = {
+    flowId: flow.flowId,
+    challengeSource: {
+      graph: createDomainGraph(model),
+      steps: flow.steps,
+      current: flow.steps[0]!,
+    },
+  };
+  const card = {
+    id: 'deficit',
+    label: '短付一元',
+    category: 'deficit',
+    question: '如果只付 99 元，会怎样？',
+    hypothesisDraft: { values: { amount: 99 } },
+  };
+  const generate = vi.fn<StoryAgent['generate']>(async ({ systemPrompt }) =>
+    systemPrompt === WHAT_IF_CHALLENGE_SUGGESTION_PROMPT
+      ? { challenges: [{ ...card, category: 'unknown' }] }
+      : draft,
+  );
+  const narrator = createStoryNarrator({ agent: { generate } });
+  const first = await narrator.enrichStep(scene, [], options);
+  expect(first?.narrative.prose).toBe(draft.prose);
+  expect(first?.challenges).toBeUndefined();
+  generate.mockClear().mockResolvedValue({ challenges: [card] });
+  const retry = await narrator.enrichStep(scene, [], options);
+  expect(retry?.challenges).toEqual([
+    { ...card, targetedRuleId: 'rule.deficit' },
+  ]);
+  expect(generate).toHaveBeenCalledOnce();
+  for (const [otherScene, otherOptions] of [
+    [scene, { ...options, flowId: 'other' }],
+    [{ ...scene, stepIndex: 2 }, options],
+    [{ ...scene, stepHash: 'edited' }, options],
+  ] as const) {
+    await expect(
+      narrator.enrichStep(otherScene, [], { ...otherOptions, cacheOnly: true }),
+    ).resolves.toBeUndefined();
+  }
+  const authored = {
+    ...scene,
+    narrative: {
+      ...scene.narrative,
+      status: 'authored' as const,
+      prose: '双方核准的业务说明。',
+    },
+  };
+  const reply = await narrator.enrichStep(authored, [], options);
+  expect(reply?.narrative.prose).toBe(authored.narrative.prose);
+  expect(reply?.challenges).toEqual(retry?.challenges);
+  expect(generate).toHaveBeenCalledTimes(2);
 });
 
 it.each(['cancel', 'timeout'])(
@@ -323,6 +406,7 @@ it.each(['cancel', 'timeout'])(
       });
       const scene = projectStoryFacts(flowFixture()).scenes[0]!;
       const pending = narrator.enrichStep(scene, [], {
+        flowId: 'purchase',
         signal: controller.signal,
       });
       await vi.waitFor(() => expect(generate).toHaveBeenCalledOnce());
@@ -332,7 +416,7 @@ it.each(['cancel', 'timeout'])(
       await expect(pending).rejects.toBe(error);
       finish(draft);
       await expect(
-        narrator.enrichStep(scene, [], { cacheOnly: true }),
+        narrator.enrichStep(scene, [], { flowId: 'purchase', cacheOnly: true }),
       ).resolves.toBeUndefined();
       expect(write).not.toHaveBeenCalled();
     } finally {

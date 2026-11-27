@@ -1,21 +1,35 @@
 import { createHash } from 'node:crypto';
 import { compactCanonicalJson } from '@evidence-poc/evidence-schema';
-import { DST_CHAINED_STORY_PROMPT } from './prompts.js';
+import {
+  DST_CHAINED_STORY_PROMPT,
+  WHAT_IF_CHALLENGE_SUGGESTION_PROMPT,
+} from './prompts.js';
 import { NarrationSchema, responseObject } from './responseSchemas.js';
 import { createStoryAgent } from './storyAgent.js';
+import {
+  storyChallengeContext,
+  suggestStoryChallenges,
+  type StoryChallengeSource,
+} from './storyChallenges.js';
 import type {
   StoryAgent,
   StoryNarrativeText,
   StoryScene,
   StoryStepHistoryItem,
+  WhatIfChallenge,
 } from './types.js';
 
 const STEP_TIMEOUT_MS = 15_000;
 const CACHE_LIMIT = 256;
 
+export interface StoryDraft {
+  readonly narrative?: StoryNarrativeText;
+  readonly challenges?: readonly WhatIfChallenge[];
+}
+
 export interface StoryNarrationStore {
-  read(signal: AbortSignal): Promise<ReadonlyMap<string, StoryNarrativeText>>;
-  write(entries: ReadonlyMap<string, StoryNarrativeText>): Promise<void>;
+  read(signal: AbortSignal): Promise<ReadonlyMap<string, StoryDraft>>;
+  write(entries: ReadonlyMap<string, StoryDraft>): Promise<void>;
 }
 
 // Return promptly even if a transport ignores cancellation. The worker checks
@@ -37,7 +51,7 @@ const abortable = async <T>(
   }
 };
 
-/** Generates only prose for one scene and keys drafts by the exact causal context. */
+/** Enrich one scene, preserving authored prose and the exact causal context. */
 export const createStoryNarrator = ({
   agent = createStoryAgent(),
   store,
@@ -45,8 +59,8 @@ export const createStoryNarrator = ({
   agent?: StoryAgent;
   store?: StoryNarrationStore;
 } = {}) => {
-  const cache = new Map<string, StoryNarrativeText>();
-  const remember = (key: string, draft: StoryNarrativeText) => {
+  const cache = new Map<string, StoryDraft>();
+  const remember = (key: string, draft: StoryDraft) => {
     cache.delete(key);
     cache.set(key, draft);
     if (cache.size > CACHE_LIMIT) {
@@ -59,10 +73,26 @@ export const createStoryNarrator = ({
     async enrichStep(
       scene: StoryScene,
       storyHistory: readonly StoryStepHistoryItem[],
-      options: { signal?: AbortSignal; cacheOnly?: boolean } = {},
-    ): Promise<{ narrative: StoryNarrativeText; cached: boolean } | undefined> {
+      options: {
+        flowId?: string;
+        challengeSource?: StoryChallengeSource;
+        signal?: AbortSignal;
+        cacheOnly?: boolean;
+      } = {},
+    ): Promise<
+      | {
+          narrative: StoryNarrativeText;
+          challenges?: readonly WhatIfChallenge[];
+          cached: boolean;
+        }
+      | undefined
+    > {
       options.signal?.throwIfAborted();
-      if (scene.narrative.status === 'authored') return undefined;
+      const context =
+        options.challengeSource &&
+        storyChallengeContext(options.challengeSource);
+      const authored = scene.narrative.status === 'authored';
+      if (authored && !context) return undefined;
       const deadline = AbortSignal.timeout(STEP_TIMEOUT_MS);
       const signal = options.signal
         ? AbortSignal.any([options.signal, deadline])
@@ -72,7 +102,7 @@ export const createStoryNarrator = ({
       const keyAttributes = documentCard.keyAttributes.map(
         ({ label, value }) => ({ label, value }),
       );
-      const userPrompt = compactCanonicalJson({
+      const story = {
         storyHistory,
         prerequisites,
         currentActivity: {
@@ -88,27 +118,51 @@ export const createStoryNarrator = ({
           keyAttributes,
         },
         expectation,
-      });
+      };
+      const userPrompt = compactCanonicalJson(story);
+      const challengePrompt =
+        context &&
+        compactCanonicalJson({
+          ...story,
+          ...context.facts,
+          clause: documentCard.clauseRef,
+          authoredExplanation: authored ? scene.narrative.prose : undefined,
+        });
       const key = createHash('sha256')
         .update(
           JSON.stringify([
-            2,
-            DST_CHAINED_STORY_PROMPT,
+            options.flowId,
+            scene.stepIndex,
             scene.stepHash,
+            DST_CHAINED_STORY_PROMPT,
             userPrompt,
+            challengePrompt && WHAT_IF_CHALLENGE_SUGGESTION_PROMPT,
+            challengePrompt,
           ]),
         )
         .digest('hex');
-      return abortable(signal, async () => {
-        const saved =
-          cache.get(key) ??
-          (await store?.read(signal).catch(() => undefined))?.get(key);
-        signal.throwIfAborted();
-        if (saved !== undefined) {
-          remember(key, saved);
-          return { narrative: saved, cached: true };
-        }
-        if (options.cacheOnly) return undefined;
+      const saved =
+        cache.get(key) ??
+        (store &&
+          (
+            await abortable(signal, () =>
+              store.read(signal).catch(() => undefined),
+            )
+          )?.get(key));
+      signal.throwIfAborted();
+      if (saved) remember(key, saved);
+      const existingProse = authored
+        ? { headline: scene.narrative.headline, prose: scene.narrative.prose }
+        : saved?.narrative;
+      if (
+        options.cacheOnly ||
+        (existingProse && (!context || saved?.challenges !== undefined))
+      ) {
+        return saved && existingProse
+          ? { ...saved, narrative: existingProse, cached: true }
+          : undefined;
+      }
+      const narrate = async () => {
         const response = await agent.generate({
           systemPrompt: DST_CHAINED_STORY_PROMPT,
           userPrompt,
@@ -117,14 +171,30 @@ export const createStoryNarrator = ({
         });
         signal.throwIfAborted();
         const draft = NarrationSchema.parse(responseObject(response));
-        const narrative = activity.fulfillment
+        return activity.fulfillment
           ? { ...draft, headline: scene.narrative.headline }
           : draft;
-        remember(key, narrative);
+      };
+      const [narrative, challenges] = await Promise.all([
+        existingProse ?? abortable(signal, narrate),
+        context && challengePrompt
+          ? abortable(signal, () =>
+              suggestStoryChallenges(agent, challengePrompt, context, signal),
+            ).catch(() => undefined)
+          : undefined,
+      ]);
+      // An optional challenge timeout may leave good prose. A cancelled scene may never commit.
+      options.signal?.throwIfAborted();
+      const draft: StoryDraft = {
+        ...(!authored ? { narrative } : {}),
+        ...(challenges === undefined ? {} : { challenges }),
+      };
+      if (draft.narrative || draft.challenges) {
+        remember(key, draft);
         if (store)
-          void store.write(new Map([[key, narrative]])).catch(() => undefined);
-        return { narrative, cached: false };
-      });
+          void store.write(new Map([[key, draft]])).catch(() => undefined);
+      }
+      return { ...draft, narrative, cached: false };
     },
   };
 };

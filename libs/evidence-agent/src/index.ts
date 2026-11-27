@@ -11,6 +11,7 @@ export {
 } from './story/storyAgent.js';
 export {
   createStoryNarrator,
+  type StoryDraft,
   type StoryNarrationStore,
 } from './story/storyNarrator.js';
 export {
@@ -21,9 +22,14 @@ export {
   describeStoryExpectation,
   storyHistoryItem,
 } from './story/storyContinuity.js';
-export { NarrationSchema } from './story/responseSchemas.js';
+export {
+  NarrationSchema,
+  StoryDraftSchema,
+  WhatIfChallengesSchema,
+} from './story/responseSchemas.js';
 export {
   DST_CHAINED_STORY_PROMPT,
+  WHAT_IF_CHALLENGE_SUGGESTION_PROMPT,
   WHAT_IF_EXPLANATION_PROMPT,
   WHAT_IF_EXTRACTION_PROMPT,
   WHAT_IF_SPECULATIVE_PROMPT,

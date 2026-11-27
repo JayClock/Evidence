@@ -26,6 +26,7 @@ import type {
 
 export interface WhatIfSimulatorOptions {
   readonly agent?: StoryAgent;
+  readonly localOnly?: boolean;
 }
 
 /**
@@ -75,7 +76,12 @@ export async function simulateWhatIf(
     ruleId === undefined
       ? candidates
       : candidates.filter((rule) => rule.id === ruleId);
-  if (rules.length === 0 && (allowSpeculative !== true || ruleId !== undefined))
+  if (options.localOnly && !suppliedHypothesis)
+    throw new Error('Local What-If requires a structured hypothesis.');
+  if (
+    rules.length === 0 &&
+    (allowSpeculative !== true || ruleId !== undefined || options.localOnly)
+  )
     throw new Error(
       'No relevant completion/breach rule is modeled for this step.',
     );
@@ -137,26 +143,36 @@ export async function simulateWhatIf(
   }
 
   const ruleOutcomes = rules.map(trial.decide);
-  const explanation = ImpactExplanationSchema.parse(
-    responseObject(
-      await agent.generate({
-        systemPrompt: WHAT_IF_EXPLANATION_PROMPT,
-        userPrompt: compactCanonicalJson({
-          hypothesisQuestion,
-          hypothesis,
-          asOf: trial.asOf,
-          currentValues: trial.valuesOf(current),
-          ruleOutcomes: rules.map((rule, index) => ({
-            ...ruleOutcomes[index],
-            kind: rule.kind,
-            label: rule.label,
-            description: rule.description,
-            notes: rule.notes,
-          })),
-        }),
-      }),
-    ),
-  );
+  const decisions = rules.map((rule, index) => ({
+    ...ruleOutcomes[index]!,
+    kind: rule.kind,
+    label: rule.label,
+    description: rule.description,
+    notes: rule.notes,
+  }));
+  const explanation = options.localOnly
+    ? {
+        businessImpactExplanation: decisions
+          .map(
+            ({ label, kind, result }) =>
+              `按「${label}」判定，${kind === 'breach' ? (result ? '已触发违约条件' : '未触发违约条件') : result ? '已满足完成条件' : '未满足完成条件'}。`,
+          )
+          .join('\n'),
+      }
+    : ImpactExplanationSchema.parse(
+        responseObject(
+          await agent.generate({
+            systemPrompt: WHAT_IF_EXPLANATION_PROMPT,
+            userPrompt: compactCanonicalJson({
+              hypothesisQuestion,
+              hypothesis,
+              asOf: trial.asOf,
+              currentValues: trial.valuesOf(current),
+              ruleOutcomes: decisions,
+            }),
+          }),
+        ),
+      );
   return {
     isSpeculative: false,
     hypothesis,

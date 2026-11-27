@@ -7,20 +7,20 @@ import {
   workspacePaths,
 } from '@evidence-poc/evidence-model-io';
 import {
-  NarrationSchema,
+  StoryDraftSchema,
+  type StoryDraft,
   type StoryNarrationStore,
-  type StoryNarrativeText,
 } from '@evidence-poc/evidence-agent';
 
-const VERSION = 2;
+const VERSION = 3;
 const ENTRY_LIMIT = 256;
 const BYTE_LIMIT = 1024 * 1024;
 const validKey = (key: string) => /^[a-f0-9]{64}$/u.test(key);
 const readEntries = async (
   file: string,
   signal?: AbortSignal,
-): Promise<Map<string, StoryNarrativeText>> => {
-  const entries = new Map<string, StoryNarrativeText>();
+): Promise<Map<string, StoryDraft>> => {
+  const entries = new Map<string, StoryDraft>();
   try {
     signal?.throwIfAborted();
     const handle = await open(file, 'r');
@@ -47,7 +47,7 @@ const readEntries = async (
           typeof item[0] === 'string' &&
           validKey(item[0])
         ) {
-          const parsed = NarrationSchema.safeParse(item[1]);
+          const parsed = StoryDraftSchema.safeParse(item[1]);
           if (parsed.success) entries.set(item[0], parsed.data);
         }
       }
@@ -84,13 +84,27 @@ export const createStoryNarrationCache = () => {
         const save = async () => {
           check();
           const merged = await readEntries(file);
-          for (const [key, narrative] of generated) {
-            const parsed = NarrationSchema.safeParse(narrative);
+          for (const [key, draft] of generated) {
+            const parsed = StoryDraftSchema.safeParse(draft);
             if (!validKey(key) || !parsed.success) continue;
             merged.delete(key);
             merged.set(key, parsed.data);
           }
-          const entries = [...merged].slice(-ENTRY_LIMIT);
+          // Longer challenge questions can exhaust the byte budget before the entry limit.
+          const entries: [string, StoryDraft][] = [];
+          let bytes = Buffer.byteLength(
+            JSON.stringify({ version: VERSION, entries }),
+          );
+          for (const entry of [...merged].reverse()) {
+            if (entries.length === ENTRY_LIMIT) break;
+            const size =
+              Buffer.byteLength(JSON.stringify(entry)) +
+              Number(entries.length > 0);
+            if (bytes + size > BYTE_LIMIT) continue;
+            entries.push(entry);
+            bytes += size;
+          }
+          entries.reverse();
           await mkdir(directory, { recursive: true, mode: 0o700 });
           const temp = `${file}.tmp-${randomUUID()}`;
           try {
