@@ -844,9 +844,6 @@ importers:
       '@evidence-poc/evidence-cel':
         specifier: workspace:*
         version: link:../evidence-cel
-      '@evidence-poc/evidence-model-core':
-        specifier: workspace:*
-        version: link:../evidence-model-core
       '@evidence-poc/evidence-model-io':
         specifier: workspace:*
         version: link:../evidence-model-io
@@ -872,6 +869,9 @@ importers:
       '@evidence-poc/evidence-canvas-interaction':
         specifier: workspace:*
         version: link:../evidence-canvas-interaction
+      '@evidence-poc/evidence-model-core':
+        specifier: workspace:*
+        version: link:../evidence-model-core
       '@usebruno/lang':
         specifier: 0.41.0
         version: 0.41.0

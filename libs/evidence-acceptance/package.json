@@ -83,7 +83,6 @@
   "dependencies": {
     "@evidence-poc/evidence-api": "workspace:*",
     "@evidence-poc/evidence-cel": "workspace:*",
-    "@evidence-poc/evidence-model-core": "workspace:*",
     "@evidence-poc/evidence-model-io": "workspace:*",
     "@evidence-poc/evidence-schema": "workspace:*",
     "@usebruno/cli": "4.3.0",
@@ -96,6 +95,7 @@
   "devDependencies": {
     "@evidence-poc/evidence-canvas-interaction": "workspace:*",
     "@usebruno/lang": "0.41.0",
-    "yaml": "2.9.1"
+    "yaml": "2.9.1",
+    "@evidence-poc/evidence-model-core": "workspace:*"
   }
 }
