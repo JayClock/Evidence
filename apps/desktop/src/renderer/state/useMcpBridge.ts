@@ -376,3 +376,13 @@ export const keyDataSummaryOf = (document: DomainModelDocument) => {
     decisionOwed: ledger.decisionOwed.length,
   };
 };
+
+export const useWorkspaceMcpBridge = (
+  context: Omit<McpBridgeContext, 'revision'>,
+) => {
+  const revision = useRef(0);
+  useEffect(() => {
+    revision.current += 1;
+  }, [context.document]);
+  useMcpBridge({ ...context, revision: revision.current });
+};
