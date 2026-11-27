@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import type { SensorReport } from '@evidence-poc/evidence-agent/browser';
+import type { SensorReport } from '@evidence-poc/evidence-agent-sensors/browser';
 
 export interface SensorsState {
   report: SensorReport | null;

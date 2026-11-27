@@ -1,21 +1,4 @@
-export {
-  buildSensorReport,
-  finalizeSensorReport,
-  fmCheckIssues,
-  keyDataSummaryOf,
-  stageGateSummaryOf,
-  type ApiCoverageSummary,
-  type FmCheckReport,
-  type KeyDataAuditReport,
-  type KeyDataDecision,
-  type KeyDataSummary,
-  type SensorIssue,
-  type SensorReport,
-  type SensorSeverity,
-  type SensorSource,
-  type StageGateReport,
-  type StageGateSummary,
-} from './sensors/sensorReport.js';
+export * from '@evidence-poc/evidence-agent-sensors/browser';
 
 /**
  * The projected agent event stream the renderer draws from. Type-only: the

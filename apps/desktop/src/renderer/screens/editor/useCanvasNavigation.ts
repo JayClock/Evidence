@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { computeContextScope } from '@evidence-poc/evidence-canvas-interaction';
-import type { SensorIssue } from '@evidence-poc/evidence-agent/browser';
+import type { SensorIssue } from '@evidence-poc/evidence-agent-sensors/browser';
 import { isContextEntity } from '@evidence-poc/evidence-schema';
 import type { ZoomDirection } from '@evidence-poc/desktop-feature-canvas';
 import type { EditorSessionState } from '../../state/useEditorSession';

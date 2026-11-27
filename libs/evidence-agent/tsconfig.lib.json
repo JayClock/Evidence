@@ -28,10 +28,7 @@
       "path": "../evidence-ingestion/tsconfig.lib.json"
     },
     {
-      "path": "../evidence-api/tsconfig.lib.json"
-    },
-    {
-      "path": "../evidence-acceptance/tsconfig.lib.json"
+      "path": "../evidence-agent-sensors/tsconfig.lib.json"
     }
   ],
   "exclude": [

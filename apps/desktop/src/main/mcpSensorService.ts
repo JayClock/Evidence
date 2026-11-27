@@ -1,8 +1,4 @@
-import {
-  createSensorsEngine,
-  type KeyDataAuditReport,
-  type SensorsEngine,
-} from '@evidence-poc/evidence-agent';
+import { createSensorsEngine, type KeyDataAuditReport, type SensorsEngine } from '@evidence-poc/evidence-agent-sensors';
 import type {
   McpKeyDataAudit,
   McpStageGateResult,

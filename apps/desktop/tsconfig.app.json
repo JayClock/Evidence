@@ -45,6 +45,9 @@
       "path": "../../libs/evidence-api/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/evidence-agent-sensors/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/evidence-agent/tsconfig.lib.json"
     },
     {

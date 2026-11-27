@@ -13,9 +13,6 @@
   "include": ["src/**/*.ts"],
   "references": [
     {
-      "path": "../../evidence-acceptance/tsconfig.lib.json"
-    },
-    {
       "path": "../../evidence-schema/tsconfig.lib.json"
     },
     {
@@ -25,7 +22,13 @@
       "path": "../../evidence-api/tsconfig.lib.json"
     },
     {
+      "path": "../../evidence-agent-sensors/tsconfig.lib.json"
+    },
+    {
       "path": "../../evidence-agent/tsconfig.lib.json"
+    },
+    {
+      "path": "../../evidence-acceptance/tsconfig.lib.json"
     }
   ]
 }

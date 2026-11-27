@@ -1,10 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Crosshair, RefreshCw, X, Zap } from 'lucide-react';
 
-import type {
-  SensorIssue,
-  SensorReport,
-} from '@evidence-poc/evidence-agent/browser';
+import type { SensorIssue, SensorReport } from '@evidence-poc/evidence-agent-sensors/browser';
 import { Button, cn } from '@evidence-poc/desktop-ui-kit';
 
 import { filterIssues, type SensorSeverity } from './problemFilters';

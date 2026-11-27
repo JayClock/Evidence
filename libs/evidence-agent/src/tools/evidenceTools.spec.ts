@@ -17,7 +17,7 @@ import {
 } from './evidenceTools.js';
 import type { DomainModelDocument } from '@evidence-poc/evidence-schema';
 
-import type { SensorReport } from '../sensors/sensorReport.js';
+import type { SensorReport } from '@evidence-poc/evidence-agent-sensors';
 
 /** Business time an operator fills in; the model must already name it. */
 const momentTime = (name: string, label: string) => ({

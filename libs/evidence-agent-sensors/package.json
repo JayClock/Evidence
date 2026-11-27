@@ -1,0 +1,42 @@
+{
+  "name": "@evidence-poc/evidence-agent-sensors",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@evidence-poc/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./browser": {
+      "@evidence-poc/source": "./src/browser.ts",
+      "types": "./dist/browser.d.ts",
+      "import": "./dist/browser.js",
+      "default": "./dist/browser.js"
+    }
+  },
+  "nx": {
+    "name": "evidence-agent-sensors",
+    "tags": [
+      "type:lib",
+      "layer:orchestration",
+      "platform:node",
+      "surface:browser-safe",
+      "scope:agent"
+    ]
+  },
+  "dependencies": {
+    "@evidence-poc/evidence-acceptance": "workspace:*",
+    "@evidence-poc/evidence-api": "workspace:*",
+    "@evidence-poc/evidence-model-core": "workspace:*",
+    "@evidence-poc/evidence-model-io": "workspace:*",
+    "@evidence-poc/evidence-schema": "workspace:*",
+    "tslib": "^2.3.0"
+  }
+}

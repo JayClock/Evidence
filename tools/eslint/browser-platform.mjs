@@ -17,6 +17,7 @@ const NODE_PACKAGES_WITH_BROWSER_ENTRY = [
   '@evidence-poc/evidence-api',
   '@evidence-poc/evidence-acceptance',
   '@evidence-poc/evidence-agent',
+  '@evidence-poc/evidence-agent-sensors',
 ];
 
 export default [

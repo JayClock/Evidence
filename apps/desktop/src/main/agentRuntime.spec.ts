@@ -2,14 +2,8 @@ import type { PatchTransaction } from '@evidence-poc/desktop-contracts/agentIpc'
 import { applyModelPatches } from '@evidence-poc/evidence-model-core';
 import { describe, expect, it, vi } from 'vitest';
 
-import type {
-  EvidenceAgentSession,
-  EvidenceAgentSessionOptions,
-  ModelPatchRequest,
-  SensorOutcome,
-  SensorReport,
-  SensorsEngine,
-} from '@evidence-poc/evidence-agent';
+import type { EvidenceAgentSession, EvidenceAgentSessionOptions, ModelPatchRequest } from '@evidence-poc/evidence-agent';
+import type { SensorOutcome, SensorReport, SensorsEngine } from '@evidence-poc/evidence-agent-sensors';
 
 import { createAgentRuntime, type AgentRuntimeTransport } from './agentRuntime';
 import { createDesktopFixture } from '@evidence-poc/desktop-testing';

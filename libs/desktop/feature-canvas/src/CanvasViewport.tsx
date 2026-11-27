@@ -65,7 +65,7 @@ import { entityColor } from './colors';
 import { ChangeRing, type ModelOverlay } from './canvasOverlay';
 import { DiagnosticMarkers } from './DiagnosticMarkers';
 import type { DiagnosticIndex } from './diagnosticIndex';
-import type { SensorIssue } from '@evidence-poc/evidence-agent/browser';
+import type { SensorIssue } from '@evidence-poc/evidence-agent-sensors/browser';
 import {
   boundsOf,
   convertLayoutToReactFlow,

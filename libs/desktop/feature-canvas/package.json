@@ -26,7 +26,7 @@
   },
   "dependencies": {
     "@evidence-poc/desktop-ui-kit": "workspace:*",
-    "@evidence-poc/evidence-agent": "workspace:*",
+    "@evidence-poc/evidence-agent-sensors": "workspace:*",
     "@evidence-poc/evidence-api": "workspace:*",
     "@evidence-poc/evidence-canvas-interaction": "workspace:*",
     "@evidence-poc/evidence-model-core": "workspace:*",

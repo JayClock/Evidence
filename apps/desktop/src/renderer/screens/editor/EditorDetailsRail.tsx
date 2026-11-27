@@ -6,7 +6,7 @@ import type { EditorSurfaces } from './useEditorSurfaces';
 import type { EditorModeling } from './useEditorModeling';
 import type { StoryPlaybackController } from '@evidence-poc/desktop-feature-story';
 import type { ReactNode } from 'react';
-import type { SensorReport } from '@evidence-poc/evidence-agent/browser';
+import type { SensorReport } from '@evidence-poc/evidence-agent-sensors/browser';
 
 export const EditorDetailsRail = ({
   state,

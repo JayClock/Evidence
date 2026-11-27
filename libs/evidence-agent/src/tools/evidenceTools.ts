@@ -34,8 +34,8 @@ import { z } from 'zod';
 import { focusedBusinessContext } from './focusedBusinessContext.js';
 import { registerZodTool } from './registerZodTool.js';
 
-import { checkNativeApiSensor } from '../sensors/native/nativeApiSensor.js';
-import type { SensorReport } from '../sensors/sensorReport.js';
+import { checkNativeApiSensor } from '@evidence-poc/evidence-agent-sensors';
+import type { SensorReport } from '@evidence-poc/evidence-agent-sensors';
 
 const nonEmptyText = (description?: string) =>
   (description === undefined

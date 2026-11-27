@@ -1,12 +1,7 @@
 import type { JsonPatchOperation } from '@evidence-poc/evidence-schema';
 import type { LiveDeliveryInput } from './delivery.js';
-import type {
-  AgentStreamEvent,
-  CanvasContext,
-  ModelPatchRequest,
-  ModelPatchResult,
-  SensorReport,
-} from '@evidence-poc/evidence-agent';
+import type { AgentStreamEvent, CanvasContext, ModelPatchRequest, ModelPatchResult } from '@evidence-poc/evidence-agent';
+import type { SensorReport } from '@evidence-poc/evidence-agent-sensors';
 
 /**
  * IPC channels shared by the main process, the preload bridge and the renderer.

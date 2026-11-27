@@ -1,6 +1,6 @@
 import type { ValidationResult } from '@evidence-poc/evidence-schema';
 import type { DomainGraphLayout } from '@evidence-poc/evidence-canvas-interaction';
-import type { SensorReport } from '@evidence-poc/evidence-agent/browser';
+import type { SensorReport } from '@evidence-poc/evidence-agent-sensors/browser';
 import type {
   AcceptanceSyncStatus,
   ContextDeliveryStatus,

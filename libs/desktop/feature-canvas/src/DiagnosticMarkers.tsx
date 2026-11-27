@@ -2,7 +2,7 @@ import type {
   ContextScope,
   DomainGraphLayout,
 } from '@evidence-poc/evidence-canvas-interaction';
-import type { SensorIssue } from '@evidence-poc/evidence-agent/browser';
+import type { SensorIssue } from '@evidence-poc/evidence-agent-sensors/browser';
 import { diagnosticColor, type DiagnosticIndex } from './diagnosticIndex';
 import { pointOnRoute } from './edgeLabels';
 

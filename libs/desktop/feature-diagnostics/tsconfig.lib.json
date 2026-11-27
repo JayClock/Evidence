@@ -14,7 +14,7 @@
       "path": "../../evidence-model-core/tsconfig.lib.json"
     },
     {
-      "path": "../../evidence-agent/tsconfig.lib.json"
+      "path": "../../evidence-agent-sensors/tsconfig.lib.json"
     },
     {
       "path": "../ui-kit/tsconfig.lib.json"

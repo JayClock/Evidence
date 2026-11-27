@@ -1,6 +1,6 @@
 import type { ArtifactStatus } from '@evidence-poc/desktop-contracts/delivery';
 import { renderDeliverables } from '@evidence-poc/evidence-acceptance';
-import { createSensorsEngine } from '@evidence-poc/evidence-agent';
+import { createSensorsEngine } from '@evidence-poc/evidence-agent-sensors';
 import {
   ContextDeliveryBlockedError,
   planContextDelivery,

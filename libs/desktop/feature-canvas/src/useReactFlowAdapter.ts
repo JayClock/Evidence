@@ -13,7 +13,7 @@ import type {
   DomainModelDocument,
   TerminalRemedyKind,
 } from '@evidence-poc/evidence-schema';
-import type { SensorSeverity } from '@evidence-poc/evidence-agent/browser';
+import type { SensorSeverity } from '@evidence-poc/evidence-agent-sensors/browser';
 
 import type { CardSummary } from './cardSummary';
 import type { ModelOverlay } from './canvasOverlay';

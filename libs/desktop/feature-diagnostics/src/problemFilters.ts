@@ -1,4 +1,4 @@
-import type { SensorIssue } from '@evidence-poc/evidence-agent/browser';
+import type { SensorIssue } from '@evidence-poc/evidence-agent-sensors/browser';
 
 /** The three severities the sensors emit. */
 export type SensorSeverity = SensorIssue['severity'];

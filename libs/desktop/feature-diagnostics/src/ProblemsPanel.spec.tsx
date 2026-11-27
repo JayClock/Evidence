@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { SensorIssue } from '@evidence-poc/evidence-agent/browser';
+import type { SensorIssue } from '@evidence-poc/evidence-agent-sensors/browser';
 
 import { ProblemsPanel } from './ProblemsPanel';
 import { healthyReport } from '@evidence-poc/desktop-testing/desktopApi';

@@ -4,11 +4,7 @@ import type {
   DeliveryContract,
   DeliveryField,
 } from '@evidence-poc/evidence-api';
-import type {
-  ApiCoverageSummary,
-  SensorIssue,
-  SensorReport,
-} from '@evidence-poc/evidence-agent/browser';
+import type { ApiCoverageSummary, SensorIssue, SensorReport } from '@evidence-poc/evidence-agent-sensors/browser';
 import type { DeliveryPreview } from './projects.js';
 
 /** The baseline is the document at editor open; save does not silently accept changes. */

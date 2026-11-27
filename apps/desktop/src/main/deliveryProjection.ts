@@ -1,4 +1,4 @@
-import { checkNativeApiSensor } from '@evidence-poc/evidence-agent';
+import { checkNativeApiSensor } from '@evidence-poc/evidence-agent-sensors';
 import type {
   LiveDeliveryArtifact,
   LiveDeliveryInput,

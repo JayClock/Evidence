@@ -1,0 +1,18 @@
+export {
+  buildSensorReport,
+  finalizeSensorReport,
+  fmCheckIssues,
+  keyDataSummaryOf,
+  stageGateSummaryOf,
+  type ApiCoverageSummary,
+  type FmCheckReport,
+  type KeyDataAuditReport,
+  type KeyDataDecision,
+  type KeyDataSummary,
+  type SensorIssue,
+  type SensorReport,
+  type SensorSeverity,
+  type SensorSource,
+  type StageGateReport,
+  type StageGateSummary,
+} from './sensors/sensorReport.js';

@@ -3,12 +3,8 @@ import path from 'node:path';
 import type { PatchTransaction } from '@evidence-poc/desktop-contracts/agentIpc';
 import { describe, expect, it } from 'vitest';
 
-import {
-  createSensorsEngine,
-  type EvidenceAgentSession,
-  type EvidenceAgentSessionOptions,
-  type SensorReport,
-} from '@evidence-poc/evidence-agent';
+import { createSensorsEngine, type SensorReport } from '@evidence-poc/evidence-agent-sensors';
+import { type EvidenceAgentSession, type EvidenceAgentSessionOptions } from '@evidence-poc/evidence-agent';
 import { createModelSession } from '@evidence-poc/evidence-model-core';
 import { readModelDirectory } from '@evidence-poc/evidence-model-io';
 import type { EntityAST } from '@evidence-poc/evidence-schema';
