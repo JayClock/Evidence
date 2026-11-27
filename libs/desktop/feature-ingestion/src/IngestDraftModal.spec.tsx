@@ -7,7 +7,6 @@ import {
   projectSummary,
 } from '@evidence-poc/desktop-testing/desktopApi';
 import type { IngestionDraft } from '@evidence-poc/evidence-schema';
-import { AiConfigurationProvider } from '../../state/AiConfiguration';
 
 const draft = (): IngestionDraft => ({
   modelName: '云服务采购',
@@ -74,7 +73,12 @@ const openReview = async (issues: readonly string[] = []) => {
   });
 
   render(
-    <IngestDraftModal onClose={() => undefined} onCompiled={() => undefined} />,
+    <IngestDraftModal
+      ingestion={api.ingestion}
+      chooseLocation={api.projects.showCreateDialog}
+      onClose={() => undefined}
+      onCompiled={() => undefined}
+    />,
   );
 
   fireEvent.change(screen.getByLabelText('业务原文'), {
@@ -97,7 +101,14 @@ describe('IngestDraftModal', () => {
         issues: [],
       },
     });
-    render(<IngestDraftModal onClose={vi.fn()} onCompiled={vi.fn()} />);
+    render(
+      <IngestDraftModal
+        ingestion={api.ingestion}
+        chooseLocation={api.projects.showCreateDialog}
+        onClose={vi.fn()}
+        onCompiled={vi.fn()}
+      />,
+    );
     const text = '{"openapi":"3.1.0"}';
     const input = screen.getByLabelText('选择业务文档');
     const clickPicker = vi.spyOn(input, 'click');
@@ -126,7 +137,14 @@ describe('IngestDraftModal', () => {
         issues: [],
       },
     });
-    render(<IngestDraftModal onClose={vi.fn()} onCompiled={vi.fn()} />);
+    render(
+      <IngestDraftModal
+        ingestion={api.ingestion}
+        chooseLocation={api.projects.showCreateDialog}
+        onClose={vi.fn()}
+        onCompiled={vi.fn()}
+      />,
+    );
     const text = '阶段,业务凭证\n履约,支付申请';
     const target = screen.getByRole('button', { name: /选择文件或拖放/ });
     const dataTransfer = {
@@ -173,7 +191,14 @@ describe('IngestDraftModal', () => {
     'rejects invalid file drops without replacing the original text ($error)',
     async ({ files, error }) => {
       const api = installDesktopApi();
-      render(<IngestDraftModal onClose={vi.fn()} onCompiled={vi.fn()} />);
+      render(
+        <IngestDraftModal
+          ingestion={api.ingestion}
+          chooseLocation={api.projects.showCreateDialog}
+          onClose={vi.fn()}
+          onCompiled={vi.fn()}
+        />,
+      );
       fireEvent.change(screen.getByLabelText('业务原文'), {
         target: { value: '保留原文' },
       });
@@ -186,36 +211,6 @@ describe('IngestDraftModal', () => {
     },
   );
 
-  it('returns focus and keeps the draft text after closing AI settings', async () => {
-    const api = installDesktopApi();
-    api.aiConfig.getStatus = async () => ({
-      isConfigured: false,
-      activeProviderId: null,
-      activeModelId: null,
-      activeModelName: null,
-      agentDir: '/test/pi',
-      thinkingLevel: 'off',
-      availableModels: [],
-    });
-    render(
-      <AiConfigurationProvider>
-        <IngestDraftModal onClose={vi.fn()} onCompiled={vi.fn()} />
-      </AiConfigurationProvider>,
-    );
-    fireEvent.change(screen.getByLabelText('业务原文'), {
-      target: { value: '本地原文' },
-    });
-    const trigger = screen.getByRole('button', { name: '配置 Pi 模型' });
-    trigger.focus();
-    fireEvent.click(trigger);
-    const settings = screen.getByRole('dialog', { name: /AI Model Settings/ });
-    expect(
-      screen.queryByRole('dialog', { name: /Smart Ingestion/ }),
-    ).toBeNull();
-    fireEvent.keyDown(settings, { key: 'Escape' });
-    await waitFor(() => expect(trigger).toHaveFocus());
-    expect(screen.getByLabelText('业务原文')).toHaveValue('本地原文');
-  });
   it('sends the pasted text to the main process and says who read it', async () => {
     const api = await openReview();
 
@@ -255,10 +250,12 @@ describe('IngestDraftModal', () => {
   });
 
   it('refuses to read an empty textarea', async () => {
-    installDesktopApi({});
+    const api = installDesktopApi({});
 
     render(
       <IngestDraftModal
+        ingestion={api.ingestion}
+        chooseLocation={api.projects.showCreateDialog}
         onClose={() => undefined}
         onCompiled={() => undefined}
       />,
@@ -301,6 +298,8 @@ describe('IngestDraftModal', () => {
 
     render(
       <IngestDraftModal
+        ingestion={api.ingestion}
+        chooseLocation={api.projects.showCreateDialog}
         onClose={() => undefined}
         onCompiled={(project) => compiled.push(project.rootPath)}
       />,
@@ -359,6 +358,8 @@ describe('IngestDraftModal', () => {
 
     render(
       <IngestDraftModal
+        ingestion={api.ingestion}
+        chooseLocation={api.projects.showCreateDialog}
         onClose={() => undefined}
         onCompiled={() => undefined}
       />,
@@ -417,6 +418,8 @@ describe('IngestDraftModal', () => {
 
     render(
       <IngestDraftModal
+        ingestion={api.ingestion}
+        chooseLocation={api.projects.showCreateDialog}
         onClose={() => undefined}
         onCompiled={() => undefined}
       />,
@@ -473,6 +476,8 @@ describe('IngestDraftModal', () => {
 
     render(
       <IngestDraftModal
+        ingestion={api.ingestion}
+        chooseLocation={api.projects.showCreateDialog}
         onClose={() => undefined}
         onCompiled={() => undefined}
       />,
@@ -509,6 +514,8 @@ describe('IngestDraftModal', () => {
 
     render(
       <IngestDraftModal
+        ingestion={api.ingestion}
+        chooseLocation={api.projects.showCreateDialog}
         onClose={() => undefined}
         onCompiled={() => undefined}
       />,

@@ -17,6 +17,39 @@ import {
 } from '@evidence-poc/desktop-testing/desktopApi';
 
 describe('DashboardScreen', () => {
+  it('returns focus and keeps the draft text after closing AI settings', async () => {
+    const api = installDesktopApi();
+    api.aiConfig.getStatus = async () => ({
+      isConfigured: false,
+      activeProviderId: null,
+      activeModelId: null,
+      activeModelName: null,
+      agentDir: '/test/pi',
+      thinkingLevel: 'off',
+      availableModels: [],
+    });
+    render(
+      <AiConfigurationProvider>
+        <DashboardScreen />
+      </AiConfigurationProvider>,
+    );
+    fireEvent.click(
+      await screen.findByRole('button', { name: '开始智能提取向导' }),
+    );
+    fireEvent.change(screen.getByLabelText('业务原文'), {
+      target: { value: '本地原文' },
+    });
+    const trigger = screen.getByRole('button', { name: '配置 Pi 模型' });
+    trigger.focus();
+    fireEvent.click(trigger);
+    const settings = screen.getByRole('dialog', { name: /AI Model Settings/ });
+    expect(
+      screen.queryByRole('dialog', { name: /Smart Ingestion/ }),
+    ).toBeNull();
+    fireEvent.keyDown(settings, { key: 'Escape' });
+    await waitFor(() => expect(trigger).toHaveFocus());
+    expect(screen.getByLabelText('业务原文')).toHaveValue('本地原文');
+  });
   it('explains the empty state and where models live', async () => {
     installDesktopApi({ projects: [] });
 

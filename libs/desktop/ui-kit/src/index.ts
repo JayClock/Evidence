@@ -72,3 +72,4 @@ export { Toaster, notify, toast } from './components/sonner/Toaster.js';
 export { Avatar, AvatarFallback, AvatarImage } from './components/avatar/Avatar.js';
 export { Skeleton } from './components/skeleton/Skeleton.js';
 export { Textarea } from './components/textarea/Textarea.js';
+export { WorkbenchDialog } from './components/dialog/WorkbenchDialog.js';

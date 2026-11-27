@@ -59,6 +59,18 @@
     },
     {
       "path": "./libs/desktop/ui-chat"
+    },
+    {
+      "path": "./libs/desktop/feature-diagnostics"
+    },
+    {
+      "path": "./libs/desktop/feature-ingestion"
+    },
+    {
+      "path": "./libs/desktop/feature-scenario"
+    },
+    {
+      "path": "./libs/desktop/feature-ledger"
     }
   ]
 }

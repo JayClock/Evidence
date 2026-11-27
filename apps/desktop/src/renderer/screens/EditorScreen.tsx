@@ -22,15 +22,19 @@ import {
 
 import type { EvidenceProjectSummary } from '@evidence-poc/desktop-contracts/projects';
 import { BottomStatusBar } from '../components/BottomStatusBar';
-import { ProblemsPanel } from '../components/console/ProblemsPanel';
-import { ModelHealthRadar } from '../components/console/ModelHealthRadar';
+import {
+  ProblemsPanel,
+  ModelHealthRadar,
+} from '@evidence-poc/desktop-feature-diagnostics';
 import {
   CommandPalette,
   type CommandTarget,
 } from '../components/command/CommandPalette';
-import { DomainLedgerTable } from '../components/ledger/DomainLedgerTable';
-import { downloadLedgerCsv } from '../components/ledger/domainLedgerCsv';
-import { useEntityLedger } from '../components/ledger/useEntityLedger';
+import {
+  DomainLedgerTable,
+  downloadLedgerCsv,
+  useEntityLedger,
+} from '@evidence-poc/desktop-feature-ledger';
 import { CanvasFloatingHud } from '../components/canvas/CanvasFloatingHud';
 import {
   ArchetypeWizard,
@@ -47,7 +51,7 @@ import {
   usePiConversation,
   usePatchReview,
 } from '@evidence-poc/desktop-feature-agent';
-import { ScenarioStudioModal } from '../components/scenario/ScenarioStudioModal';
+import { ScenarioStudioModal } from '@evidence-poc/desktop-feature-scenario';
 import {
   StoryPlayerBar,
   StoryDrawer,

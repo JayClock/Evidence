@@ -7,6 +7,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
+  WorkbenchDialog,
 } from '@evidence-poc/desktop-ui-kit';
 import type {
   AiConfigStatus,
@@ -14,7 +15,6 @@ import type {
   AiThinkingLevel,
   EvidenceAiConfigApi,
 } from '@evidence-poc/desktop-contracts/aiConfig';
-import { WorkbenchDialog } from '../layout/WorkbenchDialog';
 
 const modelKey = ({ provider, id }: AiModelDescriptor) =>
   JSON.stringify([provider, id]);
@@ -136,7 +136,7 @@ export const ModelSettingsModal = ({
 
   return (
     <WorkbenchDialog
-      size="settings"
+      size="md"
       title="配置大模型 / AI Model Settings"
       description="选择 Pi 已配置的模型。保存后，Pi CLI 与 Evidence 共用此默认模型。"
       busy={busy}

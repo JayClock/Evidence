@@ -13,6 +13,7 @@ import type {
 } from '@evidence-poc/desktop-contracts/ingestion';
 
 import { ClauseSplit } from './ClauseSplit';
+import type { EvidenceDesktopApi } from '@evidence-poc/desktop-contracts';
 import type { EvidenceProjectSummary } from '@evidence-poc/desktop-contracts/projects';
 
 /** Evidence kinds the panel offers, with the name the method uses for each. */
@@ -34,6 +35,8 @@ const READER_LABELS: Record<IngestionReader, string> = {
 };
 
 export interface DraftReviewPanelProps {
+  chooseLocation: EvidenceDesktopApi['projects']['showCreateDialog'];
+  compile: EvidenceDesktopApi['ingestion']['compile'];
   draft: IngestionDraft;
   reader: IngestionReader;
   issues: readonly string[];
@@ -64,6 +67,8 @@ const isMoment = (kind: DraftEvidence['kind']): boolean =>
  * exactly the decision the method forbids an extractor to make.
  */
 export const DraftReviewPanel = ({
+  chooseLocation,
+  compile,
   draft,
   reader,
   issues,
@@ -136,7 +141,7 @@ export const DraftReviewPanel = ({
     setError(null);
 
     try {
-      const dialog = await window.evidenceAPI.projects.showCreateDialog();
+      const dialog = await chooseLocation();
 
       if (!dialog.success) {
         if (dialog.canceled !== true) {
@@ -156,7 +161,7 @@ export const DraftReviewPanel = ({
         targetPath: dialog.targetPath,
         name: name.trim().length > 0 ? name.trim() : '文本导入的履约模型',
       };
-      const compiled = await window.evidenceAPI.ingestion.compile(input);
+      const compiled = await compile(input);
 
       if (!compiled.success) {
         setError(compiled.error);

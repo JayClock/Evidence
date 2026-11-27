@@ -1,18 +1,18 @@
 import { useRef, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 import {
-  Button,
   Dialog,
   DialogClose,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@evidence-poc/desktop-ui-kit';
+} from './Dialog.js';
+import { Button } from '../button/Button.js';
 
 const widths = {
-  settings: 'max-w-[580px]',
-  ingestion: 'max-w-[620px]',
+  md: 'max-w-[580px]',
+  lg: 'max-w-[620px]',
 };
 
 /** Workbench.pen form dialogs share chrome without changing other overlays. */

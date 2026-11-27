@@ -208,7 +208,22 @@ describe('EditorScreen', () => {
   });
 
   it('syncs scenario edits without a save button and can play the same scenario', async () => {
-    const api = readyProject();
+    const document = createDesktopFixture();
+    const contract = document.entities.find(
+      ({ id }) => id === 'evidence.contract',
+    )!;
+    contract.examples = [
+      {
+        label: '签约',
+        value: { signed_at: '2025-12-31T00:00:00Z' },
+        test: {
+          flow: '正常签约案例',
+          asOf: '2026-01-01T00:00:00Z',
+          actingRoleRef: 'role.buyer',
+        },
+      },
+    ];
+    const api = readyProject(document);
     api.story.load = vi.fn(async ({ document, preferredFlowId }) =>
       storySnapshot(collectFlowScenarios(document!), preferredFlowId),
     );
@@ -224,17 +239,6 @@ describe('EditorScreen', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: '更多画布工具' }));
     fireEvent.click(screen.getByRole('button', { name: '业务场景推演' }));
-    fireEvent.change(screen.getByLabelText('新场景名称'), {
-      target: { value: '正常签约案例' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: '创建空白场景' }));
-    fireEvent.change(screen.getByLabelText('添加业务操作'), {
-      target: { value: 'evidence.contract' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: '添加步骤' }));
-    fireEvent.change(screen.getByLabelText('业务时刻'), {
-      target: { value: '2026-01-01T00:00:00Z' },
-    });
     fireEvent.change(screen.getByLabelText('签署时间'), {
       target: { value: '2026-01-01T00:00:00Z' },
     });

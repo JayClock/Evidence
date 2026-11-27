@@ -21,21 +21,6 @@
   ],
   "references": [
     {
-      "path": "../../libs/evidence-acceptance/tsconfig.lib.json"
-    },
-    {
-      "path": "../../libs/desktop/feature-agent/tsconfig.lib.json"
-    },
-    {
-      "path": "../../libs/desktop/feature-delivery/tsconfig.lib.json"
-    },
-    {
-      "path": "../../libs/desktop/feature-story/tsconfig.lib.json"
-    },
-    {
-      "path": "../../libs/desktop/contracts/tsconfig.lib.json"
-    },
-    {
       "path": "../../libs/evidence-schema/tsconfig.lib.json"
     },
     {
@@ -57,13 +42,40 @@
       "path": "../../libs/evidence-agent/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/evidence-acceptance/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/desktop/ui-kit/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/desktop/feature-story/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/desktop/feature-scenario/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/desktop/feature-ledger/tsconfig.lib.json"
     },
     {
       "path": "../../libs/desktop/feature-inspector/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/desktop/feature-ingestion/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/desktop/feature-diagnostics/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/desktop/feature-delivery/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/desktop/feature-canvas/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/desktop/feature-agent/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/desktop/contracts/tsconfig.lib.json"
     },
     {
       "path": "../../libs/desktop/testing/tsconfig.lib.json"

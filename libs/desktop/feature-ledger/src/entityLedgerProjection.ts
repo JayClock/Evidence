@@ -15,7 +15,7 @@ export const LEDGER_GATE_LABELS: Record<LedgerGate, string> = {
   block: '阻断',
 };
 
-interface LedgerInvariant {
+export interface LedgerInvariant {
   id: string;
   expression: string;
 }

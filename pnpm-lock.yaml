@@ -326,9 +326,21 @@ importers:
       '@evidence-poc/desktop-feature-delivery':
         specifier: workspace:*
         version: link:../../libs/desktop/feature-delivery
+      '@evidence-poc/desktop-feature-diagnostics':
+        specifier: workspace:*
+        version: link:../../libs/desktop/feature-diagnostics
+      '@evidence-poc/desktop-feature-ingestion':
+        specifier: workspace:*
+        version: link:../../libs/desktop/feature-ingestion
       '@evidence-poc/desktop-feature-inspector':
         specifier: workspace:*
         version: link:../../libs/desktop/feature-inspector
+      '@evidence-poc/desktop-feature-ledger':
+        specifier: workspace:*
+        version: link:../../libs/desktop/feature-ledger
+      '@evidence-poc/desktop-feature-scenario':
+        specifier: workspace:*
+        version: link:../../libs/desktop/feature-scenario
       '@evidence-poc/desktop-feature-story':
         specifier: workspace:*
         version: link:../../libs/desktop/feature-story
@@ -359,12 +371,6 @@ importers:
       '@evidence-poc/evidence-schema':
         specifier: workspace:*
         version: link:../../libs/evidence-schema
-      '@tanstack/react-table':
-        specifier: ^8.21.3
-        version: 8.21.3(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
-      '@tanstack/react-virtual':
-        specifier: ^3.14.26
-        version: 3.14.26(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       chokidar:
         specifier: ^4.0.3
         version: 4.0.3
@@ -540,6 +546,56 @@ importers:
         specifier: workspace:*
         version: link:../testing
 
+  libs/desktop/feature-diagnostics:
+    dependencies:
+      '@evidence-poc/desktop-ui-kit':
+        specifier: workspace:*
+        version: link:../ui-kit
+      '@evidence-poc/evidence-agent':
+        specifier: workspace:*
+        version: link:../../evidence-agent
+      '@evidence-poc/evidence-model-core':
+        specifier: workspace:*
+        version: link:../../evidence-model-core
+      lucide-react:
+        specifier: ^1.72.0
+        version: 1.72.0(@types/react@19.3.0)(react@19.3.1)
+      react:
+        specifier: ^19.2.8
+        version: 19.3.1
+      tslib:
+        specifier: ^2.3.0
+        version: 2.9.1
+    devDependencies:
+      '@evidence-poc/desktop-testing':
+        specifier: workspace:*
+        version: link:../testing
+
+  libs/desktop/feature-ingestion:
+    dependencies:
+      '@evidence-poc/desktop-contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@evidence-poc/desktop-ui-kit':
+        specifier: workspace:*
+        version: link:../ui-kit
+      '@evidence-poc/evidence-schema':
+        specifier: workspace:*
+        version: link:../../evidence-schema
+      lucide-react:
+        specifier: ^1.72.0
+        version: 1.72.0(@types/react@19.3.0)(react@19.3.1)
+      react:
+        specifier: ^19.2.8
+        version: 19.3.1
+      tslib:
+        specifier: ^2.3.0
+        version: 2.9.1
+    devDependencies:
+      '@evidence-poc/desktop-testing':
+        specifier: workspace:*
+        version: link:../testing
+
   libs/desktop/feature-inspector:
     dependencies:
       '@codemirror/language':
@@ -572,6 +628,62 @@ importers:
       tslib:
         specifier: ^2.3.0
         version: 2.9.1
+
+  libs/desktop/feature-ledger:
+    dependencies:
+      '@evidence-poc/desktop-feature-canvas':
+        specifier: workspace:*
+        version: link:../feature-canvas
+      '@evidence-poc/desktop-ui-kit':
+        specifier: workspace:*
+        version: link:../ui-kit
+      '@evidence-poc/evidence-schema':
+        specifier: workspace:*
+        version: link:../../evidence-schema
+      '@tanstack/react-table':
+        specifier: ^8.21.3
+        version: 8.21.3(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@tanstack/react-virtual':
+        specifier: ^3.14.26
+        version: 3.14.26(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      react:
+        specifier: ^19.2.8
+        version: 19.3.1
+      tslib:
+        specifier: ^2.3.0
+        version: 2.9.1
+    devDependencies:
+      '@evidence-poc/desktop-testing':
+        specifier: workspace:*
+        version: link:../testing
+
+  libs/desktop/feature-scenario:
+    dependencies:
+      '@evidence-poc/desktop-ui-kit':
+        specifier: workspace:*
+        version: link:../ui-kit
+      '@evidence-poc/evidence-acceptance':
+        specifier: workspace:*
+        version: link:../../evidence-acceptance
+      '@evidence-poc/evidence-api':
+        specifier: workspace:*
+        version: link:../../evidence-api
+      '@evidence-poc/evidence-model-core':
+        specifier: workspace:*
+        version: link:../../evidence-model-core
+      '@evidence-poc/evidence-schema':
+        specifier: workspace:*
+        version: link:../../evidence-schema
+      react:
+        specifier: ^19.2.8
+        version: 19.3.1
+      tslib:
+        specifier: ^2.3.0
+        version: 2.9.1
+    devDependencies:
+      '@evidence-poc/desktop-testing':
+        specifier: workspace:*
+        version: link:../testing
 
   libs/desktop/feature-story:
     dependencies:

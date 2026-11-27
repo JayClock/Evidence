@@ -28,6 +28,36 @@ const setup = () => {
 };
 
 describe('ScenarioStudioModal', () => {
+  it('creates an empty scenario and adds a dated business operation to the session', () => {
+    const session = createModelSession({ document: createDesktopFixture() });
+    render(
+      <ScenarioStudioModal
+        session={session}
+        onPlay={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText('新场景名称'), {
+      target: { value: '正常签约案例' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '创建空白场景' }));
+    fireEvent.change(screen.getByLabelText('添加业务操作'), {
+      target: { value: 'evidence.contract' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '添加步骤' }));
+    fireEvent.change(screen.getByLabelText('业务时刻'), {
+      target: { value: '2026-01-01T00:00:00Z' },
+    });
+    fireEvent.change(screen.getByLabelText('签署时间'), {
+      target: { value: '2026-01-01T00:00:00Z' },
+    });
+    expect(
+      scenarioExamples(session.getDocument(), '正常签约案例')[0]?.example,
+    ).toMatchObject({
+      value: { signed_at: '2026-01-01T00:00:00Z' },
+      test: { flow: '正常签约案例' },
+    });
+  });
   it('clones and edits inline examples immediately for the story player', () => {
     const props = setup();
     render(<ScenarioStudioModal {...props} />);

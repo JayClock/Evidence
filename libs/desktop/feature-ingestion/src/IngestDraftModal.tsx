@@ -1,4 +1,4 @@
-import { useAiConfiguration } from '../../state/AiConfiguration';
+import type { EvidenceDesktopApi } from '@evidence-poc/desktop-contracts';
 import { useEffect, useRef, useState } from 'react';
 
 import type {
@@ -13,8 +13,7 @@ import type {
 } from '@evidence-poc/desktop-contracts/ingestion';
 import type { EvidenceProjectSummary } from '@evidence-poc/desktop-contracts/projects';
 
-import { Button, DialogClose } from '@evidence-poc/desktop-ui-kit';
-import { WorkbenchDialog } from '../layout/WorkbenchDialog';
+import { Button, DialogClose, WorkbenchDialog } from '@evidence-poc/desktop-ui-kit';
 import { DraftReviewPanel } from './DraftReviewPanel';
 import { IngestionFilePicker } from './IngestionFilePicker';
 import { readIngestionFile } from './readIngestionFile';
@@ -55,6 +54,10 @@ interface DraftState {
 }
 
 export interface IngestDraftModalProps {
+  ingestion: EvidenceDesktopApi['ingestion'];
+  chooseLocation: EvidenceDesktopApi['projects']['showCreateDialog'];
+  aiConfigured?: boolean;
+  onConfigureAi?: () => void;
   onClose: () => void;
   onCompiled: (project: EvidenceProjectSummary) => void;
 }
@@ -90,10 +93,13 @@ const INPUT_KINDS: readonly {
  * extraction is a reading and a reading can be wrong.
  */
 export const IngestDraftModal = ({
+  ingestion,
+  chooseLocation,
+  aiConfigured,
+  onConfigureAi,
   onClose,
   onCompiled,
 }: IngestDraftModalProps) => {
-  const ai = useAiConfiguration();
   const [kind, setKind] = useState<IngestionInputKind>('contract');
   const [content, setContent] = useState('');
   const [modelName, setModelName] = useState('文本导入的履约模型');
@@ -147,7 +153,7 @@ export const IngestDraftModal = ({
         modelName,
         ...(kind === 'blueprint' ? { format: 'auto' as const } : {}),
       };
-      const result = await window.evidenceAPI.ingestion.draft(input);
+      const result = await ingestion.draft(input);
 
       if (!result.success) {
         setError(result.error);
@@ -171,7 +177,7 @@ export const IngestDraftModal = ({
 
   return (
     <WorkbenchDialog
-      size="ingestion"
+      size="lg"
       title={draft ? '校对导入的草稿' : '智能文档摄取 (Smart Ingestion)'}
       description={
         draft
@@ -184,6 +190,8 @@ export const IngestDraftModal = ({
       {draft ? (
         <DraftReviewPanel
           {...draft}
+          chooseLocation={chooseLocation}
+          compile={ingestion.compile}
           busy={busy}
           onBusyChange={setBusy}
           onBack={() => {
@@ -219,14 +227,14 @@ export const IngestDraftModal = ({
                 文件仅载入下方供核对。OpenAPI 与 SQL 按业务文本解读，不执行
                 SQL，也不做格式校验。选择业务自然语言并读取时，原文可能发送给已配置的模型服务。
               </p>
-              {ai && !ai.aiConfigured ? (
+              {aiConfigured === false ? (
                 <aside className="mb-3 rounded border border-workbench-border p-3 text-xs">
                   未配置大模型：仍可使用离线合同、蓝图和规则解读。要启用 AI
                   文本解读，请先
                   <button
                     type="button"
                     className="text-evidence-accent underline"
-                    onClick={ai.openSettings}
+                    onClick={onConfigureAi}
                   >
                     配置 Pi 模型
                   </button>

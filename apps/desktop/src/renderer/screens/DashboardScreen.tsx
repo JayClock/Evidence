@@ -12,7 +12,8 @@ import { DashboardNavbar } from '../components/dashboard/DashboardNavbar';
 import { HeroIngestionCard } from '../components/dashboard/HeroIngestionCard';
 import { RecentProjectCard } from '../components/dashboard/RecentProjectCard';
 import { StarterTemplateCard } from '../components/dashboard/StarterTemplateCard';
-import { IngestDraftModal } from '../components/ingestion/IngestDraftModal';
+import { useAiConfiguration } from '../state/AiConfiguration';
+import { IngestDraftModal } from '@evidence-poc/desktop-feature-ingestion';
 
 type RecentsState = {
   projects: readonly EvidenceProjectSummary[];
@@ -30,6 +31,7 @@ type OpenRequest = { name: 'choosing' } | { name: 'opening'; path: string };
 const featuredTemplateIds = ['procurement', 'blank'] as const;
 
 export const DashboardScreen = () => {
+  const ai = useAiConfiguration();
   const [recents, setRecents] = useState<RecentsState>({
     projects: [],
     loading: true,
@@ -318,6 +320,10 @@ export const DashboardScreen = () => {
 
       {isIngestOpen ? (
         <IngestDraftModal
+          ingestion={window.evidenceAPI.ingestion}
+          chooseLocation={window.evidenceAPI.projects.showCreateDialog}
+          aiConfigured={ai?.aiConfigured}
+          onConfigureAi={ai?.openSettings}
           onClose={() => setIsIngestOpen(false)}
           onCompiled={rememberCreated}
         />

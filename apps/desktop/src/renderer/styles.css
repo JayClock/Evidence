@@ -13,6 +13,10 @@
 @source '../../../../libs/desktop/feature-canvas/src';
 @source '../../../../libs/desktop/feature-inspector/src';
 @source '../../../../libs/desktop/feature-agent/src';
+@source '../../../../libs/desktop/feature-ingestion/src';
+@source '../../../../libs/desktop/feature-ledger/src';
+@source '../../../../libs/desktop/feature-scenario/src';
+@source '../../../../libs/desktop/feature-diagnostics/src';
 @source '../../../../libs/desktop/feature-story/src';
 @source '../../../../libs/desktop/feature-delivery/src';
 
