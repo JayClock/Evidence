@@ -94,9 +94,10 @@ export class AiConfigService {
   }
 
   private load() {
-    this.state ??= Promise.all([this.loadRuntime(), this.readSettings()]).then(
-      ([runtime, settings]) => ({ runtime, settings }),
-    );
+    this.state ??= this.readSettings().then(async (settings) => ({
+      settings,
+      runtime: await this.loadRuntime(),
+    }));
     return this.state;
   }
 

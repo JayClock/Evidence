@@ -152,6 +152,7 @@ describe('desktop Pi configuration', () => {
 
   it('does not overwrite invalid settings or expose their contents', async () => {
     const f = await setup();
+    const createRuntime = vi.spyOn(ModelRuntime, 'create');
     const invalid = `{"apiKey":"${key}"`;
     await writeFile(f.file('settings.json'), invalid);
     const status = await f.service.getStatus();
@@ -164,6 +165,7 @@ describe('desktop Pi configuration', () => {
       '无法读取 Pi 设置',
     );
     expect(await f.read('settings.json')).toBe(invalid);
+    expect(createRuntime).not.toHaveBeenCalled();
   });
 
   it('tests a native gateway through Pi without changing the current selection', async () => {
