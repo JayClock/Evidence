@@ -1,6 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
-import type { SensorReport, SensorIssue } from '@evidence-poc/evidence-agent-sensors/browser';
+import type {
+  SensorReport,
+  SensorIssue,
+} from '@evidence-poc/evidence-agent-sensors/browser';
 import { createDomainGraph } from '@evidence-poc/evidence-model-core';
 import { computeSwimlaneLayout } from '@evidence-poc/evidence-canvas-interaction';
 import { createDesktopFixture } from '@evidence-poc/desktop-testing';

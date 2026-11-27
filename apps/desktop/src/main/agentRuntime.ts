@@ -13,7 +13,12 @@ import { validateLiveDeliveryInput } from './deliveryProjection';
 import path from 'node:path';
 
 import { TOOL_NAMES, createEvidenceAgentSession, createEvidenceToolsExtension, type AgentStreamEvent, type CanvasContext, type EvidenceAgentSession, type EvidenceAgentSessionOptions, type EvidenceModelOptions, type ModelPatchRequest, type ModelPatchResult } from '@evidence-poc/evidence-agent';
-import { createSensorsEngine, type SensorOutcome, type SensorReport, type SensorsEngine } from '@evidence-poc/evidence-agent-sensors';
+import {
+  createSensorsEngine,
+  type SensorOutcome,
+  type SensorReport,
+  type SensorsEngine,
+} from '@evidence-poc/evidence-agent-sensors';
 import {
   openWorkspace,
   readModelDirectory,

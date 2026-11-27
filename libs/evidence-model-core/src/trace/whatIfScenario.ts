@@ -1,7 +1,9 @@
 import type { RuleAST } from '@evidence-poc/evidence-schema';
-import { evaluateRuleOnExample } from '@evidence-poc/evidence-cel';
+import {
+  evaluateRuleOnExample,
+  validateTypedValue,
+} from '@evidence-poc/evidence-cel';
 import type { DomainGraph } from '../model/graph.js';
-import { validateTypedValue } from '@evidence-poc/evidence-cel';
 import type { FlowStepTrace } from './types.js';
 
 export interface WhatIfHypothesis {

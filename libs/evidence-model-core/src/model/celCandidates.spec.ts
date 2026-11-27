@@ -3,7 +3,12 @@ import { describe, expect, it } from 'vitest';
 import type { DomainModelDocument } from '@evidence-poc/evidence-schema';
 
 import { createDomainGraph } from './graph.js';
-import { aliasFor, bindingsForAliases, collectCelCandidates, derivationRuleOf } from '@evidence-poc/evidence-cel';
+import {
+  aliasFor,
+  bindingsForAliases,
+  collectCelCandidates,
+  derivationRuleOf,
+} from '@evidence-poc/evidence-cel';
 
 const document = (): DomainModelDocument => ({
   manifest: {

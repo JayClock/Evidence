@@ -1,4 +1,8 @@
-import type { SensorIssue, SensorReport, SensorSeverity } from '@evidence-poc/evidence-agent-sensors/browser';
+import type {
+  SensorIssue,
+  SensorReport,
+  SensorSeverity,
+} from '@evidence-poc/evidence-agent-sensors/browser';
 import type { DomainModelDocument } from '@evidence-poc/evidence-schema';
 
 export interface DiagnosticStatus {

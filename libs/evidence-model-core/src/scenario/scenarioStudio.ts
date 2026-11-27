@@ -5,8 +5,8 @@ import {
   type ModelExampleAST,
 } from '@evidence-poc/evidence-schema';
 import { collectFlowScenarios } from '../trace/flowAggregator.js';
-import { evaluateRuleOnExample } from '@evidence-poc/evidence-cel';
 import {
+  evaluateRuleOnExample,
   validateTypedValue,
   jsonValuesEqual,
 } from '@evidence-poc/evidence-cel';

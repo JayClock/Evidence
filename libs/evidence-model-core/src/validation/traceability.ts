@@ -6,16 +6,17 @@ import {
   type RuleAST,
 } from '@evidence-poc/evidence-schema';
 
-import { ParseError, type ASTNode } from '@evidence-poc/evidence-cel/ast';
-
-import { compileCelExpression } from '@evidence-poc/evidence-cel';
-import { inspectAttributeSources } from '../keyData/attributeSources.js';
-import type { ModelAdvisory } from './lintRules.js';
 import {
+  ParseError,
+  type ASTNode,
   CEL_COLLECTION_MACROS,
   resolveCelReference,
   walkCelAst,
 } from '@evidence-poc/evidence-cel/ast';
+
+import { compileCelExpression } from '@evidence-poc/evidence-cel';
+import { inspectAttributeSources } from '../keyData/attributeSources.js';
+import type { ModelAdvisory } from './lintRules.js';
 
 /**
  * Attribute-level lineage for the CEL rules.
