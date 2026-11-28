@@ -119,8 +119,6 @@ export interface WhatIfInput {
   readonly flow: FlowScenarioTrace;
   readonly currentStepSequence: number;
   readonly hypothesisQuestion: string;
-  /** Selected clock when the question does not specify a different time. */
-  readonly asOf?: string;
   /** Bypass natural-language extraction for reproducible callers/tests. */
   readonly hypothesis?: WhatIfHypothesis;
   /** Select one relevant rule; otherwise evaluate all completion/breach rules. */

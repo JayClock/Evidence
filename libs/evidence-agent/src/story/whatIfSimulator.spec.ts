@@ -128,8 +128,9 @@ const explanation = {
 };
 
 describe('native CEL What-If sandbox', () => {
-  it('uses the selected clock for a value-only question and honors an explicit hypothetical date', async () => {
-    const input = { ...fixture(), asOf: '2026-04-02T12:00:00Z' };
+  it('evaluates a value-only question at the current step’s business time', async () => {
+    const input = fixture();
+    input.hypothesisQuestion = '如果实付金额只有80元，会怎样？';
     const values = { paid_amount: 80 };
     const generate = vi
       .fn()
@@ -137,19 +138,12 @@ describe('native CEL What-If sandbox', () => {
       .mockResolvedValueOnce(explanation);
     const result = await simulateWhatIf(input, { agent: { generate } });
     expect(JSON.parse(generate.mock.calls[0][0].userPrompt)).toMatchObject({
-      asOf: input.asOf,
       step: { asOf: '2026-04-01T12:00:00Z' },
     });
-    expect(result.hypothesis).toEqual({ asOf: input.asOf, values });
-    const earlier = { asOf: '2026-04-01T18:00:00Z', values };
-    expect(
-      (
-        await simulateWhatIf(
-          { ...input, hypothesis: earlier },
-          { explanation: 'local' },
-        )
-      ).hypothesis,
-    ).toEqual(earlier);
+    expect(result.hypothesis).toEqual({ values });
+    expect(JSON.parse(generate.mock.calls[1][0].userPrompt)).toMatchObject({
+      storyContext: { displayDate: '2026年4月1日 12:00 UTC' },
+    });
   });
   it('extracts a late-payment hypothesis, computes CEL decisions and only then explains', async () => {
     const input = fixture();

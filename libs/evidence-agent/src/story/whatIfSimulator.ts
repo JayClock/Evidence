@@ -62,7 +62,6 @@ export async function simulateWhatIf(
     flow,
     currentStepSequence,
     hypothesisQuestion,
-    asOf,
     ruleId,
     allowSpeculative,
     hypothesis: suppliedHypothesis,
@@ -101,7 +100,7 @@ export async function simulateWhatIf(
 
   const scenario = createWhatIfScenario(graph, flow.steps, current);
   const agent = options.agent ?? createStoryAgent();
-  const extracted =
+  const hypothesis =
     rules.length === 0 && suppliedHypothesis === undefined
       ? undefined
       : HypothesisSchema.parse(
@@ -111,7 +110,6 @@ export async function simulateWhatIf(
                 systemPrompt: WHAT_IF_EXTRACTION_PROMPT,
                 userPrompt: compactCanonicalJson({
                   hypothesisQuestion,
-                  asOf: asOf ?? current.asOf,
                   step: current,
                   inputAttributes: scenario.inputAttributes,
                   upstream: scenario.upstream.map(
@@ -126,10 +124,6 @@ export async function simulateWhatIf(
               })),
           ),
         );
-  const hypothesis =
-    asOf !== undefined && !extracted?.asOf
-      ? HypothesisSchema.parse({ ...extracted, asOf })
-      : extracted;
   const trial = scenario.apply(hypothesis);
   const ruleOutcomes = rules.map((rule) => ({
     ...trial.decide(rule),

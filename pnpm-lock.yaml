@@ -365,9 +365,6 @@ importers:
       '@evidence-poc/evidence-canvas-interaction':
         specifier: workspace:*
         version: link:../../libs/evidence-canvas-interaction
-      '@evidence-poc/evidence-cel':
-        specifier: workspace:*
-        version: link:../../libs/evidence-cel
       '@evidence-poc/evidence-ingestion':
         specifier: workspace:*
         version: link:../../libs/evidence-ingestion

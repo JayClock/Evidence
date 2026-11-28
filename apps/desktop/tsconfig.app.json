@@ -36,9 +36,6 @@
       "path": "../../libs/evidence-ingestion/tsconfig.lib.json"
     },
     {
-      "path": "../../libs/evidence-cel/tsconfig.lib.json"
-    },
-    {
       "path": "../../libs/evidence-canvas-interaction/tsconfig.lib.json"
     },
     {

@@ -108,7 +108,7 @@ const setup = (enabled = true) => {
 afterEach(() => vi.useRealTimers());
 
 describe('story playback', () => {
-  it('renders deterministic facts immediately and requests only the cursor in offline mode', async () => {
+  it('renders deterministic facts immediately and requests only the current step in offline mode', async () => {
     const { hook, pending, enrichStep, tick } = setup();
     hook.rerender({
       document: createDesktopFixture(),
@@ -214,17 +214,15 @@ describe('story playback', () => {
     expect(hook.result.current.ready).toBe(true);
   });
 
-  it('cancels the old step when navigation overtakes it and keeps the local clock stable', async () => {
+  it('cancels narration for the previous step when playback advances', async () => {
     const { hook, pending, cancelStep, tick } = setup();
     await tick();
-    const timeline = hook.result.current.timeline;
     act(() => hook.result.current.togglePlaying());
     await tick(STORY_STEP_DURATION);
     expect(hook.result.current.step?.sequence).toBe(2);
     expect(cancelStep).toHaveBeenCalledWith(
       expect.objectContaining({ requestId: pending[0]!.input.requestId }),
     );
-    expect(hook.result.current.timeline).toBe(timeline);
     expect(hook.result.current.scene?.narrative.status).toBe('enriching');
   });
 
@@ -304,67 +302,6 @@ describe('story playback', () => {
     expect(hook.result.current.canNext).toBe(false);
   });
 
-  it('anchors a seek to the last elapsed scene and uses its example for What-If', async () => {
-    const { api, hook, load, flow, tick, finish } = setup();
-    const timed = {
-      ...flow,
-      steps: flow.steps.map((step, index) => ({
-        ...step,
-        asOf: `2026-11-11T0${index + 1}:00:00Z`,
-      })),
-    };
-    load.mockResolvedValue(storySnapshot([timed]));
-    await tick();
-    expect(
-      hook.result.current.scenes.map(({ stepIndex }) => stepIndex),
-    ).toEqual([1, 2, 3]);
-    act(() => hook.result.current.jumpToStep(2));
-    await finish(1, '已登记交付请求。');
-    const requestScene = hook.result.current.scene;
-    const requestChecklist = hook.result.current.checklist;
-    expect(requestChecklist?.requests[0]?.isGap).toBe(false);
-    const second = Date.parse(timed.steps[1]!.asOf);
-    act(() => hook.result.current.seek(second + 1));
-    expect(hook.result.current).toMatchObject({
-      isBetweenSteps: true,
-      currentTime: second + 1,
-      step: undefined,
-      scene: undefined,
-      checklist: undefined,
-      anchoredStep: timed.steps[1],
-      anchoredScene: requestScene,
-      anchoredChecklist: requestChecklist,
-      whatIfCapability: { status: 'eligible' },
-    });
-    await act(() => hook.result.current.askWhatIf('如果现在才交付？'));
-    expect(api.story.whatIf).toHaveBeenCalledWith(
-      expect.objectContaining({
-        currentStepSequence: 2,
-        stepHash: timed.steps[1]!.stepHash,
-        asOf: new Date(second + 1).toISOString(),
-      }),
-    );
-    act(() => hook.result.current.seek(second));
-    expect(hook.result.current.isBetweenSteps).toBe(false);
-    expect(hook.result.current.step).toBe(hook.result.current.anchoredStep);
-    expect(hook.result.current.scene).toBe(hook.result.current.anchoredScene);
-
-    act(() => hook.result.current.seek(Date.parse(timed.steps[0]!.asOf) - 1));
-    expect(hook.result.current).toMatchObject({
-      isBetweenSteps: true,
-      step: undefined,
-      anchoredStep: undefined,
-      anchoredScene: undefined,
-      anchoredChecklist: undefined,
-      whatIfCapability: undefined,
-      obligations: [],
-      canPrevious: false,
-      canNext: true,
-    });
-    act(() => hook.result.current.next());
-    expect(hook.result.current.step?.sequence).toBe(1);
-  });
-
   it('keeps playback unavailable for a request without a flow example', async () => {
     const { hook, load, tick } = setup();
     load.mockResolvedValue(storySnapshot([]));
@@ -375,8 +312,6 @@ describe('story playback', () => {
     expect(hook.result.current).toMatchObject({
       ready: false,
       canPlay: false,
-      timeline: null,
-      currentTime: undefined,
       scenes: [],
       promotionRequests: [],
     });
@@ -569,6 +504,44 @@ describe('story playback', () => {
     await tick();
     expect(hook.result.current.activeFlowId).toBe('新业务流');
     expect(hook.result.current.currentStepSequence).toBe(1);
+  });
+
+  it('stops autoplay when a pending What-If result blocks the next step', async () => {
+    const { hook, api, tick } = setup();
+    await tick();
+    act(() => hook.result.current.next());
+    let finish!: (result: WhatIfResult) => void;
+    api.story.whatIf = () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      });
+    act(() => {
+      void hook.result.current.askWhatIf('如果交付逾期？');
+    });
+    act(() => hook.result.current.togglePlaying());
+    expect(hook.result.current.isPlaying).toBe(true);
+
+    const ruleOutcome = {
+      ruleId: 'rule.late',
+      label: '逾期',
+      kind: 'breach' as const,
+      result: true,
+    };
+    await act(async () =>
+      finish({
+        isSpeculative: false,
+        hypothesis: { asOf: '2026-11-12T08:00:00Z' },
+        ruleOutcome,
+        ruleOutcomes: [ruleOutcome],
+        businessImpactExplanation: '交付逾期。',
+      }),
+    );
+    await tick(STORY_STEP_DURATION);
+    expect(hook.result.current).toMatchObject({
+      currentStepSequence: 2,
+      isPlaying: false,
+      canNext: false,
+    });
   });
 
   it('discards a pending speculative reply when opting out and starting again at the same step', async () => {

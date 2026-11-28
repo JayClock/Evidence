@@ -73,7 +73,6 @@ export interface StoryWhatIfInput extends StoryModelInput {
   /** Refuse to answer against a step that changed since it was displayed. */
   readonly stepHash: string;
   readonly question: string;
-  readonly asOf?: string;
   readonly hypothesisDraft?: WhatIfHypothesis;
   readonly targetedRuleId?: string;
   /** Evaluate a selected, structured challenge without resolving a provider. */
