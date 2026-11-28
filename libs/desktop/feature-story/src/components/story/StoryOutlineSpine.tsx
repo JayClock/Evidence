@@ -9,75 +9,35 @@ type BranchActions = {
 };
 
 const ForkItem = ({
-  fork: { outcome, destinations },
+  fork: { flow, step },
   ready,
   onPlayBranch,
   onOpenBranchEntity,
-}: {
-  fork: StoryFork;
-  ready: boolean;
-} & BranchActions) => {
-  const entity =
-    outcome.kind === 'compensation_pair'
-      ? outcome.compensation.request
-      : outcome.handoff;
-  return (
-    <li className="flex min-w-0 flex-col items-start gap-1 border-s-2 border-evidence-role ps-3">
-      <details className="w-full">
-        <summary className="cursor-pointer break-words py-1 font-medium">
-          {outcome.kind === 'compensation_pair' ? '约定履约补救' : '终极救济'} ·{' '}
-          {entity.label}
-        </summary>
-        <div className="flex flex-col items-start gap-1 break-words py-1">
-          {outcome.edge.notes ? <p>触发条件：{outcome.edge.notes}</p> : null}
-          {outcome.kind === 'compensation_pair' ? (
-            <>
-              <p>
-                发起《{entity.label}》
-                {outcome.compensation.request.fulfillmentAction
-                  ? `，要求${outcome.compensation.request.fulfillmentAction}`
-                  : ''}
-                。
-              </p>
-              <p>
-                履约确认：
-                {outcome.compensation.confirmations
-                  .map(({ label }) => `《${label}》`)
-                  .join('、') || '待约定'}
-              </p>
-            </>
-          ) : (
-            <p>以《{entity.label}》移交争议处理。</p>
-          )}
-          {onOpenBranchEntity ? (
-            <Button
-              type="button"
-              size="xs"
-              variant="ghost"
-              disabled={!ready}
-              onClick={() => onOpenBranchEntity(entity.id)}
-            >
-              查看分支凭证
-            </Button>
-          ) : null}
-        </div>
-      </details>
-      {destinations.map(({ flow, step }) => (
-        <Button
-          key={flow.flowId}
-          type="button"
-          size="xs"
-          variant="outline"
-          className="h-auto max-w-full whitespace-normal break-words"
-          disabled={!ready}
-          onClick={() => onPlayBranch(flow.flowId, step)}
-        >
-          放映「{flow.flowTitle}」
-        </Button>
-      ))}
-    </li>
-  );
-};
+}: { fork: StoryFork; ready: boolean } & BranchActions) => (
+  <li className="flex min-w-0 flex-col items-start gap-1 border-s-2 border-evidence-role ps-3">
+    {flow.forkedFrom?.reason && <p>{flow.forkedFrom.reason}</p>}
+    <Button
+      type="button"
+      size="xs"
+      variant="outline"
+      disabled={!ready}
+      onClick={() => onPlayBranch(flow.flowId, step)}
+    >
+      放映「{flow.flowTitle}」
+    </Button>
+    {onOpenBranchEntity && (
+      <Button
+        type="button"
+        size="xs"
+        variant="ghost"
+        disabled={!ready}
+        onClick={() => onOpenBranchEntity(step.entityId)}
+      >
+        查看分支凭证
+      </Button>
+    )}
+  </li>
+);
 
 export const StoryOutlineSpine = ({
   playback,
@@ -92,12 +52,31 @@ export const StoryOutlineSpine = ({
   const listId = useId();
   const { scenes, scene: current } = playback;
   if (!scenes.length) return null;
+  const inherited = scenes.filter((scene) => scene.inherited);
+  const local = scenes.filter((scene) => !scene.inherited);
+  const parent = playback.flows.find(
+    (flow) => flow.flowId === playback.forkedFrom?.storyId,
+  );
   const currentForks = current && playback.forksByStep?.get(current.stepIndex);
   return (
     <nav
       aria-label="故事步骤"
       className="shrink-0 border-b border-workbench-border px-3 py-2"
     >
+      {parent && inherited.length > 0 && (
+        <details className="mb-2">
+          <summary className="cursor-pointer">
+            继承自《{parent.flowTitle}》第 1 至 {inherited.length} 步
+          </summary>
+          <ol className="ps-4">
+            {inherited.map((scene) => (
+              <li key={scene.stepIndex}>
+                {scene.stepIndex}. {scene.narrative.headline}
+              </li>
+            ))}
+          </ol>
+        </details>
+      )}
       <button
         type="button"
         aria-expanded={expanded}
@@ -113,16 +92,21 @@ export const StoryOutlineSpine = ({
           <Badge variant="role">{currentForks.length} 个分支</Badge>
         ) : null}
         <span className="shrink-0 text-[11px] text-evidence-muted">
-          {expanded ? '收起' : `展开全部 ${scenes.length} 幕`}
+          {expanded
+            ? '收起'
+            : `展开${parent ? '分支' : '全部'} ${local.length} 幕`}
         </span>
       </button>
       <ol
         id={listId}
         hidden={!expanded}
-        className="max-h-[25vh] overflow-y-auto overscroll-contain"
+        className={cn(
+          'max-h-[25vh] overflow-y-auto overscroll-contain',
+          parent && 'border-s-2 border-evidence-role ps-2',
+        )}
       >
         {expanded &&
-          scenes.map(({ stepIndex, narrative }) => {
+          local.map(({ stepIndex, narrative }) => {
             const active = stepIndex === current?.stepIndex;
             const blocked = playback.blockedScenes.has(stepIndex);
             const forks = playback.forksByStep?.get(stepIndex);
@@ -173,7 +157,7 @@ export const StoryOutlineSpine = ({
                   >
                     {forks.map((fork) => (
                       <ForkItem
-                        key={fork.outcome.edge.id}
+                        key={fork.flow.flowId}
                         fork={fork}
                         ready={playback.ready}
                         onPlayBranch={onPlayBranch}

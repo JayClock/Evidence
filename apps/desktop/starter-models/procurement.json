@@ -1,7 +1,7 @@
 {
   "manifest": {
     "type": "fm_model",
-    "schemaVersion": "6.0",
+    "schemaVersion": "7.0",
     "id": "procurement",
     "name": "公对公商品采购履约",
     "version": "0.1.0",
@@ -679,6 +679,7 @@
       "label": "商品扮演目录商品角色"
     }
   ],
+  "stories": [],
   "rules": [
     {
       "type": "rule",

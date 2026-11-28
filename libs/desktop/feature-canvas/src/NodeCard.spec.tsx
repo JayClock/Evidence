@@ -245,7 +245,6 @@ describe('NodeCard modes', () => {
           valueType: 'decimal',
         },
       ],
-      examples: [{ label: '标准', value: { daily_rate: 0.0005 } }],
     });
     const layout = computeSwimlaneLayout(createDomainGraph(document));
     const node = layout.nodeById.get('calculator')!;
@@ -259,17 +258,10 @@ describe('NodeCard modes', () => {
       onHover: vi.fn(),
       onSelect: vi.fn(),
     };
-    const { container, rerender } = render(<NodeCard {...props} />);
+    const { container } = render(<NodeCard {...props} />);
     expect(
       container.querySelector('[data-capability="calculator"]'),
     ).not.toBeNull();
-    expect(screen.getByText('日罚息：0.05%')).toBeInTheDocument();
-    node.entity.examples!.push({
-      label: '另一个方案',
-      value: { daily_rate: 0.001 },
-    });
-    rerender(<NodeCard {...props} />);
-    expect(screen.queryByText('日罚息：0.05%')).toBeNull();
     expect(
       container.querySelector('[data-capability="calculator"]'),
     ).toHaveTextContent('日罚息');

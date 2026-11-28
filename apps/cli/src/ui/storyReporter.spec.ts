@@ -10,6 +10,9 @@ const stories: BusinessStoryProjection[] = [
     businessGoal: '核对支付',
     scenes: [
       {
+        storyId: 'payment',
+        stepId: 'request',
+        inherited: false,
         stepIndex: 2,
         stepHash: 'internal-hash',
         timing: {
@@ -91,5 +94,5 @@ it('keeps the causal rails and commercial values in compact text, without adding
   expect(plain).not.toContain('提交给买方。');
   expect(plain).not.toContain('\u001b');
   expect(renderStoryText(stories, { color: true })).toContain('\u001b');
-  expect(renderStoryMarkdown([])).toContain('未检测到');
+  expect(renderStoryMarkdown([])).toContain('尚无领域故事');
 });

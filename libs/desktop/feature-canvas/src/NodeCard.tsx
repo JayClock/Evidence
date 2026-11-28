@@ -145,22 +145,6 @@ export const CapabilityChips = ({ entity }: { entity: EntityAST }) => {
         {entity.domainRole === 'calculator' ? 'ƒ 测算器' : '✓ 核验器'}
       </span>
       {(entity.attributes ?? []).slice(0, 3).map((attribute) => {
-        const values = (entity.examples ?? [])
-          .map((example) => example.value[attribute.name])
-          .filter((value) => value !== undefined);
-        const value =
-          values.length &&
-          values.every((v) => JSON.stringify(v) === JSON.stringify(values[0]))
-            ? values[0]
-            : undefined;
-        const formatted =
-          typeof value === 'number' && /rate/i.test(attribute.name)
-            ? `${Number((value * 100).toPrecision(8))}%`
-            : typeof value === 'string'
-              ? value
-              : value === undefined
-                ? null
-                : JSON.stringify(value);
         return (
           <span
             key={attribute.name}
@@ -168,7 +152,6 @@ export const CapabilityChips = ({ entity }: { entity: EntityAST }) => {
             title={attribute.meaning}
           >
             {attribute.label ?? attribute.name}
-            {formatted === null ? '' : `：${formatted}`}
           </span>
         );
       })}

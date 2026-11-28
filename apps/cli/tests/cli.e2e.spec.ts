@@ -243,8 +243,10 @@ describe('built evidence binary full lifecycle', () => {
       valueType: 'string',
       required: true,
     });
-    for (const example of confirmation.examples ?? [])
-      example.value.note = 'required now';
+    for (const step of current.stories
+      .flatMap((s) => s.steps)
+      .filter((s) => s.workObjectRef === confirmation.id))
+      step.values.note = 'required now';
     const target = path.join(root, 'next');
     mkdirSync(target);
     await initializeWorkspace(target, current);

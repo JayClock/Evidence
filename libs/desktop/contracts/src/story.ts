@@ -69,7 +69,7 @@ export interface StoryEnrichStepResult {
 
 export interface StoryWhatIfInput extends StoryModelInput {
   readonly flowId: string;
-  readonly currentStepSequence: number;
+  readonly currentStep: { storyId: string; stepId: string };
   /** Refuse to answer against a step that changed since it was displayed. */
   readonly stepHash: string;
   readonly question: string;

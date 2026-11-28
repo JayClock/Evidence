@@ -5,8 +5,7 @@ import {
   type StoryScene,
 } from '@evidence-poc/evidence-agent';
 
-const emptyMessage =
-  '当前模型中未检测到带有 examples[].test.flow 的业务流场景。';
+const emptyMessage = '当前模型中尚无领域故事。';
 const inline = (value: string): string =>
   value
     .replace(/\r\n?|\n/gu, ' / ')
@@ -22,10 +21,10 @@ const markdown = (value: string): string =>
     .replace(/([`*_{}[\]()#+.!|~=-])/gu, '\\$1');
 
 const handoff = ({
-  activity: { actor, recipient, fulfillment },
+  activity: { actor, recipient },
   timing,
 }: StoryScene): string =>
-  `${timing.displayDate} · ${actor.roleLabel}${recipient ? (fulfillment ? ` · ${fulfillment.phase === 'request' ? '义务方' : '权利方'}：${recipient.roleLabel}` : ` → ${recipient.roleLabel}`) : ''}`;
+  `${timing.displayDate} · ${actor.roleLabel}${recipient ? ` → ${recipient.roleLabel}` : ''}`;
 const groups = ({ documentCard }: StoryScene) =>
   [
     ['核心商业要素', documentCard.keyAttributes],
@@ -37,12 +36,44 @@ const paragraphs = (prose: string) => prose.trim().split(/\r?\n\s*\r?\n/u);
 const nextHeading = (scene: StoryScene) =>
   scene.expectation?.isControlGap ? '协同闭环待补' : '协同待办';
 
+function lineage(
+  stories: readonly BusinessStoryProjection[],
+  format: (text: string) => string,
+): string[] {
+  const children = new Map<string, BusinessStoryProjection[]>();
+  const ids = new Set(stories.map((story) => story.flowId));
+  const roots: BusinessStoryProjection[] = [];
+  for (const story of stories) {
+    const parent = story.forkedFrom?.storyId;
+    if (!parent || !ids.has(parent)) roots.push(story);
+    else {
+      const siblings = children.get(parent) ?? [];
+      siblings.push(story);
+      children.set(parent, siblings);
+    }
+  }
+  const pending = roots.reverse().map((story) => ({ story, depth: 0 }));
+  const lines: string[] = [];
+  while (pending.length) {
+    const { story, depth } = pending.pop()!;
+    const anchor = story.forkedFrom;
+    const source = anchor ? ` ← ${anchor.storyId}#${anchor.stepId}` : '';
+    lines.push(
+      `${'  '.repeat(depth)}- ${format(`${story.storyTitle} (${story.flowId})${source}`)}`,
+    );
+    for (const child of (children.get(story.flowId) ?? []).reverse())
+      pending.push({ story: child, depth: depth + 1 });
+  }
+  return lines;
+}
+
 export function renderStoryMarkdown(
   stories: readonly BusinessStoryProjection[],
   options: { readonly compact?: boolean } = {},
 ): string {
   if (stories.length === 0) return emptyMessage;
   const lines = ['# 业务故事', '', '> 业务示例 · 非真实凭证', ''];
+  lines.push('## 故事列表与分支', '', ...lineage(stories, markdown), '');
   for (const story of stories) {
     lines.push(`## ${markdown(story.storyTitle)}`, '');
     if (!options.compact)
@@ -93,6 +124,7 @@ export function renderStoryText(
   const paint = (code: number, value: string) =>
     options.color ? `\u001b[${code}m${value}\u001b[0m` : value;
   const lines = ['业务故事 · 业务示例', ''];
+  lines.push('故事列表与分支', ...lineage(stories, inline), '');
   for (const story of stories) {
     lines.push(paint(36, inline(story.storyTitle)));
     if (!options.compact) lines.push(`业务目标：${inline(story.businessGoal)}`);

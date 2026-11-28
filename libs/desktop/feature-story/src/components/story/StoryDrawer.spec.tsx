@@ -1,7 +1,6 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useState } from 'react';
-import { createDesktopFixture } from '@evidence-poc/desktop-testing';
 import {
   createEmptyDomainModel,
   isFulfillmentRequest,
@@ -23,6 +22,8 @@ import {
   STORY_REFRESH_DELAY,
   useStoryPlayback,
 } from '../../state/useStoryPlayback';
+import { createDesktopStoryFixture } from '@evidence-poc/desktop-testing/story';
+import { resolveStoryTraces } from '@evidence-poc/evidence-model-core';
 import { StoryDrawer } from './StoryDrawer';
 import { StoryPlayerBar } from './StoryPlayerBar';
 
@@ -33,7 +34,7 @@ const setup = async ({
   noRules = false,
   unassignedConfirmation = false,
   aiConfigured = true,
-  model = createDesktopFixture(),
+  model = createDesktopStoryFixture(),
 } = {}) => {
   vi.useFakeTimers();
   const api = installDesktopApi();
@@ -57,7 +58,19 @@ const setup = async ({
           : step,
     ),
   };
-  api.story.load = vi.fn(async () => storySnapshot(empty ? [] : [flow]));
+  api.story.load = vi.fn(async ({ document, preferredFlowId }) =>
+    storySnapshot(
+      empty
+        ? []
+        : [
+            flow,
+            ...(document
+              ? resolveStoryTraces(document).filter((s) => s.forkedFrom)
+              : []),
+          ],
+      preferredFlowId,
+    ),
+  );
   api.story.enrichStep = vi.fn(() => new Promise<null>(() => undefined));
   if (failure)
     api.story.enrichStep = async () => {
@@ -68,7 +81,7 @@ const setup = async ({
       throw new Error('Expected a structured challenge');
     const graph = createDomainGraph(input.document);
     const step = flow.steps.find(
-      (step) => step.sequence === input.currentStepSequence,
+      (step) => step.stepId === input.currentStep.stepId,
     );
     const rule = graph.getRule(input.targetedRuleId);
     if (!step || (rule?.kind !== 'completion' && rule?.kind !== 'breach'))
@@ -338,7 +351,7 @@ describe('StoryDrawer', () => {
     );
     expect(api.story.whatIf).toHaveBeenCalledWith(
       expect.objectContaining({
-        currentStepSequence: 3,
+        currentStep: { storyId: 'procurement', stepId: 'step-3' },
         stepHash: 'step-2',
         question,
         hypothesisDraft: {
@@ -388,7 +401,7 @@ describe('StoryDrawer', () => {
     );
     expect(api.story.whatIf).toHaveBeenCalledWith(
       expect.objectContaining({
-        currentStepSequence: 2,
+        currentStep: { storyId: 'procurement', stepId: 'step-2' },
         allowSpeculative: true,
       }),
     );
@@ -540,7 +553,7 @@ describe('StoryDrawer', () => {
   it.each(['compensation_pair', 'terminal_escalation'] as const)(
     'freezes the dependent confirmation and saves %s from an overdue request without a breach rule',
     async (kind) => {
-      const model = createDesktopFixture();
+      const model = createDesktopStoryFixture();
       model.entities.find(isFulfillmentRequest)!.fulfillmentAction =
         '验收交付成果';
       const rule = model.rules[0]!;
@@ -575,7 +588,7 @@ describe('StoryDrawer', () => {
       );
       expect(api.story.whatIf).toHaveBeenCalledWith(
         expect.objectContaining({
-          currentStepSequence: 2,
+          currentStep: { storyId: 'procurement', stepId: 'step-2' },
           targetedRuleId: rule.id,
           localOnly: true,
         }),
@@ -624,7 +637,6 @@ describe('StoryDrawer', () => {
         {
           kind,
           edge: {
-            forkExampleRef: 'evidence.request#example-1',
             notes: '交付期限届满仍缺验收凭证',
           },
           ...(kind === 'compensation_pair'
@@ -716,7 +728,6 @@ describe('StoryDrawer', () => {
           terminalRemedyKind: remedy,
           targetRef: 'evidence.request',
           notes: '到期未交付',
-          forkExampleRef: 'evidence.confirmation#example-2',
         }),
       );
       expect(updated.rules.map(({ id }) => id)).toEqual([
@@ -736,8 +747,7 @@ describe('StoryDrawer', () => {
       const forks = within(
         screen.getByRole('list', { name: '第 3 幕的违约分支' }),
       );
-      fireEvent.click(forks.getByText(/终极救济 · /));
-      expect(forks.getByText('触发条件：到期未交付')).toBeVisible();
+      expect(forks.getByText('到期未交付')).toBeVisible();
       expect(
         screen.queryByRole('list', { name: '第 2 幕的违约分支' }),
       ).toBeNull();
@@ -745,31 +755,7 @@ describe('StoryDrawer', () => {
   );
 
   it('plays the saved handoff scene after an offline request challenge', async () => {
-    const { api, flow } = await setup({ breach: true, aiConfigured: false });
-    api.story.load = vi.fn<typeof api.story.load>(
-      async ({ document, preferredFlowId }) => {
-        const handoff = document?.entities.find(
-          ({ label }) => label === '仲裁移交凭证',
-        );
-        if (!handoff)
-          throw new Error('Expected a recorded arbitration handoff');
-        const branch = {
-          ...flow,
-          flowId: 'dispute',
-          flowTitle: '争议移交',
-          steps: [
-            flow.steps[0]!,
-            {
-              ...flow.steps[1]!,
-              entityId: handoff.id,
-              entityLabel: handoff.label,
-              entityKind: handoff.kind,
-            },
-          ],
-        };
-        return storySnapshot([flow, branch], preferredFlowId);
-      },
-    );
+    await setup({ breach: true, aiConfigured: false });
     fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
     selectTab('推演与分支');
     fireEvent.click(
@@ -791,11 +777,11 @@ describe('StoryDrawer', () => {
     );
     await act(async () => vi.advanceTimersByTimeAsync(STORY_REFRESH_DELAY));
     fireEvent.click(
-      screen.getByRole('button', { name: '放映分支「争议移交」' }),
+      screen.getByRole('button', { name: '放映分支「仲裁移交凭证」' }),
     );
     await act(async () => vi.advanceTimersByTimeAsync(STORY_REFRESH_DELAY));
-    expect(screen.getByRole('combobox', { name: '选择业务流' })).toHaveValue(
-      'dispute',
+    expect(screen.getByText(/继承自《采购履约流》/)).toHaveTextContent(
+      '第 1 至 2 步',
     );
     expect(screen.getByRole('tabpanel', { name: '故事剧本' })).toBeVisible();
     expect(screen.getByRole('article', { name: '业务单据' })).toHaveTextContent(
@@ -824,7 +810,7 @@ describe('StoryDrawer', () => {
 
   it('explains missing examples and AI failures with a retry path', async () => {
     const empty = await setup({ empty: true });
-    expect(screen.getByText(/请为实体的业务示例声明/)).toBeInTheDocument();
+    expect(screen.getByText(/请在场景工作台创建领域故事/)).toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: '选择业务流' })).toBeDisabled();
     expect(screen.queryByRole('tablist', { name: '故事视图' })).toBeNull();
     empty.view.unmount();

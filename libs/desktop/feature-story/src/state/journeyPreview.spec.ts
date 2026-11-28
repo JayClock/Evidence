@@ -1,5 +1,5 @@
 import {
-  collectFlowScenarios,
+  resolveStoryTraces,
   parseModelSourceFiles,
 } from '@evidence-poc/evidence-model-core';
 import { previewJourneyStep } from './journeyPreview';
@@ -14,7 +14,7 @@ const model = parseModelSourceFiles(
     content,
   })),
 ).document;
-const flows = collectFlowScenarios(model);
+const flows = resolveStoryTraces(model);
 const preview = (flowId: string, entityId: string) => {
   const flow = flows.find((f) => f.flowId === flowId)!;
   return previewJourneyStep(

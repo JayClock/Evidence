@@ -9,7 +9,7 @@ import {
 import { describe, expect, it, vi } from 'vitest';
 import { storySnapshot } from '@evidence-poc/desktop-testing/story';
 import {
-  collectFlowScenarios,
+  resolveStoryTraces,
   instantiateArchetypeMutator,
 } from '@evidence-poc/evidence-model-core';
 import { createEmptyDomainModel } from '@evidence-poc/evidence-schema';
@@ -181,23 +181,27 @@ describe('EditorScreen', () => {
 
   it('syncs scenario edits without a save button and can play the same scenario', async () => {
     const document = createDesktopFixture();
-    const contract = document.entities.find(
-      ({ id }) => id === 'evidence.contract',
-    )!;
-    contract.examples = [
-      {
-        label: '签约',
-        value: { signed_at: '2025-12-31T00:00:00Z' },
-        test: {
-          flow: '正常签约案例',
+    document.stories.push({
+      type: 'story',
+      id: 'signing',
+      title: '正常签约案例',
+      kind: 'primary',
+      steps: [
+        {
+          id: 'sign',
+          sequence: 1,
+          workObjectRef: 'evidence.contract',
+          activity: '签约',
           asOf: '2026-01-01T00:00:00Z',
-          actingRoleRef: 'role.buyer',
+          actorRef: 'role.buyer',
+          basedOn: [],
+          values: { signed_at: '2025-12-31T00:00:00Z' },
         },
-      },
-    ];
+      ],
+    });
     const api = readyProject(document);
     api.story.load = vi.fn(async ({ document, preferredFlowId }) =>
-      storySnapshot(collectFlowScenarios(document!), preferredFlowId),
+      storySnapshot(resolveStoryTraces(document!), preferredFlowId),
     );
     const { container } = render(
       <EditorScreen rootPath="/models/procurement" />,
@@ -216,22 +220,18 @@ describe('EditorScreen', () => {
     });
     const submitted = api.calls.persistence.length;
     expect(
-      api.calls.persistence
-        .at(-1)
-        ?.document.entities.find(({ id }) => id === 'evidence.contract')
-        ?.examples?.[0],
+      api.calls.persistence.at(-1)?.document.stories[0]?.steps[0],
     ).toMatchObject({
-      value: { signed_at: '2026-01-01T00:00:00Z' },
-      test: { flow: '正常签约案例' },
+      values: { signed_at: '2026-01-01T00:00:00Z' },
     });
     fireEvent.click(screen.getByRole('button', { name: '放映当前场景' }));
     await waitFor(() =>
       expect(api.story.load).toHaveBeenCalledWith(
-        expect.objectContaining({ preferredFlowId: '正常签约案例' }),
+        expect.objectContaining({ preferredFlowId: 'signing' }),
       ),
     );
     expect(screen.queryByRole('dialog', { name: '业务场景推演' })).toBeNull();
-    expect(screen.getByLabelText('选择业务流')).toHaveValue('正常签约案例');
+    expect(screen.getByLabelText('选择业务流')).toHaveValue('signing');
     const details = screen.getByRole('region', { name: '业务故事' });
     expect(
       await within(details).findByRole('heading', { name: '正常签约案例' }),

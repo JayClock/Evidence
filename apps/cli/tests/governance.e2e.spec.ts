@@ -259,8 +259,10 @@ it('accepts additive milestone contracts and blocks new required caller fields',
     valueType: 'string',
     required: true,
   });
-  for (const example of confirmation.examples ?? [])
-    example.value.note = 'now required';
+  for (const step of model.stories
+    .flatMap((s) => s.steps)
+    .filter((s) => s.workObjectRef === confirmation.id))
+    step.values.note = 'now required';
   const broken = path.join(root, 'breaking');
   mkdirSync(broken);
   await initializeWorkspace(broken, model);

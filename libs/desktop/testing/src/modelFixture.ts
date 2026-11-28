@@ -18,7 +18,7 @@ const timestamp = (
 export const createDesktopFixture = (): DomainModelDocument => ({
   manifest: {
     type: 'fm_model',
-    schemaVersion: '6.0',
+    schemaVersion: '7.0',
     id: 'desktop-fixture',
     name: '桌面端夹具（Desktop Fixture）',
     version: '1.0.0',
@@ -114,6 +114,7 @@ export const createDesktopFixture = (): DomainModelDocument => ({
       attributes: [timestamp('occurrence', 'confirmed_at', '确认时间')],
     },
   ],
+  stories: [],
   relationships: [
     {
       type: 'relationship',

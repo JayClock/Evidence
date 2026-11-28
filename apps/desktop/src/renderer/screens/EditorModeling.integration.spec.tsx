@@ -20,9 +20,9 @@ import {
   assignFulfillmentContextMutator,
   batchAddEvidenceMutator,
   bindBreachRuleMutator,
-  collectFlowScenarios,
+  resolveStoryTraces,
   createModelPatch,
-  replaceScenarioExamples,
+  createStory,
   splitEvidenceToPairMutator,
 } from '@evidence-poc/evidence-model-core';
 import { EditorScreen } from './EditorScreen';
@@ -134,7 +134,7 @@ describe('Editor modeling and patch review', () => {
     if ('responsibleRoleRef' in request) delete request.responsibleRoleRef;
     const api = readyProject(document);
     api.story.load = vi.fn(async ({ document, preferredFlowId }) =>
-      storySnapshot(collectFlowScenarios(document!), preferredFlowId),
+      storySnapshot(resolveStoryTraces(document!), preferredFlowId),
     );
     render(<EditorScreen rootPath="/models/procurement" />);
     await readyCanvas();
@@ -280,12 +280,12 @@ describe('Editor modeling and patch review', () => {
       '卖方向买方发起付款主张，到账回执确认完成。截止时刻前须到账，确认金额沿用请求上的金额，请补齐这项履约。';
     const scenarioFacts =
       '请为口头买卖合同记录示例。卖方 09:00 签约，10:00 发起付款请求，12:00 截止，逾期仍未收到付款凭证即视为违约。';
-    const flowId = '买卖付款';
+    const flowId = 'sale-payment';
     const asOf = '2026-04-01T10:00:00Z';
     const deadline = '2026-04-01T12:00:00Z';
     const late = '2026-04-01T13:00:00Z';
     api.story.load = vi.fn(async ({ document: model, preferredFlowId }) => {
-      const flows = collectFlowScenarios(model!);
+      const flows = resolveStoryTraces(model!);
       const flow =
         flows.find((flow) => flow.flowId === preferredFlowId) ?? flows[0]!;
       return {
@@ -298,8 +298,8 @@ describe('Editor modeling and patch review', () => {
       simulateWhatIf(
         {
           model: input.document!,
-          flow: collectFlowScenarios(input.document!)[0]!,
-          currentStepSequence: input.currentStepSequence,
+          flow: resolveStoryTraces(input.document!)[0]!,
+          currentStep: input.currentStep,
           hypothesisQuestion: input.question,
           hypothesis: { asOf: late },
         },
@@ -399,33 +399,34 @@ describe('Editor modeling and patch review', () => {
                   'now > request.expired_at && size(confirmations) == 0',
               },
             });
-            replaceScenarioExamples(draft, flowId, [
-              {
-                entityRef: sale.id,
-                example: {
-                  label: '签约',
-                  value: {},
-                  test: {
-                    flow: flowId,
-                    asOf: '2026-04-01T09:00:00Z',
-                    actingRoleRef: 'role.seller',
-                  },
+            createStory(draft, {
+              type: 'story',
+              id: flowId,
+              title: '买卖付款',
+              kind: 'primary',
+              steps: [
+                {
+                  id: 'sign',
+                  sequence: 1,
+                  actorRef: 'role.seller',
+                  activity: '签署',
+                  workObjectRef: sale.id,
+                  asOf: '2026-04-01T09:00:00Z',
+                  values: {},
+                  basedOn: [],
                 },
-              },
-              {
-                entityRef: 'request.payment',
-                example: {
-                  label: '请款',
-                  value: { started_at: asOf, expired_at: deadline },
-                  test: {
-                    flow: flowId,
-                    asOf,
-                    actingRoleRef: 'role.seller',
-                    basedOn: ['evidence.sale#签约'],
-                  },
+                {
+                  id: 'request',
+                  sequence: 2,
+                  actorRef: 'role.seller',
+                  activity: '请款',
+                  workObjectRef: 'request.payment',
+                  asOf,
+                  values: { started_at: asOf, expired_at: deadline },
+                  basedOn: ['sign'],
                 },
-              },
-            ]);
+              ],
+            });
           },
           input.focus?.nodeId ?? undefined,
         );
@@ -597,7 +598,16 @@ describe('Editor modeling and patch review', () => {
       }),
     );
     expect(after.rules).toEqual(document.rules);
-    expect(collectFlowScenarios(after)).toEqual(collectFlowScenarios(document));
+    expect(after.stories).toEqual([
+      ...document.stories,
+      expect.objectContaining({
+        kind: 'breach_branch',
+        forkedFrom: expect.objectContaining({
+          storyId: flowId,
+          stepId: 'request',
+        }),
+      }),
+    ]);
     expect(await screen.findByText('步骤 2/2：付款申请')).toBeVisible();
     expect(
       container.querySelector(`[data-overlay-node-id="${refund.id}"]`),
@@ -619,8 +629,10 @@ describe('Editor modeling and patch review', () => {
     const forks = within(
       story.getByRole('list', { name: '第 2 幕的违约分支' }),
     );
-    fireEvent.click(forks.getByText('约定履约补救 · 退款请求'));
-    expect(forks.getByText('履约确认：《退款确认》')).toBeVisible();
+    expect(
+      forks.getByRole('button', { name: '放映「退款请求」' }),
+    ).toBeEnabled();
+    expect(forks.getByText('逾期未到账')).toBeVisible();
     fireEvent.mouseDown(story.getByRole('tab', { name: '推演与分支' }), {
       button: 0,
     });

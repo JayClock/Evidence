@@ -17,7 +17,7 @@ import {
   storySnapshot,
 } from '@evidence-poc/desktop-testing/story';
 import {
-  collectFlowScenarios,
+  resolveStoryTraces,
   createDomainGraph,
   recordBreachOutcomeMutator,
 } from '@evidence-poc/evidence-model-core';
@@ -158,21 +158,28 @@ describe('Editor playback', () => {
       ...request,
       id: 'request.refund',
       label: '退款请求',
-      examples: [
+    });
+    document.stories.push({
+      type: 'story',
+      id: 'refund',
+      title: '退款业务',
+      kind: 'primary',
+      steps: [
         {
-          label: '退还定金',
-          value: {},
-          test: {
-            flow: '退款业务',
-            actingRoleRef: 'role.supplier',
-            asOf: '2026-11-12T08:00:00Z',
-          },
+          id: 'return',
+          sequence: 1,
+          actorRef: 'role.supplier',
+          activity: '退还',
+          workObjectRef: 'request.refund',
+          asOf: '2026-11-12T08:00:00Z',
+          basedOn: [],
+          values: {},
         },
       ],
     });
     const api = readyProject(document);
     api.story.load = vi.fn(async ({ document, preferredFlowId }) =>
-      storySnapshot(collectFlowScenarios(document!), preferredFlowId),
+      storySnapshot(resolveStoryTraces(document!), preferredFlowId),
     );
     render(<EditorScreen rootPath="/models/procurement" />);
     await readyCanvas();
@@ -189,7 +196,7 @@ describe('Editor playback', () => {
     fireEvent.click(screen.getByRole('button', { name: /^退款请求（/ }));
     expect(await screen.findByText('第 1/1 步')).toBeVisible();
     expect(screen.getByRole('combobox', { name: '选择业务流' })).toHaveValue(
-      '退款业务',
+      'refund',
     );
     expect(
       screen.getByRole('tab', { name: '推演与分支', selected: true }),
@@ -241,28 +248,22 @@ describe('Editor playback', () => {
     render(<EditorScreen rootPath="/models/procurement" />);
     await readyCanvas();
     expect(screen.getByRole('button', { name: '放映业务流' })).toBeDisabled();
-    expect(screen.getByText(/请为业务示例声明所属业务流/)).toBeVisible();
+    expect(screen.getByText(/在场景工作台创建故事并添加步骤/)).toBeVisible();
     expect(api.story.load).not.toHaveBeenCalled();
   });
 
   it('records and reverts a lawsuit after an offline overdue request challenge', async () => {
     const document = createDesktopStoryFixture();
-    const requestExample = document.entities.find(
-      ({ id }) => id === 'evidence.request',
-    )?.examples?.[0];
-    const confirmationExample = document.entities.find(
-      ({ id }) => id === 'evidence.confirmation',
-    )?.examples?.[0];
-    if (!requestExample?.test || !confirmationExample?.test)
-      throw new Error('Expected request and confirmation flow examples');
-    requestExample.value = {
-      started_at: requestExample.test.asOf,
+    const [, requestStep, confirmationStep] = document.stories[0]!.steps;
+    requestStep.values = {
+      started_at: requestStep.asOf,
       expired_at: '2026-11-11T09:00:00Z',
     };
-    confirmationExample.test.asOf = '2026-11-11T10:00:00Z';
-    confirmationExample.value = { confirmed_at: confirmationExample.test.asOf };
+    confirmationStep.asOf = '2026-11-11T10:00:00Z';
+    confirmationStep.values = { confirmed_at: confirmationStep.asOf };
     recordBreachOutcomeMutator(document, {
       requestRef: 'evidence.request',
+      forkSource: { storyId: 'procurement', stepId: requestStep.id },
       condition: '请求过期且未交付',
       breachRule: {
         id: 'rule.delivery-timeout',
@@ -293,8 +294,8 @@ describe('Editor playback', () => {
       availableModels: [],
     });
     api.story.load = async ({ document: model }) => {
-      const flows = collectFlowScenarios(model!);
-      const flow = flows[0]!;
+      const flows = resolveStoryTraces(model!);
+      const flow = flows.find(({ flowId }) => flowId === 'procurement')!;
       return {
         flows,
         snapshotId: crypto.randomUUID(),
@@ -303,14 +304,14 @@ describe('Editor playback', () => {
     };
     api.story.whatIf = vi.fn<typeof api.story.whatIf>(async (input) => {
       const model = input.document!;
-      const flow = collectFlowScenarios(model).find(
+      const flow = resolveStoryTraces(model).find(
         ({ flowId }) => flowId === input.flowId,
       )!;
       return simulateWhatIf(
         {
           model,
           flow,
-          currentStepSequence: input.currentStepSequence,
+          currentStep: input.currentStep,
           hypothesisQuestion: input.question,
           hypothesis: input.hypothesisDraft,
           ruleId: input.targetedRuleId,
@@ -348,7 +349,7 @@ describe('Editor playback', () => {
     ).toHaveTextContent('未按期交付 · 触发违约');
     expect(api.story.whatIf).toHaveBeenCalledWith(
       expect.objectContaining({
-        currentStepSequence: 2,
+        currentStep: { storyId: 'procurement', stepId: requestStep.id },
         targetedRuleId: 'rule.delivery-timeout',
         hypothesisDraft: { asOf: '2026-11-12T09:00:00.000Z' },
         localOnly: true,
@@ -383,7 +384,6 @@ describe('Editor playback', () => {
     ).toMatchObject({
       handoff: { label: '诉讼移交凭证' },
       edge: {
-        forkExampleRef: `evidence.request#${requestExample.label}`,
         notes: '到期仍未交付且协商失败',
       },
     });
@@ -391,15 +391,22 @@ describe('Editor playback', () => {
       details.getByRole('navigation', { name: '故事步骤' }),
     );
     fireEvent.click(outline.getByRole('button', { name: /展开全部 3 幕/ }));
-    expect(await outline.findByText(/终极救济 · 诉讼移交凭证/)).toBeVisible();
+    expect(
+      await outline.findByRole('button', { name: '放映「诉讼移交凭证」' }),
+    ).toBeVisible();
+    expect(outline.getByText('到期仍未交付且协商失败')).toBeVisible();
     fireEvent.click(within(review).getByRole('button', { name: '撤销补丁' }));
     await waitFor(() =>
       expect(api.calls.persistence.at(-1)?.document).toEqual(document),
     );
     await waitFor(() =>
-      expect(outline.queryByText(/终极救济 · 诉讼移交凭证/)).toBeNull(),
+      expect(
+        outline.queryByRole('button', { name: '放映「诉讼移交凭证」' }),
+      ).toBeNull(),
     );
-    expect(outline.getByText(/终极救济 · 仲裁移交/)).toBeVisible();
+    expect(
+      outline.getByRole('button', { name: '放映「仲裁移交」' }),
+    ).toBeVisible();
     expect(details.queryByRole('region', { name: '违约分支复核' })).toBeNull();
     expect(screen.getByText(/^步骤 2\/3：交付请求/)).toBeVisible();
     expect(next).toBeEnabled();

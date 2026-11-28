@@ -79,11 +79,17 @@ const stable = (value: unknown): string =>
 export function projectAcceptanceTests(
   model: DomainModelDocument,
   routes: readonly DeliveryRoute[] = buildDeliveryRoutes(model),
+  storyId?: string,
 ): AcceptanceProjection {
   assertValidDomainModel(model);
   const schemas = buildDeliveryContract(model, routes).components.schemas;
   if (!model.stories.length) fail(model.manifest.id, 'no domain stories');
-  const flows = [...model.stories]
+  const selected =
+    storyId === undefined
+      ? model.stories
+      : model.stories.filter((story) => story.id === storyId);
+  if (!selected.length) fail(storyId!, 'unknown story');
+  const flows = [...selected]
     .sort((a, b) => compareText(a.id, b.id))
     .map((story) => projectStory(model, story, routes, schemas));
   return { modelId: model.manifest.id, flows };

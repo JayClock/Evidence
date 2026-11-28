@@ -62,7 +62,7 @@ export const ViewModeBar = (props: ViewModeBarProps) => {
                 <kbd>{ledgerChord}</kbd> 总台账
               </>
             ) : (
-              '当前模型暂无可放映的业务流。请为业务示例声明所属业务流。'
+              '在场景工作台创建故事并添加步骤，即可放映。'
             )}
           </p>
         ) : null}

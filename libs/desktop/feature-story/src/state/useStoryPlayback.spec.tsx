@@ -317,22 +317,22 @@ describe('story playback', () => {
     });
   });
 
-  it('resolves canonical and alias-based document dependencies for canvas focus', async () => {
+  it('resolves story step references for canvas focus', async () => {
     const { hook, flow, load, tick } = setup();
     const steps = flow.steps.map((step, index) => ({
       ...step,
-      actingRoleRef: 'role.buyer',
+      actorRef: 'role.buyer',
       values:
         index === 1
           ? {
               ...step.values,
               id: 'request-alias',
-              ref: 'evidence.contract#example-0',
+              ref: 'procurement#step-1',
             }
           : step.values,
       basedOn:
         index === 2
-          ? ['request-alias', 'evidence.contract#example-0']
+          ? ['procurement#step-2', 'procurement#step-1']
           : step.basedOn,
     }));
     load.mockResolvedValue(storySnapshot([{ ...flow, steps }]));
@@ -343,7 +343,7 @@ describe('story playback', () => {
       activeEntityId: 'evidence.confirmation',
       activeStep: 3,
       dependencyEntityIds: ['evidence.request', 'evidence.contract'],
-      relatedEntityIds: ['role.buyer'],
+      relatedEntityIds: ['role.buyer', 'role.supplier'],
     });
     expect(hook.result.current.canvasFocus?.completedSteps).toEqual(
       new Map([

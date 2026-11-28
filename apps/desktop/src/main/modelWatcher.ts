@@ -2,7 +2,8 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { watch } from 'chokidar';
 
-const SOURCE_TREES = new Set(['entities', 'relationships', 'rules']);
+import { MODEL_SOURCE_TREES } from '@evidence-poc/evidence-model-core';
+const SOURCE_TREES = new Set<string>(MODEL_SOURCE_TREES);
 const DEFAULT_DEBOUNCE_MS = 200;
 
 export interface ModelWatcher {
@@ -14,7 +15,7 @@ export interface ModelWatcher {
 /**
  * Chokidar v4 takes real paths, not globs. Watch the parent so replacing or
  * creating the entire model root is observable, pruning unrelated trees before
- * traversal. Only model.json and JSON files in the three source trees matter.
+ * traversal. Only model.json and JSON files in the managed source trees matter.
  */
 export const watchModelSource = (
   source: string,

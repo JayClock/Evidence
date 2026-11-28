@@ -1,26 +1,29 @@
 import { describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import {
-  createModelSession,
-  scenarioExamples,
-} from '@evidence-poc/evidence-model-core';
+import { createModelSession } from '@evidence-poc/evidence-model-core';
 import { createDesktopFixture } from '@evidence-poc/desktop-testing';
 import { ScenarioStudioModal } from './ScenarioStudioModal';
 
 const setup = () => {
   const model = createDesktopFixture();
-  const contract = model.entities.find((e) => e.id === 'evidence.contract')!;
-  contract.examples = [
-    {
-      label: '正常签约',
-      value: { signed_at: '2026-01-01T00:00:00Z' },
-      test: {
-        flow: '正常购买',
-        actingRoleRef: 'role.buyer',
+  model.stories.push({
+    type: 'story',
+    id: 'purchase',
+    title: '正常购买',
+    kind: 'primary',
+    steps: [
+      {
+        id: 'sign',
+        sequence: 1,
+        actorRef: 'role.buyer',
+        activity: '签署',
+        workObjectRef: 'evidence.contract',
         asOf: '2026-01-01T00:00:00Z',
+        basedOn: [],
+        values: { signed_at: '2026-01-01T00:00:00Z' },
       },
-    },
-  ];
+    ],
+  });
   const session = createModelSession({ document: model });
   const onPlay = vi.fn();
   const onClose = vi.fn();
@@ -52,13 +55,13 @@ describe('ScenarioStudioModal', () => {
       target: { value: '2026-01-01T00:00:00Z' },
     });
     expect(
-      scenarioExamples(session.getDocument(), '正常签约案例')[0]?.example,
+      session.getDocument().stories.find((s) => s.title === '正常签约案例')!
+        .steps[0],
     ).toMatchObject({
-      value: { signed_at: '2026-01-01T00:00:00Z' },
-      test: { flow: '正常签约案例' },
+      values: { signed_at: '2026-01-01T00:00:00Z' },
     });
   });
-  it('clones and edits inline examples immediately for the story player', () => {
+  it('clones and edits story steps immediately for the story player', () => {
     const props = setup();
     render(<ScenarioStudioModal {...props} />);
     fireEvent.change(screen.getByLabelText('新场景名称'), {
@@ -71,14 +74,16 @@ describe('ScenarioStudioModal', () => {
     fireEvent.change(screen.getByLabelText('业务时刻'), {
       target: { value: '2026-01-02T00:00:00Z' },
     });
-    const cases = scenarioExamples(props.session.getDocument(), '合同变更案例');
-    expect(cases[0].example.value.signed_at).toBe('2026-01-02T00:00:00Z');
+    const cases = props.session
+      .getDocument()
+      .stories.find((s) => s.title === '合同变更案例')!.steps;
+    expect(cases[0].values.signed_at).toBe('2026-01-02T00:00:00Z');
     expect(
-      scenarioExamples(props.session.getDocument(), '正常购买')[0].example.value
-        .signed_at,
+      props.session.getDocument().stories.find((s) => s.title === '正常购买')!
+        .steps[0].values.signed_at,
     ).toBe('2026-01-01T00:00:00Z');
     fireEvent.click(screen.getByRole('button', { name: '放映当前场景' }));
-    expect(props.onPlay).toHaveBeenCalledWith('合同变更案例');
+    expect(props.onPlay).toHaveBeenCalledWith('story-1');
     act(() => {
       expect(props.session.undo()).toBe(true);
     });
@@ -119,8 +124,8 @@ describe('ScenarioStudioModal', () => {
     expect(screen.getByRole('button', { name: '放映当前场景' })).toBeDisabled();
     expect(screen.getByLabelText('业务时刻')).toHaveValue('tomorrow');
     expect(
-      scenarioExamples(props.session.getDocument(), '正常购买')[0]?.example.test
-        ?.asOf,
+      props.session.getDocument().stories.find((s) => s.title === '正常购买')!
+        .steps[0]?.asOf,
     ).toBe('2026-01-01T00:00:00Z');
     fireEvent.click(screen.getByRole('button', { name: '关闭场景工作台' }));
     expect(props.onClose).toHaveBeenCalledOnce();
@@ -131,8 +136,8 @@ describe('ScenarioStudioModal', () => {
       screen.getByRole('button', { name: '放映当前场景' }),
     ).not.toBeDisabled();
     expect(
-      scenarioExamples(props.session.getDocument(), '正常购买')[0]?.example.test
-        ?.asOf,
+      props.session.getDocument().stories.find((s) => s.title === '正常购买')!
+        .steps[0]?.asOf,
     ).toBe('2026-01-03T00:00:00Z');
   });
 });

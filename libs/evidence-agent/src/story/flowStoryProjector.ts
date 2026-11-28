@@ -297,6 +297,8 @@ export const projectStoryFacts = (
   });
   return {
     flowId: trace.flowId,
+    kind: trace.kind,
+    forkedFrom: trace.forkedFrom,
     storyTitle: trace.flowTitle,
     storySummary:
       scenes.length === 0

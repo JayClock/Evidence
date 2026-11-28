@@ -14,7 +14,7 @@ import {
 } from '@evidence-poc/evidence-agent';
 import {
   buildFmCheckReport,
-  collectFlowScenarios,
+  resolveStoryTraces,
   createDomainGraph,
   type DomainGraph,
 } from '@evidence-poc/evidence-model-core';
@@ -154,7 +154,7 @@ export const registerStoryIpc = ({
       input.document ?? (await readModel(input.rootPath)),
     );
     const { report } = buildFmCheckReport({ model });
-    return { model, flows: collectFlowScenarios(model, report) };
+    return { model, flows: resolveStoryTraces(model, report) };
   };
 
   const loadFlow = async (input: StoryWhatIfInput) => {
@@ -208,6 +208,7 @@ export const registerStoryIpc = ({
         throw new Error('业务流快照已过期。');
       const flow =
         flows.find(({ flowId }) => flowId === input.preferredFlowId) ??
+        flows.find((story) => story.kind === 'primary' && !story.forkedFrom) ??
         flows[0];
       if (!flow) return { snapshotId, flows };
       const projection = projectStoryFacts(flow, model);
@@ -328,13 +329,15 @@ export const registerStoryIpc = ({
       )
         throw new Error('无效的推演挑战。');
       if (
-        !Number.isSafeInteger(input.currentStepSequence) ||
-        input.currentStepSequence < 1
+        typeof input.currentStep?.storyId !== 'string' ||
+        typeof input.currentStep?.stepId !== 'string'
       )
         throw new Error('无效的业务流步骤。');
       const { model, flow } = await loadFlow(input);
       const step = flow.steps.find(
-        ({ sequence }) => sequence === input.currentStepSequence,
+        (step) =>
+          step.storyId === input.currentStep.storyId &&
+          step.stepId === input.currentStep.stepId,
       );
       if (!step || step.stepHash !== input.stepHash)
         throw new Error('业务步骤已变化，请刷新放映后重试。');
@@ -342,7 +345,7 @@ export const registerStoryIpc = ({
         {
           model,
           flow,
-          currentStepSequence: input.currentStepSequence,
+          currentStep: input.currentStep,
           hypothesisQuestion: input.question.trim(),
           hypothesis: input.hypothesisDraft,
           ruleId: input.targetedRuleId,

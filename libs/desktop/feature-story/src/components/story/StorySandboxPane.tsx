@@ -28,21 +28,27 @@ export const StorySandboxPane = ({
         />
       ) : null}
       {!reviewPending && promotedBranch ? (
-        branchFlow ? (
-          <Button
-            className="self-start"
-            onClick={() => onPlayBranch(branchFlow.flowId, promotedBranch.step)}
-          >
-            放映分支「{branchFlow.flowTitle}」
-          </Button>
-        ) : onOpenBranchEntity ? (
-          <Button
-            className="self-start"
-            onClick={() => onOpenBranchEntity(promotedBranch.entity.id)}
-          >
-            在画布查看「{promotedBranch.entity.label}」
-          </Button>
-        ) : null
+        <>
+          {' '}
+          {branchFlow && (
+            <Button
+              className="self-start"
+              onClick={() =>
+                onPlayBranch(branchFlow.flowId, promotedBranch.step)
+              }
+            >
+              放映分支「{branchFlow.flowTitle}」
+            </Button>
+          )}{' '}
+          {onOpenBranchEntity && (
+            <Button
+              className="self-start"
+              onClick={() => onOpenBranchEntity(promotedBranch.entity.id)}
+            >
+              在画布查看「{promotedBranch.entity.label}」
+            </Button>
+          )}
+        </>
       ) : null}
     </div>
   );

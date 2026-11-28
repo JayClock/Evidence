@@ -135,7 +135,7 @@ export const StoryDrawer = ({
             ) : null}
             {!playback.loading && !playback.error && !hasScenes ? (
               <p>
-                暂无可放映的步骤。请为实体的业务示例声明所属业务流、业务时点和单据依据。
+                暂无可放映的步骤。请在场景工作台创建领域故事并添加业务步骤。
               </p>
             ) : null}
             {hasScenes ? (
@@ -143,7 +143,7 @@ export const StoryDrawer = ({
                 <Tabs.Content value="script">
                   {step && scene && checklist ? (
                     <StorySceneSheet
-                      key={`${playback.projection?.flowId}:${step.entityId}:${step.exampleLabel}`}
+                      key={`${playback.projection?.flowId}:${step.storyId}:${step.stepId}`}
                       scene={scene}
                       checklist={checklist}
                       ready={playback.ready}

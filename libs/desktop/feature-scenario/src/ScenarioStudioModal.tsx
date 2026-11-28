@@ -5,15 +5,22 @@ import {
   buildDeliveryRoutes,
 } from '@evidence-poc/evidence-api/delivery';
 import {
-  cloneScenarioExamples,
+  createStory,
+  replaceStory,
+  deleteStory,
+  reorderStorySteps,
+  removeStoryStep,
+  resolveStorySteps,
   evaluateScenario,
-  replaceScenarioExamples,
-  scenarioExamples,
-  type ScenarioExample,
   type ModelSession,
 } from '@evidence-poc/evidence-model-core';
 import { validateTypedValue } from '@evidence-poc/evidence-cel';
-import type { ModelExampleAST } from '@evidence-poc/evidence-schema';
+import {
+  isDomainId,
+  STORY_KIND_LABELS,
+  type DomainStoryAST,
+  type StoryStepAST,
+} from '@evidence-poc/evidence-schema';
 import {
   Dialog,
   DialogContent,
@@ -27,8 +34,7 @@ const message = (error: unknown) =>
   error instanceof Error ? error.message : String(error);
 const parseField = (value: string, type: string): unknown => {
   if (type === 'bool') return value === 'true';
-  if (type === 'decimal') return value;
-  if (['int', 'uint', 'double'].includes(type)) {
+  if (['int', 'uint', 'double', 'decimal'].includes(type)) {
     const number = Number(value);
     return value.trim() &&
       Number.isFinite(number) &&
@@ -64,29 +70,23 @@ export const ScenarioStudioModal = ({
     [session],
   );
   const base = useSyncExternalStore(subscribe, session.getDocument);
-  const flows = useMemo(
-    () =>
-      [
-        ...new Set(
-          base.entities.flatMap((e) =>
-            (e.examples ?? []).flatMap((x) => (x.test ? [x.test.flow] : [])),
-          ),
-        ),
-      ].sort(),
-    [base],
-  );
+  const flows = useMemo(() => base.stories.map((s) => s.id).sort(), [base]);
   const [flow, setFlow] = useState(flows[0] ?? '');
+  const [pendingTitle, setPendingTitle] = useState('');
+  const story = base.stories.find((s) => s.id === flow);
   const [input, setInput] = useState<{
     base: typeof base;
     flow: string;
-    items: ScenarioExample[];
+    items: StoryStepAST[];
     error: string;
   }>();
   const incomplete =
     input?.base === base && input?.flow === flow ? input : undefined;
   const items = useMemo(
-    () => incomplete?.items ?? scenarioExamples(base, flow),
-    [base, flow, incomplete],
+    () =>
+      incomplete?.items ??
+      [...(story?.steps ?? [])].sort((a, b) => a.sequence - b.sequence),
+    [story, incomplete],
   );
   const [newName, setNewName] = useState('');
   const [selected, setSelected] = useState(0);
@@ -111,64 +111,162 @@ export const ScenarioStudioModal = ({
     }
   }, [base, flow, incomplete]);
   const item = items[selected];
-  const entity = base.entities.find((e) => e.id === item?.entityRef);
-  const route = routes.values.find((r) => r.entityRef === item?.entityRef);
-  const negative = (item?.example.test?.expectedStatus ?? 201) >= 400;
+  const entity = base.entities.find((e) => e.id === item?.workObjectRef);
+  const route = routes.values.find((r) => r.entityRef === item?.workObjectRef);
+  const negative = (item?.expectedStatus ?? 201) >= 400;
   const enteredValues = negative
-    ? (item?.example.test?.inputs ?? item?.example.value)
-    : item?.example.value;
+    ? (item?.inputs ?? item?.values)
+    : item?.values;
   const editField = (
-    example: ModelExampleAST,
+    step: StoryStepAST,
     name: string,
     value: string,
     type: string,
   ) => {
     const values = negative
-      ? (example.test!.inputs ??= structuredClone(example.value))
-      : example.value;
+      ? (step.inputs ??= structuredClone(step.values))
+      : step.values;
     if (!value) delete values[name];
-    else
-      values[name] = parseField(
-        value,
-        type,
-      ) as ModelExampleAST['value'][string];
+    else values[name] = parseField(value, type);
   };
-  const apply = (targetFlow: string, next: ScenarioExample[]) => {
+  const apply = (
+    targetFlow: string,
+    next: StoryStepAST[],
+    meta?: DomainStoryAST,
+  ) => {
     if (base !== session.getDocument()) return;
     setNotice('');
+    if (
+      !next.length &&
+      !base.stories.some((story) => story.id === targetFlow)
+    ) {
+      setInput(undefined);
+      return;
+    }
     try {
-      session.mutate(
-        (draft) => replaceScenarioExamples(draft, targetFlow, next),
-        '更新业务场景',
-      );
+      session.mutate((draft) => {
+        const existing = draft.stories.find((s) => s.id === targetFlow);
+        if (!next.length && existing) {
+          deleteStory(draft, targetFlow);
+          return;
+        }
+        const data: DomainStoryAST = {
+          type: 'story',
+          kind: 'primary',
+          title: pendingTitle || targetFlow,
+          ...(meta ?? existing),
+          id: targetFlow,
+          steps: next,
+        };
+        if (existing) replaceStory(draft, data);
+        else createStory(draft, data);
+      }, '更新业务场景');
       setInput(undefined);
     } catch (error) {
       setInput({ base, flow: targetFlow, items: next, error: message(error) });
     }
   };
-  const patch = (change: (example: ModelExampleAST) => void) => {
+  const patch = (change: (step: StoryStepAST) => void) => {
     apply(
       flow,
       items.map((entry, i) => {
         if (i !== selected) return entry;
         const next = structuredClone(entry);
-        change(next.example);
+        change(next);
         return next;
       }),
     );
   };
   const create = (clone: boolean) => {
     const name = newName.trim();
-    if (!name || flows.includes(name) || name === flow) {
+    if (!name || base.stories.some((s) => s.title === name)) {
       setNotice('请填写未使用的场景名称。');
       return;
     }
+    const occupied = new Set(
+      [
+        ...base.entities,
+        ...base.relationships,
+        ...base.rules,
+        ...base.stories,
+      ].map((item) => item.id),
+    );
+    let serial = 1;
+    let id = isDomainId(name) ? name : 'story-1';
+    while (occupied.has(id)) id = 'story-' + ++serial;
     setInput(undefined);
-    setFlow(name);
+    setFlow(id);
+    setPendingTitle(name);
     setSelected(0);
     setNewName('');
     setNotice('');
-    if (clone) apply(name, cloneScenarioExamples(base, flow, name));
+    if (clone && story) {
+      const copy = structuredClone(story);
+      const localRef = (ref: string) =>
+        ref.startsWith(story.id + '#') ? ref.slice(story.id.length + 1) : ref;
+      for (const step of copy.steps) {
+        step.basedOn = (step.basedOn ?? []).map(localRef);
+        for (const capture of Object.values(step.pathParameters ?? {}))
+          capture.stepRef = localRef(capture.stepRef);
+      }
+      apply(id, copy.steps, { ...copy, id, title: name });
+    }
+  };
+  const inherited = useMemo(
+    () =>
+      story?.forkedFrom
+        ? resolveStorySteps(base, story.id).filter((s) => s.inherited)
+        : [],
+    [base, story],
+  );
+  const roles = base.entities.filter((e) => e.category === 'role');
+  const labels = useMemo(
+    () => new Map(base.entities.map((entity) => [entity.id, entity.label])),
+    [base.entities],
+  );
+  const stepLabel = (step: StoryStepAST) =>
+    `${step.activity}《${labels.get(step.workObjectRef) ?? step.workObjectRef}》`;
+  const prerequisites = [
+    ...inherited.map((step) => ({ ref: step.ref, label: stepLabel(step) })),
+    ...items
+      .slice(0, selected)
+      .map((step) => ({ ref: step.id, label: stepLabel(step) })),
+  ];
+  const moveStep = (offset: number) => {
+    const next = selected + offset;
+    const order = items.map((step) => step.id);
+    [order[selected], order[next]] = [order[next]!, order[selected]!];
+    try {
+      session.mutate(
+        (draft) => reorderStorySteps(draft, flow, order),
+        '调整故事步骤顺序',
+      );
+      setSelected(next);
+      setNotice('');
+    } catch (error) {
+      setNotice(message(error));
+    }
+  };
+  const removeStep = () => {
+    if (!item) return;
+    if (incomplete)
+      apply(
+        flow,
+        items.filter((step) => step.id !== item.id),
+      );
+    else {
+      try {
+        session.mutate((draft) => {
+          if (items.length === 1) deleteStory(draft, flow);
+          else removeStoryStep(draft, flow, item.id);
+        }, '删除故事步骤');
+        setNotice('');
+      } catch (error) {
+        setNotice(message(error));
+        return;
+      }
+    }
+    setSelected(Math.max(0, selected - 1));
   };
   const allFlows = flows.includes(flow) || !flow ? flows : [...flows, flow];
   return (
@@ -198,6 +296,7 @@ export const ScenarioStudioModal = ({
               value={flow}
               onChange={(e) => {
                 setFlow(e.target.value);
+                setPendingTitle('');
                 setInput(undefined);
                 setSelected(0);
                 setNotice('');
@@ -208,7 +307,8 @@ export const ScenarioStudioModal = ({
               ) : null}
               {allFlows.map((f) => (
                 <option key={f} value={f}>
-                  {f}
+                  {base.stories.find((story) => story.id === f)?.title ??
+                    pendingTitle}
                 </option>
               ))}
             </select>
@@ -241,57 +341,51 @@ export const ScenarioStudioModal = ({
               aria-label="场景类型"
               className={fieldClass}
               disabled={!items.length}
-              value={
-                items[0]?.example.test?.tags?.find((tag) =>
-                  [
-                    'happy_path',
-                    'breach_timeout',
-                    'breach_compensation',
-                    'custom',
-                  ].includes(tag),
-                ) ?? 'custom'
-              }
-              onChange={(e) => {
-                apply(
-                  flow,
-                  items.map((entry) => {
-                    const next = structuredClone(entry);
-                    next.example.test!.tags = [
-                      ...(next.example.test!.tags ?? []).filter(
-                        (tag) =>
-                          ![
-                            'happy_path',
-                            'breach_timeout',
-                            'breach_compensation',
-                            'custom',
-                          ].includes(tag),
-                      ),
-                      e.target.value,
-                    ];
-                    return next;
-                  }),
-                );
+              value={story?.kind ?? 'primary'}
+              onChange={(event) => {
+                if (story)
+                  apply(flow, items, {
+                    ...story,
+                    kind: event.target.value as DomainStoryAST['kind'],
+                  });
               }}
             >
-              <option value="custom">自定义</option>
-              <option value="happy_path">正常履约</option>
-              <option value="breach_timeout">超时场景</option>
-              <option value="breach_compensation">补偿场景</option>
+              {Object.entries(STORY_KIND_LABELS).map(([id, label]) => (
+                <option
+                  key={id}
+                  value={id}
+                  disabled={id === 'breach_branch' && !story?.forkedFrom}
+                >
+                  {label}
+                </option>
+              ))}
             </select>
           </label>
         </div>
         <div className="grid min-h-0 flex-1 grid-cols-[200px_1fr_280px] overflow-auto text-[12px]">
           <aside className="space-y-2 border-r p-3">
-            <h3>场景步骤（顺序由依据与业务时刻确定）</h3>
+            <h3>场景步骤</h3>
+            {inherited.length > 0 && (
+              <details>
+                <summary>继承的前置步骤（{inherited.length}）</summary>
+                <ol>
+                  {inherited.map((s) => (
+                    <li key={s.ref}>
+                      {s.sequence}. {stepLabel(s)}
+                    </li>
+                  ))}
+                </ol>
+              </details>
+            )}
             {items.map((entry, i) => (
               <button
-                key={`${entry.entityRef}:${i}`}
+                key={entry.id}
                 type="button"
                 aria-pressed={i === selected}
                 className={`${fieldClass} block w-full text-left`}
                 onClick={() => setSelected(i)}
               >
-                {entry.example.label}
+                {stepLabel(entry)}
               </button>
             ))}
             <label>
@@ -303,12 +397,13 @@ export const ScenarioStudioModal = ({
                 onChange={(e) => setEntityRef(e.target.value)}
               >
                 <option value="">选择单据</option>
-                {routes.values.map((r) => (
-                  <option key={r.id} value={r.entityRef}>
-                    {base.entities.find((e) => e.id === r.entityRef)?.label ??
-                      r.entityRef}
-                  </option>
-                ))}
+                {base.entities
+                  .filter((e) => e.category === 'evidence')
+                  .map((e) => (
+                    <option key={e.id} value={e.id}>
+                      {e.label}
+                    </option>
+                  ))}
               </select>
             </label>
             <button
@@ -319,21 +414,22 @@ export const ScenarioStudioModal = ({
                 const chosen = routes.values.find(
                   (r) => r.entityRef === entityRef,
                 );
-                if (!chosen) return;
-                const label = `${flow} · ${base.entities.find((e) => e.id === entityRef)?.label ?? entityRef} · ${items.length + 1}`;
+                let serial = items.length + 1;
+                while (items.some((s) => s.id === 'step-' + serial)) serial++;
                 apply(flow, [
                   ...items,
                   {
-                    entityRef,
-                    example: {
-                      label,
-                      value: {},
-                      test: {
-                        flow,
-                        actingRoleRef: allowedCallerRoleRefs(chosen)[0] ?? '',
-                        asOf: '',
-                      },
-                    },
+                    id: 'step-' + serial,
+                    sequence: (items.at(-1)?.sequence ?? 0) + 1,
+                    workObjectRef: entityRef,
+                    actorRef:
+                      (chosen && allowedCallerRoleRefs(chosen)[0]) ||
+                      roles[0]?.id ||
+                      '',
+                    activity: '记录',
+                    values: {},
+                    asOf: '',
+                    basedOn: [],
                   },
                 ]);
                 setSelected(items.length);
@@ -353,44 +449,46 @@ export const ScenarioStudioModal = ({
             ) : (
               <>
                 <label className="block">
-                  步骤名称
+                  业务动作
                   <input
-                    className={`${fieldClass} w-full`}
-                    aria-label="步骤名称"
-                    value={item.example.label}
-                    onChange={(e) => {
-                      // Labels are canonical dependency identities: changing a referenced label would orphan later steps.
-                      const previous = `${item.entityRef}#${item.example.label}`;
-                      const next = `${item.entityRef}#${e.target.value}`;
-                      apply(
-                        flow,
-                        items.map((entry, i) => {
-                          const copy = structuredClone(entry);
-                          if (i === selected)
-                            copy.example.label = e.target.value;
-                          if (copy.example.test?.basedOn)
-                            copy.example.test.basedOn =
-                              copy.example.test.basedOn.map((ref) =>
-                                ref === previous ? next : ref,
-                              );
-                          if (copy.example.test?.pathParameters)
-                            for (const source of Object.values(
-                              copy.example.test.pathParameters,
-                            ))
-                              if (source.exampleRef === previous)
-                                source.exampleRef = next;
-                          return copy;
-                        }),
-                      );
-                    }}
+                    className={fieldClass}
+                    aria-label="业务动作"
+                    value={item.activity}
+                    onChange={(e) =>
+                      patch((step) => {
+                        step.activity = e.target.value;
+                      })
+                    }
                   />
+                </label>
+                <label className="block">
+                  承接角色
+                  <select
+                    className={fieldClass}
+                    aria-label="承接角色"
+                    value={item.targetActorRef ?? ''}
+                    onChange={(e) =>
+                      patch((step) => {
+                        if (e.target.value)
+                          step.targetActorRef = e.target.value;
+                        else delete step.targetActorRef;
+                      })
+                    }
+                  >
+                    <option value="">无</option>
+                    {roles.map((role) => (
+                      <option key={role.id} value={role.id}>
+                        {role.label}
+                      </option>
+                    ))}
+                  </select>
                 </label>
                 <label className="block">
                   业务背景
                   <textarea
                     aria-label="业务背景"
                     className={`${fieldClass} w-full`}
-                    value={item.example.description ?? ''}
+                    value={item.description ?? ''}
                     onChange={(e) =>
                       patch((x) => {
                         if (e.target.value) x.description = e.target.value;
@@ -405,10 +503,10 @@ export const ScenarioStudioModal = ({
                     className={`${fieldClass} w-full`}
                     aria-label="业务时刻"
                     placeholder="2026-01-01T10:00:00Z"
-                    value={item.example.test?.asOf ?? ''}
+                    value={item.asOf ?? ''}
                     onChange={(e) =>
                       patch((x) => {
-                        x.test!.asOf = e.target.value;
+                        x.asOf = e.target.value;
                       })
                     }
                   />
@@ -418,16 +516,16 @@ export const ScenarioStudioModal = ({
                   <select
                     className={`${fieldClass} w-full`}
                     aria-label="操作角色"
-                    value={item.example.test?.actingRoleRef ?? ''}
+                    value={item.actorRef ?? ''}
                     onChange={(e) =>
                       patch((x) => {
-                        x.test!.actingRoleRef = e.target.value;
+                        x.actorRef = e.target.value;
                       })
                     }
                   >
                     {[
                       ...new Set([
-                        item.example.test?.actingRoleRef ?? '',
+                        ...roles.map((role) => role.id),
                         ...(route === undefined
                           ? []
                           : allowedCallerRoleRefs(route)),
@@ -447,17 +545,16 @@ export const ScenarioStudioModal = ({
                     type="number"
                     min="200"
                     max="599"
-                    value={item.example.test?.expectedStatus ?? ''}
+                    value={item.expectedStatus ?? ''}
                     placeholder="使用路由默认成功状态"
                     onChange={(e) =>
                       patch((x) => {
                         if (!e.target.value) {
-                          delete x.test!.expectedStatus;
-                          delete x.test!.inputs;
+                          delete x.expectedStatus;
+                          delete x.inputs;
                         } else {
-                          x.test!.expectedStatus = Number(e.target.value);
-                          if (x.test!.expectedStatus < 400)
-                            delete x.test!.inputs;
+                          x.expectedStatus = Number(e.target.value);
+                          if (x.expectedStatus < 400) delete x.inputs;
                         }
                       })
                     }
@@ -465,31 +562,25 @@ export const ScenarioStudioModal = ({
                 </label>
                 <fieldset className="space-y-1">
                   <legend>前置凭证（明确选择，不猜测业务顺序）</legend>
-                  {items.map((entry, i) =>
-                    i === selected ? null : (
-                      <label key={i} className="block">
-                        <input
-                          type="checkbox"
-                          checked={
-                            item.example.test?.basedOn?.includes(
-                              `${entry.entityRef}#${entry.example.label}`,
-                            ) ?? false
-                          }
-                          onChange={(e) =>
-                            patch((x) => {
-                              const ref = `${entry.entityRef}#${entry.example.label}`;
-                              x.test!.basedOn = e.target.checked
-                                ? [...(x.test!.basedOn ?? []), ref]
-                                : (x.test!.basedOn ?? []).filter(
-                                    (r) => r !== ref,
-                                  );
-                            })
-                          }
-                        />{' '}
-                        {entry.example.label}
-                      </label>
-                    ),
-                  )}
+                  {prerequisites.map(({ ref, label }) => (
+                    <label key={ref} className="block">
+                      <input
+                        type="checkbox"
+                        checked={(item.basedOn ?? []).some(
+                          (key) => key === ref || key === flow + '#' + ref,
+                        )}
+                        onChange={(event) =>
+                          patch((s) => {
+                            s.basedOn = (s.basedOn ?? []).filter(
+                              (key) => key !== ref && key !== flow + '#' + ref,
+                            );
+                            if (event.target.checked) s.basedOn.push(ref);
+                          })
+                        }
+                      />{' '}
+                      {label}
+                    </label>
+                  ))}
                 </fieldset>
                 <table className="w-full">
                   <thead>
@@ -574,13 +665,23 @@ export const ScenarioStudioModal = ({
                 <button
                   type="button"
                   className={fieldClass}
-                  onClick={() => {
-                    apply(
-                      flow,
-                      items.filter((_, i) => i !== selected),
-                    );
-                    setSelected(0);
-                  }}
+                  disabled={!!incomplete || selected === 0}
+                  onClick={() => moveStep(-1)}
+                >
+                  上移一步
+                </button>
+                <button
+                  type="button"
+                  className={fieldClass}
+                  disabled={!!incomplete || selected === items.length - 1}
+                  onClick={() => moveStep(1)}
+                >
+                  下移一步
+                </button>
+                <button
+                  type="button"
+                  className={fieldClass}
+                  onClick={removeStep}
                 >
                   删除当前步骤
                 </button>
@@ -636,13 +737,11 @@ export const ScenarioStudioModal = ({
               disabled={!!incomplete || !candidate.model || !items.length}
               onClick={() => {
                 try {
-                  const scoped = structuredClone(candidate.model!);
-                  for (const e of scoped.entities)
-                    if (e.examples)
-                      e.examples = e.examples.filter(
-                        (x) => x.test?.flow === flow,
-                      );
-                  const result = projectAcceptanceTests(scoped);
+                  const result = projectAcceptanceTests(
+                    candidate.model!,
+                    undefined,
+                    flow,
+                  );
                   setNotice(
                     `可生成 ${result.flows.reduce((n, f) => n + f.steps.length, 0)} 步 HTTP 验收；模型同步后自动生成 Bruno 集合。尚未运行后端。`,
                   );

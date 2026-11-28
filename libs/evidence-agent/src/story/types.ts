@@ -1,4 +1,8 @@
-import type { DomainModelDocument } from '@evidence-poc/evidence-schema';
+import type {
+  DomainModelDocument,
+  StoryForkAnchor,
+  StoryKind,
+} from '@evidence-poc/evidence-schema';
 import type {
   FlowScenarioTrace,
   WhatIfCompletionGap,
@@ -94,6 +98,8 @@ export interface StoryScene {
 }
 
 export interface BusinessStoryProjection {
+  readonly kind?: StoryKind;
+  readonly forkedFrom?: StoryForkAnchor;
   readonly flowId: string;
   readonly storyTitle: string;
   readonly storySummary: string;

@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { collectFlowScenarios } from '@evidence-poc/evidence-model-core';
+import { resolveStoryTraces } from '@evidence-poc/evidence-model-core';
 import {
   WHAT_IF_CHALLENGE_SUGGESTION_PROMPT,
   type StoryAgent,
@@ -190,6 +190,8 @@ describe('story IPC', () => {
       createAgent.mockClear();
       ipc = register({ createAgent });
       const restored = await load();
+      const { storyId, stepId } =
+        restored.selected!.flow.steps[scene.stepIndex - 1]!;
       await expect(
         enrich({ ...request(restored, 1, rootPath), cacheOnly: true }, window),
       ).resolves.toMatchObject({ cached: true, challenges: [card] });
@@ -200,7 +202,7 @@ describe('story IPC', () => {
             rootPath,
             document,
             flowId: restored.selected!.flow.flowId,
-            currentStepSequence: scene.stepIndex,
+            currentStep: { storyId, stepId },
             stepHash: scene.stepHash,
             question: card.question,
             hypothesisDraft: card.hypothesisDraft,
@@ -231,7 +233,7 @@ describe('story IPC', () => {
             rootPath,
             document,
             flowId: restored.selected!.flow.flowId,
-            currentStepSequence: scene.stepIndex,
+            currentStep: { storyId, stepId },
             stepHash: scene.stepHash,
             question: card.question,
             hypothesisDraft: card.hypothesisDraft,
@@ -269,12 +271,14 @@ describe('story IPC', () => {
       window,
     );
     expect(first.flows.map(({ flowId }) => flowId)).toEqual(
-      collectFlowScenarios(document).map(({ flowId }) => flowId),
+      resolveStoryTraces(document).map(({ flowId }) => flowId),
     );
     expect(first.selected?.flow.flowId).toBe(first.flows[0]?.flowId);
-    document.entities.find(
-      ({ id }) => id === 'request.payment',
-    )!.examples![0]!.value.quantity = 12;
+    document.stories
+      .flatMap((story) => story.steps)
+      .find(
+        (step) => step.workObjectRef === 'request.payment',
+      )!.values.quantity = 12;
     const second = await invoke<StorySnapshot>(
       STORY_IPC_CHANNELS.LOAD,
       input,
@@ -310,7 +314,7 @@ describe('story IPC', () => {
       const result = await invoke<StorySnapshot>(STORY_IPC_CHANNELS.LOAD, {
         rootPath,
       });
-      expect(result.flows).toHaveLength(collectFlowScenarios(model()).length);
+      expect(result.flows).toHaveLength(resolveStoryTraces(model()).length);
       expect(result.selected?.projection.scenes).toHaveLength(
         result.selected!.flow.steps.length,
       );
@@ -325,9 +329,11 @@ describe('story IPC', () => {
     const ipc = register({ createAgent: () => ({ generate }) });
     const window = sender();
     const document = model();
-    document.entities.find(
-      ({ id }) => id === 'contract.agreement',
-    )!.examples![0]!.description = '新合同账期为五天。';
+    document.stories
+      .flatMap((story) => story.steps)
+      .find(
+        (step) => step.workObjectRef === 'contract.agreement',
+      )!.description = '新合同账期为五天。';
     const baseline = await invoke<StorySnapshot>(
       STORY_IPC_CHANNELS.LOAD,
       { rootPath: '/models/p', document },
@@ -394,9 +400,9 @@ describe('story IPC', () => {
   it('reads causally keyed cached drafts after restarting without a provider', async () => {
     const rootPath = await mkdtemp(path.join(os.tmpdir(), 'story-ipc-drafts-'));
     const document = model();
-    const contract = document.entities.find(
-      ({ id }) => id === 'contract.agreement',
-    )!.examples![0]!;
+    const contract = document.stories
+      .flatMap((story) => story.steps)
+      .find((step) => step.workObjectRef === 'contract.agreement')!;
     contract.description = '旧的账期。';
     await initializeWorkspace(rootPath, document);
     const cache = createStoryNarrationCache()(rootPath);
@@ -533,7 +539,7 @@ describe('story IPC', () => {
       const simulate = vi.fn().mockResolvedValue(simulated);
       register({ simulate });
       const document = model();
-      const flow = collectFlowScenarios(document)[0]!;
+      const flow = resolveStoryTraces(document)[0]!;
       const step = flow.steps[0]!;
       const before = structuredClone(document);
       const result = await invoke<{ businessImpactExplanation: string }>(
@@ -542,7 +548,7 @@ describe('story IPC', () => {
           rootPath: '/models/p',
           document,
           flowId: flow.flowId,
-          currentStepSequence: step.sequence,
+          currentStep: { storyId: step.storyId, stepId: step.stepId },
           stepHash: step.stepHash,
           question: '  如果只付300？  ',
           allowSpeculative,
@@ -552,7 +558,7 @@ describe('story IPC', () => {
       expect(simulate).toHaveBeenCalledWith(
         expect.objectContaining({
           model: document,
-          currentStepSequence: step.sequence,
+          currentStep: { storyId: step.storyId, stepId: step.stepId },
           hypothesisQuestion: '如果只付300？',
         }),
         expect.objectContaining({ agent: expect.any(Object) }),
@@ -585,8 +591,8 @@ describe('story IPC', () => {
     await expect(
       invoke(STORY_IPC_CHANNELS.WHAT_IF, {
         rootPath: '/p',
-        flowId: collectFlowScenarios(model())[0]!.flowId,
-        currentStepSequence: 1,
+        flowId: resolveStoryTraces(model())[0]!.flowId,
+        currentStep: { storyId: 'payment', stepId: 'signed' },
         stepHash: 'obsolete',
         question: '付款300？',
       }),

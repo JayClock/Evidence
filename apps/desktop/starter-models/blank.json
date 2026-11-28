@@ -1,7 +1,7 @@
 {
   "manifest": {
     "type": "fm_model",
-    "schemaVersion": "6.0",
+    "schemaVersion": "7.0",
     "id": "blank",
     "name": "空白模型",
     "version": "0.1.0",
@@ -11,5 +11,6 @@
   },
   "entities": [],
   "relationships": [],
+  "stories": [],
   "rules": []
 }

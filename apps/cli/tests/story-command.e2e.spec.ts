@@ -77,7 +77,7 @@ describe('built evidence story binary', () => {
     expect(projections).toHaveLength(1);
     const [payment] = projections;
     expect(payment?.flowId).toBe('payment');
-    // The fixture declares three positive examples AND a bad-input example.
+    // Three successful story steps and a rejected input are all part of the flow.
     expect(payment?.scenes).toHaveLength(4);
     expect(payment?.scenes.map((scene) => scene.stepIndex)).toEqual([
       1, 2, 3, 4,
@@ -136,14 +136,17 @@ describe('built evidence story binary', () => {
     );
 
     expect(happyPath.stdout).toContain(
-      '卖方（Seller）要求买方（Buyer）支付首期生产预付款',
+      '卖方（Seller）向买方（Buyer）就「支付首期生产预付款」发起《首期生产预付款支付请求',
     );
     expect(happyPath.stdout).toContain(
-      '买方（Buyer）记录「支付首期生产预付款」的履约确认',
+      '买方（Buyer）向卖方（Seller）就「支付首期生产预付款」出具《首期预付款到账回执登记',
     );
 
     const all = await invoke(args);
     expect(all.code, all.stderr).toBe(0);
+    expect(all.stdout).toContain(
+      '  - 逾期交货 \\(late\\-delivery\\) ← happy\\-path\\#step\\-7',
+    );
     expect(all.stdout).not.toMatch(
       /角色|当事人|上下文|标的物|Role|Party|Context|Thing/iu,
     );
@@ -229,8 +232,7 @@ describe('built evidence story binary', () => {
 
   it('returns an empty JSON array or a human explanation for models without flow declarations', async () => {
     await editModel((document) => {
-      for (const entity of document.entities)
-        for (const example of entity.examples ?? []) delete example.test;
+      document.stories = [];
     });
     const json = await invoke(['--no-ai', '--format', 'json', '--export']);
     expect(json.code, json.stderr).toBe(0);
@@ -241,7 +243,7 @@ describe('built evidence story binary', () => {
     ).toEqual([]);
     const human = await invoke(['--no-ai']);
     expect(human.code, human.stderr).toBe(0);
-    expect(human.stdout).toContain('未检测到');
+    expect(human.stdout).toContain('尚无领域故事');
     const stdoutJson = await invoke(['--no-ai', '--format', 'json']);
     expect(stdoutJson.code, stdoutJson.stderr).toBe(0);
     expect(stories(stdoutJson.stdout)).toEqual([]);
@@ -277,17 +279,15 @@ describe('built evidence story binary', () => {
     },
   );
 
-  it('refuses cyclic example dependencies rather than emitting a plausible story', async () => {
+  it('rejects a story step depending on a later step before export', async () => {
     await editModel((document) => {
-      const example = document.entities.find(
-        (entity) => entity.id === 'contract.agreement',
-      )?.examples?.[0];
-      if (!example?.test) throw new Error('Missing fixture example');
-      example.test.basedOn = ['confirmation.payment#confirmed'];
+      document.stories
+        .find((s) => s.id === 'payment')!
+        .steps.find((s) => s.id === 'signed')!.basedOn = ['confirmed'];
     });
     const result = await invoke(['--no-ai', '--format', 'json', '--export']);
     expect(result.code).toBe(1);
-    expect(result.stderr).toContain('CYCLIC_DEPENDENCY');
+    expect(result.stderr).toContain('preceding');
     expect(result.stdout).toBe('');
     expect(readdirSync(root)).toEqual(['.evidence']);
   });

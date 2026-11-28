@@ -83,7 +83,7 @@ it('leaves previous output intact if acceptance compilation fails', async () => 
   const suite = path.join(paths.acceptance, 'evidence-acceptance.json');
   const before = readFileSync(suite, 'utf8');
   const broken = (await readModelDirectory(source)).document;
-  for (const entity of broken.entities) delete entity.examples;
+  broken.stories = [];
   await writeModelDirectory(paths.model, broken);
   expect(await dispatch(['export'], context())).toBe(1);
   expect(readFileSync(suite, 'utf8')).toBe(before);

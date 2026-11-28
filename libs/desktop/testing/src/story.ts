@@ -5,9 +5,10 @@ import type {
 } from '@evidence-poc/desktop-contracts/story';
 import { createDesktopFixture } from './modelFixture.js';
 
-export const storyFlow = (flowId = '采购履约流'): FlowScenarioTrace => ({
+export const storyFlow = (flowId = 'procurement'): FlowScenarioTrace => ({
   flowId,
-  flowTitle: flowId,
+  flowTitle: flowId === 'procurement' ? '采购履约流' : flowId,
+  kind: 'primary',
   traceDigest: 'trace-1',
   involvedContextRefs: ['context.procurement'],
   involvedRoleRefs: ['role.buyer'],
@@ -23,39 +24,39 @@ export const storyFlow = (flowId = '采购履约流'): FlowScenarioTrace => ({
     entityKind,
     sequence: index + 1,
     stepHash: `step-${index}`,
-    exampleLabel: `example-${index}`,
+    storyId: flowId,
+    stepId: `step-${index + 1}`,
+    inherited: false,
+    activity: ['签署', '发起', '确认'][index]!,
+    actorRef: index === 1 ? 'role.supplier' : 'role.buyer',
+    targetActorRef: index === 1 ? 'role.buyer' : 'role.supplier',
     asOf: '2026-11-11T08:00:00Z',
     values: { amount: 500 },
     gaps: index === 1 ? ['待补确认责任'] : [],
-    basedOn:
-      index === 0
-        ? []
-        : [
-            `${index === 1 ? 'evidence.contract' : 'evidence.request'}#example-${index - 1}`,
-          ],
+    basedOn: index === 0 ? [] : [`${flowId}#step-${index}`],
   })),
 });
 
 export const createDesktopStoryFixture = () => {
   const document = createDesktopFixture();
   const flow = storyFlow();
-  for (const entity of document.entities) {
-    const step = flow.steps.find(({ entityId }) => entityId === entity.id);
-    if (step === undefined) continue;
-    entity.examples = [
-      {
-        label: step.exampleLabel,
-        value: step.values,
-        test: {
-          flow: flow.flowId,
-          actingRoleRef:
-            entity.id === 'evidence.request' ? 'role.supplier' : 'role.buyer',
-          asOf: step.asOf,
-          basedOn: [...step.basedOn],
-        },
-      },
-    ];
-  }
+  document.stories.push({
+    type: 'story',
+    id: flow.flowId,
+    kind: 'primary',
+    title: flow.flowTitle,
+    steps: flow.steps.map((step) => ({
+      id: step.stepId,
+      sequence: step.sequence,
+      activity: step.activity,
+      actorRef: step.actorRef,
+      targetActorRef: step.targetActorRef,
+      workObjectRef: step.entityId,
+      asOf: step.asOf,
+      values: {},
+      basedOn: [...step.basedOn],
+    })),
+  });
   return document;
 };
 
@@ -119,6 +120,9 @@ const storyResult = (flow = storyFlow()): StoryProjectResult => ({
       const previous = flow.steps[index - 1];
       return {
         stepIndex: step.sequence,
+        stepId: step.stepId,
+        storyId: step.storyId,
+        inherited: step.inherited,
         stepHash: step.stepHash,
         timing: { rawIso: step.asOf, displayDate: '2026年11月11日 08:00 UTC' },
         activity: {

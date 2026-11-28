@@ -122,9 +122,7 @@ export function createArtifactPipeline({
     const acceptance = async () => {
       let files: Record<string, string> = {};
       let flows = 0;
-      const hasScenarios = document.entities.some(({ examples }) =>
-        examples?.some(({ test }) => test !== undefined),
-      );
+      const hasScenarios = document.stories.length > 0;
       try {
         const projection = await planned;
         if (projection.contexts.some(({ status }) => status === 'blocked')) {

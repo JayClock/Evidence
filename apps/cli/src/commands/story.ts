@@ -3,7 +3,7 @@ import { writeWorkspaceFile } from '@evidence-poc/evidence-model-io';
 import { createFlowStoryProjector } from '@evidence-poc/evidence-agent';
 import {
   buildFmCheckReport,
-  collectFlowScenarios,
+  resolveStoryTraces,
 } from '@evidence-poc/evidence-model-core';
 import {
   compactCanonicalJson,
@@ -31,7 +31,8 @@ export async function storyCommand(
   const model = await loadModel(workspace.model);
   // Completeness gaps inform the story; a draft is not a failed test run.
   const { report } = buildFmCheckReport({ model });
-  let flows = collectFlowScenarios(model, report);
+  if (report.errors.length) throw new Error(report.errors.join('\n'));
+  let flows = resolveStoryTraces(model, report);
   if (targetFlow !== undefined) {
     flows = flows.filter((flow) => flow.flowId === targetFlow);
     if (flows.length === 0) {

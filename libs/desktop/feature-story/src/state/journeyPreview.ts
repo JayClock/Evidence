@@ -16,7 +16,7 @@ export interface JourneyRulePreview {
   error?: string;
 }
 
-/** Preview CEL rules from examples visible through this flow step.
+/** Preview CEL rules from facts visible through this story step.
  * Missing bindings remain unknown and evaluation errors stay visible.
  */
 export const previewJourneyStep = (
@@ -24,7 +24,9 @@ export const previewJourneyStep = (
   flow: FlowScenarioTrace,
   step: FlowStepTrace,
 ) => {
-  const prefix = flow.steps.filter((s) => s.sequence <= step.sequence);
+  const prefix = flow.steps.filter(
+    (s) => s.sequence <= step.sequence && (s.expectedStatus ?? 200) < 400,
+  );
   const values = new Map(prefix.map((s) => [s.entityId, s.values]));
   const rules: JourneyRulePreview[] = [];
   for (const rule of document.rules) {
@@ -40,13 +42,7 @@ export const previewJourneyStep = (
         else complete = false;
         continue;
       }
-      const declared =
-        document.entities
-          .find((e) => e.id === binding.ref)
-          ?.examples?.filter((e) => !e.test) ?? [];
-      const value =
-        values.get(binding.ref) ??
-        (declared.length === 1 ? declared[0].value : undefined);
+      const value = values.get(binding.ref);
       if (binding.cardinality === 'many') {
         const list = prefix
           .filter((s) => s.entityId === binding.ref)
@@ -120,9 +116,12 @@ export const previewJourneyStep = (
     )
     .map((r) => r.sourceRef);
   const related = new Set(
-    [step.actingRoleRef, step.responsibleRoleRef, ...entryIds].filter(
-      (id): id is string => id !== undefined,
-    ),
+    [
+      step.actorRef,
+      step.targetActorRef,
+      step.responsibleRoleRef,
+      ...entryIds,
+    ].filter((id): id is string => id !== undefined),
   );
   for (const r of document.relationships) {
     if (
@@ -131,7 +130,7 @@ export const previewJourneyStep = (
           prefix.some(
             (s) =>
               s.entityId === r.sourceRef &&
-              step.basedOn.includes(`${s.entityId}#${s.exampleLabel}`),
+              step.basedOn.includes(`${s.storyId}#${s.stepId}`),
           ))) ||
       (r.kind === 'references' &&
         (r.sourceRef === step.entityId || entryIds.includes(r.sourceRef)) &&

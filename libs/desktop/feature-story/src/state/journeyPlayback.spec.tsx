@@ -1,7 +1,7 @@
 import { act, renderHook, render, screen } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import {
-  collectFlowScenarios,
+  resolveStoryTraces,
   parseModelSourceFiles,
 } from '@evidence-poc/evidence-model-core';
 import { installDesktopApi } from '@evidence-poc/desktop-testing/desktopApi';
@@ -24,7 +24,7 @@ it('walks across responsibility lanes, resets branch focus when switching scenar
     })),
   ).document;
   const before = JSON.stringify(document);
-  const flows = collectFlowScenarios(document);
+  const flows = resolveStoryTraces(document);
   const api = installDesktopApi();
   api.story.load = vi.fn(async ({ preferredFlowId }) =>
     storySnapshot(flows, preferredFlowId),

@@ -16,10 +16,7 @@ export const useEditorPlayback = (
   const { ledgerActive, storyActive, setStoryEntry } = surfaces;
   const externalConflict = state.persistence.kind === 'conflict';
   const canPlayStory = useMemo(
-    () =>
-      state.document.entities.some(({ examples }) =>
-        examples?.some(({ test }) => test?.flow),
-      ),
+    () => state.document.stories.length > 0,
     [state.document],
   );
   const story = useStoryPlayback({

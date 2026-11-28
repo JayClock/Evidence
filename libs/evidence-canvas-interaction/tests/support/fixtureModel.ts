@@ -140,7 +140,7 @@ const completion: RuleAST = {
 export const createFixtureDocument = (): DomainModelDocument => ({
   manifest: {
     type: 'fm_model',
-    schemaVersion: '6.0',
+    schemaVersion: '7.0',
     id: 'fixture-desktop-layout',
     name: '桌面画布布局夹具',
     version: '1.0.0',
@@ -252,6 +252,7 @@ export const createFixtureDocument = (): DomainModelDocument => ({
       ],
     },
   ],
+  stories: [],
   relationships: [
     relationship(
       'relation.buyer-plays-role',

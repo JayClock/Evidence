@@ -12,7 +12,7 @@ import {
 } from '@evidence-poc/evidence-schema';
 import { previewJourneyStep } from './journeyPreview';
 import { sceneChecklist } from './sceneChecklist';
-import { branchDestinations, stepRef, storyForks } from './storyForks';
+import { stepRef, storyForks } from './storyForks';
 import {
   blockedStoryScenes,
   evaluateWhatIfCapability,
@@ -98,7 +98,7 @@ export const useStoryPlayback = ({
   const flows = loaded?.result.flows ?? EMPTY_FLOWS;
   const activeFlowId =
     flows.find(({ flowId }) => flowId === preferredFlowId)?.flowId ??
-    flows[0]?.flowId;
+    loaded?.result.selected?.flow.flowId;
   const loading =
     enabled &&
     !invalidationError &&
@@ -125,8 +125,8 @@ export const useStoryPlayback = ({
     step && scenes.find(({ stepIndex }) => stepIndex === step.sequence);
   const graph = loaded?.graph;
   const forksByStep = useMemo(
-    () => (graph && flow ? storyForks(graph, flows, flow) : undefined),
-    [graph, flows, flow],
+    () => (flow ? storyForks(flows, flow) : undefined),
+    [flows, flow],
   );
   const checklist = useMemo(
     () =>
@@ -171,13 +171,9 @@ export const useStoryPlayback = ({
   const canvasFocus = useMemo(() => {
     if (!ready || !journeyPreview) return null;
     const dependencyEntityIds = step.basedOn.flatMap((ref) => {
-      // Canonical example refs take precedence over declared id/ref aliases.
-      const dependency =
-        flow.steps.find((candidate) => stepRef(candidate) === ref) ??
-        flow.steps.find(
-          (candidate) =>
-            candidate.values.id === ref || candidate.values.ref === ref,
-        );
+      const dependency = flow.steps.find(
+        (candidate) => stepRef(candidate) === ref,
+      );
       return dependency ? [dependency.entityId] : [];
     });
     // Last completed step wins for repeated entities; active still takes precedence.
@@ -231,11 +227,20 @@ export const useStoryPlayback = ({
             ...(preferredFlowId === undefined ? {} : { preferredFlowId }),
           });
           if (!active) return;
-          // Start at the first step when falling back to a different flow.
           const flowId = result.selected?.flow.flowId;
           if (projectedFlowId.current !== flowId)
             setPosition((current) =>
-              current.flowId === flowId ? current : { index: 0 },
+              current.flowId === flowId
+                ? current
+                : {
+                    flowId,
+                    index: Math.max(
+                      0,
+                      result.selected?.flow.steps.findIndex(
+                        (step) => !step.inherited,
+                      ) ?? 0,
+                    ),
+                  },
             );
           projectedFlowId.current = flowId;
           setLoaded({
@@ -377,22 +382,16 @@ export const useStoryPlayback = ({
           return true;
         }
       }
-      const examples = document.entities.find(
-        ({ id }) => id === entityId,
-      )?.examples;
-      const selected =
-        examples?.find(
-          ({ label, test }) =>
-            step?.entityId === entityId &&
-            test?.flow === activeFlowId &&
-            label === step.exampleLabel,
-        ) ??
-        examples?.find(({ test }) => test && test.flow === activeFlowId) ??
-        examples?.find(({ test }) => test?.flow);
-      if (!selected?.test) return false;
-      const flowId = selected.test.flow;
+      const hasStep = (story: DomainModelDocument['stories'][number]) =>
+        story.steps.some((s) => s.workObjectRef === entityId);
+      const story =
+        document.stories.find((s) => s.id === activeFlowId && hasStep(s)) ??
+        document.stories.find(hasStep);
+      const selected = story?.steps.find((s) => s.workObjectRef === entityId);
+      if (!story || !selected) return false;
+      const flowId = story.id;
       setIsPlaying(false);
-      setPosition({ flowId, ref: `${entityId}#${selected.label}`, index: 0 });
+      setPosition({ flowId, ref: `${flowId}#${selected.id}`, index: 0 });
       setPreferredFlowId(flowId);
       return true;
     },
@@ -449,7 +448,7 @@ export const useStoryPlayback = ({
           rootPath,
           document,
           flowId: flow.flowId,
-          currentStepSequence: step.sequence,
+          currentStep: { storyId: step.storyId, stepId: step.stepId },
           stepHash: step.stepHash,
           question,
           ...(picked?.hypothesisDraft
@@ -525,7 +524,8 @@ export const useStoryPlayback = ({
 
   const writable = onRecordBreachOutcome !== undefined;
   const promotionRequests = useMemo(() => {
-    if (!ready || !writable || !hasSandboxBreach || !graph) return [];
+    if (!ready || step.inherited || !writable || !hasSandboxBreach || !graph)
+      return [];
     if (step.entityKind === 'fulfillment_request') {
       const request = graph.fulfillmentPair(step.entityId)?.request;
       return request ? [request] : [];
@@ -571,13 +571,15 @@ export const useStoryPlayback = ({
     if (
       !onRecordBreachOutcome ||
       !parent ||
+      !step ||
+      step.inherited ||
       currentSandboxKey.current !== sandboxKey ||
       !promotionRequests.some(({ id }) => id === input.requestRef)
     )
       throw new Error('当前步骤或推演结果已变化，请重新核对。');
     setIsPlaying(false);
     const after = onRecordBreachOutcome(
-      { ...input, forkExampleRef: parent },
+      { ...input, forkSource: { storyId: step.storyId, stepId: step.stepId } },
       document,
     );
     if (flow) setPosition({ flowId: flow.flowId, ref: parent, index });
@@ -609,14 +611,13 @@ export const useStoryPlayback = ({
       return undefined;
     const entity = graph?.getEntity(promoted.entityIds[0]!);
     if (!entity) return undefined;
-    const destination = branchDestinations(
-      flows,
-      promoted.entityIds,
-      flow?.flowId,
-      step?.sequence,
-    ).at(0);
+    const destination =
+      step &&
+      forksByStep
+        ?.get(step.sequence)
+        ?.find((fork) => fork.step.entityId === entity.id);
     return { entity, ...destination };
-  }, [enabled, promoted, parent, document, stale, graph, flows, flow, step]);
+  }, [enabled, promoted, parent, document, stale, graph, forksByStep, step]);
   const showPromotedFocus =
     enabled &&
     promoted?.document === document &&
@@ -639,6 +640,7 @@ export const useStoryPlayback = ({
     checklist,
     scenes,
     forksByStep,
+    forkedFrom: flow?.forkedFrom,
     promotedBranch,
     canvasFocus:
       showPromotedFocus && displayFocus
@@ -667,7 +669,12 @@ export const useStoryPlayback = ({
     canPlay: ready && !nextBlocked && flow.steps.length > 1,
     selectFlow: (flowId: string, atStep?: FlowStepTrace) => {
       setIsPlaying(false);
-      setPosition({ flowId, ref: atStep && stepRef(atStep), index: 0 });
+      const start =
+        atStep ??
+        flows
+          .find((flow) => flow.flowId === flowId)
+          ?.steps.find((step) => !step.inherited);
+      setPosition({ flowId, ref: start && stepRef(start), index: 0 });
       setPreferredFlowId(flowId);
     },
     openAtEntityExample,
