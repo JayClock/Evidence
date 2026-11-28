@@ -744,7 +744,7 @@ export const compileIngestionDraft = (
   const document: DomainModelDocument = {
     manifest: {
       type: 'fm_model',
-      schemaVersion: '6.0',
+      schemaVersion: '7.0',
       id: options.modelId,
       name: draft.modelName,
       version: options.modelVersion ?? DEFAULT_VERSION,
@@ -760,6 +760,7 @@ export const compileIngestionDraft = (
     entities,
     relationships,
     rules,
+    stories: [],
   };
 
   return { document, writtenIds, droppedIds, issues };

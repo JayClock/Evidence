@@ -14,7 +14,7 @@ import {
 const document = (): DomainModelDocument => ({
   manifest: {
     type: 'fm_model',
-    schemaVersion: '6.0',
+    schemaVersion: '7.0',
     id: 'fulfillment-pair',
     name: '履约配对夹具（Fulfillment Pair Fixture）',
     version: '1.0.0',
@@ -153,6 +153,7 @@ const document = (): DomainModelDocument => ({
       contextRef: 'context.procurement',
     },
   ],
+  stories: [],
   relationships: [],
   rules: [],
 });

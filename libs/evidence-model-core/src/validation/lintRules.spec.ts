@@ -29,7 +29,7 @@ const calculatorThing = (id: string, label: string): EntityAST => ({
 const modelWith = (entities: readonly EntityAST[]): DomainModelDocument => ({
   manifest: {
     type: 'fm_model',
-    schemaVersion: '6.0',
+    schemaVersion: '7.0',
     id: 'advisory-fixture',
     name: '命名建议样例',
     version: '1.0.0',
@@ -37,6 +37,7 @@ const modelWith = (entities: readonly EntityAST[]): DomainModelDocument => ({
     entryContextRefs: ['context.pricing'],
   },
   entities: [...entities],
+  stories: [],
   relationships: [],
   rules: [],
 });

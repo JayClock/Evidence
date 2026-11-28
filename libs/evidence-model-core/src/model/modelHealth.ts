@@ -22,6 +22,12 @@ const WEIGHT: Record<Severity, number> = { priority: 3, review: 2, notice: 1 };
 
 type Rule = readonly [Dimension, Severity, string, string];
 const RULES = {
+  missing_story_step: [
+    'fulfillment',
+    'notice',
+    '凭证尚未出现在领域故事中',
+    '哪一步业务活动会产生这份凭证？',
+  ],
   dead_end_request: [
     'fulfillment',
     'priority',
@@ -197,6 +203,11 @@ export const inspectModelHealth = (graph: DomainGraph): ModelHealthReport => {
     }
   }
 
+  const covered = new Set(
+    graph.document.stories.flatMap((story) =>
+      story.steps.map((step) => step.workObjectRef),
+    ),
+  );
   const linkedConfirmations = new Set<string>();
   for (const {
     request,
@@ -205,7 +216,7 @@ export const inspectModelHealth = (graph: DomainGraph): ModelHealthReport => {
     breachRules,
   } of graph.fulfillmentPairs()) {
     const trace = { inquiry: { nodeId: request.id, kind: 'trace' } } as const;
-    const story = request.examples?.some(({ test }) => test?.flow)
+    const story = covered.has(request.id)
       ? { inquiry: { nodeId: request.id, kind: 'story' as const } }
       : undefined;
     const hasOutcome =
@@ -252,6 +263,7 @@ export const inspectModelHealth = (graph: DomainGraph): ModelHealthReport => {
         entity.kind === 'fulfillment_confirmation')
     ) {
       const trace = { inquiry: { nodeId: entity.id, kind: 'trace' } } as const;
+      check('missing_story_step', entity, !covered.has(entity.id), trace);
       const request = entity.kind === 'fulfillment_request';
       if (!request)
         check(

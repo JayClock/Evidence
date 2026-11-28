@@ -341,3 +341,36 @@ describe('evidence growth', () => {
     ).toThrow('request.unseen');
   });
 });
+
+it('commits a terminal handoff and its playable branch together', async () => {
+  const { createProcurementModel, createPaymentStory } = await import(
+    '../testing/modelFixture.js'
+  );
+  const { createModelSession } = await import(
+    '../session/createModelSession.js'
+  );
+  const model = createProcurementModel();
+  model.stories.push(createPaymentStory());
+  const session = createModelSession({ document: model });
+  session.mutate((d) =>
+    recordBreachOutcomeMutator(d, {
+      requestRef: 'request.payment',
+      condition: '未按期支付',
+      forkSource: { storyId: 'payment', stepId: 'request' },
+      outcome: {
+        kind: 'terminal_escalation',
+        remedyKind: 'arbitration',
+        handoff: { id: 'evidence.handoff', label: '仲裁移交' },
+      },
+    }),
+  );
+  expect(session.getDocument().stories[1]).toMatchObject({
+    kind: 'breach_branch',
+    forkedFrom: { storyId: 'payment', stepId: 'request' },
+    steps: [
+      { workObjectRef: 'evidence.handoff', basedOn: ['payment#request'] },
+    ],
+  });
+  expect(session.undo()).toBe(true);
+  expect(session.getDocument()).toEqual(model);
+});

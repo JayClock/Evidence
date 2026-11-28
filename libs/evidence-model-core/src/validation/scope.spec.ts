@@ -42,12 +42,8 @@ describe('model hand-off report v6', () => {
     expect([
       ...referencesOf({
         contextRef: 'context.owner',
-        examples: [
-          {
-            value: { contextRef: 'context.unrelated' },
-            test: { basedOn: ['contract.unrelated#sample'] },
-          },
-        ],
+        values: { contextRef: 'context.unrelated' },
+        inputs: { contractRef: 'contract.foreign' },
       }),
     ]).toEqual(['context.owner']);
   });

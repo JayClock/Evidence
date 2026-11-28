@@ -14,17 +14,17 @@ canvas and inspector consume, and the only sanctioned way to change it.
 ## Two source forms, one model
 
 The source of truth is the `.evidence/model/` directory: `model.json` and
-JSON files in `entities/`, `relationships/` and `rules/`. The core parses and
+JSON files in `entities/`, `relationships/`, `rules/` and `stories/`. The core parses and
 serializes those source files without touching disk. The static FM report (v6)
 proves consistency and scope completeness, not backend test execution.
 
-Acceptance cases live in `entities[].examples[].test`; `evidence export --tests`
-emits the Bruno collection. Retired `validation/` files are not model sources
+Domain stories declare ordered steps and optional fork anchors. The acceptance
+export expands their inherited steps into independent Bruno flows. Retired `validation/` files are not model sources
 and are not read or changed.
 
 Red lines enforced by the command layer, not by the caller:
 
-- ids are unique and well formed across entities, relationships and rules;
+- ids are unique and well formed across entities, relationships, rules and stories;
 - requests and confirmations belong to a Contract Context whose root Contract
   binds the responsible Party Role;
 - every evidence moment models its mandated business time as a required keyData

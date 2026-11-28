@@ -10,7 +10,10 @@ import {
   introduceFulfillmentPairMutator,
   toJsonPatches,
 } from '../index.js';
-import { createProcurementModel } from '../testing/modelFixture.js';
+import {
+  createPaymentStory,
+  createProcurementModel,
+} from '../testing/modelFixture.js';
 
 const base = () => createProcurementModel();
 const subject = () => createModelSession({ document: base() });
@@ -104,25 +107,18 @@ describe('RFC 6902 patch transactions', () => {
 
   it('supports escaped pointer keys and preserves numeric object keys', () => {
     const session = subject();
-    const index = session
-      .getDocument()
-      .entities.findIndex((entity) => entity.id === 'thing.product');
+    const story = createPaymentStory();
+    story.steps[0].values = { 'a/b~c': { '0': 'old' }, '': true };
     session.applyPatchBatch([
-      {
-        op: 'add',
-        path: `/entities/${index}/examples`,
-        value: [
-          { label: '实例', value: { 'a/b~c': { '0': 'old' }, '': true } },
-        ],
-      },
+      { op: 'add', path: '/stories/-', value: story },
       {
         op: 'replace',
-        path: `/entities/${index}/examples/0/value/a~1b~0c/0`,
+        path: '/stories/0/steps/0/values/a~1b~0c/0',
         value: 'new',
       },
-      { op: 'test', path: `/entities/${index}/examples/0/value/`, value: true },
+      { op: 'test', path: '/stories/0/steps/0/values/', value: true },
     ]);
-    expect(session.getDocument().entities[index].examples?.[0]?.value).toEqual({
+    expect(session.getDocument().stories[0].steps[0].values).toEqual({
       'a/b~c': { '0': 'new' },
       '': true,
     });

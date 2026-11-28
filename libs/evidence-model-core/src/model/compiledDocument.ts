@@ -14,6 +14,7 @@ export interface CompiledModelDocument {
   entities: DomainModelDocument['entities'];
   relationships: DomainModelDocument['relationships'];
   rules: DomainModelDocument['rules'];
+  stories: DomainModelDocument['stories'];
 }
 
 const byId = <TItem extends { id: string }>(items: readonly TItem[]): TItem[] =>
@@ -30,4 +31,5 @@ export const compiledDocument = (
   entities: byId(model.entities),
   relationships: byId(model.relationships),
   rules: byId(model.rules),
+  stories: byId(model.stories),
 });

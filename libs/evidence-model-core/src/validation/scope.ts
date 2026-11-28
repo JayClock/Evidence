@@ -53,9 +53,9 @@ export const referencesOf = (
   }
 
   for (const [key, item] of Object.entries(value)) {
-    // Inline test refs name examples, not model objects; only modeled ownership
-    // and relationship refs participate in responsibility scope selection.
-    if (key === 'examples') continue;
+    // Story payloads and HTTP assertions can contain arbitrary business keys.
+    if (['values', 'inputs', 'expect', 'pathParameters'].includes(key))
+      continue;
     if ((key.endsWith('Ref') || key === 'ref') && typeof item === 'string') {
       into.add(item);
     } else if (
@@ -218,7 +218,31 @@ export const selectScope = (
     }
   }
 
+  const eligible = new Set(
+    model.stories
+      .filter(
+        (story) =>
+          story.steps.every(
+            (step) =>
+              members.has(step.actorRef) &&
+              members.has(step.workObjectRef) &&
+              (!step.targetActorRef || members.has(step.targetActorRef)),
+          ) &&
+          (!story.forkedFrom?.triggerRuleRef ||
+            members.has(story.forkedFrom.triggerRuleRef)),
+      )
+      .map((story) => story.id),
+  );
+  // A scoped story must retain its entire source lineage.
+  let count: number;
+  do {
+    count = eligible.size;
+    for (const story of model.stories)
+      if (story.forkedFrom && !eligible.has(story.forkedFrom.storyId))
+        eligible.delete(story.id);
+  } while (count !== eligible.size);
   return {
+    stories: model.stories.filter((story) => eligible.has(story.id)),
     manifest: { ...model.manifest, entryContextRefs: [...scopeRefs] },
     entities: model.entities.filter((entity) => members.has(entity.id)),
     relationships: relations,

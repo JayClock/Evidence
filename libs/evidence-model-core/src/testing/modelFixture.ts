@@ -315,3 +315,52 @@ export function createProcurementModel(): DomainModelDocument {
     stories: [],
   };
 }
+
+export function createPaymentStory(): import('@evidence-poc/evidence-schema').DomainStoryAST {
+  const asOf = '2026-01-01T00:00:00Z';
+  return {
+    type: 'story',
+    id: 'payment',
+    title: '正常付款',
+    kind: 'primary',
+    steps: [
+      {
+        id: 'sign',
+        sequence: 1,
+        actorRef: 'role.buyer',
+        targetActorRef: 'role.seller',
+        activity: '签署',
+        workObjectRef: 'contract.procurement',
+        asOf,
+        basedOn: [],
+        values: { quantity: 2, signed_at: asOf },
+      },
+      {
+        id: 'request',
+        sequence: 2,
+        actorRef: 'role.seller',
+        targetActorRef: 'role.buyer',
+        activity: '发起',
+        workObjectRef: 'request.payment',
+        asOf,
+        basedOn: ['sign'],
+        values: {
+          started_at: asOf,
+          expired_at: '2026-01-01T01:00:00Z',
+          requested_minor_units: 200,
+        },
+      },
+      {
+        id: 'confirm',
+        sequence: 3,
+        actorRef: 'role.buyer',
+        targetActorRef: 'role.seller',
+        activity: '确认',
+        workObjectRef: 'confirmation.payment',
+        asOf: '2026-01-01T00:30:00Z',
+        basedOn: ['request'],
+        values: { confirmed_at: '2026-01-01T00:30:00Z', paid_minor_units: 200 },
+      },
+    ],
+  };
+}

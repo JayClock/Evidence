@@ -15,7 +15,7 @@ import { ModelMutationError } from './errors.js';
 const baseDocument = (): DomainModelDocument => ({
   manifest: {
     type: 'fm_model',
-    schemaVersion: '6.0',
+    schemaVersion: '7.0',
     id: 'attribute-commands',
     name: '属性命令夹具（Attribute Commands Fixture）',
     version: '1.0.0',
@@ -75,6 +75,7 @@ const baseDocument = (): DomainModelDocument => ({
       contextRef: 'context.procurement',
     },
   ],
+  stories: [],
   relationships: [],
   rules: [],
 });

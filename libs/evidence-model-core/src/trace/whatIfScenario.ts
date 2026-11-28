@@ -23,8 +23,7 @@ export interface WhatIfCompletionGap {
 
 type DerivationRule = RuleAST & { target: NonNullable<RuleAST['target']> };
 
-const exampleRef = (step: FlowStepTrace): string =>
-  `${step.entityId}#${step.exampleLabel}`;
+const stepRef = (step: FlowStepTrace) => `${step.storyId}#${step.stepId}`;
 
 /** Resolve the same causal inputs for challenge generation and sandbox decisions. */
 export function createWhatIfScenario(
@@ -32,40 +31,19 @@ export function createWhatIfScenario(
   steps: readonly FlowStepTrace[],
   current: FlowStepTrace,
 ) {
-  const stepsByRef = new Map<string, FlowStepTrace>();
-  const aliases = new Map<string, Set<FlowStepTrace>>();
-  for (const step of steps) {
-    const ref = exampleRef(step);
-    if (stepsByRef.has(ref)) throw new Error(`Ambiguous example '${ref}'.`);
-    stepsByRef.set(ref, step);
-    for (const value of [step.values.id, step.values.ref]) {
-      if (typeof value !== 'string' || value.length === 0) continue;
-      const matches = aliases.get(value) ?? new Set<FlowStepTrace>();
-      matches.add(step);
-      aliases.set(value, matches);
-    }
-  }
-  const resolveDependency = (ref: string): FlowStepTrace => {
-    const exact = stepsByRef.get(ref);
-    if (exact !== undefined) return exact;
-    const candidates = [...(aliases.get(ref) ?? [])];
-    if (candidates.length > 1)
-      throw new Error(`Ambiguous dependency '${ref}'.`);
-    const source = candidates[0];
-    if (source === undefined) throw new Error(`Missing dependency '${ref}'.`);
-    return source;
-  };
+  const stepsByRef = new Map(steps.map((step) => [stepRef(step), step]));
   const ancestors = (step: FlowStepTrace): FlowStepTrace[] => {
     const found = new Map<string, FlowStepTrace>();
     const visit = (consumer: FlowStepTrace): void => {
       for (const ref of consumer.basedOn) {
-        const source = resolveDependency(ref);
+        const source = stepsByRef.get(ref);
+        if (!source) throw new Error(`Missing dependency '${ref}'.`);
         if (source.sequence >= consumer.sequence) {
           throw new Error(
-            `Dependency '${ref}' must precede '${exampleRef(consumer)}'.`,
+            `Dependency '${ref}' must precede '${stepRef(consumer)}'.`,
           );
         }
-        const sourceRef = exampleRef(source);
+        const sourceRef = stepRef(source);
         if (!found.has(sourceRef)) {
           found.set(sourceRef, source);
           visit(source);
@@ -123,9 +101,9 @@ export function createWhatIfScenario(
     const materialized = new Map<string, Record<string, unknown>>();
     // Narration can read verified values without evaluating unrelated or speculative facts.
     const factsOf = (step: FlowStepTrace): Record<string, unknown> =>
-      materialized.get(exampleRef(step)) ?? {
+      materialized.get(stepRef(step)) ?? {
         ...step.values,
-        ...(exampleRef(step) === exampleRef(current) ? hypothesis.values : {}),
+        ...(stepRef(step) === stepRef(current) ? hypothesis.values : {}),
       };
     const bindingsFor = (
       rule: RuleAST,
@@ -160,7 +138,7 @@ export function createWhatIfScenario(
       return bindings;
     };
     const materialize = (step: FlowStepTrace): Record<string, unknown> => {
-      const ref = exampleRef(step);
+      const ref = stepRef(step);
       const cached = materialized.get(ref);
       if (cached !== undefined) return cached;
       const values = structuredClone(factsOf(step));
@@ -202,7 +180,7 @@ export function createWhatIfScenario(
               graph.document,
               rule,
               {
-                asOf: ref === exampleRef(current) ? asOf : step.asOf,
+                asOf: ref === stepRef(current) ? asOf : step.asOf,
                 bindings: bindingsFor(rule, step, values),
               },
             );

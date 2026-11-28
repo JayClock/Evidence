@@ -398,9 +398,12 @@ export function instantiateArchetypeMutator(
   const { model, contextRef } = buildArchetype(input);
   const occupied = new Set([
     draft.manifest.id,
-    ...[...draft.entities, ...draft.relationships, ...draft.rules].map(
-      ({ id }) => id,
-    ),
+    ...[
+      ...draft.entities,
+      ...draft.relationships,
+      ...draft.rules,
+      ...draft.stories,
+    ].map(({ id }) => id),
   ]);
   const createdIds = [
     ...model.entities,

@@ -1,125 +1,10 @@
-import { current, isDraft } from 'immer';
-import {
-  ModelExampleASTSchema,
-  type DomainModelDocument,
-  type ModelExampleAST,
-} from '@evidence-poc/evidence-schema';
-import { collectFlowScenarios } from '../trace/flowAggregator.js';
+import type { DomainModelDocument } from '@evidence-poc/evidence-schema';
+import { resolveStorySteps } from '../trace/storyResolver.js';
 import {
   evaluateRuleOnExample,
   validateTypedValue,
   jsonValuesEqual,
 } from '@evidence-poc/evidence-cel';
-
-export interface ScenarioExample {
-  entityRef: string;
-  example: ModelExampleAST;
-}
-export const scenarioExamples = (
-  model: DomainModelDocument,
-  flow: string,
-): ScenarioExample[] =>
-  model.entities.flatMap((entity) =>
-    (entity.examples ?? [])
-      .filter((e) => e.test?.flow === flow)
-      .map((example) => ({
-        entityRef: entity.id,
-        example: structuredClone(example),
-      })),
-  );
-
-/** Clone only examples; all references remain canonical and isolated to the new flow. */
-export const cloneScenarioExamples = (
-  model: DomainModelDocument,
-  sourceFlow: string,
-  targetFlow: string,
-): ScenarioExample[] => {
-  if (!targetFlow.trim() || sourceFlow === targetFlow)
-    throw new Error('请填写不同的新场景名称。');
-  const items = scenarioExamples(model, sourceFlow);
-  const refs = new Map(
-    items.map(({ entityRef, example }) => [
-      `${entityRef}#${example.label}`,
-      `${entityRef}#${example.label} · ${targetFlow}`,
-    ]),
-  );
-  return items.map(({ entityRef, example }) => ({
-    entityRef,
-    example: {
-      ...example,
-      label: `${example.label} · ${targetFlow}`,
-      test: {
-        ...example.test!,
-        flow: targetFlow,
-        ...(example.test?.basedOn
-          ? { basedOn: example.test.basedOn.map((ref) => refs.get(ref) ?? ref) }
-          : {}),
-        ...(example.test?.pathParameters
-          ? {
-              pathParameters: Object.fromEntries(
-                Object.entries(example.test.pathParameters).map(
-                  ([key, value]) => [
-                    key,
-                    {
-                      ...value,
-                      exampleRef:
-                        refs.get(value.exampleRef) ?? value.exampleRef,
-                    },
-                  ],
-                ),
-              ),
-            }
-          : {}),
-      },
-    },
-  }));
-};
-
-/** One transactional edit; incomplete but structurally valid examples stay authorable. */
-export const replaceScenarioExamples = (
-  draft: DomainModelDocument,
-  flow: string,
-  items: readonly ScenarioExample[],
-): void => {
-  if (!flow.trim()) throw new Error('请填写场景名称。');
-  const refs = new Set<string>();
-  for (const item of items) {
-    ModelExampleASTSchema.parse(item.example);
-    if (item.example.test?.flow !== flow)
-      throw new Error('用例必须属于当前场景。');
-    const entity = draft.entities.find((e) => e.id === item.entityRef);
-    if (!entity) throw new Error(`业务对象已删除：${item.entityRef}`);
-    for (const [name, value] of Object.entries(item.example.value)) {
-      const attribute = entity.attributes?.find((a) => a.name === name);
-      if (!attribute) throw new Error(`【${entity.label}】没有字段 ${name}。`);
-      const problem = validateTypedValue(
-        value,
-        attribute.valueType ?? 'dynamic',
-      );
-      if (problem)
-        throw new Error(`【${entity.label}.${attribute.label}】：${problem}`);
-    }
-    const ref = `${item.entityRef}#${item.example.label}`;
-    if (
-      refs.has(ref) ||
-      entity.examples?.some(
-        (e) => e.test?.flow !== flow && e.label === item.example.label,
-      )
-    )
-      throw new Error(`用例名称重复：${ref}`);
-    refs.add(ref);
-  }
-  for (const entity of draft.entities) {
-    const rest = (entity.examples ?? []).filter((e) => e.test?.flow !== flow);
-    const added = items
-      .filter((item) => item.entityRef === entity.id)
-      .map((item) => structuredClone(item.example));
-    if (rest.length || added.length) entity.examples = [...rest, ...added];
-    else if (entity.examples) delete entity.examples;
-  }
-  // Detect missing/cyclic/cross-flow dependencies before publishing a session edit.
-  collectFlowScenarios(isDraft(draft) ? current(draft) : draft);
-};
 
 export interface ScenarioEvaluation {
   ref: string;
@@ -133,39 +18,32 @@ export const evaluateScenario = (
   model: DomainModelDocument,
   flowId: string,
 ): readonly ScenarioEvaluation[] => {
-  const flow = collectFlowScenarios(model).find((f) => f.flowId === flowId);
-  if (!flow) return [];
+  if (!model.stories.some((story) => story.id === flowId)) return [];
+  const steps = resolveStorySteps(model, flowId);
   const facts = new Map<
     string,
     { entityRef: string; values: Record<string, unknown> }
   >();
   const ancestors = new Map<string, Set<string>>();
   const results: ScenarioEvaluation[] = [];
-  for (const step of flow.steps) {
-    const ref = `${step.entityId}#${step.exampleLabel}`;
-    const entity = model.entities.find((e) => e.id === step.entityId);
-    const example = entity?.examples?.find(
-      (e) => e.label === step.exampleLabel,
-    );
-    if (!entity || !example) throw new Error(`用例已不存在：${ref}`);
-    const negative = (example.test?.expectedStatus ?? 201) >= 400;
+  for (const step of steps) {
+    const ref = step.ref;
+    const entity = model.entities.find((e) => e.id === step.workObjectRef);
+    if (entity?.category !== 'evidence')
+      throw new Error(`Unknown work object at '${ref}'`);
+    const negative = (step.expectedStatus ?? 201) >= 400;
     const deps = new Set<string>();
-    for (const dependency of step.basedOn) {
-      const prior =
-        flow.steps.find(
-          (s) => `${s.entityId}#${s.exampleLabel}` === dependency,
-        ) ??
-        flow.steps.find(
-          (s) => s.values.id === dependency || s.values.ref === dependency,
-        );
-      if (prior) {
-        const key = `${prior.entityId}#${prior.exampleLabel}`;
-        deps.add(key);
-        for (const ancestor of ancestors.get(key) ?? []) deps.add(ancestor);
-      }
+    for (const key of [
+      ...step.basedOn,
+      ...Object.values(step.pathParameters ?? {}).map(
+        (source) => source.stepRef,
+      ),
+    ]) {
+      deps.add(key);
+      for (const ancestor of ancestors.get(key) ?? []) deps.add(ancestor);
     }
     ancestors.set(ref, deps);
-    const values = structuredClone(example.value);
+    const values = structuredClone(step.values);
     const result: ScenarioEvaluation = { ref, values, rules: [], gaps: [] };
     const derived = model.rules.filter(
       (r) => r.kind === 'derivation' && r.target?.entityRef === entity.id,
@@ -219,7 +97,7 @@ export const evaluateScenario = (
             const value = evaluate(rule);
             values[rule.target.attribute] = value;
             result.rules.push({ ruleRef: rule.id, label: rule.label, value });
-            const expected = example.value[rule.target.attribute];
+            const expected = step.values[rule.target.attribute];
             if (expected !== undefined && !jsonValuesEqual(expected, value))
               result.gaps.push(`【${rule.label}】计算值与填写的预期值不一致。`);
           } catch {
@@ -243,7 +121,7 @@ export const evaluateScenario = (
       }
       for (const rule of model.rules.filter(
         (r) =>
-          r.contextRef === step.contextRef &&
+          r.contextRef === entity.contextRef &&
           r.kind !== 'derivation' &&
           Object.values(r.bindings).some(
             (b) => 'ref' in b && b.ref === entity.id,

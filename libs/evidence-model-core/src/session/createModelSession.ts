@@ -73,15 +73,20 @@ export const extractAffectedIds = (
 ): readonly string[] => {
   const affected = new Set<string>();
   const previous = new Map(
-    [...before.entities, ...before.relationships, ...before.rules].map(
-      (item) => [item.id, item],
-    ),
+    [
+      ...before.entities,
+      ...before.relationships,
+      ...before.rules,
+      ...before.stories,
+    ].map((item) => [item.id, item]),
   );
   const next = new Map(
-    [...after.entities, ...after.relationships, ...after.rules].map((item) => [
-      item.id,
-      item,
-    ]),
+    [
+      ...after.entities,
+      ...after.relationships,
+      ...after.rules,
+      ...after.stories,
+    ].map((item) => [item.id, item]),
   );
   for (const [id, item] of [...previous, ...next]) {
     if (previous.get(id) === next.get(id)) continue;

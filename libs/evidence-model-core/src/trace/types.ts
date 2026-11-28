@@ -1,39 +1,43 @@
-import type { EntityAST } from '@evidence-poc/evidence-schema';
+import type {
+  EvidenceKind,
+  StoryForkAnchor,
+  StoryKind,
+} from '@evidence-poc/evidence-schema';
 
-/** The local business facts that participate in a step's cache identity. */
 export interface StepFingerprintInput {
   readonly entityId: string;
-  readonly entityKind: EntityAST['kind'];
-  readonly actingRoleRef?: string;
+  readonly entityKind: EvidenceKind;
+  readonly actorRef: string;
+  readonly activity: string;
+  readonly targetActorRef?: string;
   readonly asOf: string;
   readonly basedOn: readonly string[];
   readonly values: Readonly<Record<string, unknown>>;
   readonly derivedAssertions?: Readonly<Record<string, unknown>>;
+  readonly expectedStatus?: number;
 }
 
-/** A declared example's deterministic business-fact snapshot, not a test run. */
 export interface FlowStepTrace extends StepFingerprintInput {
+  /** Identity in the authoring story, including for inherited steps. */
+  readonly storyId: string;
+  readonly stepId: string;
+  readonly inherited: boolean;
   readonly sequence: number;
-  /** SHA-256 fingerprint, independent of sequence and presentation metadata. */
   readonly stepHash: string;
   readonly entityLabel: string;
   readonly contextRef?: string;
   readonly responsibleRoleRef?: string;
-  readonly exampleLabel: string;
-  /** Authored explanation from the owning example; not part of the fact fingerprint. */
   readonly description?: string;
-  /** Entity/attribute gaps from a caller-supplied FM check report. */
   readonly gaps: readonly string[];
 }
 
-/** A business flow in causal order, with time and example-ref tie breakers. */
 export interface FlowScenarioTrace {
   readonly flowId: string;
-  /** The declared flow ID; the model does not declare a separate flow title. */
   readonly flowTitle: string;
+  readonly kind: StoryKind;
+  readonly forkedFrom?: StoryForkAnchor;
   readonly involvedContextRefs: readonly string[];
   readonly involvedRoleRefs: readonly string[];
   readonly steps: readonly FlowStepTrace[];
-  /** Fingerprint of the ordered, concatenated step hashes. */
   readonly traceDigest: string;
 }

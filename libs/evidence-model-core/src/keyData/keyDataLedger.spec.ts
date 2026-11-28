@@ -7,7 +7,7 @@ import { buildKeyDataLedger, keyDataEntryOf } from './keyDataLedger.js';
 const document = (): DomainModelDocument => ({
   manifest: {
     type: 'fm_model',
-    schemaVersion: '6.0',
+    schemaVersion: '7.0',
     id: 'key-data-ledger',
     name: '关键数据夹具（Key Data Fixture）',
     version: '1.0.0',
@@ -92,6 +92,7 @@ const document = (): DomainModelDocument => ({
       contextRef: 'context.procurement',
     },
   ],
+  stories: [],
   relationships: [],
   rules: [
     {

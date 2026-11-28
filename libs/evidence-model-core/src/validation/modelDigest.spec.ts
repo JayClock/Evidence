@@ -15,7 +15,7 @@ describe('canonical model digest', () => {
   it('pins a complete model digest and ignores object key order', () => {
     const model = createProcurementModel();
     expect(digestOf(model)).toBe(
-      'sha256:ccf346727688c1945b6488b1fa5813f07b62ca37004eaedb16da69f77339bd0e',
+      'sha256:dbea3205f6855719be0255733d442515a135ad1b0f8a7ba8e69d285c6ca4d95c',
     );
     expect(digestOf({ z: model, a: 1 })).toBe(digestOf({ a: 1, z: model }));
   });

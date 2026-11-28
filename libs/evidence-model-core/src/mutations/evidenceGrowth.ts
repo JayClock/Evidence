@@ -22,6 +22,7 @@ import { completionExpressionFor } from '@evidence-poc/evidence-cel';
 import { createDomainGraph } from '../model/graph.js';
 import { addAttributeMutator } from './attributeMutations.js';
 import { bindDerivedRuleMutator } from './derivationMutations.js';
+import { forkStory, requireStory } from './storyMutations.js';
 import { createEntityMutator } from './entityMutations.js';
 import {
   bindBreachRuleMutator,
@@ -329,9 +330,8 @@ export const recordBreachOutcomeMutator = (
   draft: DomainModelDocument,
   input: RecordBreachOutcomeInput,
 ): OperatorResult => {
-  const { requestRef, condition, outcome, breachRule, forkExampleRef } =
+  const { requestRef, condition, outcome, breachRule, forkSource } =
     RecordBreachOutcomeInputSchema.parse(input);
-  const fork = forkExampleRef === undefined ? {} : { forkExampleRef };
   const original = requireEntity(draft, requestRef);
   if (!isFulfillmentRequest(original)) throw new Error('请选择原履约请求。');
   const { contextRef } = original;
@@ -346,6 +346,36 @@ export const recordBreachOutcomeMutator = (
   ) {
     throw new Error('这个触发条件已有处理分支，请在现有分支继续澄清。');
   }
+  const createBranch = (evidence: EvidenceEntityAST): string[] => {
+    if (!forkSource) return [];
+    const anchor = requireStory(draft, forkSource.storyId).steps.find(
+      (step) => step.id === forkSource.stepId,
+    );
+    if (!anchor) throw new Error(`Unknown fork anchor '${forkSource.stepId}'`);
+    const id = `${forkSource.storyId}.${evidence.id}`;
+    forkStory(draft, {
+      id,
+      title: evidence.label,
+      forkedFrom: {
+        ...forkSource,
+        reason: condition,
+        ...(breachRule && { triggerRuleRef: breachRule.id }),
+      },
+      steps: [
+        {
+          id: 'step-1',
+          sequence: 1,
+          actorRef: evidence.responsibleRoleRef ?? anchor.actorRef,
+          activity: outcome.kind === 'terminal_escalation' ? '提交' : '发起',
+          workObjectRef: evidence.id,
+          asOf: anchor.asOf,
+          basedOn: [`${forkSource.storyId}#${anchor.id}`],
+          values: {},
+        },
+      ],
+    });
+    return [id];
+  };
   const ruleIds =
     breachRule === undefined
       ? []
@@ -373,13 +403,14 @@ export const recordBreachOutcomeMutator = (
       kind: 'references',
       flowKind: 'escalation',
       terminalRemedyKind: outcome.remedyKind,
-      ...fork,
       sourceRef: handoff.id,
       targetRef: requestRef,
       label: '移交争议处理',
       notes: condition,
     });
-    return { createdIds: [...ruleIds, evidence.id, edge.id] };
+    return {
+      createdIds: [...ruleIds, evidence.id, edge.id, ...createBranch(evidence)],
+    };
   }
   const request = addRequest(draft, outcome.request, contextRef);
   const confirmation: EvidenceEntityAST = {
@@ -417,13 +448,20 @@ export const recordBreachOutcomeMutator = (
     id: `relation.${request.id}-compensates-${requestRef}`,
     kind: 'references',
     flowKind: 'breach_compensation',
-    ...fork,
     sourceRef: request.id,
     targetRef: requestRef,
     label: '补偿原履约请求',
     notes: condition,
   });
-  return { createdIds: [...ruleIds, request.id, confirmation.id, edge.id] };
+  return {
+    createdIds: [
+      ...ruleIds,
+      request.id,
+      confirmation.id,
+      edge.id,
+      ...createBranch(request),
+    ],
+  };
 };
 
 export const assignFulfillmentContextMutator = (

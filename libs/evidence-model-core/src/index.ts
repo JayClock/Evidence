@@ -26,11 +26,7 @@ export {
   validateTypedValue,
 } from '@evidence-poc/evidence-cel';
 export {
-  scenarioExamples,
-  cloneScenarioExamples,
-  replaceScenarioExamples,
   evaluateScenario,
-  type ScenarioExample,
   type ScenarioEvaluation,
 } from './scenario/scenarioStudio.js';
 export * from '@evidence-poc/evidence-ingestion';
@@ -122,11 +118,11 @@ export {
 export { digestOf } from './validation/modelDigest.js';
 
 export {
-  collectFlowScenarios,
+  resolveStoryTraces,
+  resolveStorySteps,
   computeStepHash,
-  FlowScenarioError,
-  type FlowScenarioErrorCode,
-} from './trace/flowAggregator.js';
+  type ResolvedStoryStep,
+} from './trace/storyResolver.js';
 export type {
   FlowScenarioTrace,
   FlowStepTrace,

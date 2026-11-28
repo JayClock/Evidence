@@ -90,12 +90,8 @@ export const buildFmCheckReport = (request: FmCheckRequest): FmCheckOutcome => {
       modelDigest: digest,
       inputChanged,
       modelValidated,
-      testExampleCount: target.entities.reduce(
-        (total, entity) =>
-          total +
-          (entity.examples ?? []).filter(
-            (example) => example.test !== undefined,
-          ).length,
+      testExampleCount: target.stories.reduce(
+        (count, story) => count + story.steps.length,
         0,
       ),
       errors,

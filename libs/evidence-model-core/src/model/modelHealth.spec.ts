@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   createEmptyDomainModel,
   type EntityAST,
+  type DomainStoryAST,
   type RelationshipAST,
 } from '@evidence-poc/evidence-schema';
 import { createDomainGraph } from './graph.js';
@@ -74,9 +75,15 @@ const time = (timeRole: 'start' | 'occurrence' | 'deadline') => ({
 const scan = (
   entities: EntityAST[] = [],
   relationships: RelationshipAST[] = [],
+  stories: DomainStoryAST[] = [],
 ) =>
   inspectModelHealth(
-    createDomainGraph({ ...createEmptyDomainModel(), entities, relationships }),
+    createDomainGraph({
+      ...createEmptyDomainModel(),
+      entities,
+      relationships,
+      stories,
+    }),
   );
 
 const request = {
@@ -126,24 +133,28 @@ describe('8X Flow health advisories', () => {
       'other_evidence',
       'context.contract',
     );
-    const first = [
+    const first = [request, result];
+    const stories: DomainStoryAST[] = [
       {
-        ...request,
-        examples: [
+        type: 'story',
+        id: 'delivery',
+        title: '交付',
+        kind: 'primary',
+        steps: [
           {
-            label: 'work starts',
-            value: {},
-            test: {
-              flow: 'delivery',
-              actingRoleRef: 'role.owner',
-              asOf: '2026-01-01T00:00:00Z',
-            },
+            id: 'start',
+            sequence: 1,
+            actorRef: 'role.owner',
+            activity: '发起',
+            workObjectRef: request.id,
+            asOf: '2026-01-01T00:00:00Z',
+            basedOn: [],
+            values: {},
           },
         ],
       },
-      result,
     ];
-    expect(scan(first, [binding]).issues).toContainEqual(
+    expect(scan(first, [binding], stories).issues).toContainEqual(
       expect.objectContaining({
         id: 'dead_end_request:request.work',
         inquiry: { kind: 'story', nodeId: request.id },
@@ -157,15 +168,21 @@ describe('8X Flow health advisories', () => {
     const findings = ids(scan(chain, edges));
     expect(findings).not.toContain('dead_end_request:request.work');
     expect(findings).toContain('unhedged_breach_chain:request.compensation');
-    const closed = scan(chain, [
-      ...edges,
-      edge(handoff.id, comp.id, {
-        flowKind: 'escalation',
-        terminalRemedyKind: 'lawsuit',
-      }),
-    ]);
+    const closed = scan(
+      chain,
+      [
+        ...edges,
+        edge(handoff.id, comp.id, {
+          flowKind: 'escalation',
+          terminalRemedyKind: 'lawsuit',
+        }),
+      ],
+      stories,
+    );
     expect(
-      closed.issues.map(({ code, inquiry }) => ({ code, inquiry })),
+      closed.issues
+        .filter((issue) => issue.code !== 'missing_story_step')
+        .map(({ code, inquiry }) => ({ code, inquiry })),
     ).toEqual([
       {
         code: 'missing_breach_rule',
@@ -213,6 +230,9 @@ describe('8X Flow health advisories', () => {
       'vacant_responsibility:confirmation.unbound',
       'unbound_party_role:role.owner',
       'unpaired_fulfillment_stub:confirmation.unbound',
+      'missing_story_step:confirmation.unbound',
+      'missing_story_step:confirmation.work',
+      'missing_story_step:request.work',
       'missing_subject_matter:request.work',
       'temporal_semantic_mismatch:confirmation.unbound',
     ]);
@@ -259,6 +279,8 @@ describe('8X Flow health advisories', () => {
     });
     expect(ids(report)).toEqual([
       'dead_end_request:request.work',
+      'missing_story_step:confirmation.work',
+      'missing_story_step:request.work',
       'orphan_subject_matter:thing.unused',
     ]);
   });

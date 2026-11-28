@@ -42,7 +42,8 @@ export const assertUniqueId = (
   const taken =
     document.entities.some((entity) => entity.id === id) ||
     document.relationships.some((relationship) => relationship.id === id) ||
-    document.rules.some((rule) => rule.id === id);
+    document.rules.some((rule) => rule.id === id) ||
+    document.stories.some((story) => story.id === id);
 
   if (taken) {
     fail('id.duplicate', `id '${id}' is already used by another model source.`);
