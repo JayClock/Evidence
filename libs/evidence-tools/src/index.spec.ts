@@ -141,8 +141,8 @@ describe('shared model tool registry', () => {
     );
     const result = await scan.run({ limit: 1 });
     expect(result.value).toMatchObject({
-      totalIssueCount: 2,
-      matchedIssueCount: 2,
+      totalIssueCount: 3,
+      matchedIssueCount: 3,
       issues: [{ id: `vacant_responsibility:${id}`, targetNodeId: id }],
     });
     expect(
@@ -428,4 +428,74 @@ describe('shared model tool registry', () => {
     expect(session.getDocument().entities).toEqual([]);
     expect(session.getDocument().manifest.name).toBe('手工修改');
   });
+});
+
+it('applies story tools through the host patch and history boundary', async () => {
+  const { session, tool } = setup();
+  session.mutate((d) => {
+    d.entities.push(
+      {
+        type: 'entity',
+        category: 'context',
+        kind: 'contract',
+        id: 'context.work',
+        label: '工作',
+      },
+      {
+        type: 'entity',
+        category: 'role',
+        kind: 'party',
+        id: 'role.owner',
+        label: '经办方',
+        contextRef: 'context.work',
+      },
+      {
+        type: 'entity',
+        category: 'evidence',
+        kind: 'other_evidence',
+        id: 'evidence.receipt',
+        label: '回执',
+      },
+    );
+  });
+  const step = {
+    id: 'record',
+    sequence: 1,
+    activity: '登记',
+    workObjectRef: 'evidence.receipt',
+    actorRef: 'role.owner',
+    asOf: '2026-01-01T00:00:00Z',
+    values: {},
+    basedOn: [],
+  };
+  await tool(names.createStory).run({
+    story: {
+      type: 'story',
+      kind: 'primary',
+      id: 'normal',
+      title: '登记',
+      steps: [step],
+    },
+  });
+  await tool(names.upsertStoryStep).run({
+    storyId: 'normal',
+    step: { ...step, activity: '核对' },
+  });
+  await tool(names.forkStory).run({
+    id: 'review',
+    title: '复核',
+    forkedFrom: { storyId: 'normal', stepId: 'record' },
+    steps: [{ ...step, basedOn: ['normal#record'] }],
+  });
+  expect(session.getDocument().stories.map((s) => s.id)).toEqual([
+    'normal',
+    'review',
+  ]);
+  expect(
+    (await tool(names.deleteStory).run({ storyId: 'normal' })).isError,
+  ).toBe(true);
+  await tool(names.deleteStory).run({ storyId: 'review' });
+  expect(session.getDocument().stories[0].steps[0].activity).toBe('核对');
+  expect(session.undo()).toBe(true);
+  expect(session.getDocument().stories).toHaveLength(2);
 });

@@ -38,7 +38,7 @@ const createClient = (
     document: {
       manifest: {
         type: 'fm_model' as const,
-        schemaVersion: '6.0' as const,
+        schemaVersion: '7.0' as const,
         id: 'product-procurement',
         name: '商品采购（Product Procurement）',
         version: '1.0.0',
@@ -47,6 +47,7 @@ const createClient = (
       },
       entities: [],
       relationships: [],
+      stories: [],
       rules: [],
     },
     summary: { contracts: 1, fulfillments: 1, entities: 0, rules: 0 },
@@ -169,7 +170,7 @@ const momentTime = (name: string) => ({
 const procurementDocument = (): DomainModelDocument => ({
   manifest: {
     type: 'fm_model',
-    schemaVersion: '6.0',
+    schemaVersion: '7.0',
     id: 'product-procurement',
     name: '商品采购（Product Procurement）',
     version: '1.0.0',
@@ -213,6 +214,7 @@ const procurementDocument = (): DomainModelDocument => ({
     },
   ],
   relationships: [],
+  stories: [],
   rules: [],
 });
 
@@ -263,6 +265,10 @@ describe('createEvidenceTools', () => {
       TOOL_NAMES.instantiateArchetypeTemplate,
       TOOL_NAMES.inspectContextMapTopology,
       TOOL_NAMES.applyModelPatch,
+      TOOL_NAMES.createStory,
+      TOOL_NAMES.upsertStoryStep,
+      TOOL_NAMES.forkStory,
+      TOOL_NAMES.deleteStory,
       TOOL_NAMES.batchAddEvidence,
       TOOL_NAMES.splitEvidenceToPair,
       TOOL_NAMES.linkProposalToRfp,
@@ -314,6 +320,10 @@ describe('createEvidenceTools', () => {
     expect(writers.map((tool) => tool.name)).toEqual([
       TOOL_NAMES.instantiateArchetypeTemplate,
       TOOL_NAMES.applyModelPatch,
+      TOOL_NAMES.createStory,
+      TOOL_NAMES.upsertStoryStep,
+      TOOL_NAMES.forkStory,
+      TOOL_NAMES.deleteStory,
       TOOL_NAMES.batchAddEvidence,
       TOOL_NAMES.splitEvidenceToPair,
       TOOL_NAMES.linkProposalToRfp,

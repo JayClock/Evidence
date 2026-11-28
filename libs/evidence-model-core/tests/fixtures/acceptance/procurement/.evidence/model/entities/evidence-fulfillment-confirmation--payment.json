@@ -38,47 +38,5 @@
       "valueType": "string",
       "required": false
     }
-  ],
-  "examples": [
-    {
-      "label": "confirmed",
-      "value": {
-        "id": "confirmation-001",
-        "total_amount": 500,
-        "confirmed_at": "2026-03-31T10:00:00Z"
-      },
-      "test": {
-        "flow": "payment",
-        "asOf": "2026-03-31T10:00:00Z",
-        "actingRoleRef": "role.buyer",
-        "basedOn": [
-          "request.payment#requested"
-        ]
-      }
-    },
-    {
-      "label": "bad-input",
-      "value": {
-        "id": "confirmation-001",
-        "total_amount": 500,
-        "confirmed_at": "2026-03-31T10:00:00Z"
-      },
-      "test": {
-        "flow": "payment",
-        "asOf": "2026-03-31T10:00:00Z",
-        "actingRoleRef": "role.buyer",
-        "basedOn": [
-          "request.payment#requested"
-        ],
-        "expectedStatus": 422,
-        "inputs": {
-          "id": "rejected-001",
-          "total_amount": 1
-        },
-        "expect": {
-          "$.error": "INVALID_INPUT"
-        }
-      }
-    }
   ]
 }

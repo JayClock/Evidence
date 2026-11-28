@@ -2,7 +2,7 @@ import { fileURLToPath } from 'node:url';
 
 import {
   buildFmCheckReport,
-  collectFlowScenarios,
+  resolveStoryTraces,
   buildDeterministicFallbackChallenges,
   createDomainGraph,
   whatIfDecisionRules,
@@ -52,7 +52,7 @@ describe('M1 trace to M2 story integration', () => {
         'results.exists(c, request.target_amount_minor > c.amount_minor)',
     });
     const graph = createDomainGraph(model);
-    const flow = collectFlowScenarios(model)[0]!;
+    const flow = resolveStoryTraces(model)[0]!;
     const cardsFor = (entityId: string) => {
       const step = flow.steps.find((step) => step.entityId === entityId)!;
       return buildDeterministicFallbackChallenges(
@@ -79,7 +79,7 @@ describe('M1 trace to M2 story integration', () => {
       {
         model,
         flow,
-        currentStepSequence: request.sequence,
+        currentStep: { storyId: request.storyId, stepId: request.stepId },
         hypothesisQuestion: overdueCard!.question,
         hypothesis: overdueCard!.hypothesisDraft,
       },
@@ -166,7 +166,7 @@ describe('M1 trace to M2 story integration', () => {
       {
         model,
         flow,
-        currentStepSequence: receipt.sequence,
+        currentStep: { storyId: receipt.storyId, stepId: receipt.stepId },
         hypothesisQuestion: deficit.question,
         hypothesis: deficit.hypothesisDraft,
         ruleId: deficit.targetedRuleId,
@@ -192,7 +192,7 @@ describe('M1 trace to M2 story integration', () => {
     async (name) => {
       const model = await acceptanceModel(name);
       const { report } = buildFmCheckReport({ model });
-      const flows = collectFlowScenarios(model, report);
+      const flows = resolveStoryTraces(model, report);
       const generate = vi.fn().mockResolvedValue({
         headline: '核对业务凭证',
         prose: '核对业务凭证。',
@@ -223,11 +223,13 @@ describe('M1 trace to M2 story integration', () => {
       expect(initialCalls).toBe(
         flows.reduce((count, flow) => count + flow.steps.length, 0),
       );
-      model.entities.find(
-        ({ id }) => id === 'request.payment',
-      )!.examples![0]!.value.quantity = 12;
+      model.stories
+        .flatMap((s) => s.steps)
+        .find(
+          (step) => step.workObjectRef === 'request.payment',
+        )!.values.quantity = 12;
       const nextReport = buildFmCheckReport({ model }).report;
-      for (const flow of collectFlowScenarios(model, nextReport))
+      for (const flow of resolveStoryTraces(model, nextReport))
         await projector.project(flow, model);
       expect(generate).toHaveBeenCalledTimes(initialCalls + 1);
     },
@@ -250,10 +252,8 @@ describe('M1 trace to M2 story integration', () => {
         'payment.confirmed_at > request.expired_at && payment.total_amount > 0.0',
       resultType: 'bool',
     });
-    const flow = collectFlowScenarios(model)[0]!;
-    const current = flow.steps.find(
-      ({ exampleLabel }) => exampleLabel === 'confirmed',
-    )!;
+    const flow = resolveStoryTraces(model)[0]!;
+    const current = flow.steps.find(({ stepId }) => stepId === 'confirmed')!;
     const generate = vi.fn().mockResolvedValue({
       businessImpactExplanation:
         '本次付款超过合同约定的付款期限，触发逾期判定。',
@@ -262,7 +262,7 @@ describe('M1 trace to M2 story integration', () => {
       {
         model,
         flow,
-        currentStepSequence: current.sequence,
+        currentStep: { storyId: current.storyId, stepId: current.stepId },
         hypothesisQuestion: '如果4月2日才付款会怎样？',
         hypothesis: {
           asOf: '2026-04-02T10:00:00Z',

@@ -60,19 +60,21 @@ export async function simulateWhatIf(
   const {
     model,
     flow,
-    currentStepSequence,
+    currentStep,
     hypothesisQuestion,
     ruleId,
     allowSpeculative,
     hypothesis: suppliedHypothesis,
   } = structuredClone(input);
   const selected = flow.steps.filter(
-    (step) => step.sequence === currentStepSequence,
+    (step) =>
+      step.storyId === currentStep.storyId &&
+      step.stepId === currentStep.stepId,
   );
   const current = selected[0];
   if (selected.length !== 1 || current === undefined) {
     throw new Error(
-      `What-If requires one current step at sequence ${currentStepSequence}.`,
+      `What-If requires one current step at '${currentStep.storyId}#${currentStep.stepId}'.`,
     );
   }
   const graph = createDomainGraph(model);

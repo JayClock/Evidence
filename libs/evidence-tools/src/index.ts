@@ -7,6 +7,9 @@ import {
   BusinessArchetypeIdSchema,
   DomainCalculatorIntentSchema,
   DomainIdSchema,
+  DomainStoryASTSchema,
+  StoryStepASTSchema,
+  StoryForkAnchorSchema,
   DomainModelDocumentSchema,
   IdentifySubjectMatterInputSchema,
   InstantiateArchetypeInputSchema,
@@ -25,6 +28,10 @@ import {
   bindKeyDataSourceMutator,
   bindPartyRoleMutator,
   createDomainGraph,
+  createStory,
+  upsertStoryStep,
+  forkStory,
+  deleteStory,
   createModelPatch,
   deriveContextMapGraph,
   getBusinessArchetype,
@@ -46,6 +53,10 @@ export const MODEL_TOOL_NAMES = {
   instantiateArchetypeTemplate: 'instantiate_archetype_template',
   inspectContextMapTopology: 'inspect_context_map_topology',
   applyModelPatch: 'apply_model_patch',
+  createStory: 'create_story',
+  upsertStoryStep: 'upsert_story_step',
+  forkStory: 'fork_story',
+  deleteStory: 'delete_story',
   batchAddEvidence: 'batch_add_evidence_stubs',
   splitEvidenceToPair: 'split_evidence_to_pair',
   linkProposalToRfp: 'link_proposal_to_rfp',
@@ -223,6 +234,55 @@ export const createModelTools = (
               isError: true,
             };
       },
+    }),
+    define({
+      name: MODEL_TOOL_NAMES.createStory,
+      label: '创建领域故事',
+      description: '将已确认的角色、动作、工作对象及事实写为一个完整故事。',
+      parameters: z.object({ story: DomainStoryASTSchema }).strict(),
+      run: ({ story }) =>
+        runOperator('创建领域故事', (draft) => {
+          createStory(draft, story);
+          return { createdIds: [story.id] };
+        }),
+    }),
+    define({
+      name: MODEL_TOOL_NAMES.upsertStoryStep,
+      label: '更新故事步骤',
+      description: '按故事和步骤 ID 新增或更新一个本地步骤。',
+      parameters: z
+        .object({ storyId: DomainIdSchema, step: StoryStepASTSchema })
+        .strict(),
+      run: ({ storyId, step }) =>
+        runOperator('更新故事步骤', (draft) => {
+          upsertStoryStep(draft, storyId, step);
+          return { createdIds: [] };
+        }),
+    }),
+    define({
+      name: MODEL_TOOL_NAMES.forkStory,
+      label: '创建故事分支',
+      description: '从父故事的指定步骤继承前缀，写入分支自己的步骤。',
+      parameters: DomainStoryASTSchema.innerType()
+        .omit({ type: true, kind: true })
+        .extend({ forkedFrom: StoryForkAnchorSchema })
+        .strict(),
+      run: (input) =>
+        runOperator('创建故事分支', (draft) => {
+          forkStory(draft, input);
+          return { createdIds: [input.id] };
+        }),
+    }),
+    define({
+      name: MODEL_TOOL_NAMES.deleteStory,
+      label: '删除故事',
+      description: '删除指定故事，仍有子故事引用时拒绝删除。',
+      parameters: z.object({ storyId: DomainIdSchema }).strict(),
+      run: ({ storyId }) =>
+        runOperator('删除故事', (draft) => {
+          deleteStory(draft, storyId);
+          return { createdIds: [] };
+        }),
     }),
     define({
       name: MODEL_TOOL_NAMES.batchAddEvidence,

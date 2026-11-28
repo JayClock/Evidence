@@ -19,16 +19,17 @@ const contract = stepFixture({
   entityId: 'contract.purchase',
   entityKind: 'contract',
   entityLabel: '采购合同',
-  exampleLabel: '首单',
+  stepId: 'sign',
+  activity: '签署',
   values: { id: 'CT-088' },
 });
 const request = stepFixture({
   sequence: 2,
-  basedOn: ['CT-088', 'contract.purchase#首单'],
+  basedOn: ['purchase#sign'],
   values: {
     id: 'PAY-1',
     amount: { currency: 'CNY', minorUnits: 10000025 },
-    agreement: 'contract.purchase#首单',
+    agreement: 'purchase#sign',
     deadline: '2026-04-06T16:00:00+08:00',
   },
 });
@@ -37,8 +38,11 @@ const confirmation = stepFixture({
   entityId: 'confirmation.payment',
   entityKind: 'fulfillment_confirmation',
   entityLabel: '支付确认单',
-  basedOn: ['PAY-1'],
-  actingRoleRef: 'role.buyer',
+  basedOn: ['purchase#request'],
+  stepId: 'confirm',
+  activity: '记录',
+  targetActorRef: 'role.seller',
+  actorRef: 'role.buyer',
 });
 
 const modelFixture = () => {
@@ -67,18 +71,6 @@ const modelFixture = () => {
       label: confirmation.entityLabel,
       contextRef: context.id,
       responsibleRoleRef: 'role.buyer',
-      examples: [
-        {
-          label: '不予受理',
-          value: {},
-          test: {
-            expectedStatus: 422,
-            asOf: confirmation.asOf,
-            flow: 'purchase',
-            actingRoleRef: 'role.buyer',
-          },
-        },
-      ],
     },
   );
   model.relationships.push({
@@ -140,7 +132,7 @@ it('projects a deterministic DST handoff from both dependency forms, with locali
       ]),
     },
     narrative: {
-      headline: '供应商销售部要求买方财务部支付采购货款（《付款申请单》）',
+      headline: '供应商销售部向买方财务部提交《付款申请单》',
       prose: expect.stringContaining(
         '承接第 1 步中供应商销售部经手的《采购合同》',
       ),
@@ -149,7 +141,7 @@ it('projects a deterministic DST handoff from both dependency forms, with locali
   });
   expect(facts.scenes[2]?.activity.recipient?.roleLabel).toBe('供应商销售部');
   expect(facts.scenes[2]?.narrative.headline).toBe(
-    '买方财务部记录「支付采购货款」的履约确认（《支付确认单》）',
+    '买方财务部向供应商销售部记录《支付确认单》',
   );
   expect(facts.scenes[1]?.narrative.prose).not.toMatch(
     /办理|规则判定|contract\.purchase/u,
@@ -177,7 +169,7 @@ it('keeps the obligation on the contract even when a different actor records the
     flowFixture([
       contract,
       request,
-      { ...confirmation, actingRoleRef: 'role.seller' },
+      { ...confirmation, actorRef: 'role.seller' },
     ]),
     modelFixture(),
   ).scenes[2]!;
@@ -188,17 +180,17 @@ it('keeps the obligation on the contract even when a different actor records the
       obligor: { roleId: 'role.buyer' },
     },
   ]);
-  expect(scene.narrative.headline).toContain('供应商销售部记录');
+  expect(scene.narrative.headline).toContain('记录《支付确认单》');
   expect(scene.narrative.headline).not.toContain('已支付');
 });
 
 it('does not guess an obligation from a document name or an ambiguous request instance', () => {
   const missing = projectStoryFacts(flowFixture([request])).scenes[0]!;
-  expect(missing.narrative.headline).toContain('履约动作待明确');
+  expect(missing.narrative.headline).toContain('提交《付款申请单》');
   const second = {
     ...request,
     sequence: 3,
-    exampleLabel: '第二笔',
+    stepId: 'second',
     values: { id: 'PAY-2' },
   };
   const scene = projectStoryFacts(
@@ -206,11 +198,15 @@ it('does not guess an obligation from a document name or an ambiguous request in
       contract,
       request,
       second,
-      { ...confirmation, sequence: 4, basedOn: ['PAY-1', 'PAY-2'] },
+      {
+        ...confirmation,
+        sequence: 4,
+        basedOn: ['purchase#request', 'purchase#second'],
+      },
     ]),
     modelFixture(),
   ).scenes[3]!;
-  expect(scene.narrative.headline).toContain('关联请求未明确');
+  expect(scene.narrative.headline).toContain('记录《支付确认单》');
   expect(scene.activity.fulfillment?.requests).toEqual([]);
 });
 
@@ -219,12 +215,12 @@ it('keeps a rejected confirmation as an attempt, not a result', () => {
     flowFixture([
       contract,
       request,
-      { ...confirmation, exampleLabel: '不予受理' },
+      { ...confirmation, stepId: 'rejected', expectedStatus: 422 },
     ]),
     modelFixture(),
   ).scenes[2]!;
   expect(scene.activity.rejectedExample).toBe(true);
-  expect(scene.narrative.headline).toContain('尝试记录');
+  expect(scene.narrative.headline).toContain('尝试向供应商销售部记录');
   expect(scene.narrative.prose).toContain('预期不予受理');
 });
 
@@ -261,7 +257,7 @@ it('accumulates authored explanations and generated drafts in strict order', asy
       { stepIndex: 1, summary: authored.description },
       {
         stepIndex: 2,
-        headline: '供应商销售部要求买方财务部支付采购货款（《付款申请单》）',
+        headline: '供应商销售部向买方财务部提交《付款申请单》',
         summary: draft.prose,
       },
     ],
@@ -288,7 +284,7 @@ it('keys drafts by story history and local facts, and validates model output', a
   await expect(
     narrator.enrichStep(scene, history, { flowId: 'purchase' }),
   ).resolves.toEqual({
-    narrative: draft,
+    narrative: { ...draft, headline: scene.narrative.headline },
     cached: false,
   });
   await expect(
@@ -296,7 +292,10 @@ it('keys drafts by story history and local facts, and validates model output', a
       flowId: 'purchase',
       cacheOnly: true,
     }),
-  ).resolves.toEqual({ narrative: draft, cached: true });
+  ).resolves.toEqual({
+    narrative: { ...draft, headline: scene.narrative.headline },
+    cached: true,
+  });
   const revised = [{ ...history[0]!, summary: '账期为五天' }];
   await expect(
     narrator.enrichStep(scene, revised, {
@@ -351,19 +350,17 @@ it('retries a malformed challenge list without regenerating prose and keeps auth
   const first = await narrator.enrichStep(scene, [], options);
   expect(first?.narrative.prose).toBe(draft.prose);
   expect(first?.challenges).toBeUndefined();
-  generate
-    .mockClear()
-    .mockResolvedValue({
-      challenges: [
-        {
-          ...card,
-          id: 'raw-date',
-          question: '如果到 2026-04-01T10:00:00Z 才付款呢？',
-        },
-        { ...card, id: 'raw-unit', label: '少付一个最小货币单位' },
-        card,
-      ],
-    });
+  generate.mockClear().mockResolvedValue({
+    challenges: [
+      {
+        ...card,
+        id: 'raw-date',
+        question: '如果到 2026-04-01T10:00:00Z 才付款呢？',
+      },
+      { ...card, id: 'raw-unit', label: '少付一个最小货币单位' },
+      card,
+    ],
+  });
   const retry = await narrator.enrichStep(scene, [], options);
   expect(retry?.challenges).toEqual([
     { ...card, targetedRuleId: 'rule.deficit' },

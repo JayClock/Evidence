@@ -31,27 +31,5 @@
       "required": true,
       "derivedByRuleRef": "rule.deposit-amount"
     }
-  ],
-  "examples": [
-    {
-      "label": "deposit-confirmed",
-      "value": {
-        "id": "deposit-confirmation-001",
-        "deposit_amount": 100,
-        "confirmed_at": "2026-03-31T10:00:00Z"
-      },
-      "test": {
-        "flow": "deposit",
-        "tags": [
-          "dod",
-          "deposit"
-        ],
-        "asOf": "2026-03-31T10:00:00Z",
-        "actingRoleRef": "role.buyer",
-        "basedOn": [
-          "request.deposit#deposit-requested"
-        ]
-      }
-    }
   ]
 }

@@ -87,6 +87,8 @@ export const createStoryNarrator = ({
         storyHistory,
         prerequisites,
         currentActivity: {
+          storyId: scene.storyId,
+          stepId: scene.stepId,
           stepIndex: scene.stepIndex,
           asOf: timing.displayDate,
           actor: activity.actor.roleLabel,
@@ -151,9 +153,7 @@ export const createStoryNarrator = ({
         });
         signal.throwIfAborted();
         const draft = NarrationSchema.parse(responseObject(response));
-        return activity.fulfillment
-          ? { ...draft, headline: scene.narrative.headline }
-          : draft;
+        return { ...draft, headline: scene.narrative.headline };
       };
       const [narrative, challenges] = await Promise.all([
         existingProse ?? abortable(signal, narrate),

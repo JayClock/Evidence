@@ -33,7 +33,7 @@ const momentTime = (name: string, label: string) => ({
 const createOrchestratorModel = (): DomainModelDocument => ({
   manifest: {
     type: 'fm_model',
-    schemaVersion: '6.0',
+    schemaVersion: '7.0',
     id: 'orchestrator-fixture',
     name: '采购夹具（Orchestrator Fixture）',
     version: '1.0.0',
@@ -100,6 +100,7 @@ const createOrchestratorModel = (): DomainModelDocument => ({
     },
   ],
   relationships: [],
+  stories: [],
   rules: [],
 });
 

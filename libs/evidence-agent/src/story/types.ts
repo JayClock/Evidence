@@ -70,6 +70,9 @@ export interface StoryNarrativeText {
 export interface StoryScene {
   /** The trace's one-based sequence, assigned by the projector, never the LLM. */
   readonly stepIndex: number;
+  readonly storyId: string;
+  readonly stepId: string;
+  readonly inherited: boolean;
   readonly stepHash: string;
   readonly timing: {
     readonly rawIso: string;
@@ -117,7 +120,7 @@ export type {
 export interface WhatIfInput {
   readonly model: DomainModelDocument;
   readonly flow: FlowScenarioTrace;
-  readonly currentStepSequence: number;
+  readonly currentStep: { readonly storyId: string; readonly stepId: string };
   readonly hypothesisQuestion: string;
   /** Bypass natural-language extraction for reproducible callers/tests. */
   readonly hypothesis?: WhatIfHypothesis;

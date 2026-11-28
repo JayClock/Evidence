@@ -1,0 +1,83 @@
+{
+  "type": "story",
+  "id": "payment",
+  "kind": "primary",
+  "title": "payment",
+  "steps": [
+    {
+      "id": "signed",
+      "sequence": 1,
+      "actorRef": "role.buyer",
+      "activity": "签署",
+      "workObjectRef": "contract.agreement",
+      "targetActorRef": "role.seller",
+      "asOf": "2026-03-31T10:00:00Z",
+      "basedOn": [],
+      "values": {
+        "id": "agreement-001",
+        "signed_at": "2026-03-31T10:00:00Z"
+      }
+    },
+    {
+      "id": "requested",
+      "sequence": 2,
+      "actorRef": "role.seller",
+      "activity": "发起",
+      "workObjectRef": "request.payment",
+      "targetActorRef": "role.buyer",
+      "asOf": "2026-03-31T10:00:00Z",
+      "basedOn": [
+        "signed"
+      ],
+      "values": {
+        "id": "request-001",
+        "quantity": 10,
+        "unit_price": 50,
+        "started_at": "2026-03-31T10:00:00Z",
+        "expired_at": "2026-04-01T10:00:00Z"
+      }
+    },
+    {
+      "id": "bad-input",
+      "sequence": 3,
+      "actorRef": "role.buyer",
+      "activity": "出具",
+      "workObjectRef": "confirmation.payment",
+      "targetActorRef": "role.seller",
+      "asOf": "2026-03-31T10:00:00Z",
+      "basedOn": [
+        "requested"
+      ],
+      "values": {
+        "id": "confirmation-001",
+        "total_amount": 500,
+        "confirmed_at": "2026-03-31T10:00:00Z"
+      },
+      "expectedStatus": 422,
+      "inputs": {
+        "id": "rejected-001",
+        "total_amount": 1
+      },
+      "expect": {
+        "$.error": "INVALID_INPUT"
+      }
+    },
+    {
+      "id": "confirmed",
+      "sequence": 4,
+      "actorRef": "role.buyer",
+      "activity": "出具",
+      "workObjectRef": "confirmation.payment",
+      "targetActorRef": "role.seller",
+      "asOf": "2026-03-31T10:00:00Z",
+      "basedOn": [
+        "requested"
+      ],
+      "values": {
+        "id": "confirmation-001",
+        "total_amount": 500,
+        "confirmed_at": "2026-03-31T10:00:00Z"
+      }
+    }
+  ]
+}

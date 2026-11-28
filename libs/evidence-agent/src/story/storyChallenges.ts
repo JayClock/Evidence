@@ -51,6 +51,9 @@ export function storyChallengeContext({
       rules,
       isRequest: current.entityKind === 'fulfillment_request',
       facts: {
+        storyId: current.storyId,
+        stepId: current.stepId,
+        activity: current.activity,
         asOf: current.asOf,
         expectedConfirmations: graph
           .fulfillmentPair(current.entityId)
@@ -58,6 +61,8 @@ export function storyChallengeContext({
         inputAttributes: scenario.inputAttributes,
         currentValues: baseline.valuesOf(current),
         commitments: scenario.upstream.map((step) => ({
+          storyId: step.storyId,
+          stepId: step.stepId,
           document: step.entityLabel,
           entityId: step.entityId,
           asOf: step.asOf,

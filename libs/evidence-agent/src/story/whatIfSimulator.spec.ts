@@ -96,7 +96,7 @@ const fixture = (): { -readonly [K in keyof StrictInput]: StrictInput[K] } => {
     },
   );
   const request = stepFixture({
-    exampleLabel: '付款申请',
+    stepId: 'request',
     values: { amount: 100, expired_at: '2026-04-01T23:59:59Z' },
   });
   const payment = stepFixture({
@@ -104,9 +104,10 @@ const fixture = (): { -readonly [K in keyof StrictInput]: StrictInput[K] } => {
     entityId: 'confirmation.payment',
     entityKind: 'fulfillment_confirmation',
     entityLabel: '付款确认单',
-    exampleLabel: '付款确认',
-    actingRoleRef: 'role.buyer',
-    basedOn: ['request.payment#付款申请'],
+    stepId: 'confirm',
+    targetActorRef: 'role.seller',
+    actorRef: 'role.buyer',
+    basedOn: ['purchase#request'],
     values: {
       ref: 'PAY-2',
       confirmed_at: '2026-04-01T12:00:00Z',
@@ -117,7 +118,7 @@ const fixture = (): { -readonly [K in keyof StrictInput]: StrictInput[K] } => {
   return {
     model,
     flow: flowFixture([request, payment]),
-    currentStepSequence: 2,
+    currentStep: { storyId: 'purchase', stepId: 'confirm' },
     hypothesisQuestion: '如果买方在4月2号才付款会怎样？',
   };
 };
@@ -249,7 +250,7 @@ describe('native CEL What-If sandbox', () => {
 
   it('infers a request breach only after its effective deadline when its sole completion decision is false', async () => {
     const input = fixture();
-    input.currentStepSequence = 1;
+    input.currentStep = { storyId: 'purchase', stepId: 'request' };
     const due = '2026-04-01T23:59:59Z';
     const later = '2026-04-02T00:00:00Z';
     const simulate = (asOf: string, values?: Record<string, unknown>) =>
@@ -291,7 +292,7 @@ describe('native CEL What-If sandbox', () => {
     input.model.rules.pop();
     input.model.rules[0]!.expression = 'payment == null';
     expect((await simulate(later)).completionGap).toBeUndefined();
-    input.currentStepSequence = 2;
+    input.currentStep = { storyId: 'purchase', stepId: 'confirm' };
     completion.expression = 'payment.paid_amount > 100';
     expect((await simulate(later)).completionGap).toBeUndefined();
   });
@@ -304,7 +305,7 @@ describe('native CEL What-If sandbox', () => {
     const result = await simulateWhatIf(
       {
         ...input,
-        currentStepSequence: 1,
+        currentStep: { storyId: 'purchase', stepId: 'request' },
         hypothesis: { asOf: '2026-04-02T00:00:00Z' },
       },
       { agent: { generate } },
@@ -363,7 +364,7 @@ describe('native CEL What-If sandbox', () => {
 
   it('keeps the same grounded local story when an optional provider is offline or a required explanation repeats instructions', async () => {
     const input = fixture();
-    input.currentStepSequence = 1;
+    input.currentStep = { storyId: 'purchase', stepId: 'request' };
     input.ruleId = 'rule.payment-completion';
     input.model.rules[1]!.bindings = { request: { ref: 'request.payment' } };
     input.model.rules[1]!.expression = 'request.amount >= 100';
@@ -395,7 +396,7 @@ describe('native CEL What-If sandbox', () => {
 
   it('injects only the explicit asOf into a request deadline rule, with no wall clock', async () => {
     const input = fixture();
-    input.currentStepSequence = 1;
+    input.currentStep = { storyId: 'purchase', stepId: 'request' };
     input.ruleId = 'rule.deadline';
     input.model.rules.push({
       type: 'rule',
@@ -483,17 +484,17 @@ describe('native CEL What-If sandbox', () => {
     const second = stepFixture({
       ...first,
       sequence: 2,
-      exampleLabel: '第二笔',
+      stepId: 'second',
       values: { ...first.values, amount: 50 },
-      basedOn: ['request.payment#付款申请'],
+      basedOn: ['purchase#request'],
     });
     const payment = {
       ...input.flow.steps[1]!,
       sequence: 3,
-      basedOn: ['request.payment#第二笔'],
+      basedOn: ['purchase#second'],
     };
     input.flow = flowFixture([first, second, payment]);
-    input.currentStepSequence = 3;
+    input.currentStep = { storyId: 'purchase', stepId: 'confirm' };
     input.model.rules = [
       {
         type: 'rule',
@@ -591,14 +592,14 @@ describe('native CEL What-If sandbox', () => {
     const request = input.flow.steps[0]!;
     input.flow = flowFixture([
       request,
-      { ...request, sequence: 2, exampleLabel: 'another' },
+      { ...request, sequence: 2, stepId: 'another' },
       {
         ...input.flow.steps[1]!,
         sequence: 3,
-        basedOn: ['request.payment#付款申请', 'request.payment#another'],
+        basedOn: ['purchase#request', 'purchase#another'],
       },
     ]);
-    input.currentStepSequence = 3;
+    input.currentStep = { storyId: 'purchase', stepId: 'confirm' };
     input.hypothesis = { values: { paid_amount: 50 } };
     const generate = vi.fn().mockResolvedValue(explanation);
     await expect(
@@ -631,7 +632,7 @@ describe('native CEL What-If sandbox', () => {
       .mockResolvedValue({ ruleOutcome: { result: false } });
     await expect(
       simulateWhatIf(
-        { ...input, currentStepSequence: 99 },
+        { ...input, currentStep: { storyId: 'purchase', stepId: 'absent' } },
         { agent: { generate } },
       ),
     ).rejects.toThrow('current step');
@@ -647,33 +648,13 @@ describe('native CEL What-If sandbox', () => {
     expect(generate).toHaveBeenCalledOnce();
   });
 
-  it('resolves M1 id/ref dependency aliases and deduplicates an alias plus exact reference', async () => {
+  it('resolves only authored step dependencies', async () => {
     const input = fixture();
-    const request = input.flow.steps[0]!;
-    Object.assign(request.values, { id: 'request-001', ref: 'payment-claim' });
     input.flow = flowFixture([
-      request,
-      {
-        ...input.flow.steps[1]!,
-        basedOn: ['request-001', 'request.payment#付款申请', 'payment-claim'],
-      },
+      input.flow.steps[0]!,
+      { ...input.flow.steps[1]!, basedOn: ['unrelated-business-id'] },
     ]);
-    input.hypothesis = { values: { paid_amount: 50 } };
-    const generate = vi.fn().mockResolvedValue(explanation);
-    expect(
-      (await simulateWhatIf(input, { agent: { generate } })).ruleOutcomes[1]!
-        .result,
-    ).toBe(false);
-    input.flow = flowFixture([
-      request,
-      { ...request, sequence: 2, exampleLabel: 'another' },
-      { ...input.flow.steps[1]!, sequence: 3, basedOn: ['request-001'] },
-    ]);
-    input.currentStepSequence = 3;
-    await expect(
-      simulateWhatIf(input, { agent: { generate } }),
-    ).rejects.toThrow('Ambiguous dependency');
-    expect(generate).toHaveBeenCalledOnce();
+    await expect(simulateWhatIf(input)).rejects.toThrow('Missing dependency');
   });
 
   it('fails explicitly when a modeled derivation is missing or cannot make progress', async () => {
@@ -831,7 +812,11 @@ describe('native CEL What-If sandbox', () => {
     const generate = vi.fn();
     await expect(
       simulateWhatIf(
-        { ...input, currentStepSequence: 1, allowSpeculative: true },
+        {
+          ...input,
+          currentStep: { storyId: 'purchase', stepId: 'request' },
+          allowSpeculative: true,
+        },
         { agent: { generate } },
       ),
     ).rejects.toThrow('only available for fulfillment steps');

@@ -26,19 +26,5 @@
       "required": true,
       "keyData": true
     }
-  ],
-  "examples": [
-    {
-      "label": "signed",
-      "value": {
-        "id": "agreement-001",
-        "signed_at": "2026-03-31T10:00:00Z"
-      },
-      "test": {
-        "flow": "payment",
-        "asOf": "2026-03-31T10:00:00Z",
-        "actingRoleRef": "role.buyer"
-      }
-    }
   ]
 }

@@ -31,58 +31,11 @@ import type {
   StoryStepHistoryItem,
 } from './types.js';
 
-const exampleRef = (step: FlowStepTrace) =>
-  `${step.entityId}#${step.exampleLabel}`;
-// Only the example declares who acted. A request's responsibility names its right holder.
-const actingRole = (step: FlowStepTrace) => step.actingRoleRef;
+const stepRef = (step: FlowStepTrace) => `${step.storyId}#${step.stepId}`;
+const actingRole = (step: FlowStepTrace) => step.actorRef;
 const uniqueRole = (refs: readonly (string | undefined)[]) => {
   const ids = new Set(refs);
   return ids.size === 1 ? ids.values().next().value : undefined;
-};
-
-const documentAction = (
-  step: FlowStepTrace,
-  graph: DomainGraph | undefined,
-  recipient: string | undefined,
-  workObject: string,
-): string => {
-  if (step.entityKind === 'contract')
-    return `${recipient ? `与${recipient}` : ''}签署${workObject}`;
-  const to = recipient ? `向${recipient}` : '';
-  if (step.entityKind === 'rfp') return `${to}发出${workObject}`;
-  if (step.entityKind === 'proposal') return `${to}提交${workObject}`;
-  if (
-    graph
-      ?.outgoing(step.entityId)
-      .some(
-        ({ kind, flowKind, terminalRemedyKind }) =>
-          kind === 'references' &&
-          flowKind === 'escalation' &&
-          terminalRemedyKind,
-      )
-  )
-    return `以${workObject}提请争议处理`;
-  return `记录${workObject}`;
-};
-
-const fulfillmentAction = (
-  fulfillment: NonNullable<DomainActivity['fulfillment']>,
-  recipient: string | undefined,
-  workObject: string,
-): string => {
-  const actions = [
-    ...new Set(fulfillment.requests.map(({ action }) => action)),
-  ];
-  if (fulfillment.phase === 'request') {
-    const obligor = recipient ?? '义务方（待明确）';
-    const action = actions[0];
-    return action
-      ? `要求${obligor}${action}（${workObject}）`
-      : `发起履约主张（${workObject}；履约动作待明确）`;
-  }
-  if (!actions.length) return `记录${workObject}（关联请求未明确）`;
-  if (actions.includes(undefined)) return `记录${workObject}（履约动作待明确）`;
-  return `记录「${actions.join('、')}」的履约确认（${workObject}）`;
 };
 
 const nextExpectation = (
@@ -168,12 +121,11 @@ export const projectStoryFacts = (
   const graph = model && createDomainGraph(model);
   const roleLabel = (ref: string | undefined): string | undefined => {
     const role = ref ? graph?.getEntity(ref) : undefined;
-    return isRoleEntity(role) ? role.label : undefined;
+    return isRoleEntity(role) ? role.label : ref;
   };
   const ordered = [...trace.steps].sort((a, b) => a.sequence - b.sequence);
   const sequences = new Set<number>();
   const exact = new Map<string, FlowStepTrace>();
-  const aliases = new Map<string, FlowStepTrace | null>();
   for (const step of ordered) {
     if (
       !Number.isSafeInteger(step.sequence) ||
@@ -182,14 +134,9 @@ export const projectStoryFacts = (
     )
       throw new Error('Story trace requires unique positive step sequences.');
     sequences.add(step.sequence);
-    exact.set(exampleRef(step), step);
-    for (const alias of new Set([step.values.id, step.values.ref])) {
-      if (typeof alias === 'string' && alias)
-        aliases.set(alias, aliases.has(alias) ? null : step);
-    }
+    exact.set(stepRef(step), step);
   }
-  const resolve = (ref: string) =>
-    exact.get(ref) ?? aliases.get(ref) ?? undefined;
+  const resolve = (ref: string) => exact.get(ref);
   const upstream = new Map<FlowStepTrace, FlowStepTrace[]>();
   const downstream = new Map<FlowStepTrace, FlowStepTrace[]>();
   for (const step of ordered) {
@@ -210,13 +157,7 @@ export const projectStoryFacts = (
   }
 
   const rejected = new Set(
-    ordered.filter(
-      (step) =>
-        (graph
-          ?.getEntity(step.entityId)
-          ?.examples?.find(({ label }) => label === step.exampleLabel)?.test
-          ?.expectedStatus ?? 200) >= 400,
-    ),
+    ordered.filter((step) => (step.expectedStatus ?? 200) >= 400),
   );
   const requestFacts = (
     step: FlowStepTrace,
@@ -255,13 +196,12 @@ export const projectStoryFacts = (
   const priorScenes = new Map<number, StoryScene>();
   const scenes = ordered.map((step): StoryScene => {
     const parents = upstream.get(step) ?? [];
-    const { nextRole, expectation } = nextExpectation(
+    const { expectation } = nextExpectation(
       step,
       (downstream.get(step) ?? []).filter((next) => !rejected.has(next)),
       graph,
       roleLabel,
     );
-    const entity = graph?.getEntity(step.entityId);
     const actorId = actingRole(step);
     const actor = {
       roleId: actorId ?? '',
@@ -278,34 +218,9 @@ export const projectStoryFacts = (
         : step.entityKind === 'fulfillment_confirmation'
           ? { phase: 'confirmation', requests: confirmationRequests(step) }
           : undefined;
-    const recipientId = fulfillment
-      ? fulfillment.phase === 'request'
-        ? fulfillment.requests[0]?.obligor?.roleId
-        : uniqueRole(
-            fulfillment.requests.map(({ rightHolder }) => rightHolder?.roleId),
-          )
-      : step.entityKind === 'proposal'
-        ? uniqueRole(
-            parents
-              .filter(({ entityKind }) => entityKind === 'rfp')
-              .map(actingRole),
-          )
-        : step.entityKind === 'contract' && isEvidenceEntity(entity)
-          ? uniqueRole(
-              (entity.roleRefs ?? []).filter((role) => role !== actorId),
-            )
-          : nextRole;
-    const recipient =
-      recipientId !== actorId ? storyRole(recipientId) : undefined;
+    const recipient = storyRole(step.targetActorRef);
     const rejectedExample = rejected.has(step);
-    const workObject = `《${step.entityLabel}》`;
-    const action = fulfillment
-      ? fulfillmentAction(
-          fulfillment,
-          fulfillment.requests[0]?.obligor?.roleLabel,
-          workObject,
-        )
-      : documentAction(step, graph, recipient?.roleLabel, workObject);
+    const action = `${recipient ? '向' + recipient.roleLabel : ''}${step.activity}《${step.entityLabel}》`;
     const referenceCode = documentReferenceOf(step);
     const activity: DomainActivity = {
       actor,
@@ -357,6 +272,9 @@ export const projectStoryFacts = (
         .join('\n\n');
     const scene: StoryScene = {
       stepIndex: step.sequence,
+      storyId: step.storyId,
+      stepId: step.stepId,
+      inherited: step.inherited,
       stepHash: step.stepHash,
       timing,
       activity,

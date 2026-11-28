@@ -46,25 +46,5 @@
       "valueType": "decimal",
       "required": true
     }
-  ],
-  "examples": [
-    {
-      "label": "requested",
-      "value": {
-        "id": "request-001",
-        "quantity": 10,
-        "unit_price": 50,
-        "started_at": "2026-03-31T10:00:00Z",
-        "expired_at": "2026-04-01T10:00:00Z"
-      },
-      "test": {
-        "flow": "payment",
-        "asOf": "2026-03-31T10:00:00Z",
-        "actingRoleRef": "role.seller",
-        "basedOn": [
-          "contract.agreement#signed"
-        ]
-      }
-    }
   ]
 }
