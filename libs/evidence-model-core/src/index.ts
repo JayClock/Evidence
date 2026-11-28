@@ -149,12 +149,6 @@ export {
   type WhatIfCompletionGap,
   type WhatIfHypothesis,
 } from './trace/whatIfScenario.js';
-export {
-  createScenarioTimeline,
-  type StoryTimeline,
-  type StoryTimelineMark,
-  type TimelineObligation,
-} from './trace/storyTimeline.js';
 
 export {
   compiledDocument,
