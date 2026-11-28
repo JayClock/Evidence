@@ -1,3 +1,4 @@
+import { validateStories } from './storySemantics.js';
 import type { RefinementCtx } from 'zod';
 
 import {
@@ -78,37 +79,6 @@ const rootContractOf = (
   return root?.category === 'evidence' && root.kind === 'contract'
     ? root
     : undefined;
-};
-
-const validateExamples = (
-  entity: EntityAST,
-  position: number,
-  ctx: RefinementCtx,
-): void => {
-  const labels = new Set<string>();
-  for (const [exampleIndex, example] of (entity.examples ?? []).entries()) {
-    const path = ['entities', position, 'examples', exampleIndex] as Path;
-    if (labels.has(example.label)) {
-      addIssue(
-        ctx,
-        'entity.shape',
-        [...path, 'label'],
-        `duplicate example label '${example.label}'.`,
-        entity.id,
-      );
-    }
-    labels.add(example.label);
-
-    if (example.test !== undefined && entity.category !== 'evidence') {
-      addIssue(
-        ctx,
-        'entity.shape',
-        [...path, 'test'],
-        'only evidence examples can define acceptance tests',
-        entity.id,
-      );
-    }
-  }
 };
 
 const validateAttributes = (
@@ -376,7 +346,6 @@ const validateEntities = (
   ctx: RefinementCtx,
 ): void => {
   for (const [position, entity] of document.entities.entries()) {
-    validateExamples(entity, position, ctx);
     validateAttributes(entity, position, index, ctx);
     if (
       entity.category === 'evidence' &&
@@ -1027,4 +996,16 @@ export function refineDomainModel(
   validateRelationships(document, index, ctx);
   validateRules(document, index, ctx);
   validateDerivedAttributes(index, ctx);
+  for (const [position, story] of document.stories.entries()) {
+    if (ids.has(story.id))
+      addIssue(
+        ctx,
+        'id.duplicate',
+        ['stories', position, 'id'],
+        `duplicate id '${story.id}' across model sources.`,
+        story.id,
+      );
+    ids.add(story.id);
+  }
+  validateStories(document, ctx);
 }

@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   DomainModelDocumentSchema,
   EntityASTSchema,
-  ExampleTestASTSchema,
   strictValidateDomainModel,
   type DomainModelDocument,
   type ValidationCode,
@@ -268,23 +267,5 @@ describe('Zod pipeline and diagnostic contract', () => {
       ]),
     );
     expect(doc).toEqual(snapshot);
-  });
-
-  it('validates acceptance metadata with Zod even outside a document', () => {
-    const test = {
-      flow: 'payment',
-      actingRoleRef: 'role.buyer',
-      asOf: '2026-03-31T10:00:00Z',
-    };
-    expect(
-      ExampleTestASTSchema.safeParse({ ...test, inputs: {} }).success,
-    ).toBe(false);
-    expect(
-      ExampleTestASTSchema.safeParse({ ...test, tags: ['a', 'a'] }).success,
-    ).toBe(false);
-    expect(
-      ExampleTestASTSchema.safeParse({ ...test, expect: { '$.bad': Infinity } })
-        .success,
-    ).toBe(false);
   });
 });

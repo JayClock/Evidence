@@ -1,7 +1,5 @@
 import { z } from 'zod';
 import { AttributeNameSchema, DomainIdSchema } from './id.js';
-import { JsonObjectSchema } from './json.js';
-import { ExampleTestASTSchema } from './example.js';
 import { ProvenanceSnippetSchema } from './provenance.js';
 import { ValueTypeSchema } from './values.js';
 import {
@@ -153,23 +151,12 @@ export const AttributeASTSchema = z
   .strict();
 export type AttributeAST = z.infer<typeof AttributeASTSchema>;
 
-export const ModelExampleASTSchema = z
-  .object({
-    label: z.string().min(1),
-    description: z.string().min(1).optional(),
-    value: JsonObjectSchema,
-    test: ExampleTestASTSchema.optional(),
-  })
-  .strict();
-export type ModelExampleAST = z.infer<typeof ModelExampleASTSchema>;
-
 const EntityBaseSchema = z.object({
   type: z.literal('entity'),
   id: DomainIdSchema,
   label: z.string().min(1),
   aliases: z.array(z.string().min(1)).optional(),
   attributes: z.array(AttributeASTSchema).optional(),
-  examples: z.array(ModelExampleASTSchema).optional(),
   notes: z.string().min(1).optional(),
   sourceSnippet: ProvenanceSnippetSchema.optional(),
 });

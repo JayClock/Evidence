@@ -1,11 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://jayclock.dev/fm/v6/compiled-model.schema.json",
+  "$id": "https://jayclock.dev/fm/v7/compiled-model.schema.json",
   "title": "Compiled Fulfillment Modeling document",
   "type": "object",
-  "required": ["schemaVersion", "model", "entities", "relationships", "rules"],
+  "required": ["schemaVersion", "model", "entities", "relationships", "rules", "stories"],
   "properties": {
-    "schemaVersion": { "const": "6.0" },
+    "schemaVersion": { "const": "7.0" },
     "model": { "$ref": "model.schema.json" },
     "entities": {
       "type": "array",
@@ -15,6 +15,7 @@
       "type": "array",
       "items": { "$ref": "relationship.schema.json" }
     },
+    "stories": { "type": "array", "items": { "$ref": "story.schema.json" } },
     "rules": {
       "type": "array",
       "items": { "$ref": "rule.schema.json" }

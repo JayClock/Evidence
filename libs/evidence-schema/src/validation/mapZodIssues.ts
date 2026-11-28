@@ -48,7 +48,6 @@ const structuralCode = (
           : path.at(-1) === 'derivedByRuleRef'
             ? 'attribute.derivedByRuleRef.unresolved'
             : 'attribute.shape';
-    if (field === 'examples') return 'entity.shape';
     if (field === 'category') return 'entity.category';
     if (field === 'kind') return 'entity.kind';
     if (field === 'domainRole')
@@ -83,6 +82,7 @@ const structuralCode = (
       ? 'entity.unknownField'
       : 'relationship.shape';
   }
+  if (collection === 'stories') return 'story.shape';
   if (collection === 'rules') {
     if (field === 'resultType') return 'rule.resultType';
     if (field === 'target') return 'rule.target.unresolved';

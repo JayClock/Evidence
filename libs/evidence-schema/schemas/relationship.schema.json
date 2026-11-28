@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://jayclock.dev/fm/v6/relationship.schema.json",
+  "$id": "https://jayclock.dev/fm/v7/relationship.schema.json",
   "title": "Fulfillment Modeling relationship",
   "type": "object",
   "required": ["type", "id", "kind", "sourceRef", "targetRef", "label"],
@@ -19,10 +19,6 @@
     },
     "terminalRemedyKind": {
       "enum": ["lawsuit", "arbitration", "contract_termination"]
-    },
-    "forkExampleRef": {
-      "type": "string",
-      "pattern": "^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*#[\\s\\S]+$"
     },
     "sourceRef": {
       "$ref": "#/$defs/id"
@@ -46,16 +42,6 @@
     }
   },
   "additionalProperties": false,
-  "dependentSchemas": {
-    "forkExampleRef": {
-      "required": ["flowKind"],
-      "properties": { "kind": { "const": "references" } },
-      "anyOf": [
-        { "properties": { "flowKind": { "const": "breach_compensation" } } },
-        { "required": ["terminalRemedyKind"] }
-      ]
-    }
-  },
   "if": { "required": ["terminalRemedyKind"] },
   "then": {
     "required": ["flowKind"],

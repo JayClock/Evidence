@@ -48,11 +48,6 @@ export const TERMINAL_REMEDY_KINDS = [
 export const TerminalRemedyKindSchema = z.enum(TERMINAL_REMEDY_KINDS);
 export type TerminalRemedyKind = z.infer<typeof TerminalRemedyKindSchema>;
 
-/** Canonical entityId#exampleLabel of the scene where an outcome was agreed. */
-export const ForkExampleRefSchema = z
-  .string()
-  .regex(/^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*#[\s\S]+$/u);
-
 export const CardinalityASTSchema = z
   .object({
     min: z.number().int().nonnegative(),
@@ -78,7 +73,6 @@ export const RelationshipASTSchema = z
     // Absence means primary at read time, never materialize a default on disk.
     flowKind: RelationshipFlowKindSchema.optional(),
     terminalRemedyKind: TerminalRemedyKindSchema.optional(),
-    forkExampleRef: ForkExampleRefSchema.optional(),
     sourceRef: DomainIdSchema,
     targetRef: DomainIdSchema,
     label: z.string().min(1),
@@ -87,17 +81,6 @@ export const RelationshipASTSchema = z
     notes: z.string().min(1).optional(),
   })
   .strict()
-  .refine(
-    (edge) =>
-      !edge.forkExampleRef ||
-      (edge.kind === 'references' &&
-        (edge.flowKind === 'breach_compensation' ||
-          edge.terminalRemedyKind !== undefined)),
-    {
-      path: ['forkExampleRef'],
-      message: 'A story fork requires a modeled breach outcome.',
-    },
-  )
   .refine(
     (edge) =>
       edge.terminalRemedyKind === undefined ||

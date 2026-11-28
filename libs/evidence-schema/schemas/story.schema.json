@@ -1,0 +1,192 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jayclock.dev/fm/v7/story.schema.json",
+  "title": "Domain Story",
+  "type": "object",
+  "required": ["type", "id", "title", "kind", "steps"],
+  "properties": {
+    "type": {
+      "const": "story"
+    },
+    "id": {
+      "$ref": "#/$defs/id"
+    },
+    "title": {
+      "type": "string",
+      "pattern": "\\S"
+    },
+    "kind": {
+      "enum": ["primary", "breach_branch", "negative"]
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "\\S"
+      },
+      "uniqueItems": true
+    },
+    "description": {
+      "type": "string",
+      "pattern": "\\S"
+    },
+    "forkedFrom": {
+      "type": "object",
+      "required": ["storyId", "stepId"],
+      "properties": {
+        "storyId": {
+          "$ref": "#/$defs/id"
+        },
+        "stepId": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        },
+        "asOf": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|[+-]\\d{2}:\\d{2})$"
+        },
+        "triggerRuleRef": {
+          "$ref": "#/$defs/id"
+        },
+        "reason": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      },
+      "additionalProperties": false
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/step"
+      }
+    },
+    "notes": {
+      "type": "string",
+      "pattern": "\\S"
+    }
+  },
+  "additionalProperties": false,
+  "if": {
+    "properties": {
+      "kind": {
+        "const": "breach_branch"
+      }
+    }
+  },
+  "then": {
+    "required": ["forkedFrom"]
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$"
+    },
+    "step": {
+      "type": "object",
+      "required": [
+        "id",
+        "sequence",
+        "actorRef",
+        "activity",
+        "workObjectRef",
+        "asOf",
+        "values"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "actorRef": {
+          "$ref": "#/$defs/id"
+        },
+        "activity": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "workObjectRef": {
+          "$ref": "#/$defs/id"
+        },
+        "targetActorRef": {
+          "$ref": "#/$defs/id"
+        },
+        "asOf": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|[+-]\\d{2}:\\d{2})$"
+        },
+        "basedOn": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._-]*(?:#[a-z0-9][a-z0-9._-]*)?$"
+          },
+          "uniqueItems": true,
+          "default": []
+        },
+        "values": {
+          "type": "object"
+        },
+        "description": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "expectedStatus": {
+          "type": "integer",
+          "minimum": 200,
+          "maximum": 599
+        },
+        "inputs": {
+          "type": "object"
+        },
+        "pathParameters": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["stepRef", "jsonpath"],
+            "properties": {
+              "stepRef": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9._-]*(?:#[a-z0-9][a-z0-9._-]*)?$"
+              },
+              "jsonpath": {
+                "type": "string",
+                "pattern": "^\\$"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "expect": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^\\$"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": ["inputs"]
+          },
+          "then": {
+            "required": ["expectedStatus"],
+            "properties": {
+              "expectedStatus": {
+                "minimum": 400
+              }
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    }
+  }
+}

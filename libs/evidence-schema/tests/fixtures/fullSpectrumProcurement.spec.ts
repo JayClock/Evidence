@@ -19,6 +19,7 @@ const model: DomainModelDocument = {
   entities: sources('entities'),
   relationships: sources('relationships'),
   rules: sources('rules'),
+  stories: sources('stories'),
 };
 
 describe('full-spectrum procurement golden model', () => {

@@ -74,6 +74,7 @@ export function loadFixtureModel(
     entities: [],
     relationships: [],
     rules: [],
+    stories: [],
   };
 
   for (const collection of ['entities', 'relationships', 'rules'] as const) {

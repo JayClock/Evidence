@@ -33,45 +33,10 @@ const expectIssue = (document: unknown, code: string) => {
 
 const baseDocument = () => cloneDocument(loadFixtureModel());
 
-describe('inline examples', () => {
-  it('accepts JSON facts without mutating them', () => {
-    const document = baseDocument();
-    document.entities[0]!.examples = [
-      {
-        label: 'sample',
-        description: 'Example',
-        value: { nested: [true, null, { number: 1 }] },
-      },
-    ];
-    const original = structuredClone(document);
-    expect(validate(document).valid).toBe(true);
-    expect(document).toEqual(original);
-  });
-  it.each([
-    null,
-    {},
-    [null],
-    [{ label: '', value: {} }],
-    [
-      { label: 'x', value: {} },
-      { label: 'x', value: {} },
-    ],
-    [{ label: 'x', value: [], unexpected: true }],
-    [{ label: 'x', value: { amount: Infinity } }],
-    [{ label: 'x', value: { date: new Date() } }],
-    [{ label: 'x', description: 42, value: {} }],
-  ])('rejects malformed examples: %j', (examples) => {
-    const document = baseDocument();
-    Object.assign(document.entities[0]!, { examples });
-    expectIssue(document, 'entity.shape');
-  });
-  it('rejects cyclic values', () => {
-    const value: Record<string, unknown> = {};
-    value['self'] = value;
-    const document = baseDocument();
-    document.entities[0]!.examples = [{ label: 'cycle', value }];
-    expectIssue(document, 'entity.shape');
-  });
+it('rejects inline entity facts', () => {
+  const document = baseDocument();
+  Object.assign(document.entities[0]!, { examples: [] });
+  expectIssue(document, 'entity.unknownField');
 });
 
 const withDerivation = (): DomainModelDocument => {

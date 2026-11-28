@@ -200,7 +200,7 @@ describe('empty document factory', () => {
     first.entities.push(contract);
 
     expect(second.entities).toEqual([]);
-    expect(first.manifest.schemaVersion).toBe('6.0');
+    expect(first.manifest.schemaVersion).toBe('7.0');
   });
 
   it('accepts manifest overrides', () => {

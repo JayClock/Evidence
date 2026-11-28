@@ -2,12 +2,13 @@ import { z } from 'zod';
 import { DomainIdSchema, ModelVersionSchema } from './id.js';
 import { EntityASTSchema } from './entity.js';
 import { RelationshipASTSchema } from './relationship.js';
+import { DomainStoryASTSchema } from './story.js';
 import { RuleASTSchema } from './rule.js';
 import { ContractSourceDocumentSchema } from './provenance.js';
 import { refineDomainModel } from './documentSemantics.js';
 
 /** FM schema version emitted by this package. */
-export const FM_SCHEMA_VERSION = '6.0' as const;
+export const FM_SCHEMA_VERSION = '7.0' as const;
 export const FM_RULE_LANGUAGE = 'CEL' as const;
 
 export const DomainModelManifestSchema = z
@@ -31,6 +32,7 @@ export const DomainModelDocumentSyntaxSchema = z
     entities: z.array(EntityASTSchema),
     relationships: z.array(RelationshipASTSchema),
     rules: z.array(RuleASTSchema),
+    stories: z.array(DomainStoryASTSchema),
     readme: z.string().optional(),
   })
   .strict();
@@ -61,6 +63,7 @@ export function createEmptyDomainModel(
     entities: [],
     relationships: [],
     rules: [],
+    stories: [],
   };
 }
 
@@ -79,7 +82,8 @@ export function isDomainModelDocumentShape(
     candidate.manifest !== null &&
     Array.isArray(candidate.entities) &&
     Array.isArray(candidate.relationships) &&
-    Array.isArray(candidate.rules)
+    Array.isArray(candidate.rules) &&
+    Array.isArray(candidate.stories)
   );
 }
 

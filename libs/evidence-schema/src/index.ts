@@ -127,8 +127,6 @@ export {
   type EvidenceKind,
   type EvidenceStage,
   type TimeRole,
-  type ModelExampleAST,
-  ModelExampleASTSchema,
   type ParticipantEntityAST,
   type ParticipantKind,
   type RoleEntityAST,
@@ -280,5 +278,9 @@ export {
 
 export { vocabularyIds, vocabularyLabels } from './vocabulary.js';
 
-export type { ExampleTestAST } from './ast/example.js';
-export { ExampleTestASTSchema } from './ast/example.js';
+export * from './ast/story.js';
+export {
+  storyLineageSteps,
+  canonicalStepRef,
+  type OwnedStoryStep,
+} from './ast/storyLineage.js';
