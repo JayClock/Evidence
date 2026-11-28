@@ -1,6 +1,7 @@
 import type { DomainModelDocument } from '@evidence-poc/evidence-schema';
 import type {
   FlowScenarioTrace,
+  WhatIfCompletionGap,
   WhatIfHypothesis,
 } from '@evidence-poc/evidence-model-core';
 
@@ -143,6 +144,10 @@ export interface WhatIfStoryContext {
   readonly referenceCode?: string;
   readonly displayDate: string;
   readonly nextExpectation?: string;
+  readonly completionGap?: {
+    readonly deadline: string;
+    readonly missingConfirmations: readonly string[];
+  };
 }
 
 export interface RuleBasedWhatIfResult {
@@ -151,6 +156,8 @@ export interface RuleBasedWhatIfResult {
   /** First outcome, retained as the single-rule convenience contract. */
   readonly ruleOutcome: WhatIfRuleOutcome;
   readonly ruleOutcomes: readonly WhatIfRuleOutcome[];
+  /** A missed request deadline backed by an evaluated completion rule. */
+  readonly completionGap?: WhatIfCompletionGap;
   readonly businessImpactExplanation: string;
 }
 

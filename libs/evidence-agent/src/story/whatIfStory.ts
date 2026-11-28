@@ -170,6 +170,7 @@ export function buildLocalStoryExplanation(
     displayDate,
     nextExpectation,
     counterpartyLabel,
+    completionGap,
   } = context;
   const change = changes
     .map(
@@ -177,7 +178,9 @@ export function buildLocalStoryExplanation(
         `「${label}」为${value === displayDate ? '该时点' : value}`,
     )
     .join('、');
-  const decisions = describeDecisions(outcomes);
+  const decisions = completionGap
+    ? '已超过约定的截止时限，履约条件未达成，构成逾期违约'
+    : describeDecisions(outcomes);
   const adverse = outcomes.some(({ kind, result }) =>
     kind === 'breach' ? result : !result,
   );
@@ -193,26 +196,41 @@ export function buildLocalStoryExplanation(
     parties: '双方',
     next: adverse ? '后续工作' : '后续经办时核对',
   };
-  const story = () =>
-    `假设到了${displayDate}，${parts.actor}复核《${parts.document}》，${parts.change}。${parts.basis}${decisions}。${parts.parties}需${handoff}${parts.next}。`;
+  const story = () => {
+    const next = completionGap
+      ? `依赖这项交付的后续步骤将被阻断，${parts.parties}需核对凭据并商定补救安排。`
+      : `${parts.parties}需${handoff}${parts.next}。`;
+    return `假设到了${displayDate}，${parts.actor}复核《${parts.document}》，${parts.change}。${parts.basis}${decisions}。${next}`;
+  };
+  const missing = completionGap?.missingConfirmations
+    .map((label) => `《${shortTitle(label)}》`)
+    .join('、');
+  const obligor = obligation?.obligor
+    ? shortTitle(obligation.obligor)
+    : '义务方';
+  const evidence = missing ? `${obligor}尚未出具${missing}` : undefined;
   const details: [keyof typeof parts, string | undefined][] = [
     ['actor', shortTitle(actorLabel)],
     ['document', shortTitle(workObjectTitle)],
     [
       'change',
-      change
-        ? `发现${change}`
-        : obligation?.action &&
-          `查验${obligation.obligor ? shortTitle(obligation.obligor) : '义务方'}${shortTitle(obligation.action)}的履约凭据`,
+      evidence ??
+        (change
+          ? `发现${change}`
+          : obligation?.action &&
+            `查验${obligor}${shortTitle(obligation.action)}的履约凭据`),
     ],
     [
       'next',
-      nextExpectation &&
-        `${shortTitle(nextExpectation)}${adverse ? '' : '时查验'}`,
+      !completionGap && nextExpectation
+        ? `${shortTitle(nextExpectation)}${adverse ? '' : '时查验'}`
+        : undefined,
     ],
     [
       'basis',
-      commitment && `请求载明${commitment.label}为${commitment.value}，`,
+      commitment
+        ? `请求载明${commitment.label}为${commitment.value}，`
+        : completionGap && `约定期限为${completionGap.deadline}，`,
     ],
     [
       'parties',

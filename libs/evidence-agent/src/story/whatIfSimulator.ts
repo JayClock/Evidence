@@ -2,7 +2,7 @@ import {
   createDomainGraph,
   createWhatIfScenario,
   isWhatIfFulfillmentEvidence,
-  whatIfDecisionRules,
+  whatIfRulesForStep,
 } from '@evidence-poc/evidence-model-core';
 import { compactCanonicalJson } from '@evidence-poc/evidence-schema';
 
@@ -32,6 +32,7 @@ import type {
   StoryAgent,
   WhatIfInput,
   WhatIfResult,
+  WhatIfStoryContext,
 } from './types.js';
 
 export interface WhatIfSimulatorOptions {
@@ -82,7 +83,7 @@ export async function simulateWhatIf(
   if (!isWhatIfFulfillmentEvidence(entity))
     throw new Error('What-If is only available for fulfillment steps.');
 
-  const candidates = whatIfDecisionRules(graph, entity.id);
+  const candidates = whatIfRulesForStep(graph, entity.id);
   const rules =
     ruleId === undefined
       ? candidates
@@ -136,6 +137,7 @@ export async function simulateWhatIf(
     kind: rule.kind,
     description: rule.description,
   }));
+  const gap = trial.completionGap(ruleOutcomes);
   const scenes = new Map(
     projectStoryFacts(flow, model).scenes.map((scene) => [
       scene.stepIndex,
@@ -151,7 +153,15 @@ export async function simulateWhatIf(
       obligor: obligor?.roleLabel,
     }),
   );
-  const storyContext = whatIfStoryContext(scene, trial.asOf);
+  const storyContext: WhatIfStoryContext = {
+    ...whatIfStoryContext(scene, trial.asOf),
+    ...(gap && {
+      completionGap: {
+        deadline: businessDate(gap.deadline)!,
+        missingConfirmations: scenario.missingConfirmations,
+      },
+    }),
+  };
   const changes = whatIfBusinessFacts(
     graph,
     current.entityId,
@@ -194,7 +204,7 @@ export async function simulateWhatIf(
           label: outcome.label,
           description: outcome.description,
           kind: outcome.kind === 'breach' ? '违约约定' : '完成条件',
-          result: describeWhatIfOutcome(outcome),
+          result: describeWhatIfOutcome(outcome, gap),
         })),
       }),
     });
@@ -229,6 +239,7 @@ export async function simulateWhatIf(
     hypothesis,
     ruleOutcome: ruleOutcomes[0]!,
     ruleOutcomes,
+    ...(gap && { completionGap: gap }),
     businessImpactExplanation,
   };
 }

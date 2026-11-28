@@ -82,15 +82,23 @@ describe('M1 trace to M2 story integration', () => {
         currentStepSequence: request.sequence,
         hypothesisQuestion: overdueCard!.question,
         hypothesis: overdueCard!.hypothesisDraft,
-        ruleId: overdueCard!.targetedRuleId,
       },
       { explanation: 'local' },
     );
+    expect(local.completionGap).toEqual({
+      requestId: request.entityId,
+      ruleId: annual.id,
+      deadline: '2027-01-02T09:00:00Z',
+    });
+    expect(local.ruleOutcomes.map(({ ruleId }) => ruleId)).toEqual([
+      'rule.annual-shortfall',
+      annual.id,
+    ]);
     expect(local.businessImpactExplanation).toMatch(
-      /2027年1月3日.*业务负责人.*《年度收入考核指标》.*500,000\.00元.*不足以确认履约完成.*财务结算方办理《跨业务分成收益凭证》/u,
+      /2027年1月3日.*业务负责人.*《年度收入考核指标》.*财务结算方尚未出具《跨业务分成收益凭证》.*500,000\.00元.*履约条件未达成.*后续步骤将被阻断/u,
     );
     expect(local.businessImpactExplanation).not.toMatch(
-      /违约|罚金|rule\.|T09:|最小单位|条件不成立/u,
+      /罚金|rule\.|T09:|最小单位|条件不成立/u,
     );
     expect(local.businessImpactExplanation.length).toBeLessThanOrEqual(150);
     const scene = projectStoryFacts(flow, model).scenes.find(

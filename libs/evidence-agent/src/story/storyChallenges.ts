@@ -1,7 +1,7 @@
 import {
   createWhatIfScenario,
   isWhatIfDeadline,
-  whatIfDecisionRules,
+  whatIfRulesForStep,
   type DomainGraph,
   type FlowStepTrace,
 } from '@evidence-poc/evidence-model-core';
@@ -24,7 +24,7 @@ export function storyChallengeContext({
   steps,
   current,
 }: StoryChallengeSource) {
-  const rules = whatIfDecisionRules(graph, current.entityId);
+  const rules = whatIfRulesForStep(graph, current.entityId);
   if (!rules.length) return;
   try {
     const scenario = createWhatIfScenario(graph, steps, current);
@@ -49,8 +49,12 @@ export function storyChallengeContext({
       baseline,
       deadlines,
       rules,
+      isRequest: current.entityKind === 'fulfillment_request',
       facts: {
         asOf: current.asOf,
+        expectedConfirmations: graph
+          .fulfillmentPair(current.entityId)
+          ?.confirmations.map(({ label }) => label),
         inputAttributes: scenario.inputAttributes,
         currentValues: baseline.valuesOf(current),
         commitments: scenario.upstream.map((step) => ({
@@ -128,6 +132,12 @@ export async function suggestStoryChallenges(
     }
     try {
       const trial = context.scenario.apply(card.hypothesisDraft);
+      if (
+        context.isRequest &&
+        card.category === 'overdue' &&
+        !trial.requestDeadline()?.overdue
+      )
+        continue;
       // An open request may already be incomplete. Advancing only the clock/occurrence
       // can still test overdue fulfillment, but lowering a target cannot establish a shortfall.
       const laterOccurrence =
@@ -143,8 +153,9 @@ export async function suggestStoryChallenges(
           const adverse = rule.kind === 'breach';
           if (trial.decide(rule).result !== adverse) return false;
           if (context.baseline.decide(rule).result !== adverse) return true;
+          if (!laterOccurrence) return false;
           return (
-            laterOccurrence &&
+            context.isRequest ||
             context.deadlines.some(
               ({ entityId, time }) =>
                 Date.parse(context.baseline.asOf) <= time &&

@@ -253,6 +253,83 @@ describe('native CEL What-If sandbox', () => {
     ).toBe(false);
   });
 
+  it('infers a request breach only after its effective deadline when its sole completion decision is false', async () => {
+    const input = fixture();
+    input.currentStepSequence = 1;
+    const due = '2026-04-01T23:59:59Z';
+    const later = '2026-04-02T00:00:00Z';
+    const simulate = (asOf: string, values?: Record<string, unknown>) =>
+      simulateWhatIf(
+        { ...input, hypothesis: { asOf, values } },
+        { explanation: 'local' },
+      );
+    const completion = input.model.rules[1]!;
+    completion.bindings = { payment: { ref: 'confirmation.payment' } };
+    completion.expression = 'payment.paid_amount >= 100';
+    const after = await simulate(later);
+    expect(
+      after.ruleOutcomes.map(({ kind, result }) => [kind, result]),
+    ).toEqual([
+      ['breach', false],
+      ['completion', false],
+    ]);
+    expect(after.completionGap).toEqual({
+      requestId: 'request.payment',
+      ruleId: completion.id,
+      deadline: due,
+    });
+    expect(after.businessImpactExplanation).toMatch(
+      /付款申请单.*买方财务部尚未出具《付款确认单》.*已超过约定的截止时限.*履约条件未达成.*后续步骤将被阻断/u,
+    );
+    expect(after.businessImpactExplanation).not.toContain('未触发违约');
+    expect((await simulate(due)).completionGap).toBeUndefined();
+    expect(
+      (await simulate(input.flow.steps[0]!.asOf)).completionGap,
+    ).toBeUndefined();
+    expect(
+      (await simulate(later, { expired_at: later })).completionGap,
+    ).toBeUndefined();
+    completion.expression = 'payment == null';
+    expect((await simulate(later)).completionGap).toBeUndefined();
+    completion.expression = 'payment.paid_amount >= 100';
+    input.model.rules.push({ ...completion, id: 'rule.another-completion' });
+    expect((await simulate(later)).completionGap).toBeUndefined();
+    input.model.rules.pop();
+    input.model.rules[0]!.expression = 'payment == null';
+    expect((await simulate(later)).completionGap).toBeUndefined();
+    input.currentStepSequence = 2;
+    completion.expression = 'payment.paid_amount > 100';
+    expect((await simulate(later)).completionGap).toBeUndefined();
+  });
+
+  it('supplies the verified deadline, missing receipt and completion gap to the narrator', async () => {
+    const input = fixture();
+    const generate = vi
+      .fn()
+      .mockResolvedValue({ businessImpactExplanation: '待核对' });
+    const result = await simulateWhatIf(
+      {
+        ...input,
+        currentStepSequence: 1,
+        hypothesis: { asOf: '2026-04-02T00:00:00Z' },
+      },
+      { agent: { generate } },
+    );
+    expect(JSON.parse(generate.mock.calls[0]![0].userPrompt)).toMatchObject({
+      storyContext: {
+        completionGap: {
+          deadline: '2026年4月1日 23:59:59 UTC',
+          missingConfirmations: ['付款确认单'],
+        },
+      },
+      ruleOutcomes: [
+        { result: '该违约约定未触发' },
+        { result: '截止时仍未达成，构成逾期违约' },
+      ],
+    });
+    expect(result.businessImpactExplanation).toContain('后续步骤将被阻断');
+  });
+
   it.each([
     [50, '2026-04-01T12:00:00Z', false, false],
     [100, '2026-04-02T12:00:00Z', true, true],

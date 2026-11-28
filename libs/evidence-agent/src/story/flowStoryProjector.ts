@@ -65,14 +65,6 @@ const documentAction = (
   return `记录${workObject}`;
 };
 
-const obligorOf = ({ request, contract }: FulfillmentPair) => {
-  const holder = request.responsibleRoleRef;
-  const sides = contract?.roleRefs;
-  return holder && sides?.length === 2 && sides.includes(holder)
-    ? uniqueRole(sides.filter((role) => role !== holder))
-    : undefined;
-};
-
 const fulfillmentAction = (
   fulfillment: NonNullable<DomainActivity['fulfillment']>,
   recipient: string | undefined,
@@ -233,7 +225,7 @@ export const projectStoryFacts = (
     stepIndex: step.sequence,
     action: pair?.request.fulfillmentAction,
     rightHolder: storyRole(pair?.request.responsibleRoleRef),
-    obligor: storyRole(pair && obligorOf(pair)),
+    obligor: storyRole(pair?.obligorRoleRef),
   });
   const storyRole = (roleId: string | undefined) => {
     const label = roleLabel(roleId);
