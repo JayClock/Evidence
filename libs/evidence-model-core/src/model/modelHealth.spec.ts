@@ -126,7 +126,23 @@ describe('8X Flow health advisories', () => {
       'other_evidence',
       'context.contract',
     );
-    const first = [request, result];
+    const first = [
+      {
+        ...request,
+        examples: [
+          {
+            label: 'work starts',
+            value: {},
+            test: {
+              flow: 'delivery',
+              actingRoleRef: 'role.owner',
+              asOf: '2026-01-01T00:00:00Z',
+            },
+          },
+        ],
+      },
+      result,
+    ];
     expect(scan(first, [binding]).issues).toContainEqual(
       expect.objectContaining({
         id: 'dead_end_request:request.work',
@@ -153,7 +169,7 @@ describe('8X Flow health advisories', () => {
     ).toEqual([
       {
         code: 'missing_breach_rule',
-        inquiry: { kind: 'story', nodeId: comp.id },
+        inquiry: undefined,
       },
       {
         code: 'missing_breach_rule',

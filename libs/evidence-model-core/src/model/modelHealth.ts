@@ -26,19 +26,19 @@ const RULES = {
     'fulfillment',
     'priority',
     '履约请求未记录异常处置',
-    '请在放映中核对违约条件成立时的处置约定，也可以确认没有额外履约义务。',
+    '请核对违约条件成立时的处置约定，也可以确认没有额外履约义务。',
   ],
   unhedged_breach_chain: [
     'fulfillment',
     'review',
     '补偿失败的处置未记录',
-    '请在放映中推演这项补偿也未按约完成时的处置。',
+    '这项补偿也未按约完成时，双方约定如何处置？',
   ],
   missing_breach_rule: [
     'fulfillment',
     'notice',
     '已记录处置，违约触发条件尚无判定规则',
-    '请在放映中核对哪项事实会触发这条分支；只有约定明确后才补充判定规则。',
+    '请核对哪项事实会触发这条分支，约定明确后再补充判定规则。',
   ],
   unpaired_fulfillment_stub: [
     'fulfillment',
@@ -100,7 +100,7 @@ export interface ModelHealthIssue {
   readonly question: string;
   readonly targetNodeId: string;
   readonly relatedNodeIds: readonly string[];
-  /** Open a clarification on the evidence or rehearse the request in playback. */
+  /** Open a clarification on the evidence or the request's declared flow step. */
   readonly inquiry?: { nodeId: string; kind: 'trace' | 'story' };
 }
 
@@ -205,9 +205,9 @@ export const inspectModelHealth = (graph: DomainGraph): ModelHealthReport => {
     breachRules,
   } of graph.fulfillmentPairs()) {
     const trace = { inquiry: { nodeId: request.id, kind: 'trace' } } as const;
-    const story = {
-      inquiry: { nodeId: request.id, kind: 'story' },
-    } as const;
+    const story = request.examples?.some(({ test }) => test?.flow)
+      ? { inquiry: { nodeId: request.id, kind: 'story' as const } }
+      : undefined;
     const hasOutcome =
       graph.breachOutcomesOf(request.id).length > 0 ||
       graph

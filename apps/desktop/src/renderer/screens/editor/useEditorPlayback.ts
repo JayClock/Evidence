@@ -1,6 +1,5 @@
 import { useCallback, useMemo } from 'react';
 import { recordBreachOutcomeMutator } from '@evidence-poc/evidence-model-core';
-import { isFulfillmentRequest } from '@evidence-poc/evidence-schema';
 import { useStoryPlayback } from '@evidence-poc/desktop-feature-story';
 import type { EditorSessionState } from '../../state/useEditorSession';
 import type { EditorSurfaces } from './useEditorSurfaces';
@@ -18,10 +17,8 @@ export const useEditorPlayback = (
   const externalConflict = state.persistence.kind === 'conflict';
   const canPlayStory = useMemo(
     () =>
-      state.document.entities.some(
-        (entity) =>
-          isFulfillmentRequest(entity) ||
-          entity.examples?.some((example) => Boolean(example.test?.flow)),
+      state.document.entities.some(({ examples }) =>
+        examples?.some(({ test }) => test?.flow),
       ),
     [state.document],
   );

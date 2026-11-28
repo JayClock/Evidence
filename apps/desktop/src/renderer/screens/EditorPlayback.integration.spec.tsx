@@ -227,18 +227,38 @@ describe('Editor playback', () => {
     );
   });
 
-  it('explains why playback is unavailable without a flow or request', async () => {
-    const api = readyProject(createEmptyDomainModel());
+  it.each([
+    { label: 'an empty model', document: createEmptyDomainModel() },
+    {
+      label: 'a request without flow examples',
+      document: createDesktopFixture(),
+    },
+  ])('keeps playback disabled for $label', async ({ document }) => {
+    const api = readyProject(document);
     api.story.load = vi.fn();
     render(<EditorScreen rootPath="/models/procurement" />);
     await readyCanvas();
     expect(screen.getByRole('button', { name: '放映业务流' })).toBeDisabled();
-    expect(screen.getByText(/当前模型暂无业务流或履约请求/)).toBeVisible();
+    expect(screen.getByText(/请为业务示例声明所属业务流/)).toBeVisible();
     expect(api.story.load).not.toHaveBeenCalled();
   });
 
-  it('rehearses a request locally, then preserves its clock when an explicit handoff is submitted for review', async () => {
-    const document = createDesktopFixture();
+  it('records and reverts a handoff at the overdue request step while preserving the flow clock', async () => {
+    const document = createDesktopStoryFixture();
+    const requestExample = document.entities.find(
+      ({ id }) => id === 'evidence.request',
+    )?.examples?.[0];
+    const confirmationExample = document.entities.find(
+      ({ id }) => id === 'evidence.confirmation',
+    )?.examples?.[0];
+    if (!requestExample?.test || !confirmationExample?.test)
+      throw new Error('Expected request and confirmation flow examples');
+    requestExample.value = {
+      started_at: requestExample.test.asOf,
+      expired_at: '2026-11-11T09:00:00Z',
+    };
+    confirmationExample.test.asOf = '2026-11-11T10:00:00Z';
+    confirmationExample.value = { confirmed_at: confirmationExample.test.asOf };
     recordBreachOutcomeMutator(document, {
       requestRef: 'evidence.request',
       condition: '请求过期且未交付',
@@ -261,46 +281,46 @@ describe('Editor playback', () => {
       },
     });
     const api = readyProject(document);
-    api.story.load = vi.fn(async () => storySnapshot([]));
-    api.story.enrichStep = vi.fn(async () => null);
-    const { container } = render(
-      <EditorScreen rootPath="/models/procurement" />,
-    );
+    api.story.load = vi.fn(async ({ document: current, preferredFlowId }) => {
+      if (!current) throw new Error('Expected the current canvas document');
+      return storySnapshot(collectFlowScenarios(current), preferredFlowId);
+    });
+    render(<EditorScreen rootPath="/models/procurement" />);
     await readyCanvas();
     fireEvent.click(screen.getByRole('button', { name: '放映业务流' }));
-    const hours = await screen.findByRole('spinbutton', {
-      name: '假设窗口（小时）',
+    const jump = await screen.findByRole('combobox', { name: '跳转时点' });
+    const deadline = within(jump).getByRole<HTMLOptionElement>('option', {
+      name: /交付请求.*截止/,
     });
-    expect(hours).toHaveValue(null);
-    expect(screen.queryByRole('slider', { name: '业务时间' })).toBeNull();
-    fireEvent.change(hours, { target: { value: '8' } });
-    const slider = screen.getByRole('slider', { name: '业务时间' });
-    expect(slider).toHaveAccessibleName('业务时间');
-    fireEvent.change(slider, { target: { value: String(8 * 3_600_000 + 1) } });
+    fireEvent.change(jump, { target: { value: deadline.value } });
     const details = within(screen.getByRole('region', { name: '业务故事' }));
-    expect(
-      details.getByRole('tab', { name: '故事剧本', selected: true }),
-    ).toBeVisible();
     fireEvent.mouseDown(details.getByRole('tab', { name: '推演与分支' }), {
       button: 0,
     });
+    const sandbox = within(
+      details.getByRole('tabpanel', { name: '推演与分支' }),
+    );
+    expect(sandbox.queryByRole('form', { name: '固化违约分支' })).toBeNull();
+    const slider = screen.getByRole<HTMLInputElement>('slider', {
+      name: '业务时间',
+    });
+    expect(slider).toHaveAttribute(
+      'aria-valuetext',
+      '2026-11-11 09:00:00.000 UTC',
+    );
+    fireEvent.change(slider, {
+      target: { value: String(slider.valueAsNumber + 1) },
+    });
+    expect(sandbox.getByText(/违约条件成立/)).toBeVisible();
     expect(
-      details.getByRole('tab', { name: '推演与分支', selected: true }),
+      sandbox.getByText('模型中的处置选项（未发生）：仲裁移交'),
     ).toBeVisible();
-    expect(details.getByText(/违约条件成立/)).toBeVisible();
     expect(
-      details.getByText('模型中的处置选项（未发生）：仲裁移交'),
-    ).toBeVisible();
-    expect(details.queryByRole('article', { name: '业务单据' })).toBeNull();
-    expect(
-      container.querySelector('[data-node-id="evidence.request"]'),
-    ).not.toHaveAttribute('data-story-step');
-    expect(api.story.enrichStep).not.toHaveBeenCalled();
+      sandbox.getByRole('region', { name: '下游协同阻断' }),
+    ).toHaveTextContent('第 3 幕 · 交付确认');
+    expect(screen.getByRole('button', { name: /下一步/ })).toBeDisabled();
     expect(api.calls.persistence).toHaveLength(0);
-    const expectedClock = slider.getAttribute('aria-valuetext');
-    expect(details.queryByRole('form', { name: '固化违约分支' })).toBeNull();
-    fireEvent.click(details.getByRole('button', { name: '固化违约分支…' }));
-    const form = details.getByRole('form', { name: '固化违约分支' });
+    const form = sandbox.getByRole('form', { name: '固化违约分支' });
     fireEvent.change(within(form).getByLabelText('已确认的触发条件'), {
       target: { value: '到期仍未交付且协商失败' },
     });
@@ -315,9 +335,15 @@ describe('Editor playback', () => {
     ).toBeVisible();
     expect(screen.getByRole('slider', { name: '业务时间' })).toHaveAttribute(
       'aria-valuetext',
-      expectedClock,
+      '2026-11-11 09:00:00.001 UTC',
     );
-    expect(hours).toHaveValue(8);
+    expect(api.calls.persistence.at(-1)?.document.relationships).toContainEqual(
+      expect.objectContaining({
+        targetRef: 'evidence.request',
+        forkExampleRef: `evidence.request#${requestExample.label}`,
+        terminalRemedyKind: 'lawsuit',
+      }),
+    );
     fireEvent.click(within(review).getByRole('button', { name: '撤销补丁' }));
     await waitFor(() =>
       expect(api.calls.persistence.at(-1)?.document).toEqual(document),

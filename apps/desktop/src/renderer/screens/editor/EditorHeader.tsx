@@ -56,8 +56,7 @@ export const EditorHeader = ({
               canvasStageRef.current?.focus();
               revealOnGraph(target);
               if (kind === 'guide' && issue.inquiry?.kind === 'story') {
-                story.openAtRequest(target);
-                setStoryEntry('sandbox');
+                if (story.openAtEntityExample(target)) setStoryEntry('sandbox');
               } else if (kind === 'guide')
                 openInquiry(
                   target,

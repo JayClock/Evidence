@@ -39,8 +39,7 @@ nx make desktop         # installers in apps/desktop/out/make
 - Open **推演与分支** to inspect the clock or select a What-If challenge. Local
   deadline and shortfall challenges use the scene’s rules and work offline.
   With AI configured, playback also suggests scenarios based on the story and
-  accepts free-form questions. A breach finding in the health radar opens this
-  tab at the affected request. A simulated breach opens **固化违约分支** to
+  accepts free-form questions. A simulated breach opens **固化违约分支** to
   record an agreed compensation pair or dispute handoff. Keep or revert the
   change in the panel. After keeping it, you can play a scenario containing the
   new branch or locate its evidence on the canvas. **返回画布** and **退出放映** restore the inspector and the
@@ -213,8 +212,9 @@ available from the header or **Cmd/Ctrl+Shift+K**.
 Use **澄清权责** on an evidence card to establish who owes what to whom and
 which receipt confirms delivery. Follow-up answers stay pinned to that card
 and can update the model. For a breach finding in **体检**, choose
-**在放映中推演** to open the request's scenario step. Requests without a declared
-scenario open in **履约时钟假设** with the affected request selected.
+**在放映中推演** to open **推演与分支** at the request's declared scenario step.
+If the request has no flow example yet, use **定位** to find its card and add
+an example to a business flow to enable playback for that request.
 
 ## Agent and sensors (phase 3)
 
