@@ -29,8 +29,6 @@ import { StoryPlayerBar } from './StoryPlayerBar';
 const setup = async ({
   empty = false,
   failure = false,
-  timed = false,
-  timedRules = false,
   breach = false,
   noRules = false,
   unassignedConfirmation = false,
@@ -59,24 +57,7 @@ const setup = async ({
           : step,
     ),
   };
-  const timedFlow = {
-    ...flow,
-    steps: flow.steps.map((step, index) => ({
-      ...step,
-      asOf: `2026-11-11T0${index + 1}:00:00Z`,
-      values:
-        index === 1
-          ? {
-              started_at: '2026-11-11T02:00:00Z',
-              expired_at: '2026-11-11T02:30:00Z',
-            }
-          : index === 2
-            ? { ...step.values, confirmed_at: '2026-11-11T03:00:00Z' }
-            : step.values,
-    })),
-  };
-  const selected = timed ? timedFlow : flow;
-  api.story.load = vi.fn(async () => storySnapshot(empty ? [] : [selected]));
+  api.story.load = vi.fn(async () => storySnapshot(empty ? [] : [flow]));
   api.story.enrichStep = vi.fn(() => new Promise<null>(() => undefined));
   if (failure)
     api.story.enrichStep = async () => {
@@ -86,13 +67,13 @@ const setup = async ({
     if (!input.document || !input.targetedRuleId || !input.hypothesisDraft)
       throw new Error('Expected a structured challenge');
     const graph = createDomainGraph(input.document);
-    const step = selected.steps.find(
+    const step = flow.steps.find(
       (step) => step.sequence === input.currentStepSequence,
     );
     const rule = graph.getRule(input.targetedRuleId);
     if (!step || (rule?.kind !== 'completion' && rule?.kind !== 'breach'))
       throw new Error('Expected the challenge’s scene and rule');
-    const trial = createWhatIfScenario(graph, selected.steps, step).apply(
+    const trial = createWhatIfScenario(graph, flow.steps, step).apply(
       input.hypothesisDraft,
     );
     const ruleOutcome = {
@@ -117,7 +98,7 @@ const setup = async ({
     );
     if (confirmation?.category === 'evidence') delete confirmation.contextRef;
   }
-  if ((timed && !timedRules) || noRules) document.rules = [];
+  if (noRules) document.rules = [];
   if (breach) {
     document.rules.push({
       ...document.rules[0]!,
@@ -181,7 +162,7 @@ const setup = async ({
   });
   return {
     api,
-    flow: selected,
+    flow,
     view,
     onClarifyGap,
     onReturnToCanvas,
@@ -208,7 +189,6 @@ describe('StoryDrawer', () => {
     expect(
       screen.queryByRole('heading', { name: 'What-If 业务沙盘' }),
     ).toBeNull();
-    expect(screen.queryByRole('region', { name: '时点履约状态' })).toBeNull();
     expect(screen.queryByRole('form', { name: '固化违约分支' })).toBeNull();
     expect(screen.getByRole('article', { name: '本幕叙事' })).toHaveTextContent(
       '采购方签署《采购协议》。',
@@ -229,6 +209,10 @@ describe('StoryDrawer', () => {
     fireEvent.click(steps[1]!);
     expect(steps[1]).toHaveAttribute('aria-current', 'step');
     expect(screen.getByText('第 2/3 步')).toBeVisible();
+    expect(screen.getByText(/^业务时点：/)).toHaveAttribute(
+      'datetime',
+      flow.steps[1]!.asOf,
+    );
     expect(
       screen.getByRole('heading', {
         name: /经办方：供货方.*要求采购方验收交付成果.*《交付请求》.*接收方：采购方/,
@@ -299,15 +283,6 @@ describe('StoryDrawer', () => {
     expect(card.getByText(/合同参数/)).toBeVisible();
   });
 
-  it('shows remaining time against the scenario clock, not the wall clock', async () => {
-    await setup({ timed: true, aiConfigured: false });
-    selectTab('推演与分支');
-    fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
-    expect(screen.getByText('距截止：0 小时 30 分 0 秒')).toBeVisible();
-    fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
-    expect(screen.queryByText(/距截止/)).toBeNull();
-  });
-
   it('checks the causal request on a confirmation and directs each gap to its own evidence', async () => {
     const { onClarifyGap } = await setup({
       noRules: true,
@@ -325,20 +300,6 @@ describe('StoryDrawer', () => {
       ['evidence.confirmation', 'contract'],
       ['evidence.request', 'completion'],
     ]);
-  });
-
-  it('distinguishes a missing result from a confirmation that fails a rule', async () => {
-    await setup({ timed: true, timedRules: true });
-    selectTab('推演与分支');
-    fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
-    expect(
-      screen.getByRole('list', { name: '当前时点规则结果' }),
-    ).toHaveTextContent('输入不足，未能求值');
-    fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
-    expect(
-      screen.getByRole('list', { name: '当前时点规则结果' }),
-    ).toHaveTextContent('条件不成立');
-    expect(screen.queryByText('完成条件成立')).toBeNull();
   });
 
   it('does not offer a question on the contract and jumps to a fulfillment step', async () => {
@@ -688,32 +649,6 @@ describe('StoryDrawer', () => {
     },
   );
 
-  it('advances the selected scene past a later example without admitting its facts', async () => {
-    const { api } = await setup({
-      timed: true,
-      timedRules: true,
-      breach: true,
-    });
-    fireEvent.click(screen.getByRole('button', { name: /展开全部 3 幕/ }));
-    fireEvent.click(screen.getByRole('button', { name: '推演第 2 幕' }));
-    const clock = screen.getByRole('slider', { name: '本幕假设时钟' });
-    fireEvent.change(clock, { target: { value: String(65 * 60_000) } });
-    expect(screen.getByText('第 2/3 步')).toBeVisible();
-    expect(
-      screen.getByRole('region', { name: '时点履约状态' }),
-    ).toHaveTextContent('违约条件成立');
-    expect(
-      screen.getByRole('list', { name: '当前时点规则结果' }),
-    ).toHaveTextContent('输入不足，未能求值');
-    expect(
-      screen.getByRole('navigation', { name: '故事步骤' }),
-    ).toHaveTextContent('已冻结');
-    expect(api.story.whatIf).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: '推演第 3 幕' }));
-    expect(screen.getByText('第 3/3 步')).toBeVisible();
-    expect(screen.queryByText('已冻结')).toBeNull();
-  });
-
   it('shows guidance but no speculative form while AI is unconfigured', async () => {
     const { api } = await setup({ noRules: true, aiConfigured: false });
     const drawer = within(screen.getByRole('region', { name: '业务故事' }));
@@ -809,12 +744,8 @@ describe('StoryDrawer', () => {
     },
   );
 
-  it('opens the specific scene in a playable branch created from a between-step breach', async () => {
-    const { api, flow } = await setup({
-      timed: true,
-      timedRules: true,
-      breach: true,
-    });
+  it('plays the saved handoff scene after an offline request challenge', async () => {
+    const { api, flow } = await setup({ breach: true, aiConfigured: false });
     api.story.load = vi.fn<typeof api.story.load>(
       async ({ document, preferredFlowId }) => {
         const handoff = document?.entities.find(
@@ -839,14 +770,14 @@ describe('StoryDrawer', () => {
         return storySnapshot([flow, branch], preferredFlowId);
       },
     );
-    fireEvent.change(screen.getByRole('slider', { name: '业务时间' }), {
-      target: { value: String(105 * 60_000) },
-    });
-    expect(
-      screen.getByRole('region', { name: '时点履约状态' }),
-    ).toHaveTextContent('违约条件成立');
-    expect(screen.queryByRole('button', { name: '固化违约分支…' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
     selectTab('推演与分支');
+    fireEvent.click(
+      screen.getByRole('button', { name: /时效逾期 · 超过约定期限/ }),
+    );
+    await act(async () =>
+      fireEvent.click(screen.getByRole('button', { name: '推演假设' })),
+    );
     const form = within(screen.getByRole('form', { name: '固化违约分支' }));
     fireEvent.change(form.getByLabelText('已确认的触发条件'), {
       target: { value: '未按期交付' },
@@ -859,11 +790,9 @@ describe('StoryDrawer', () => {
       fireEvent.click(form.getByRole('button', { name: '保存救济分支' })),
     );
     await act(async () => vi.advanceTimersByTimeAsync(STORY_REFRESH_DELAY));
-    fireEvent.click(screen.getByRole('button', { name: /展开全部 3 幕/ }));
-    const forks = within(
-      screen.getByRole('list', { name: '第 2 幕的违约分支' }),
+    fireEvent.click(
+      screen.getByRole('button', { name: '放映分支「争议移交」' }),
     );
-    fireEvent.click(forks.getByRole('button', { name: '放映「争议移交」' }));
     await act(async () => vi.advanceTimersByTimeAsync(STORY_REFRESH_DELAY));
     expect(screen.getByRole('combobox', { name: '选择业务流' })).toHaveValue(
       'dispute',
@@ -891,35 +820,6 @@ describe('StoryDrawer', () => {
     );
     expect(screen.getByText(/当前步骤没有可用的完成或违约规则/)).toBeVisible();
     expect(screen.queryByText(/remote method/)).toBeNull();
-  });
-
-  it('keeps the elapsed scene and its document alongside the clock when seeking between steps', async () => {
-    const { api } = await setup({ timed: true });
-    fireEvent.change(screen.getByRole('slider', { name: '业务时间' }), {
-      target: { value: String(105 * 60_000) },
-    });
-    const script = within(screen.getByRole('tabpanel', { name: '故事剧本' }));
-    expect(script.getByText(/已过截止，未判定违约/)).toBeVisible();
-    expect(screen.queryByRole('form', { name: '固化违约分支' })).toBeNull();
-    expect(screen.getByRole('article', { name: '业务单据' })).toHaveTextContent(
-      '《交付请求》',
-    );
-    expect(screen.getByRole('article', { name: '本幕叙事' })).toHaveTextContent(
-      '供货方要求采购方验收交付成果',
-    );
-    expect(script.getByText('已推进至第 2 步，等待后续时点。')).toBeVisible();
-    expect(screen.queryByRole('textbox', { name: '假设问题' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
-    expect(screen.getByRole('article', { name: '业务单据' })).toHaveTextContent(
-      '交付确认',
-    );
-    expect(api.story.load).toHaveBeenCalledOnce();
-    expect(api.story.whatIf).not.toHaveBeenCalled();
-    fireEvent.change(screen.getByRole('slider', { name: '业务时间' }), {
-      target: { value: '-1' },
-    });
-    expect(script.getByText('第一步尚未发生，等待业务开始。')).toBeVisible();
-    expect(screen.queryByRole('article', { name: '业务单据' })).toBeNull();
   });
 
   it('explains missing examples and AI failures with a retry path', async () => {

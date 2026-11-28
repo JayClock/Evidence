@@ -238,7 +238,7 @@ export const WhatIfSection = ({
   const headingId = useId();
   const heading = useRef<HTMLHeadingElement>(null);
   const jumpTarget = useRef<number | undefined>(undefined);
-  const { whatIfCapability: capability, anchoredStep: step } = playback;
+  const { whatIfCapability: capability, step } = playback;
   const sequence = step?.sequence;
   useEffect(() => {
     if (jumpTarget.current === undefined || jumpTarget.current !== sequence)

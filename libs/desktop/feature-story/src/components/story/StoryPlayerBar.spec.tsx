@@ -50,12 +50,6 @@ describe('StoryPlayerBar', () => {
     fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
     expect(screen.getByLabelText('当前步骤序号')).toHaveTextContent('2');
     expect(screen.getByText('步骤 2/3：交付请求')).toBeInTheDocument();
-    // Same-time steps remain independently addressable without inventing timestamps.
-    expect(screen.getByRole('slider', { name: '业务时间' })).toBeDisabled();
-    fireEvent.change(screen.getByRole('combobox', { name: '跳转时点' }), {
-      target: { value: '1' },
-    });
-    expect(screen.getByLabelText('当前步骤序号')).toHaveTextContent('2');
     fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
     expect(screen.getByRole('button', { name: /下一步/ })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: /上一步/ }));

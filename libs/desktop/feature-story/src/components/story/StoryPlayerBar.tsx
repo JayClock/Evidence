@@ -1,7 +1,6 @@
 import { Button } from '@evidence-poc/desktop-ui-kit';
 import { RELATIONSHIP_FLOW_LABELS } from '@evidence-poc/evidence-schema';
 import type { StoryPlaybackController } from '../../state/useStoryPlayback';
-import { StoryTimelineControls } from './StoryTimelineControls';
 
 export interface StoryPlayerBarProps {
   playback: StoryPlaybackController;
@@ -65,7 +64,6 @@ export const StoryPlayerBar = ({
         下一步 ▶
       </Button>
     </div>
-    <StoryTimelineControls playback={playback} />
     <select
       aria-label="播放速度"
       value={playback.speed}
@@ -90,10 +88,7 @@ export const StoryPlayerBar = ({
           ? '放映失败，请查看右侧故事面板'
           : playback.stepNumber > 0
             ? `步骤 ${playback.stepNumber}/${playback.stepCount}${playback.scene ? `：${playback.scene.activity.workObject.entityLabel}` : ''}`
-            : playback.ready
-              ? '时点推演 · 非业务凭证'
-              : '暂无可放映的步骤'}
-      {playback.clockUnavailable ? ' · 时间轴不可用' : null}
+            : '暂无可放映的步骤'}
       {playback.blockedScenes.size > 0
         ? ` · 本次推演冻结 ${playback.blockedScenes.size} 幕`
         : null}

@@ -3,7 +3,7 @@ import { useRef, useState, type ReactNode } from 'react';
 import { Badge, Button } from '@evidence-poc/desktop-ui-kit';
 import type { StoryPlaybackController } from '../../state/useStoryPlayback';
 import { StoryOutlineSpine } from './StoryOutlineSpine';
-import { StorySandboxPane, TimelineDetails } from './StorySandboxPane';
+import { StorySandboxPane } from './StorySandboxPane';
 import { StorySceneSheet, type ClarifyStoryGap } from './StorySceneSheet';
 
 export type StoryView = 'script' | 'sandbox';
@@ -44,13 +44,7 @@ export const StoryDrawer = ({
     setView('script');
     scriptTab.current?.focus();
   };
-  const { anchoredScene, anchoredChecklist, anchoredStep, isBetweenSteps } =
-    playback;
-  const context = isBetweenSteps
-    ? anchoredStep
-      ? `已推进至第 ${anchoredStep.sequence} 步，等待后续时点。`
-      : '第一步尚未发生，等待业务开始。'
-    : undefined;
+  const { step, scene, checklist } = playback;
   const hasScenes = playback.scenes.length > 0;
   return (
     <section
@@ -65,11 +59,9 @@ export const StoryDrawer = ({
           <h2 className="break-words text-sm font-semibold">
             {playback.projection?.storyTitle ?? '业务流放映'}
           </h2>
-          {hasScenes ? (
+          {step ? (
             <Badge>
-              {anchoredStep
-                ? `第 ${anchoredStep.sequence}/${playback.stepCount} 步`
-                : `共 ${playback.stepCount} 步`}
+              第 {step.sequence}/{playback.stepCount} 步
             </Badge>
           ) : null}
         </div>
@@ -127,7 +119,7 @@ export const StoryDrawer = ({
             ) : null}
             {playback.loading ? (
               <p role="status" className="text-evidence-muted">
-                正在读取业务流…{anchoredScene ? '暂显示上一版本。' : ''}
+                正在读取业务流…{scene ? '暂显示上一版本。' : ''}
               </p>
             ) : null}
             {playback.error ? (
@@ -149,23 +141,15 @@ export const StoryDrawer = ({
             {hasScenes ? (
               <>
                 <Tabs.Content value="script">
-                  <div className="flex flex-col gap-3">
-                    {context ? (
-                      <p className="text-evidence-muted">{context}</p>
-                    ) : null}
-                    {anchoredScene && anchoredChecklist ? (
-                      <StorySceneSheet
-                        key={`${playback.projection?.flowId}:${anchoredStep?.entityId}:${anchoredStep?.exampleLabel}`}
-                        scene={anchoredScene}
-                        checklist={anchoredChecklist}
-                        ready={playback.ready}
-                        onClarifyGap={onClarifyGap}
-                      />
-                    ) : null}
-                    {isBetweenSteps && playback.ready ? (
-                      <TimelineDetails playback={playback} />
-                    ) : null}
-                  </div>
+                  {step && scene && checklist ? (
+                    <StorySceneSheet
+                      key={`${playback.projection?.flowId}:${step.entityId}:${step.exampleLabel}`}
+                      scene={scene}
+                      checklist={checklist}
+                      ready={playback.ready}
+                      onClarifyGap={onClarifyGap}
+                    />
+                  ) : null}
                 </Tabs.Content>
                 <Tabs.Content
                   value="sandbox"
@@ -175,7 +159,6 @@ export const StoryDrawer = ({
                   <StorySandboxPane
                     playback={playback}
                     aiConfigured={aiConfigured}
-                    context={context}
                     reviewPending={Boolean(review)}
                     onOpenBranchEntity={onOpenBranchEntity}
                     onPlayBranch={playBranch}

@@ -90,7 +90,7 @@ export const StoryOutlineSpine = ({
 } & BranchActions) => {
   const [expanded, setExpanded] = useState(false);
   const listId = useId();
-  const { scenes, anchoredScene: current, isBetweenSteps } = playback;
+  const { scenes, scene: current } = playback;
   if (!scenes.length) return null;
   const currentForks = current && playback.forksByStep?.get(current.stepIndex);
   return (
@@ -105,16 +105,9 @@ export const StoryOutlineSpine = ({
         onClick={() => setExpanded(!expanded)}
         className="flex min-h-7 w-full items-center gap-2 rounded text-start hover:bg-evidence-hover"
       >
-        {current ? (
-          <Badge variant={isBetweenSteps ? 'outline' : 'default'}>
-            {current.stepIndex}
-          </Badge>
-        ) : null}
+        {current ? <Badge variant="default">{current.stepIndex}</Badge> : null}
         <span className="min-w-0 flex-1 break-words font-medium">
           {current?.narrative.headline ?? '等待第一步'}
-          {current && isBetweenSteps ? (
-            <small className="ms-1 text-evidence-muted">已发生</small>
-          ) : null}
         </span>
         {currentForks?.length ? (
           <Badge variant="role">{currentForks.length} 个分支</Badge>
@@ -144,17 +137,11 @@ export const StoryOutlineSpine = ({
                       'h-auto min-h-7 min-w-0 flex-1 justify-start whitespace-normal text-start',
                       blocked && 'text-evidence-muted bg-evidence-hover',
                     )}
-                    aria-current={
-                      active && !isBetweenSteps ? 'step' : undefined
-                    }
+                    aria-current={active ? 'step' : undefined}
                     disabled={!playback.ready}
                     onClick={() => playback.jumpToStep(stepIndex)}
                   >
-                    <Badge
-                      variant={
-                        active && !isBetweenSteps ? 'default' : 'outline'
-                      }
-                    >
+                    <Badge variant={active ? 'default' : 'outline'}>
                       {stepIndex}
                     </Badge>
                     <span className="min-w-0 break-words">
@@ -165,9 +152,7 @@ export const StoryOutlineSpine = ({
                       <Badge variant="destructive">触发违约</Badge>
                     ) : null}
                     {active ? (
-                      <small className="ms-auto shrink-0">
-                        {isBetweenSteps ? '已发生' : '当前幕'}
-                      </small>
+                      <small className="ms-auto shrink-0">当前幕</small>
                     ) : null}
                   </Button>
                   <Button
