@@ -17,6 +17,7 @@ import { branchDestinations, stepRef, storyForks } from './storyForks';
 import {
   blockedStoryScenes,
   evaluateWhatIfCapability,
+  hasWhatIfBreach,
   promotableSceneRequests,
   requestsForProof,
 } from './whatIfCapability';
@@ -668,14 +669,18 @@ export const useStoryPlayback = ({
   );
 
   const currentSandbox = sandbox?.key === sandboxKey ? sandbox : undefined;
+  const result = currentSandbox?.result;
+  const hasSandboxBreach =
+    !!anchoredStep && !!result && hasWhatIfBreach(anchoredStep, result);
   const writable = onRecordBreachOutcome !== undefined;
-  const sandboxRequests = useMemo(
-    () =>
-      currentSandbox?.result && sceneRequests && graph
-        ? promotableSceneRequests(graph, sceneRequests, currentSandbox.result)
-        : [],
-    [currentSandbox?.result, sceneRequests, graph],
-  );
+  const sandboxRequests = useMemo(() => {
+    if (!hasSandboxBreach || !result || !graph) return [];
+    if (anchoredStep.entityKind === 'fulfillment_request') {
+      const request = graph.fulfillmentPair(anchoredStep.entityId)?.request;
+      return request ? [request] : [];
+    }
+    return promotableSceneRequests(graph, sceneRequests ?? [], result);
+  }, [hasSandboxBreach, result, graph, anchoredStep, sceneRequests]);
   const clockBreaches = useMemo(() => {
     if (currentSandbox || (trialTime === undefined && !isBetweenSteps))
       return [];
@@ -683,11 +688,6 @@ export const useStoryPlayback = ({
       ({ status }) => status === 'breached',
     );
   }, [currentSandbox, trialTime, isBetweenSteps, sceneClock]);
-  const result = currentSandbox?.result;
-  const hasSandboxBreach =
-    !!result &&
-    !result.isSpeculative &&
-    result.ruleOutcomes.some(({ kind, result }) => kind === 'breach' && result);
   const breachedStep =
     hasSandboxBreach || clockBreaches.length
       ? anchoredStep?.sequence

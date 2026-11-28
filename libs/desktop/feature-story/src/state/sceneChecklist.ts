@@ -1,7 +1,8 @@
 import type { StoryScene } from '@evidence-poc/evidence-agent/browser';
-import type {
-  DomainGraph,
-  FlowScenarioTrace,
+import {
+  type DomainGraph,
+  type FlowScenarioTrace,
+  whatIfRulesForStep,
 } from '@evidence-poc/evidence-model-core';
 import {
   classifyKeyDataSource,
@@ -58,6 +59,9 @@ export function sceneChecklist(
       );
       const pair = step && graph.fulfillmentPair(step.entityId);
       if (!pair) return [];
+      const completionRules = whatIfRulesForStep(graph, pair.request.id)
+        .filter(({ kind }) => kind === 'completion')
+        .map(({ label }) => label);
       const subjects = [
         pair.request,
         ...pair.confirmations,
@@ -78,9 +82,9 @@ export function sceneChecklist(
             !pair.contract ||
             !facts.rightHolder ||
             !facts.obligor ||
-            pair.completionRules.length === 0,
+            completionRules.length === 0,
           subjectMatters: [...new Set(subjects)],
-          completionRules: pair.completionRules.map(({ label }) => label),
+          completionRules,
         },
       ];
     },

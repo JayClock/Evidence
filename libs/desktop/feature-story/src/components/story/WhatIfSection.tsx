@@ -163,15 +163,17 @@ const WhatIfForm = ({
                   <li key={outcome.ruleId} className="min-w-0 max-w-full">
                     <Badge
                       variant={
-                        !outcome.result
-                          ? 'outline'
-                          : outcome.kind === 'breach'
-                            ? 'destructive'
-                            : 'default'
+                        result.completionGap?.ruleId === outcome.ruleId ||
+                        (outcome.kind === 'breach' && outcome.result)
+                          ? 'destructive'
+                          : outcome.result
+                            ? 'default'
+                            : 'outline'
                       }
                       className="max-w-full wrap-anywhere whitespace-normal text-xs"
                     >
-                      {outcome.label} · {describeWhatIfOutcome(outcome)}
+                      {outcome.label} ·{' '}
+                      {describeWhatIfOutcome(outcome, result.completionGap)}
                     </Badge>
                   </li>
                 ))}

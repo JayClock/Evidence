@@ -1,6 +1,6 @@
 import { useEffect, useEffectEvent, useMemo, useState } from 'react';
 import {
-  whatIfDecisionRules,
+  whatIfRulesForStep,
   type DomainGraph,
 } from '@evidence-poc/evidence-model-core';
 import {
@@ -33,8 +33,7 @@ const planWindow = (
     scene.narrative.status === 'baseline' ||
     (scene.narrative.status === 'authored' &&
       graph &&
-      whatIfDecisionRules(graph, scene.activity.workObject.entityId).length >
-        0);
+      whatIfRulesForStep(graph, scene.activity.workObject.entityId).length > 0);
   const history: NonNullable<ReturnType<typeof storyHistoryItem>>[] = [];
   let historyKey = '';
   const entryFor = (scene: StoryScene) => {

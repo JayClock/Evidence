@@ -1,7 +1,7 @@
 import {
   buildDeterministicFallbackChallenges,
   isWhatIfFulfillmentEvidence,
-  whatIfDecisionRules,
+  whatIfRulesForStep,
   type DomainGraph,
   type FlowStepTrace,
 } from '@evidence-poc/evidence-model-core';
@@ -14,6 +14,20 @@ import type {
   WhatIfChallenge,
   WhatIfResult,
 } from '@evidence-poc/evidence-agent/browser';
+
+export function hasWhatIfBreach(
+  step: FlowStepTrace,
+  result: WhatIfResult,
+): boolean {
+  if (result.isSpeculative) return false;
+  return (
+    result.ruleOutcomes.some(
+      ({ kind, result }) => kind === 'breach' && result,
+    ) ||
+    (step.entityKind === 'fulfillment_request' &&
+      result.completionGap?.requestId === step.entityId)
+  );
+}
 
 /** The projection lists direct prerequisites in causal order. */
 export function blockedStoryScenes(
@@ -114,14 +128,14 @@ export function evaluateWhatIfCapability(
       const next = {
         sequence: candidate.sequence,
         entityLabel: candidate.entityLabel,
-        hasRules: whatIfDecisionRules(graph, candidate.entityId).length > 0,
+        hasRules: whatIfRulesForStep(graph, candidate.entityId).length > 0,
       };
       if (next.hasRules) return { status: 'non_fulfillment_stage', next };
       firstFulfillment ??= next;
     }
     return { status: 'non_fulfillment_stage', next: firstFulfillment };
   }
-  const rules = whatIfDecisionRules(graph, step.entityId);
+  const rules = whatIfRulesForStep(graph, step.entityId);
   if (rules.length === 0) {
     return { status: 'missing_rules' };
   }
