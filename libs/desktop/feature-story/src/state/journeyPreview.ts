@@ -16,9 +16,8 @@ export interface JourneyRulePreview {
   error?: string;
 }
 
-/** A local, read-only rehearsal of the visible prefix, not HTTP acceptance or a
- * persisted simulation. No future/cross-flow examples may satisfy a binding.
- * Missing bindings remain unknown; malformed/evaluation failures stay visible.
+/** Preview CEL rules from examples visible through this flow step.
+ * Missing bindings remain unknown and evaluation errors stay visible.
  */
 export const previewJourneyStep = (
   document: DomainModelDocument,

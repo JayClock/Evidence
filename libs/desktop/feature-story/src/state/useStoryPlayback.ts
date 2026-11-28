@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   createDomainGraph,
-  createRequestRehearsal,
   createScenarioTimeline,
   type DomainGraph,
   type FlowScenarioTrace,
@@ -9,7 +8,6 @@ import {
 } from '@evidence-poc/evidence-model-core';
 import {
   isFulfillmentRequest,
-  timeAttributeOf,
   type DomainModelDocument,
   type RecordBreachOutcomeInput,
 } from '@evidence-poc/evidence-schema';
@@ -97,12 +95,6 @@ export const useStoryPlayback = ({
   }>({ index: 0 });
   const [isPlaying, setIsPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
-  const [preferRehearsal, setPreferRehearsal] = useState(false);
-  const [assumption, setAssumption] = useState<{
-    document: DomainModelDocument;
-    requestId: string;
-    hours: string;
-  }>();
   const [cursor, setCursor] = useState<{
     document: DomainModelDocument;
     clock: string;
@@ -130,57 +122,16 @@ export const useStoryPlayback = ({
     matchingIndex >= 0
       ? matchingIndex
       : Math.min(position.index, Math.max(0, (flow?.steps.length ?? 0) - 1));
-  const requestOptions = useMemo(
-    () => document.entities.filter(isFulfillmentRequest),
-    [document],
-  );
-  const manualRehearsal = preferRehearsal && requestOptions.length > 0;
-  const rehearsing =
-    enabled &&
-    !invalidating &&
-    !invalidationError &&
-    (manualRehearsal ||
-      (!loading && !error && requestOptions.length > 0 && flows.length === 0));
-  const selectedRequest =
-    requestOptions.find(
-      ({ id }) =>
-        assumption?.document === document && assumption.requestId === id,
-    ) ?? requestOptions[0];
-  const windowHours =
-    assumption?.document === document &&
-    assumption.requestId === selectedRequest?.id
-      ? assumption.hours
-      : '';
-  const hasClockFields =
-    selectedRequest !== undefined &&
-    Boolean(
-      timeAttributeOf(selectedRequest, 'start') &&
-        timeAttributeOf(selectedRequest, 'deadline'),
-    );
-  const exampleTimeline = useMemo(
+  const timeline = useMemo(
     () =>
       enabled && !loading && !stale && flow
         ? createScenarioTimeline(document, flow)
         : null,
     [enabled, loading, stale, document, flow],
   );
-  const rehearsalTimeline = useMemo(
-    () =>
-      rehearsing && selectedRequest && windowHours !== ''
-        ? createRequestRehearsal(
-            document,
-            selectedRequest.id,
-            Number(windowHours),
-          )
-        : null,
-    [document, rehearsing, selectedRequest, windowHours],
-  );
-  const timeline = rehearsing ? rehearsalTimeline : exampleTimeline;
   // The left endpoint can represent the instant before the first example.
-  const seekStart = timeline && timeline.start - (rehearsing ? 0 : 1);
-  const clock = rehearsing
-    ? `request:${selectedRequest?.id}:${windowHours}`
-    : `flow:${flow?.flowId}`;
+  const seekStart = timeline ? timeline.start - 1 : null;
+  const clock = flow ? `flow:${flow.flowId}` : 'flow';
   const seekTime =
     cursor?.document === document && cursor.clock === clock
       ? timeline && seekStart !== null
@@ -189,14 +140,8 @@ export const useStoryPlayback = ({
       : undefined;
   const keyframe = flow?.steps[index];
   const currentTime =
-    seekTime ??
-    (rehearsing
-      ? timeline?.start
-      : timeline && keyframe
-        ? Date.parse(keyframe.asOf)
-        : undefined);
-  const keyframeIndex =
-    !rehearsing && seekTime === undefined ? index : undefined;
+    seekTime ?? (timeline && keyframe ? Date.parse(keyframe.asOf) : undefined);
+  const keyframeIndex = seekTime === undefined ? index : undefined;
   const obligations = useMemo(
     () =>
       timeline && currentTime !== undefined && currentTime >= timeline.start
@@ -204,16 +149,14 @@ export const useStoryPlayback = ({
         : [],
     [timeline, currentTime, keyframeIndex],
   );
-  const isBetweenSteps = seekTime !== undefined && !rehearsing;
+  const isBetweenSteps = seekTime !== undefined;
   const anchoredIndex = isBetweenSteps
     ? (flow?.steps.findLastIndex(({ asOf }) => Date.parse(asOf) <= seekTime) ??
       -1)
     : index;
-  const anchoredStep = rehearsing ? undefined : flow?.steps[anchoredIndex];
+  const anchoredStep = flow?.steps[anchoredIndex];
   const step = isBetweenSteps ? undefined : anchoredStep;
-  const scenes = rehearsing
-    ? EMPTY_SCENES
-    : (projection?.scenes ?? EMPTY_SCENES);
+  const scenes = projection?.scenes ?? EMPTY_SCENES;
   const anchoredFacts =
     anchoredStep &&
     scenes.find(({ stepIndex }) => stepIndex === anchoredStep.sequence);
@@ -252,13 +195,11 @@ export const useStoryPlayback = ({
   );
   const ready =
     enabled &&
-    (rehearsing
-      ? timeline !== null
-      : !loading &&
-        !error &&
-        !stale &&
-        flow !== undefined &&
-        (step !== undefined || seekTime !== undefined));
+    !loading &&
+    !error &&
+    !stale &&
+    flow !== undefined &&
+    (step !== undefined || seekTime !== undefined);
   const narration = useStoryNarration({
     api,
     rootPath,
@@ -280,12 +221,12 @@ export const useStoryPlayback = ({
           }
         : anchoredFacts;
   const nextIndex =
-    seekTime === undefined || rehearsing
+    seekTime === undefined
       ? index + 1
       : (flow?.steps.findIndex(({ asOf }) => Date.parse(asOf) > seekTime) ??
         -1);
   const previousIndex =
-    seekTime === undefined || rehearsing
+    seekTime === undefined
       ? index - 1
       : (flow?.steps.findLastIndex(({ asOf }) => Date.parse(asOf) < seekTime) ??
         -1);
@@ -500,7 +441,7 @@ export const useStoryPlayback = ({
   );
 
   useEffect(() => {
-    if (!ready || !isPlaying || rehearsing) return;
+    if (!ready || !isPlaying) return;
     if (nextIndex < 0 || nextIndex >= (flow?.steps.length ?? 0)) {
       setIsPlaying(false);
       return;
@@ -510,41 +451,11 @@ export const useStoryPlayback = ({
       STORY_STEP_DURATION / speed,
     );
     return () => clearTimeout(timer);
-  }, [ready, isPlaying, rehearsing, nextIndex, flow, moveTo, speed]);
-  useEffect(() => {
-    if (!ready || !isPlaying || !rehearsing || !timeline) return;
-    const interval = 100;
-    const delta = Math.max(
-      1,
-      Math.round(
-        ((timeline.end - timeline.start) * speed * interval) /
-          (2 * STORY_STEP_DURATION),
-      ),
-    );
-    const timer = setInterval(() => {
-      setCursor((prior) => ({
-        document,
-        clock,
-        time: Math.min(
-          timeline.end,
-          (prior?.document === document && prior.clock === clock
-            ? prior.time
-            : timeline.start) + delta,
-        ),
-      }));
-    }, interval);
-    return () => clearInterval(timer);
-  }, [ready, isPlaying, rehearsing, timeline, speed, document, clock]);
-  useEffect(() => {
-    if (rehearsing && timeline && currentTime === timeline.end)
-      setIsPlaying(false);
-  }, [rehearsing, timeline, currentTime]);
+  }, [ready, isPlaying, nextIndex, flow, moveTo, speed]);
   useEffect(() => {
     if (!enabled) {
       setIsPlaying(false);
       setCursor(undefined);
-      setAssumption(undefined);
-      setPreferRehearsal(false);
     }
   }, [enabled]);
 
@@ -574,7 +485,7 @@ export const useStoryPlayback = ({
     return { ...localCapability, challenges: [...enriched, ...fallback] };
   }, [localCapability, narration.challenges, aiConfigured]);
   const jumpToStep = (sequence: number) => {
-    if (!ready || rehearsing || !flow) return;
+    if (!ready || !flow) return;
     const target = flow.steps.findIndex((step) => step.sequence === sequence);
     if (target < 0) return;
     setIsPlaying(false);
@@ -582,7 +493,7 @@ export const useStoryPlayback = ({
   };
   const openAtEntityExample = useCallback(
     (entityId: string) => {
-      if (ready && flow && !rehearsing) {
+      if (ready && flow) {
         const target =
           anchoredStep?.entityId === entityId
             ? anchoredIndex
@@ -610,20 +521,10 @@ export const useStoryPlayback = ({
       setIsPlaying(false);
       setCursor(undefined);
       setPosition({ flowId, ref: `${entityId}#${selected.label}`, index: 0 });
-      setPreferRehearsal(false);
       setPreferredFlowId(flowId);
       return true;
     },
-    [
-      ready,
-      flow,
-      rehearsing,
-      anchoredStep,
-      anchoredIndex,
-      moveTo,
-      document,
-      activeFlowId,
-    ],
+    [ready, flow, anchoredStep, anchoredIndex, moveTo, document, activeFlowId],
   );
 
   // Sandbox state is scoped to the entire displayed revision, not just its step.
@@ -647,10 +548,9 @@ export const useStoryPlayback = ({
   const assumedTime = trialTime ?? seekTime;
   const sceneTime = assumedTime ?? currentTime;
   const sceneClock = useMemo(() => {
-    if (!exampleTimeline || !anchoredStep || sceneTime === undefined)
-      return undefined;
+    if (!timeline || !anchoredStep || sceneTime === undefined) return undefined;
     const start = Date.parse(anchoredStep.asOf);
-    const visible = exampleTimeline.at(
+    const visible = timeline.at(
       sceneTime,
       anchoredIndex,
       stepRef(anchoredStep),
@@ -663,17 +563,11 @@ export const useStoryPlayback = ({
     );
     return {
       start,
-      end: Math.min(end, exampleTimeline.end),
+      end: Math.min(end, timeline.end),
       time: sceneTime,
       obligations,
     };
-  }, [
-    exampleTimeline,
-    anchoredStep,
-    anchoredIndex,
-    sceneRequestKeys,
-    sceneTime,
-  ]);
+  }, [timeline, anchoredStep, anchoredIndex, sceneRequestKeys, sceneTime]);
   const sandboxKey = useMemo(() => ({}), [sceneScope, trialTime]);
   const currentSandboxKey = useRef<typeof sandboxKey | null>(sandboxKey);
   currentSandboxKey.current = sandboxKey;
@@ -783,22 +677,12 @@ export const useStoryPlayback = ({
     [currentSandbox?.result, sceneRequests, graph],
   );
   const clockBreaches = useMemo(() => {
-    if (
-      currentSandbox ||
-      (trialTime === undefined && !isBetweenSteps && !rehearsing)
-    )
+    if (currentSandbox || (trialTime === undefined && !isBetweenSteps))
       return [];
-    return (sceneClock?.obligations ?? (rehearsing ? obligations : [])).filter(
+    return (sceneClock?.obligations ?? []).filter(
       ({ status }) => status === 'breached',
     );
-  }, [
-    currentSandbox,
-    trialTime,
-    isBetweenSteps,
-    rehearsing,
-    sceneClock,
-    obligations,
-  ]);
+  }, [currentSandbox, trialTime, isBetweenSteps, sceneClock]);
   const result = currentSandbox?.result;
   const hasSandboxBreach =
     !!result &&
@@ -815,12 +699,16 @@ export const useStoryPlayback = ({
   const nextStep = flow?.steps[nextIndex];
   const nextBlocked =
     nextStep !== undefined && blockedScenes.has(nextStep.sequence);
+  const requests = useMemo(
+    () => document.entities.filter(isFulfillmentRequest),
+    [document],
+  );
   const promotionRequests = useMemo(() => {
     if (!ready || !writable) return [];
     const ids = new Set(sandboxRequests.map(({ id }) => id));
     for (const obligation of clockBreaches) ids.add(obligation.requestId);
-    return requestOptions.filter(({ id }) => ids.has(id));
-  }, [ready, writable, clockBreaches, requestOptions, sandboxRequests]);
+    return requests.filter(({ id }) => ids.has(id));
+  }, [ready, writable, clockBreaches, requests, sandboxRequests]);
 
   // A newly modeled branch is a possible response, not an event in the example.
   const [promoted, setPromoted] = useState<{
@@ -830,33 +718,24 @@ export const useStoryPlayback = ({
     entityIds: string[];
     relationshipIds: string[];
   }>();
-  const parent = anchoredStep ? stepRef(anchoredStep) : clock;
+  const parent = anchoredStep && stepRef(anchoredStep);
   const promoteBreachOutcome = async (
     input: RecordBreachOutcomeInput,
   ): Promise<void> => {
     if (
       !onRecordBreachOutcome ||
+      !parent ||
       currentSandboxKey.current !== sandboxKey ||
       !promotionRequests.some(({ id }) => id === input.requestRef)
     )
       throw new Error('当前步骤或推演结果已变化，请重新核对。');
     setIsPlaying(false);
     const after = onRecordBreachOutcome(
-      anchoredStep
-        ? { ...input, forkExampleRef: stepRef(anchoredStep) }
-        : input,
+      { ...input, forkExampleRef: parent },
       document,
     );
     if (step && flow)
       setPosition({ flowId: flow.flowId, ref: stepRef(step), index });
-    if (rehearsing) {
-      setPreferRehearsal(true);
-      setAssumption({
-        document: after,
-        requestId: input.requestRef,
-        hours: windowHours,
-      });
-    }
     if (seekTime !== undefined)
       setCursor({ document: after, clock, time: seekTime });
     const added =
@@ -917,9 +796,9 @@ export const useStoryPlayback = ({
 
   return {
     flows,
-    activeFlowId: rehearsing ? undefined : activeFlowId,
+    activeFlowId,
     currentStepSequence: step?.sequence ?? 0,
-    snapshotId: ready && !rehearsing ? loaded?.result.snapshotId : undefined,
+    snapshotId: ready ? loaded?.result.snapshotId : undefined,
     currentTime,
     sceneClock,
     setSceneTime: (time: number) => {
@@ -938,28 +817,7 @@ export const useStoryPlayback = ({
     seekStart,
     obligations,
     focusedObligations,
-    clockUnavailable: !rehearsing && ready && timeline === null,
-    rehearsal: {
-      active: rehearsing,
-      requests: requestOptions,
-      requestId: selectedRequest?.id,
-      hasClockFields,
-      windowHours,
-      select: () => {
-        setIsPlaying(false);
-        setCursor(undefined);
-        setPreferRehearsal(true);
-      },
-      setRequest: (requestId: string) => {
-        setIsPlaying(false);
-        setAssumption({ document, requestId, hours: '' });
-      },
-      setWindowHours: (hours: string) => {
-        if (!selectedRequest) return;
-        setIsPlaying(false);
-        setAssumption({ document, requestId: selectedRequest.id, hours });
-      },
-    },
+    clockUnavailable: ready && timeline === null,
     speed,
     setSpeed,
     seek: (time: number, stepIndex?: number) => {
@@ -970,14 +828,12 @@ export const useStoryPlayback = ({
         seekStart,
         Math.min(timeline.end, Math.round(time)),
       );
-      const mark =
-        !rehearsing &&
-        timeline.marks.find(
-          (mark) =>
-            mark.kind === 'step' &&
-            mark.time === clamped &&
-            (stepIndex === undefined || mark.stepIndex === stepIndex),
-        );
+      const mark = timeline.marks.find(
+        (mark) =>
+          mark.kind === 'step' &&
+          mark.time === clamped &&
+          (stepIndex === undefined || mark.stepIndex === stepIndex),
+      );
       if (mark && mark.stepIndex !== undefined) moveTo(mark.stepIndex);
       else setCursor({ document, clock, time: clamped });
     },
@@ -1006,9 +862,9 @@ export const useStoryPlayback = ({
           }
         : canvasFocus,
     journeyPreview,
-    projection: rehearsing ? undefined : projection,
-    loading: !rehearsing && loading,
-    error: rehearsing ? undefined : error,
+    projection,
+    loading,
+    error,
     stale,
     ready,
     skipAi,
@@ -1016,35 +872,22 @@ export const useStoryPlayback = ({
     isPlaying: ready && isPlaying,
     stepCount: flow?.steps.length ?? 0,
     stepNumber: step ? index + 1 : 0,
-    canPrevious: ready && !rehearsing && previousIndex >= 0,
+    canPrevious: ready && previousIndex >= 0,
     canNext:
       ready &&
-      !rehearsing &&
       !nextBlocked &&
       nextIndex >= 0 &&
       nextIndex < (flow?.steps.length ?? 0),
-    canPlay:
-      ready &&
-      !nextBlocked &&
-      (rehearsing ? timeline !== null : (flow?.steps.length ?? 0) > 1),
+    canPlay: ready && !nextBlocked && (flow?.steps.length ?? 0) > 1,
     selectFlow: (flowId: string, atStep?: FlowStepTrace) => {
       setIsPlaying(false);
       setCursor(undefined);
       setPosition({ flowId, ref: atStep && stepRef(atStep), index: 0 });
-      setPreferRehearsal(false);
       setPreferredFlowId(flowId);
     },
     openAtEntityExample,
-    openAtRequest: (requestId: string) => {
-      const request = requestOptions.find(({ id }) => id === requestId);
-      if (!request || openAtEntityExample(requestId)) return;
-      setIsPlaying(false);
-      setCursor(undefined);
-      setAssumption({ document, requestId, hours: '' });
-      setPreferRehearsal(true);
-    },
     previous: () => {
-      if (ready && !rehearsing && previousIndex >= 0) {
+      if (ready && previousIndex >= 0) {
         setIsPlaying(false);
         moveTo(previousIndex);
       }
@@ -1052,7 +895,6 @@ export const useStoryPlayback = ({
     next: () => {
       if (
         ready &&
-        !rehearsing &&
         !nextBlocked &&
         nextIndex >= 0 &&
         nextIndex < (flow?.steps.length ?? 0)
@@ -1062,18 +904,9 @@ export const useStoryPlayback = ({
       }
     },
     togglePlaying: () => {
-      if (!ready || nextBlocked) return;
-      if (rehearsing) {
-        if (!timeline) return;
-        if (!isPlaying && currentTime === timeline.end) setCursor(undefined);
-      } else {
-        if ((flow?.steps.length ?? 0) < 2) return;
-        if (
-          !isPlaying &&
-          (nextIndex < 0 || nextIndex >= (flow?.steps.length ?? 0))
-        )
-          moveTo(0);
-      }
+      if (!ready || nextBlocked || !flow || flow.steps.length < 2) return;
+      if (!isPlaying && (nextIndex < 0 || nextIndex >= flow.steps.length))
+        moveTo(0);
       setIsPlaying((playing) => !playing);
     },
     setSkipAi,

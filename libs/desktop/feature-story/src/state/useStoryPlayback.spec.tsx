@@ -363,35 +363,23 @@ describe('story playback', () => {
     });
     act(() => hook.result.current.next());
     expect(hook.result.current.step?.sequence).toBe(1);
-    act(() => hook.result.current.rehearsal.select());
-    expect(hook.result.current).toMatchObject({
-      rehearsal: { active: true },
-      anchoredStep: undefined,
-      anchoredScene: undefined,
-      isBetweenSteps: false,
-      scenes: [],
-    });
   });
 
-  it('targets the requested clock when that request has no example in any flow', async () => {
-    const { hook, tick } = setup(false);
-    const document = createDesktopFixture();
-    document.entities.push({
-      type: 'entity',
-      category: 'evidence',
-      kind: 'fulfillment_request',
-      id: 'request.second',
-      label: '第二项交付',
-    });
-    hook.rerender({ document, enabled: false });
-    act(() => hook.result.current.openAtRequest('request.second'));
-    hook.rerender({ document, enabled: true });
+  it('keeps playback unavailable for a request without a flow example', async () => {
+    const { hook, load, tick } = setup();
+    load.mockResolvedValue(storySnapshot([]));
     await tick();
-    expect(hook.result.current.rehearsal).toMatchObject({
-      active: true,
-      requestId: 'request.second',
+    expect(hook.result.current.openAtEntityExample('evidence.request')).toBe(
+      false,
+    );
+    expect(hook.result.current).toMatchObject({
+      ready: false,
+      canPlay: false,
+      timeline: null,
+      currentTime: undefined,
+      scenes: [],
+      promotionRequests: [],
     });
-    expect(hook.result.current.flows).toHaveLength(1);
   });
 
   it('resolves canonical and alias-based document dependencies for canvas focus', async () => {

@@ -24,7 +24,7 @@ const preview = (flowId: string, entityId: string) => {
   );
 };
 
-describe('journey scenario rehearsal', () => {
+describe('journey step preview', () => {
   it('replays every golden step without CEL errors or changing model facts', () => {
     const before = JSON.stringify(model);
     expect(flows.map((f) => f.flowId)).toEqual([
@@ -34,13 +34,13 @@ describe('journey scenario rehearsal', () => {
     ]);
     for (const flow of flows)
       for (const step of flow.steps) {
-        const rehearsal = previewJourneyStep(model, flow, step);
+        const result = previewJourneyStep(model, flow, step);
         expect(
-          rehearsal.rules.filter((r) => r.error),
+          result.rules.filter((r) => r.error),
           `${flow.flowId}/${step.entityId}`,
         ).toEqual([]);
         if (flow.flowId === 'happy-path')
-          expect(rehearsal.flowKind).toBe('primary');
+          expect(result.flowKind).toBe('primary');
       }
     expect(JSON.stringify(model)).toBe(before);
   });
