@@ -35,8 +35,7 @@ nx make desktop         # installers in apps/desktop/out/make
   opens on the right. In **故事剧本**, expand the numbered outline to jump to a
   scene. **本步注解** shows who owes what, how completion is decided and which
   details need clarification. Open **单据归档与字段依据** to inspect the sources.
-  Between steps the script keeps the last document alongside the clock status.
-- Open **推演与分支** to inspect the clock or select a What-If challenge. Local
+- Open **推演与分支** to select a What-If challenge. Local
   deadline and shortfall challenges use the scene’s rules and work offline.
   With AI configured, playback also suggests scenarios based on the story and
   accepts free-form questions. A simulated breach opens **固化违约分支** to

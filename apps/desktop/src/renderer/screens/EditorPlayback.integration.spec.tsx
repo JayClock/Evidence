@@ -7,6 +7,10 @@ import {
   within,
 } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import {
+  projectStoryFacts,
+  simulateWhatIf,
+} from '@evidence-poc/evidence-agent';
 import type { StoryInvalidatedEvent } from '@evidence-poc/desktop-contracts/story';
 import {
   createDesktopStoryFixture,
@@ -14,10 +18,12 @@ import {
 } from '@evidence-poc/desktop-testing/story';
 import {
   collectFlowScenarios,
+  createDomainGraph,
   recordBreachOutcomeMutator,
 } from '@evidence-poc/evidence-model-core';
 import { createEmptyDomainModel } from '@evidence-poc/evidence-schema';
 import { EditorScreen } from './EditorScreen';
+import { AiConfigurationProvider } from '../state/AiConfiguration';
 import { projectSummary } from '@evidence-poc/desktop-testing/desktopApi';
 import { createDesktopFixture } from '@evidence-poc/desktop-testing';
 import { readyCanvas, readyProject } from '../../../tests/editorScreenFixture';
@@ -121,10 +127,6 @@ describe('Editor playback', () => {
     expect(
       container.querySelector('[data-node-id="evidence.request"]'),
     ).toHaveAttribute('data-story-step', 'active');
-    expect(screen.getByRole('slider', { name: '业务时间' })).toHaveAttribute(
-      'aria-valuetext',
-      '2026-11-11 08:00:00.000 UTC',
-    );
     const camera = container.querySelector<HTMLElement>(
       '.react-flow__viewport',
     )!;
@@ -243,7 +245,7 @@ describe('Editor playback', () => {
     expect(api.story.load).not.toHaveBeenCalled();
   });
 
-  it('records and reverts a handoff at the overdue request step while preserving the flow clock', async () => {
+  it('records and reverts a lawsuit after an offline overdue request challenge', async () => {
     const document = createDesktopStoryFixture();
     const requestExample = document.entities.find(
       ({ id }) => id === 'evidence.request',
@@ -281,18 +283,52 @@ describe('Editor playback', () => {
       },
     });
     const api = readyProject(document);
-    api.story.load = vi.fn(async ({ document: current, preferredFlowId }) => {
-      if (!current) throw new Error('Expected the current canvas document');
-      return storySnapshot(collectFlowScenarios(current), preferredFlowId);
+    api.aiConfig.getStatus = async () => ({
+      isConfigured: false,
+      activeProviderId: null,
+      activeModelId: null,
+      activeModelName: null,
+      agentDir: '/test/pi',
+      thinkingLevel: 'off',
+      availableModels: [],
     });
-    render(<EditorScreen rootPath="/models/procurement" />);
+    api.story.load = async ({ document: model }) => {
+      const flows = collectFlowScenarios(model!);
+      const flow = flows[0]!;
+      return {
+        flows,
+        snapshotId: crypto.randomUUID(),
+        selected: { flow, projection: projectStoryFacts(flow, model) },
+      };
+    };
+    api.story.whatIf = vi.fn<typeof api.story.whatIf>(async (input) => {
+      const model = input.document!;
+      const flow = collectFlowScenarios(model).find(
+        ({ flowId }) => flowId === input.flowId,
+      )!;
+      return simulateWhatIf(
+        {
+          model,
+          flow,
+          currentStepSequence: input.currentStepSequence,
+          hypothesisQuestion: input.question,
+          hypothesis: input.hypothesisDraft,
+          ruleId: input.targetedRuleId,
+        },
+        { explanation: 'local' },
+      );
+    });
+    render(
+      <AiConfigurationProvider>
+        <EditorScreen rootPath="/models/procurement" />
+      </AiConfigurationProvider>,
+    );
     await readyCanvas();
     fireEvent.click(screen.getByRole('button', { name: '放映业务流' }));
-    const jump = await screen.findByRole('combobox', { name: '跳转时点' });
-    const deadline = within(jump).getByRole<HTMLOptionElement>('option', {
-      name: /交付请求.*截止/,
-    });
-    fireEvent.change(jump, { target: { value: deadline.value } });
+    await screen.findByText(/^步骤 1\/3/);
+    const next = screen.getByRole('button', { name: /下一步/ });
+    fireEvent.click(next);
+    expect(screen.getByText(/^步骤 2\/3：交付请求/)).toBeVisible();
     const details = within(screen.getByRole('region', { name: '业务故事' }));
     fireEvent.mouseDown(details.getByRole('tab', { name: '推演与分支' }), {
       button: 0,
@@ -300,25 +336,28 @@ describe('Editor playback', () => {
     const sandbox = within(
       details.getByRole('tabpanel', { name: '推演与分支' }),
     );
-    expect(sandbox.queryByRole('form', { name: '固化违约分支' })).toBeNull();
-    const slider = screen.getByRole<HTMLInputElement>('slider', {
-      name: '业务时间',
-    });
-    expect(slider).toHaveAttribute(
-      'aria-valuetext',
-      '2026-11-11 09:00:00.000 UTC',
+    fireEvent.click(
+      sandbox.getByRole('button', { name: /时效逾期 · 超过约定期限/ }),
     );
-    fireEvent.change(slider, {
-      target: { value: String(slider.valueAsNumber + 1) },
-    });
-    expect(sandbox.getByText(/违约条件成立/)).toBeVisible();
+    expect(api.story.whatIf).not.toHaveBeenCalled();
+    expect(next).toBeEnabled();
+    expect(sandbox.queryByRole('form', { name: '固化违约分支' })).toBeNull();
+    fireEvent.click(sandbox.getByRole('button', { name: '推演假设' }));
     expect(
-      sandbox.getByText('模型中的处置选项（未发生）：仲裁移交'),
-    ).toBeVisible();
+      await sandbox.findByRole('list', { name: '履约推演结论' }),
+    ).toHaveTextContent('未按期交付 · 触发违约');
+    expect(api.story.whatIf).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currentStepSequence: 2,
+        targetedRuleId: 'rule.delivery-timeout',
+        hypothesisDraft: { asOf: '2026-11-12T09:00:00.000Z' },
+        localOnly: true,
+      }),
+    );
     expect(
       sandbox.getByRole('region', { name: '下游协同阻断' }),
     ).toHaveTextContent('第 3 幕 · 交付确认');
-    expect(screen.getByRole('button', { name: /下一步/ })).toBeDisabled();
+    expect(next).toBeDisabled();
     expect(api.calls.persistence).toHaveLength(0);
     const form = sandbox.getByRole('form', { name: '固化违约分支' });
     fireEvent.change(within(form).getByLabelText('已确认的触发条件'), {
@@ -330,28 +369,40 @@ describe('Editor playback', () => {
     });
     fireEvent.click(within(form).getByRole('button', { name: '保存救济分支' }));
     const review = await details.findByRole('region', { name: '违约分支复核' });
+    expect(review).toHaveTextContent('启动终极救济 · 到期仍未交付且协商失败');
+    await waitFor(() => expect(api.calls.persistence).toHaveLength(1));
+    const saved = api.calls.persistence[0]!.document;
     expect(
-      await details.findByText(/模型中的处置选项.*诉讼移交凭证/),
-    ).toBeVisible();
-    expect(screen.getByRole('slider', { name: '业务时间' })).toHaveAttribute(
-      'aria-valuetext',
-      '2026-11-11 09:00:00.001 UTC',
-    );
-    expect(api.calls.persistence.at(-1)?.document.relationships).toContainEqual(
-      expect.objectContaining({
-        targetRef: 'evidence.request',
+      createDomainGraph(saved)
+        .breachOutcomesOf('evidence.request')
+        .find(
+          (branch) =>
+            branch.kind === 'terminal_escalation' &&
+            branch.remedyKind === 'lawsuit',
+        ),
+    ).toMatchObject({
+      handoff: { label: '诉讼移交凭证' },
+      edge: {
         forkExampleRef: `evidence.request#${requestExample.label}`,
-        terminalRemedyKind: 'lawsuit',
-      }),
+        notes: '到期仍未交付且协商失败',
+      },
+    });
+    const outline = within(
+      details.getByRole('navigation', { name: '故事步骤' }),
     );
+    fireEvent.click(outline.getByRole('button', { name: /展开全部 3 幕/ }));
+    expect(await outline.findByText(/终极救济 · 诉讼移交凭证/)).toBeVisible();
     fireEvent.click(within(review).getByRole('button', { name: '撤销补丁' }));
     await waitFor(() =>
       expect(api.calls.persistence.at(-1)?.document).toEqual(document),
     );
-    expect(screen.getByRole('region', { name: '业务故事' })).toBeVisible();
-    expect(
-      details.queryByRole('button', { name: '在画布查看「诉讼移交凭证」' }),
-    ).toBeNull();
+    await waitFor(() =>
+      expect(outline.queryByText(/终极救济 · 诉讼移交凭证/)).toBeNull(),
+    );
+    expect(outline.getByText(/终极救济 · 仲裁移交/)).toBeVisible();
+    expect(details.queryByRole('region', { name: '违约分支复核' })).toBeNull();
+    expect(screen.getByText(/^步骤 2\/3：交付请求/)).toBeVisible();
+    expect(next).toBeEnabled();
   });
 
   it('opens a collapsed rail from the command palette and exits from the rail with one Escape', async () => {
@@ -418,7 +469,7 @@ describe('Editor playback', () => {
     render(<EditorScreen rootPath="/models/procurement" />);
     await readyCanvas();
     fireEvent.click(screen.getByRole('button', { name: '放映业务流' }));
-    await screen.findByRole('slider', { name: '业务时间' });
+    await screen.findByText(/^步骤 1\/3/);
     fireEvent.click(screen.getByRole('button', { name: '自动播放' }));
     expect(screen.getByRole('button', { name: '暂停放映' })).toBeVisible();
     expect(screen.getByRole('region', { name: '业务故事' })).toBeVisible();
