@@ -6,7 +6,13 @@ export default defineConfig(() => ({
   resolve: {
     conditions: ['@evidence-poc/source'],
   },
+  ssr: {
+    resolve: {
+      conditions: ['@evidence-poc/source', 'node', 'import', 'default'],
+    },
+  },
   test: {
+    server: { deps: { inline: [/@evidence-poc\//] } },
     name: 'evidence-model-io',
     watch: false,
     globals: true,

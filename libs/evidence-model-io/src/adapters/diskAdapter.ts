@@ -84,7 +84,7 @@ const readTree = async (
   return files;
 };
 
-/** Reads `model.json` plus the three source trees below a model root. */
+/** Reads `model.json` plus the managed source trees below a model root. */
 export async function readModelDirectory(
   root: string,
 ): Promise<ModelSourceParseResult & { files: ModelSourceFile[] }> {
@@ -173,7 +173,7 @@ const removeStaleFiles = async (
  *
  * - unchanged files are left byte-identical (no git churn);
  * - new or edited files are written through a temp file and atomic rename;
- * - `.json` files under the three source trees that no longer exist in the
+ * - `.json` files under the managed source trees that no longer exist in the
  *   document are removed (rename or delete of a modeled object);
  * - other trees (`validation/`, `generated/`…) are never touched.
  */

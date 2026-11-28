@@ -66,6 +66,42 @@ describe('writeModelDirectory', () => {
     );
   });
 
+  it('writes, updates and removes an individual story file', async () => {
+    const model = createProcurementModel();
+    await writeModelDirectory(root, model);
+    const story = {
+      type: 'story',
+      id: 'payment',
+      title: '付款',
+      kind: 'primary',
+      steps: [
+        {
+          id: 'pay',
+          sequence: 1,
+          actorRef: 'role.buyer',
+          activity: '申请',
+          workObjectRef: 'request.payment',
+          asOf: '2026-03-31T10:00:00Z',
+          basedOn: [],
+          values: {},
+        },
+      ],
+    } as const;
+    model.stories.push({
+      ...story,
+      steps: [{ ...story.steps[0], basedOn: [] }],
+    });
+    const path = 'stories/story--payment.json';
+    expect((await writeModelDirectory(root, model)).written).toEqual([path]);
+    model.stories[0]!.title = '申请付款';
+    expect((await writeModelDirectory(root, model)).written).toEqual([path]);
+    expect((await readModelDirectory(root)).document.stories).toEqual(
+      model.stories,
+    );
+    model.stories = [];
+    expect((await writeModelDirectory(root, model)).removed).toEqual([path]);
+  });
+
   it('reads back an equivalent document', async () => {
     const model = createProcurementModel();
 

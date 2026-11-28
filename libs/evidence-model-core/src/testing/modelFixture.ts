@@ -302,7 +302,7 @@ export function createProcurementModel(): DomainModelDocument {
   return {
     manifest: {
       type: 'fm_model',
-      schemaVersion: '6.0',
+      schemaVersion: '7.0',
       id: 'procurement-core',
       name: '采购履约核心模型',
       version: '1.0.0',
@@ -312,5 +312,6 @@ export function createProcurementModel(): DomainModelDocument {
     entities,
     relationships,
     rules,
+    stories: [],
   };
 }

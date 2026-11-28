@@ -3,6 +3,7 @@ import {
   createEmptyDomainModel,
   type DomainModelDocument,
   type DomainModelManifest,
+  type DomainStoryAST,
   type EntityAST,
   type RelationshipAST,
   type RuleAST,
@@ -17,6 +18,7 @@ export const MODEL_SOURCE_TREES = [
   'entities',
   'relationships',
   'rules',
+  'stories',
 ] as const;
 
 /** Sibling trees that are not model sources; the adapter never rewrites them. */
@@ -88,7 +90,7 @@ const slugOf = (id: string): string => {
   return fileNameSegment(tail);
 };
 
-type ModelItem = EntityAST | RelationshipAST | RuleAST;
+type ModelItem = EntityAST | RelationshipAST | RuleAST | DomainStoryAST;
 
 const relativePathFor = (item: ModelItem): string => {
   const slug = slugOf(item.id);
@@ -100,6 +102,8 @@ const relativePathFor = (item: ModelItem): string => {
   if (item.type === 'relationship') {
     return `${MODEL_SOURCE_TREES[1]}/relation--${slug}.json`;
   }
+
+  if (item.type === 'story') return `stories/story--${slug}.json`;
 
   return `${MODEL_SOURCE_TREES[2]}/rule--${slug}.json`;
 };
@@ -120,19 +124,18 @@ export const modelSourcePaths = (
         ? left.id.localeCompare(right.id)
         : left.path.localeCompare(right.path),
     );
-  const used = new Map<string, number>();
+  const reserved = new Set(desired.map((entry) => entry.path));
+  const assigned = new Set<string>();
   const paths = new Map<string, string>();
-
   for (const entry of desired) {
-    const seen = used.get(entry.path) ?? 0;
-
-    used.set(entry.path, seen + 1);
-
-    const path =
-      seen === 0
-        ? entry.path
-        : entry.path.replace(/\.json$/, `-${seen + 1}.json`);
-
+    let path = entry.path;
+    if (assigned.has(path)) {
+      let suffix = 2;
+      do {
+        path = entry.path.replace(/\.json$/, `-${suffix++}.json`);
+      } while (assigned.has(path) || reserved.has(path));
+    }
+    assigned.add(path);
     paths.set(entry.id, path);
   }
 
@@ -171,7 +174,7 @@ export const stringifyModelJson = (
 /**
  * Projects a document onto the `.evidence/model/` file layout.
  *
- * Files are ordered manifest first, then entities, relationships and rules so
+ * Files are ordered manifest first, then entities, relationships, rules and stories so
  * callers can write them in a stable order.
  */
 export function serializeDomainModel(
@@ -182,6 +185,7 @@ export function serializeDomainModel(
     ...document.entities,
     ...document.relationships,
     ...document.rules,
+    ...document.stories,
   ]);
   const files: ModelSourceFile[] = [
     {
@@ -194,6 +198,7 @@ export function serializeDomainModel(
     document.entities,
     document.relationships,
     document.rules,
+    document.stories,
   ]) {
     const treeFiles = items
       .map((item) => ({
@@ -269,6 +274,9 @@ export function parseModelSourceFiles(
         break;
       case 'relationship':
         document.relationships.push(parsed as unknown as RelationshipAST);
+        break;
+      case 'story':
+        document.stories.push(parsed as unknown as DomainStoryAST);
         break;
       case 'rule':
         document.rules.push(parsed as unknown as RuleAST);

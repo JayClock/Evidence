@@ -114,6 +114,41 @@ describe('serializeDomainModel', () => {
 });
 
 describe('parseModelSourceFiles', () => {
+  it('round-trips a story and diagnoses earlier schema versions', () => {
+    const model = createProcurementModel();
+    model.stories.push({
+      type: 'story',
+      id: 'payment',
+      title: '付款',
+      kind: 'primary',
+      steps: [
+        {
+          id: 'pay',
+          sequence: 1,
+          actorRef: 'role.buyer',
+          activity: '申请',
+          workObjectRef: 'request.payment',
+          asOf: '2026-03-31T10:00:00Z',
+          basedOn: [],
+          values: {},
+        },
+      ],
+    });
+    const files = serializeDomainModel(model);
+    expect(files.at(-1)?.path).toBe('stories/story--payment.json');
+    expect(parseModelSourceFiles(files, { validate: true }).issues).toEqual([]);
+    expect(parseModelSourceFiles(files).document.stories).toEqual(
+      model.stories,
+    );
+    files[0]!.content = JSON.stringify({
+      ...model.manifest,
+      schemaVersion: '6.0',
+    });
+    expect(parseModelSourceFiles(files).issues[0]?.code).toBe(
+      'model.schema-version',
+    );
+  });
+
   it('round-trips a serialized model', () => {
     const model = createProcurementModel();
     const parsed = parseModelSourceFiles(serializeDomainModel(model));
