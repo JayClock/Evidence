@@ -1,10 +1,7 @@
 import { Button } from '@evidence-poc/desktop-ui-kit';
 import { RELATIONSHIP_FLOW_LABELS } from '@evidence-poc/evidence-schema';
 import type { StoryPlaybackController } from '../../state/useStoryPlayback';
-import {
-  RehearsalControls,
-  StoryTimelineControls,
-} from './StoryTimelineControls';
+import { StoryTimelineControls } from './StoryTimelineControls';
 
 export interface StoryPlayerBarProps {
   playback: StoryPlaybackController;
@@ -12,7 +9,6 @@ export interface StoryPlayerBarProps {
   onConfigureAi?: () => void;
 }
 
-/** A controller for declared examples, with explicitly local CEL rehearsal. */
 export const StoryPlayerBar = ({
   playback,
   aiConfigured = true,
@@ -28,20 +24,11 @@ export const StoryPlayerBar = ({
       <select
         aria-label="选择业务流"
         value={playback.activeFlowId ?? ''}
-        disabled={
-          playback.loading ||
-          (playback.flows.length === 0 && !playback.rehearsal.active)
-        }
-        onChange={(event) => {
-          const id = event.currentTarget.value;
-          if (id) playback.selectFlow(id);
-          else playback.rehearsal.select();
-        }}
+        disabled={playback.loading || playback.flows.length === 0}
+        onChange={(event) => playback.selectFlow(event.currentTarget.value)}
         className="max-w-48 rounded border border-evidence-line bg-white px-2 py-1"
       >
-        {playback.rehearsal.requests.length > 0 ? (
-          <option value="">履约时钟假设</option>
-        ) : playback.flows.length === 0 ? (
+        {playback.flows.length === 0 ? (
           <option value="">暂无业务流</option>
         ) : null}
         {playback.flows.map((flow) => (
@@ -78,9 +65,6 @@ export const StoryPlayerBar = ({
         下一步 ▶
       </Button>
     </div>
-    {playback.rehearsal.active ? (
-      <RehearsalControls rehearsal={playback.rehearsal} />
-    ) : null}
     <StoryTimelineControls playback={playback} />
     <select
       aria-label="播放速度"
@@ -104,13 +88,11 @@ export const StoryPlayerBar = ({
         ? '正在读取业务流…'
         : playback.error
           ? '放映失败，请查看右侧故事面板'
-          : playback.rehearsal.active
-            ? '履约时钟假设 · 临时时点'
-            : playback.stepNumber > 0
-              ? `步骤 ${playback.stepNumber}/${playback.stepCount}${playback.scene ? `：${playback.scene.activity.workObject.entityLabel}` : ''}`
-              : playback.ready
-                ? '时点推演 · 非业务凭证'
-                : '暂无可放映的步骤'}
+          : playback.stepNumber > 0
+            ? `步骤 ${playback.stepNumber}/${playback.stepCount}${playback.scene ? `：${playback.scene.activity.workObject.entityLabel}` : ''}`
+            : playback.ready
+              ? '时点推演 · 非业务凭证'
+              : '暂无可放映的步骤'}
       {playback.clockUnavailable ? ' · 时间轴不可用' : null}
       {playback.blockedScenes.size > 0
         ? ` · 本次推演冻结 ${playback.blockedScenes.size} 幕`
@@ -166,20 +148,18 @@ export const StoryPlayerBar = ({
         </Button>
       </div>
     ) : null}
-    {!playback.rehearsal.active ? (
-      <label
-        className="flex items-center gap-1 text-evidence-muted"
-        title="隐藏 AI 草稿，不读取缓存或重新生成；仍显示模型业务解释"
-      >
-        <input
-          type="checkbox"
-          checked={playback.skipAi}
-          onChange={(event) => playback.setSkipAi(event.target.checked)}
-        />
-        仅模型事实
-      </label>
-    ) : null}
-    {!playback.rehearsal.active && !aiConfigured && onConfigureAi ? (
+    <label
+      className="flex items-center gap-1 text-evidence-muted"
+      title="隐藏 AI 草稿，不读取缓存或重新生成；仍显示模型业务解释"
+    >
+      <input
+        type="checkbox"
+        checked={playback.skipAi}
+        onChange={(event) => playback.setSkipAi(event.target.checked)}
+      />
+      仅模型事实
+    </label>
+    {!aiConfigured && onConfigureAi ? (
       <Button type="button" size="xs" variant="ghost" onClick={onConfigureAi}>
         配置旁白模型
       </Button>

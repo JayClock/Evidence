@@ -195,7 +195,13 @@ afterEach(() => {
 
 describe('StoryDrawer', () => {
   it('opens on the script and follows any numbered sentence with its actor and recipient', async () => {
-    const { onReturnToCanvas } = await setup();
+    const { flow, onReturnToCanvas } = await setup();
+    const flowPicker = within(
+      screen.getByRole('combobox', { name: '选择业务流' }),
+    );
+    expect(
+      flowPicker.getAllByRole('option').map((option) => option.textContent),
+    ).toEqual([flow.flowTitle]);
     expect(screen.getByRole('tabpanel', { name: '故事剧本' })).toBeVisible();
     expect(
       screen.queryByRole('heading', { name: 'What-If 业务沙盘' }),
@@ -802,31 +808,11 @@ describe('StoryDrawer', () => {
     expect(screen.queryByRole('article', { name: '业务单据' })).toBeNull();
   });
 
-  it('can enter the local rehearsal after an AI narration failure', async () => {
-    const { api } = await setup({ failure: true });
-    expect(screen.getByText(/当前故事未能润色/)).toBeVisible();
-    fireEvent.change(screen.getByRole('combobox', { name: '选择业务流' }), {
-      target: { value: '' },
-    });
-    expect(screen.queryByText(/当前故事未能润色/)).toBeNull();
-    expect(
-      screen.getByRole('tabpanel', { name: '故事剧本' }),
-    ).toHaveTextContent('履约时钟假设暂无剧本');
-    fireEvent.change(
-      screen.getByRole('spinbutton', { name: '假设窗口（小时）' }),
-      { target: { value: '24' } },
-    );
-    expect(screen.getByRole('slider', { name: '业务时间' })).toBeEnabled();
-    selectTab('推演与分支');
-    expect(screen.getByRole('region', { name: '时点履约状态' })).toBeVisible();
-    selectTab('故事剧本');
-    expect(screen.getByRole('tabpanel', { name: '故事剧本' })).toBeVisible();
-    expect(api.story.load).toHaveBeenCalledOnce();
-  });
-
   it('explains missing examples and AI failures with a retry path', async () => {
     const empty = await setup({ empty: true });
     expect(screen.getByText(/请为实体的业务示例声明/)).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: '选择业务流' })).toBeDisabled();
+    expect(screen.queryByRole('tablist', { name: '故事视图' })).toBeNull();
     empty.view.unmount();
     await setup({ failure: true });
     expect(screen.getByText(/当前故事未能润色/)).toBeInTheDocument();

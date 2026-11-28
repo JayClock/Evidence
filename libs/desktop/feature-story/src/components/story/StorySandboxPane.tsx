@@ -29,7 +29,7 @@ export const TimelineDetails = ({
       className="flex flex-col gap-2 rounded border border-evidence-line p-3"
     >
       <h3 className="font-medium">
-        时点履约状态 · {timelineLabel(timeline, currentTime)}
+        时点履约状态 · {timelineLabel(currentTime)}
       </h3>
       {sceneClock &&
       sceneClock.obligations.length > 0 &&
@@ -42,7 +42,7 @@ export const TimelineDetails = ({
             max={sceneClock.end - sceneClock.start}
             step="any"
             value={currentTime - sceneClock.start}
-            aria-valuetext={timelineLabel(timeline, currentTime)}
+            aria-valuetext={timelineLabel(currentTime)}
             onChange={(event) =>
               playback.setSceneTime(
                 sceneClock.start + event.currentTarget.valueAsNumber,
@@ -53,9 +53,7 @@ export const TimelineDetails = ({
         </label>
       ) : null}
       <p className="text-[11px] text-evidence-muted">
-        {timeline.kind === 'rehearsal'
-          ? '假设在 T0 发起且尚无确认，按输入的实际经过小时推演，不推断工作日或合同条款。'
-          : '仅用当前示例中在该时点可见的数据预演；缺失或未求出的输入不作推断。'}
+        仅用当前示例中在该时点可见的数据预演；缺失或未求出的输入不作推断。
       </p>
       {obligations.length === 0 ? <p>该时点没有可预演的履约请求。</p> : null}
       <ul className="flex flex-col gap-2">
@@ -66,7 +64,7 @@ export const TimelineDetails = ({
                 <strong>{label}</strong> · {statusLabel[status]}
               </p>
               {deadline === undefined ? null : (
-                <p>截止：{timelineLabel(timeline, deadline)}</p>
+                <p>截止：{timelineLabel(deadline)}</p>
               )}
               {status === 'waiting' && deadline !== undefined ? (
                 <p>
@@ -122,32 +120,18 @@ export const StorySandboxPane = ({
   onOpenBranchEntity?: (nodeId: string) => void;
   onPlayBranch: StoryPlaybackController['selectFlow'];
 }) => {
-  const { promotedBranch, anchoredStep, rehearsal } = playback;
+  const { promotedBranch, anchoredStep } = playback;
   const branchFlow = promotedBranch?.flow;
-  const request =
-    rehearsal.active &&
-    rehearsal.requests.find(({ id }) => id === rehearsal.requestId);
   return (
     <div className="flex flex-col gap-3">
-      {request ? (
-        <p>
-          假设从「{request.label}」开始计时。
-          {playback.timeline
-            ? null
-            : rehearsal.hasClockFields
-              ? '在播放条输入假设窗口以开始推演。'
-              : '请先为这项请求补齐起止时标。'}
-        </p>
-      ) : context ? (
-        <p className="text-evidence-muted">{context}</p>
-      ) : null}
+      {context ? <p className="text-evidence-muted">{context}</p> : null}
       {playback.ready ? (
         <TimelineDetails playback={playback} sceneClock={playback.sceneClock} />
       ) : null}
       <WhatIfSection playback={playback} aiConfigured={aiConfigured} />
       {playback.promotionRequests.length ? (
         <BreachOutcomeDisclosure
-          key={`${playback.snapshotId ?? playback.rehearsal.requestId}:${anchoredStep?.stepHash}:${playback.sceneClock?.time ?? playback.currentTime}:${playback.hasSandboxBreach}`}
+          key={`${playback.snapshotId}:${anchoredStep?.stepHash}:${playback.sceneClock?.time ?? playback.currentTime}:${playback.hasSandboxBreach}`}
           playback={playback}
         />
       ) : null}

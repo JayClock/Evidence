@@ -44,19 +44,14 @@ export const StoryDrawer = ({
     setView('script');
     scriptTab.current?.focus();
   };
-  const {
-    anchoredScene,
-    anchoredChecklist,
-    anchoredStep,
-    isBetweenSteps,
-    rehearsal,
-  } = playback;
+  const { anchoredScene, anchoredChecklist, anchoredStep, isBetweenSteps } =
+    playback;
   const context = isBetweenSteps
     ? anchoredStep
       ? `已推进至第 ${anchoredStep.sequence} 步，等待后续时点。`
       : '第一步尚未发生，等待业务开始。'
     : undefined;
-  const showTabs = rehearsal.active || playback.scenes.length > 0;
+  const hasScenes = playback.scenes.length > 0;
   return (
     <section
       aria-label="业务故事"
@@ -68,11 +63,9 @@ export const StoryDrawer = ({
       <header className="flex min-h-11 shrink-0 flex-wrap items-center justify-between gap-2 border-b border-workbench-border bg-workbench-background px-3 py-2">
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
           <h2 className="break-words text-sm font-semibold">
-            {rehearsal.active
-              ? '履约时钟假设'
-              : (playback.projection?.storyTitle ?? '业务流放映')}
+            {playback.projection?.storyTitle ?? '业务流放映'}
           </h2>
-          {playback.scenes.length ? (
+          {hasScenes ? (
             <Badge>
               {anchoredStep
                 ? `第 ${anchoredStep.sequence}/${playback.stepCount} 步`
@@ -107,7 +100,7 @@ export const StoryDrawer = ({
         }
         className="flex min-h-0 flex-1 flex-col"
       >
-        {showTabs ? (
+        {hasScenes ? (
           <Tabs.List
             aria-label="故事视图"
             className="flex shrink-0 border-b border-workbench-border px-2"
@@ -148,23 +141,15 @@ export const StoryDrawer = ({
                 <Button onClick={playback.retry}>重试放映</Button>
               </div>
             ) : null}
-            {!playback.loading &&
-            !playback.error &&
-            !rehearsal.active &&
-            !playback.scenes.length ? (
+            {!playback.loading && !playback.error && !hasScenes ? (
               <p>
                 暂无可放映的步骤。请为实体的业务示例声明所属业务流、业务时点和单据依据。
               </p>
             ) : null}
-            {showTabs ? (
+            {hasScenes ? (
               <>
                 <Tabs.Content value="script">
                   <div className="flex flex-col gap-3">
-                    {rehearsal.active ? (
-                      <p>
-                        履约时钟假设暂无剧本。可在「推演与分支」查看履约状态。
-                      </p>
-                    ) : null}
                     {context ? (
                       <p className="text-evidence-muted">{context}</p>
                     ) : null}
