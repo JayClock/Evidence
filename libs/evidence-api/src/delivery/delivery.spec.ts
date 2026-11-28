@@ -104,7 +104,7 @@ describe('buildDeliveryContract', () => {
 const openEndedModel = (): DomainModelDocument => ({
   manifest: {
     type: 'fm_model',
-    schemaVersion: '6.0',
+    schemaVersion: '7.0',
     id: 'open-ended',
     name: '未闭合模型',
     version: '1.0.0',
@@ -200,6 +200,7 @@ const openEndedModel = (): DomainModelDocument => ({
       ],
     },
   ],
+  stories: [],
   relationships: [],
   rules: [
     {

@@ -1,6 +1,6 @@
 import {
   buildFmCheckReport,
-  collectFlowScenarios,
+  resolveStoryTraces,
   createModelSession,
   parseModelSourceFiles,
   serializeDomainModel,
@@ -25,7 +25,7 @@ describe('full-spectrum model lifecycle acceptance', () => {
     const reparsed = parseModelSourceFiles(serializeDomainModel(model));
     expect(reparsed.issues).toEqual([]);
     expect(reparsed.document).toEqual(model);
-    const flows = collectFlowScenarios(model);
+    const flows = resolveStoryTraces(model);
     expect(flows.map((f) => f.flowId)).toEqual([
       'defect-escalation',
       'happy-path',
@@ -36,7 +36,7 @@ describe('full-spectrum model lifecycle acceptance', () => {
       for (const [i, step] of flow.steps.entries()) {
         expect(step.sequence).toBe(i + 1);
         expect(step.basedOn.every((ref) => completed.has(ref))).toBe(true);
-        completed.add(`${step.entityId}#${step.exampleLabel}`);
+        completed.add(`${step.storyId}#${step.stepId}`);
       }
     }
     expect(
@@ -50,15 +50,13 @@ describe('full-spectrum model lifecycle acceptance', () => {
 
   it('evaluates every CEL kind using actual scenario data and modeled capability parameters', () => {
     const model = fullSpectrumModel();
-    for (const flow of collectFlowScenarios(model)) {
+    for (const flow of resolveStoryTraces(model)) {
       const values = new Map(flow.steps.map((s) => [s.entityId, s.values]));
-      for (const entity of model.entities)
-        if (
-          !values.has(entity.id) &&
-          entity.examples?.length === 1 &&
-          !entity.examples[0].test
-        )
-          values.set(entity.id, entity.examples[0].value);
+      // Test inputs supplied by the two external domain capabilities.
+      values.set('thing-compliance-checker', {
+        iso_standard_code: 'ISO-10218',
+      });
+      values.set('thing-tariff-calculator', { penalty_daily_rate: 0.0005 });
       for (const rule of model.rules) {
         const bindings = Object.fromEntries(
           Object.entries(rule.bindings).flatMap(([alias, binding]) =>

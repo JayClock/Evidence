@@ -7,21 +7,15 @@ import {
   EXAMPLE_AS_OF,
 } from '@evidence-poc/evidence-api/testing';
 
-const getExample = (
+const getStep = (
   model: ReturnType<typeof createAcceptanceModel>,
   entity = 'confirmation.payment',
-) => model.entities.find((item) => item.id === entity)!.examples![0]!;
+) => model.stories[0]!.steps.find((step) => step.workObjectRef === entity)!;
 
-describe('direct inline-example acceptance projection', () => {
+describe('native story acceptance projection', () => {
   it('carries optional model tags through Bruno flow metadata', () => {
     const model = createAcceptanceModel();
-    const entity = model.entities.find(
-      (item) => item.id === 'confirmation.payment',
-    )!;
-    entity.examples![0] = {
-      ...entity.examples![0]!,
-      test: { ...entity.examples![0]!.test!, tags: ['dod', 'payment'] },
-    };
+    model.stories[0]!.tags = ['dod', 'payment'];
     const projection = projectAcceptanceTests(model);
     expect(projection.flows[0]?.tags).toEqual(['dod', 'payment']);
     expect(renderBruno(projection)['flows/flow-001/folder.bru']).toContain(
@@ -83,7 +77,7 @@ describe('direct inline-example acceptance projection', () => {
       targetRef: roleRef,
     });
     confirmation.callbackRoleRefs = [roleRef];
-    getExample(model).test!.actingRoleRef = roleRef;
+    getStep(model).actorRef = roleRef;
 
     const projection = projectAcceptanceTests(model);
     expect(projection.flows[0]!.steps[2]).toMatchObject({
@@ -99,15 +93,14 @@ describe('direct inline-example acceptance projection', () => {
       `x-evidence-role: ${roleRef}`,
     );
 
-    getExample(model, 'request.payment').test!.actingRoleRef = roleRef;
+    getStep(model, 'request.payment').actorRef = roleRef;
     expect(() => projectAcceptanceTests(model)).toThrow(
       'cannot call route.request.request.payment',
     );
   });
   it('selects and binds a compensation command from the breached request example', () => {
     const model = createAcceptanceModel();
-    delete model.entities.find(({ id }) => id === 'confirmation.payment')!
-      .examples;
+    model.stories[0]!.steps.pop();
     recordBreachOutcomeMutator(model, {
       requestRef: 'request.payment',
       condition: '未按期付款',
@@ -125,19 +118,17 @@ describe('direct inline-example acceptance projection', () => {
         },
       },
     });
-    const penalty = model.entities.find(({ id }) => id === 'request.penalty')!;
-    penalty.examples = [
-      {
-        label: 'claimed',
-        value: { started_at: '2026-04-02T10:00:00Z' },
-        test: {
-          actingRoleRef: 'role.seller',
-          flow: 'payment',
-          asOf: '2026-04-02T10:00:00Z',
-          basedOn: ['request.payment#requested'],
-        },
-      },
-    ];
+    const penalty = {
+      id: 'claimed',
+      sequence: 3,
+      actorRef: 'role.seller',
+      activity: '索赔',
+      workObjectRef: 'request.penalty',
+      asOf: '2026-04-02T10:00:00Z',
+      basedOn: ['requested'],
+      values: { started_at: '2026-04-02T10:00:00Z' },
+    };
+    model.stories[0]!.steps.push(penalty);
     const { steps } = projectAcceptanceTests(model).flows[0]!;
     const claim = steps.find(({ route }) => route.purpose === 'compensate')!;
     const original = steps.find(
@@ -147,25 +138,20 @@ describe('direct inline-example acceptance projection', () => {
       '/payments/{paymentId}/compensations/penalty',
     );
     expect(original.captures[claim.parameters.paymentId!]).toBe('$.id');
-    penalty.examples[0]!.test!.basedOn = ['contract.agreement#signed'];
+    penalty.basedOn = ['signed'];
     expect(() => projectAcceptanceTests(model)).toThrow(
       'requires one breach branch',
     );
   });
   it('generates only explicitly modeled negative cases, without polluting OpenAPI facts', () => {
     const model = createAcceptanceModel();
-    const entity = model.entities.find(
-      (item) => item.id === 'confirmation.payment',
-    )!;
-    entity.examples!.push({
-      ...structuredClone(entity.examples![0]!),
-      label: 'bad',
-      test: {
-        ...entity.examples![0]!.test!,
-        expectedStatus: 422,
-        inputs: { total_amount: 1 },
-        expect: { '$.error': 'INVALID_INPUT' },
-      },
+    model.stories[0]!.steps.push({
+      ...structuredClone(getStep(model)),
+      id: 'bad',
+      sequence: 4,
+      expectedStatus: 422,
+      inputs: { total_amount: 1 },
+      expect: { '$.error': 'INVALID_INPUT' },
     });
     const steps = projectAcceptanceTests(model).flows[0]!.steps;
     const bad = steps.find((step) => step.ref.endsWith('#bad'))!;
@@ -175,60 +161,56 @@ describe('direct inline-example acceptance projection', () => {
   });
   it('does not turn documentation-only examples into executable tests', () => {
     const model = createAcceptanceModel();
-    for (const entity of model.entities)
-      for (const example of entity.examples ?? [])
-        Object.assign(example, { test: undefined });
-    expect(() => projectAcceptanceTests(model)).toThrow(
-      'no examples with test metadata',
-    );
+    model.stories = [];
+    expect(() => projectAcceptanceTests(model)).toThrow('no domain stories');
   });
   it.each([
     [
       'missing dependency',
       (model: ReturnType<typeof createAcceptanceModel>) =>
-        Object.assign(getExample(model).test!, {
+        Object.assign(getStep(model), {
           basedOn: ['request.missing#none'],
         }),
-      'unknown example',
+      'preceding',
     ],
     [
       'cycle',
       (model: ReturnType<typeof createAcceptanceModel>) =>
-        Object.assign(getExample(model, 'contract.agreement').test!, {
-          basedOn: ['confirmation.payment#confirmed'],
+        Object.assign(getStep(model, 'contract.agreement'), {
+          basedOn: ['confirmed'],
         }),
-      'cyclic',
+      'preceding',
     ],
     [
       'cross-flow',
       (model: ReturnType<typeof createAcceptanceModel>) =>
-        Object.assign(getExample(model).test!, { flow: 'other' }),
-      'cross-flow',
+        Object.assign(getStep(model), { basedOn: ['other#requested'] }),
+      'preceding',
     ],
     [
       'wrong role',
       (model: ReturnType<typeof createAcceptanceModel>) =>
-        Object.assign(getExample(model).test!, {
-          actingRoleRef: 'role.seller',
+        Object.assign(getStep(model), {
+          actorRef: 'role.seller',
         }),
       'cannot call',
     ],
     [
       'unmodeled status',
       (model: ReturnType<typeof createAcceptanceModel>) =>
-        Object.assign(getExample(model).test!, { expectedStatus: 400 }),
+        Object.assign(getStep(model), { expectedStatus: 400 }),
       'not declared',
     ],
     [
       'oracle mismatch',
       (model: ReturnType<typeof createAcceptanceModel>) =>
-        Object.assign(getExample(model).value, { total_amount: 501 }),
+        Object.assign(getStep(model).values, { total_amount: 501 }),
       'disagrees',
     ],
     [
       'time travel',
       (model: ReturnType<typeof createAcceptanceModel>) =>
-        Object.assign(getExample(model).test!, {
+        Object.assign(getStep(model), {
           asOf: '2020-01-01T00:00:00Z',
         }),
       'clock',
@@ -236,13 +218,13 @@ describe('direct inline-example acceptance projection', () => {
     [
       'missing path binding',
       (model: ReturnType<typeof createAcceptanceModel>) =>
-        Object.assign(getExample(model).test!, { basedOn: [] }),
+        Object.assign(getStep(model), { basedOn: [] }),
       'requires one example',
     ],
     [
       'invalid raw input',
       (model: ReturnType<typeof createAcceptanceModel>) => {
-        delete getExample(model, 'request.payment').value.quantity;
+        delete getStep(model, 'request.payment').values.quantity;
       },
       'missing required input',
     ],
@@ -253,24 +235,23 @@ describe('direct inline-example acceptance projection', () => {
   });
   it('refuses ambiguous rule bindings', () => {
     const model = createAcceptanceModel();
-    const request = model.entities.find(
-      (item) => item.id === 'request.payment',
-    )!;
-    request.examples!.push({
-      ...structuredClone(request.examples![0]!),
-      label: 'another',
+    model.stories[0]!.steps.push({
+      ...getStep(model, 'request.payment'),
+      id: 'another',
+      sequence: 3,
     });
-    Object.assign(getExample(model).test!, {
-      basedOn: ['request.payment#requested', 'request.payment#another'],
+    getStep(model).sequence = 4;
+    Object.assign(getStep(model), {
+      basedOn: ['requested', 'another'],
     });
     expect(() => projectAcceptanceTests(model)).toThrow('found 2');
   });
   it('supports an explicit JSONPath capture for nonstandard IDs', () => {
     const model = createAcceptanceModel();
-    Object.assign(getExample(model).test!, {
+    Object.assign(getStep(model), {
       pathParameters: {
         paymentId: {
-          exampleRef: 'request.payment#requested',
+          stepRef: 'requested',
           jsonpath: '$.reference',
         },
       },
@@ -285,13 +266,10 @@ describe('direct inline-example acceptance projection', () => {
   });
   it('keeps independent flows and capture namespaces separate', () => {
     const model = createAcceptanceModel();
-    const contract = model.entities.find(
-      (entity) => entity.id === 'contract.agreement',
-    )!;
-    contract.examples!.push({
-      ...structuredClone(contract.examples![0]!),
-      label: 'independent',
-      test: { ...contract.examples![0]!.test!, flow: 'other' },
+    model.stories.push({
+      ...model.stories[0]!,
+      id: 'other',
+      steps: [structuredClone(getStep(model, 'contract.agreement'))],
     });
     const projection = projectAcceptanceTests(model);
     expect(projection.flows.map((flow) => flow.steps.length).sort()).toEqual([
@@ -310,30 +288,27 @@ it('selects proposal signing from example causality and captures business-named 
       edge.sourceRef === 'proposal.quotation' &&
       edge.targetRef === 'rfp.inquiry',
   )!.sourceCardinality = { min: 0, max: 'many' };
+  for (const step of model.stories[0]!.steps) step.sequence += 2;
   for (const [entityRef, label, role, parent] of [
     ['rfp.inquiry', 'opened', 'role.buyer', undefined],
-    ['proposal.quotation', 'offered', 'role.seller', 'rfp.inquiry#opened'],
+    ['proposal.quotation', 'offered', 'role.seller', 'opened'],
   ] as const) {
-    model.entities.find((entity) => entity.id === entityRef)!.examples = [
-      {
-        label,
-        value: {
-          id: label,
-          started_at: EXAMPLE_AS_OF,
-          expired_at: '2026-04-01T10:00:00Z',
-        },
-        test: {
-          flow: 'payment',
-          asOf: EXAMPLE_AS_OF,
-          actingRoleRef: role,
-          ...(parent === undefined ? {} : { basedOn: [parent] }),
-        },
+    model.stories[0]!.steps.push({
+      id: label,
+      sequence: parent ? 2 : 1,
+      workObjectRef: entityRef,
+      actorRef: role,
+      activity: parent ? '报价' : '询价',
+      asOf: EXAMPLE_AS_OF,
+      basedOn: parent ? [parent] : [],
+      values: {
+        id: label,
+        started_at: EXAMPLE_AS_OF,
+        expired_at: '2026-04-01T10:00:00Z',
       },
-    ];
+    });
   }
-  getExample(model, 'contract.agreement').test!.basedOn = [
-    'proposal.quotation#offered',
-  ];
+  getStep(model, 'contract.agreement').basedOn = ['offered'];
   const projection = projectAcceptanceTests(model);
   const steps = projection.flows[0]!.steps;
   expect(steps.map((step) => step.route.purpose)).toEqual([

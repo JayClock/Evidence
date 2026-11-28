@@ -36,7 +36,7 @@ may adjust routes and journeys but cannot invent model semantics or hide errors.
 
 See [API delivery](../../docs/api-projection-v6.md) for resource addresses, HAL,
 logical service ownership and compatibility checks. API snapshots and
-manifests use schema 7.0; FM sources still use 6.0.
+manifests and FM sources both use schema 7.0.
 
 ## Inline examples
 

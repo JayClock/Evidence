@@ -1,6 +1,6 @@
 import type {
   DomainModelDocument,
-  ExampleTestAST,
+  StoryStepAST,
 } from '@evidence-poc/evidence-schema';
 import {
   addPaymentFulfillment,
@@ -17,39 +17,63 @@ export const createAcceptanceModel = (): DomainModelDocument => {
       edge.sourceRef === 'request.payment' &&
       edge.targetRef === 'contract.agreement',
   )!.sourceCardinality = { min: 0, max: 'many' };
-  const attach = (
+  const step = (
     id: string,
-    label: string,
-    value: Record<string, unknown>,
-    test: Omit<ExampleTestAST, 'flow' | 'asOf'>,
-  ): void => {
-    model.entities.find((entity) => entity.id === id)!.examples = [
-      { label, value, test: { flow: 'payment', asOf: EXAMPLE_AS_OF, ...test } },
-    ];
-  };
-  attach(
-    'contract.agreement',
-    'signed',
-    { id: 'agreement-001', signed_at: EXAMPLE_AS_OF },
-    { actingRoleRef: 'role.buyer' },
-  );
-  attach(
-    'request.payment',
-    'requested',
-    {
-      id: 'request-001',
-      quantity: 10,
-      unit_price: 50,
-      started_at: EXAMPLE_AS_OF,
-      expired_at: '2026-04-01T10:00:00Z',
-    },
-    { actingRoleRef: 'role.seller', basedOn: ['contract.agreement#signed'] },
-  );
-  attach(
-    'confirmation.payment',
-    'confirmed',
-    { id: 'confirmation-001', total_amount: 500, confirmed_at: EXAMPLE_AS_OF },
-    { actingRoleRef: 'role.buyer', basedOn: ['request.payment#requested'] },
-  );
+    sequence: number,
+    actorRef: string,
+    activity: string,
+    workObjectRef: string,
+    values: Record<string, unknown>,
+    basedOn: string[] = [],
+  ): StoryStepAST => ({
+    id,
+    sequence,
+    actorRef,
+    activity,
+    workObjectRef,
+    values,
+    asOf: EXAMPLE_AS_OF,
+    basedOn,
+  });
+  model.stories.push({
+    type: 'story',
+    id: 'payment',
+    kind: 'primary',
+    title: '采购付款',
+    steps: [
+      step('signed', 1, 'role.buyer', '签署', 'contract.agreement', {
+        id: 'agreement-001',
+        signed_at: EXAMPLE_AS_OF,
+      }),
+      step(
+        'requested',
+        2,
+        'role.seller',
+        '发起',
+        'request.payment',
+        {
+          id: 'request-001',
+          quantity: 10,
+          unit_price: 50,
+          started_at: EXAMPLE_AS_OF,
+          expired_at: '2026-04-01T10:00:00Z',
+        },
+        ['signed'],
+      ),
+      step(
+        'confirmed',
+        3,
+        'role.buyer',
+        '确认',
+        'confirmation.payment',
+        {
+          id: 'confirmation-001',
+          total_amount: 500,
+          confirmed_at: EXAMPLE_AS_OF,
+        },
+        ['requested'],
+      ),
+    ],
+  });
   return model;
 };

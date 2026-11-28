@@ -1,28 +1,36 @@
 import {
   createModelSession,
-  cloneScenarioExamples,
-  replaceScenarioExamples,
+  forkStory,
   evaluateScenario,
-  collectFlowScenarios,
+  resolveStoryTraces,
 } from '@evidence-poc/evidence-model-core';
 import { createAcceptanceModel } from '@evidence-poc/evidence-api/testing';
 import { projectAcceptanceTests } from './scenarioProjector.js';
 import { renderBruno } from '../renderer/brunoRenderer.js';
 
 describe('scenario studio to standard acceptance', () => {
-  it('round trips cloned inline scenarios through traces and Bruno export', () => {
+  it('round trips forked stories through traces and Bruno export', () => {
     const session = createModelSession({ document: createAcceptanceModel() });
-    const originalFlow = collectFlowScenarios(session.getDocument())[0].flowId;
-    const cloned = cloneScenarioExamples(
-      session.getDocument(),
-      originalFlow,
-      '另一份采购案例',
+    const parent = session.getDocument().stories[0]!;
+    session.mutate((d) =>
+      forkStory(d, {
+        id: 'branch',
+        title: '采购分支',
+        forkedFrom: { storyId: parent.id, stepId: 'requested' },
+        steps: [
+          {
+            ...parent.steps[2]!,
+            basedOn: ['payment#requested'],
+            pathParameters: {
+              paymentId: { stepRef: 'payment#requested', jsonpath: '$.id' },
+            },
+          },
+        ],
+      }),
     );
-    session.mutate((d) => replaceScenarioExamples(d, '另一份采购案例', cloned));
-    // The on-disk representation is still just the existing FM AST.
     const restored = JSON.parse(JSON.stringify(session.getDocument()));
-    expect(collectFlowScenarios(restored)).toHaveLength(2);
-    const oracle = evaluateScenario(restored, '另一份采购案例');
+    expect(resolveStoryTraces(restored)).toHaveLength(2);
+    const oracle = evaluateScenario(restored, 'branch');
     expect(oracle.at(-1)?.values.total_amount).toBe(500);
     const projection = projectAcceptanceTests(restored);
     expect(projection.flows).toHaveLength(2);

@@ -88,11 +88,9 @@ describe('B2B escrow phase-one contract', () => {
     }
     for (const entity of baseline.entities) {
       const target = current.entities.find((item) => item.id === entity.id)!;
-      const { examples: prior = [], ...priorShape } = entity;
-      const { examples: next = [], ...nextShape } = target;
       // Allow only presentation metadata to differ from the frozen baseline.
-      expect(nextShape).toEqual({
-        ...priorShape,
+      expect(target).toEqual({
+        ...entity,
         ...(entity.category === 'evidence' &&
         entity.kind === 'fulfillment_request'
           ? { fulfillmentAction: expect.stringMatching(/\S/u) }
@@ -104,7 +102,14 @@ describe('B2B escrow phase-one contract', () => {
       expect(target.label).not.toMatch(
         /角色|当事人|上下文|标的物|Role|Party|Context|Thing/iu,
       );
-      expect(next).toEqual(expect.arrayContaining(prior));
+    }
+    for (const story of baseline.stories) {
+      // The active model may refine the vocabulary while keeping the executable facts.
+      const facts = (steps: typeof story.steps) =>
+        steps.map(({ activity, targetActorRef, ...step }) => step);
+      expect(
+        facts(current.stories.find((s) => s.id === story.id)!.steps),
+      ).toEqual(facts(story.steps));
     }
     const baselineProjection = projectAcceptanceTests(baseline);
     const names = (gate: 'regression' | 'dod') =>
@@ -292,9 +297,11 @@ describe('B2B escrow phase-one contract', () => {
 
   it('fails compilation when an asserted amount is forged instead of trusting its own expected answer', () => {
     const model = structuredClone(current);
-    model.entities.find(
-      (entity) => entity.id === 'confirmation.order',
-    )!.examples![0]!.value.gross_amount_minor = 1;
+    model.stories
+      .flatMap((story) => story.steps)
+      .find(
+        (step) => step.workObjectRef === 'confirmation.order',
+      )!.values.gross_amount_minor = 1;
     expect(() => projectAcceptanceTests(model)).toThrow(
       /disagrees with rule.gross/,
     );

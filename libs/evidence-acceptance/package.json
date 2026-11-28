@@ -89,13 +89,13 @@
     "ajv": "^8.20.0",
     "ajv-formats": "3.0.1",
     "tslib": "^2.3.0",
-    "zod": "3.25.76"
+    "zod": "3.25.76",
+    "@evidence-poc/evidence-model-core": "workspace:*"
   },
   "description": "从 API 契约生成验收脚本、执行 HTTP 门禁并检测契约兼容性",
   "devDependencies": {
     "@evidence-poc/evidence-canvas-interaction": "workspace:*",
     "@usebruno/lang": "0.41.0",
-    "yaml": "2.9.1",
-    "@evidence-poc/evidence-model-core": "workspace:*"
+    "yaml": "2.9.1"
   }
 }

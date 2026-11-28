@@ -167,8 +167,12 @@ describe(
     it('goes red for an incorrect derived amount, and green again after fixing it', async () => {
       const broken = await execute('amount');
       expect(broken.passed).toBe(false);
+      const { document } = await readModelDirectory(model);
+      const order = document.stories
+        .find((story) => story.id === 'single-on-time')!
+        .steps.find((step) => step.workObjectRef === 'confirmation.order')!;
       const step = broken.steps.find(
-        (step) => step.name === 'confirmation.order#single-on-time',
+        (step) => step.name === `single-on-time#${order.id}`,
       )!;
       expect(step.assertions).toContainEqual({
         path: 'jsonpath.$["gross_amount_minor"]',
@@ -208,9 +212,9 @@ describe(
         expect.objectContaining({ path: 'schema', passed: false }),
       );
     });
-    it('keeps the distributed entity JSON Schema aligned with inline examples', async () => {
+    it('keeps the distributed story JSON Schema aligned with authored steps', async () => {
       const schemaPath = new URL(
-        '../../evidence-schema/schemas/entity.schema.json',
+        '../../evidence-schema/schemas/story.schema.json',
         import.meta.url,
       );
       const schema = JSON.parse(readFileSync(schemaPath, 'utf8'));
@@ -220,16 +224,10 @@ describe(
       }).compile(schema);
       const { document, issues } = await readModelDirectory(model);
       expect(issues).toEqual([]);
-      for (const entity of document.entities)
-        expect(validate(entity), JSON.stringify(validate.errors)).toBe(true);
-      const confirmation = document.entities.find(
-        (entity) => entity.id === 'confirmation.order',
-      )!;
-      const [first, ...rest] = confirmation.examples!;
-      const invalid = {
-        ...confirmation,
-        examples: [{ ...first, test: { ...first!.test, inputs: {} } }, ...rest],
-      };
+      for (const story of document.stories)
+        expect(validate(story), JSON.stringify(validate.errors)).toBe(true);
+      const story = document.stories[0]!;
+      const invalid = { ...story, steps: [{ ...story.steps[0], inputs: {} }] };
       expect(validate(invalid)).toBe(false);
     });
   },

@@ -7,7 +7,7 @@ it('classifies fields without needing a projection or filesystem', () => {
   const graph = createDomainGraph({
     manifest: {
       type: 'fm_model',
-      schemaVersion: '6.0',
+      schemaVersion: '7.0',
       id: 'test',
       name: 'test',
       version: '1',
@@ -15,6 +15,7 @@ it('classifies fields without needing a projection or filesystem', () => {
       entryContextRefs: [],
     },
     entities: [],
+    stories: [],
     relationships: [],
     rules: [],
   } satisfies DomainModelDocument);

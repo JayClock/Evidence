@@ -1,10 +1,13 @@
 import {
   assertValidDomainModel,
   type DomainModelDocument,
-  type ModelExampleAST,
-  type ExampleTestAST,
+  type DomainStoryAST,
   type RuleAST,
 } from '@evidence-poc/evidence-schema';
+import {
+  resolveStorySteps,
+  type ResolvedStoryStep,
+} from '@evidence-poc/evidence-model-core';
 import { evaluateRuleOnExample } from '@evidence-poc/evidence-cel';
 import {
   buildDeliveryRoutes,
@@ -52,8 +55,7 @@ export type SuiteProjection = Omit<AcceptanceProjection, 'flows'> & {
 };
 interface Case {
   ref: string;
-  example: ModelExampleAST;
-  test: ExampleTestAST;
+  source: ResolvedStoryStep;
   route: DeliveryRoute;
   dependencies: string[];
 }
@@ -80,91 +82,81 @@ export function projectAcceptanceTests(
 ): AcceptanceProjection {
   assertValidDomainModel(model);
   const schemas = buildDeliveryContract(model, routes).components.schemas;
+  if (!model.stories.length) fail(model.manifest.id, 'no domain stories');
+  const flows = [...model.stories]
+    .sort((a, b) => compareText(a.id, b.id))
+    .map((story) => projectStory(model, story, routes, schemas));
+  return { modelId: model.manifest.id, flows };
+}
+
+function projectStory(
+  model: DomainModelDocument,
+  story: DomainStoryAST,
+  routes: readonly DeliveryRoute[],
+  schemas: ReturnType<typeof buildDeliveryContract>['components']['schemas'],
+): AcceptanceFlow {
   const cases = new Map<string, Case>();
-  for (const entity of model.entities)
-    for (const example of entity.examples ?? []) {
-      if (example.test === undefined) continue;
-      const ref = `${entity.id}#${example.label}`;
-      const test = example.test;
-      const dependencies = [
-        ...new Set([
-          ...(test.basedOn ?? []),
-          ...Object.values(test.pathParameters ?? {}).map(
-            (source) => source.exampleRef,
-          ),
-        ]),
-      ];
-      const causes = new Set(
-        dependencies.map((dependency) => dependency.split('#')[0]),
-      );
-      const candidates = routes.filter(
-        (route) => route.entityRef === entity.id && route.method === 'POST',
-      );
-      const branchCommands = candidates.filter(
-        (route) => route.breachBranch !== undefined,
-      );
-      const fromProposal = candidates.filter((route) =>
-        (test.basedOn ?? []).some(
-          (ref) =>
-            route.id ===
-            'route.sign-from-' + ref.split('#')[0] + '.' + entity.id,
+  for (const source of resolveStorySteps(model, story.id)) {
+    const { ref } = source;
+    const dependencies = [
+      ...new Set([
+        ...source.basedOn,
+        ...Object.values(source.pathParameters ?? {}).map(
+          (capture) => capture.stepRef,
         ),
-      );
-      const selected =
+      ]),
+    ];
+    const causes = new Set(
+      dependencies.map((key) => cases.get(key)!.route.entityRef),
+    );
+    const candidates = routes.filter(
+      (route) =>
+        route.entityRef === source.workObjectRef && route.method === 'POST',
+    );
+    const branchCommands = candidates.filter(
+      (route) => route.breachBranch !== undefined,
+    );
+    const fromProposal = candidates.filter((route) =>
+      source.basedOn.some(
+        (key) =>
+          route.id ===
+          'route.sign-from-' +
+            cases.get(key)!.route.entityRef +
+            '.' +
+            source.workObjectRef,
+      ),
+    );
+    const selected =
+      branchCommands.length > 0
+        ? branchCommands.filter(
+            (route) =>
+              route.breachBranch !== undefined &&
+              causes.has(route.breachBranch.breachedRequestRef),
+          )
+        : fromProposal.length > 0
+          ? fromProposal
+          : candidates.filter(
+              (route) => !route.id.startsWith('route.sign-from-'),
+            );
+    if (selected.length !== 1)
+      fail(
+        ref,
         branchCommands.length > 0
-          ? branchCommands.filter(
-              (route) =>
-                route.breachBranch !== undefined &&
-                causes.has(route.breachBranch.breachedRequestRef),
-            )
-          : fromProposal.length > 0
-            ? fromProposal
-            : candidates.filter(
-                (route) => !route.id.startsWith('route.sign-from-'),
-              );
-      if (selected.length !== 1)
-        fail(
-          ref,
-          branchCommands.length > 0
-            ? 'requires one breach branch identified by the breached request example'
-            : 'requires exactly one modeled POST route',
-        );
-      const route = selected[0]!;
-      if (!allowedCallerRoleRefs(route).includes(test.actingRoleRef))
-        fail(ref, `role '${test.actingRoleRef}' cannot call ${route.id}`);
-      cases.set(ref, { ref, example, test, route, dependencies });
-    }
-  if (cases.size === 0)
-    fail(model.manifest.id, 'no examples with test metadata');
-  const ordered: Case[] = [];
-  const visiting = new Set<string>(),
-    visited = new Set<string>();
-  const visit = (item: Case): void => {
-    if (visiting.has(item.ref)) fail(item.ref, 'cyclic example dependencies');
-    if (visited.has(item.ref)) return;
-    visiting.add(item.ref);
-    for (const ref of [...item.dependencies].sort()) {
-      const dependency = cases.get(ref);
-      if (dependency === undefined) fail(item.ref, `unknown example '${ref}'`);
-      if (dependency!.test.flow !== item.test.flow)
-        fail(item.ref, 'cross-flow dependencies are not isolated');
-      if ((dependency!.test.expectedStatus ?? 201) >= 400)
-        fail(item.ref, 'cannot depend on a rejected operation');
-      if (Date.parse(dependency!.test.asOf) > Date.parse(item.test.asOf))
-        fail(item.ref, 'dependency clock is later than this step');
-      visit(dependency!);
-    }
-    visiting.delete(item.ref);
-    visited.add(item.ref);
-    ordered.push(item);
-  };
-  for (const item of [...cases.values()].sort((a, b) =>
-    compareText(a.ref, b.ref),
-  ))
-    visit(item);
+          ? 'requires one breach branch identified by the breached request example'
+          : 'requires exactly one modeled POST route',
+      );
+    const route = selected[0]!;
+    if (!allowedCallerRoleRefs(route).includes(source.actorRef))
+      fail(ref, `role '${source.actorRef}' cannot call ${route.id}`);
+    cases.set(ref, { ref, route, source, dependencies });
+  }
   const facts = new Map<string, Record<string, unknown>>();
   const steps = new Map<string, AcceptanceStep>();
-  const flows = new Map<string, AcceptanceFlow>();
+  const flow: AcceptanceFlow = {
+    id: story.id,
+    ...(story.tags && { tags: [...story.tags].sort(compareText) }),
+    steps: [],
+  };
   const ancestors = (item: Case): Case[] => {
     const found = new Map<string, Case>();
     const walk = (ref: string): void => {
@@ -176,8 +168,8 @@ export function projectAcceptanceTests(
     item.dependencies.forEach(walk);
     return [...found.values()];
   };
-  for (const item of ordered) {
-    const { ref, route, example, test } = item;
+  for (const item of cases.values()) {
+    const { ref, route, source: test } = item;
     const status =
       test.expectedStatus ??
       route.responses.find(
@@ -190,9 +182,9 @@ export function projectAcceptanceTests(
       fail(ref, `status ${status} is not declared by ${route.id}`);
     const positive = status! < 400;
     const fields = new Set(route.outputFields.map((field) => field.name));
-    for (const name of Object.keys(example.value))
+    for (const name of Object.keys(test.values))
       if (!fields.has(name)) fail(ref, `unknown example attribute '${name}'`);
-    const values = structuredClone(example.value);
+    const values = structuredClone(test.values);
     const upstream = ancestors(item);
     const rules: RuleAST[] = route.derived.map((field) => {
       const rule = model.rules.find((rule) => rule.id === field.ruleRef);
@@ -241,8 +233,8 @@ export function projectAcceptanceTests(
             });
             const name = rule.target!.attribute;
             if (
-              Object.hasOwn(example.value, name) &&
-              stable(example.value[name]) !== stable(computed)
+              Object.hasOwn(test.values, name) &&
+              stable(test.values[name]) !== stable(computed)
             )
               fail(
                 ref,
@@ -291,7 +283,7 @@ export function projectAcceptanceTests(
       ref,
       route,
       asOf: test.asOf,
-      actingRoleRef: test.actingRoleRef,
+      actingRoleRef: test.actorRef,
       status: status!,
       inputs,
       assertions,
@@ -326,16 +318,13 @@ export function projectAcceptanceTests(
         )
           fail(
             ref,
-            `path parameter '${name}' needs an explicit exampleRef/jsonpath source`,
+            `path parameter '${name}' needs an explicit stepRef/jsonpath source`,
           );
-        source = { exampleRef: candidates[0]!.ref, jsonpath: '$.id' };
+        source = { stepRef: candidates[0]!.ref, jsonpath: '$.id' };
       }
-      const producer = steps.get(source.exampleRef);
+      const producer = steps.get(source.stepRef);
       if (producer === undefined)
-        fail(
-          ref,
-          `capture source '${source.exampleRef}' is not an earlier step`,
-        );
+        fail(ref, `capture source '${source.stepRef}' is not an earlier step`);
       const existing = Object.entries(producer!.captures).find(
         ([, path]) => path === source!.jsonpath,
       )?.[0];
@@ -347,19 +336,7 @@ export function projectAcceptanceTests(
     }
     facts.set(ref, values);
     steps.set(ref, step);
-    const flow: AcceptanceFlow = flows.get(test.flow) ?? {
-      id: test.flow,
-      steps: [],
-    };
-    if (test.tags?.length)
-      flow.tags = [...new Set([...(flow.tags ?? []), ...test.tags])].sort(
-        compareText,
-      );
     flow.steps.push(step);
-    flows.set(test.flow, flow);
   }
-  return {
-    modelId: model.manifest.id,
-    flows: [...flows.values()].sort((a, b) => compareText(a.id, b.id)),
-  };
+  return flow;
 }

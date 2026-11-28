@@ -164,7 +164,24 @@ describe('loadModelFromDocument', () => {
     document.manifest.name = 'Later edit';
     expect(loaded.document.manifest.name).toBe(originalName);
     const next = structuredClone(document);
-    next.entities[0]!.examples = [{ label: 'Updated example', value: {} }];
+    next.stories.push({
+      type: 'story',
+      id: 'signing',
+      title: '签约',
+      kind: 'primary',
+      steps: [
+        {
+          id: 'signed',
+          sequence: 1,
+          actorRef: 'role.buyer',
+          workObjectRef: 'contract.product-procurement',
+          activity: '签署',
+          asOf: '2026-01-01T00:00:00Z',
+          basedOn: [],
+          values: {},
+        },
+      ],
+    });
     expect(loadModelFromDocument(next).index?.modelDigest).not.toBe(
       loadModelFromDocument(document).index?.modelDigest,
     );
@@ -225,7 +242,7 @@ describe('inspectSummary', () => {
     );
     const summary = inspectSummary(index as NonNullable<typeof index>);
 
-    expect(summary.schemaVersion).toBe('6.0');
+    expect(summary.schemaVersion).toBe('7.0');
     expect(summary.contexts).toEqual([
       'context.product-catalog',
       'context.product-procurement',

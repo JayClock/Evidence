@@ -85,12 +85,8 @@ export const inspectSummary = (index: ModelIndex): InspectSummary => {
       .filter((entity) => entity.category === 'context')
       .map((entity) => entity.id)
       .sort(),
-    testExamples: [...index.entities.values()]
-      .flatMap((entity) =>
-        (entity.examples ?? [])
-          .filter((example) => example.test !== undefined)
-          .map((example) => `${entity.id}#${example.label}`),
-      )
+    testExamples: index.document.stories
+      .flatMap((story) => story.steps.map((step) => `${story.id}#${step.id}`))
       .sort(),
     inputFiles: index.files,
   };

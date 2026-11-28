@@ -59,8 +59,12 @@ describe('exportAcceptanceTests', () => {
       const amountField = confirmation?.attributes?.find(
         (attribute) => attribute.name === 'total_amount',
       );
-      const requestExample = request?.examples?.[0];
-      const confirmationExample = confirmation?.examples?.[0];
+      const requestExample = model.stories[0]!.steps.find(
+        (s) => s.workObjectRef === request?.id,
+      );
+      const confirmationExample = model.stories[0]!.steps.find(
+        (s) => s.workObjectRef === confirmation?.id,
+      );
       const rule = model.rules.find((item) => item.id === 'rule.total-amount');
       if (
         !quantityField ||
@@ -72,9 +76,9 @@ describe('exportAcceptanceTests', () => {
         throw new Error('Incomplete acceptance fixture');
       }
       quantityField.valueType = type;
-      requestExample.value.quantity = quantity;
+      requestExample.values.quantity = quantity;
       amountField.valueType = type;
-      confirmationExample.value.total_amount = expected;
+      confirmationExample.values.total_amount = expected;
       rule.expression = `request.quantity + ${type === 'uint' ? '1u' : '1'}`;
       rule.resultType = type;
       await writeModelDirectory(modelDirectory, model);
@@ -103,9 +107,7 @@ describe('exportAcceptanceTests', () => {
     await exportSuite();
     const before = readFileSync(path.join(out, suiteManifest), 'utf8');
     const model = createAcceptanceModel();
-    model.entities.find(
-      (entity) => entity.id === 'confirmation.payment',
-    )!.examples![0]!.value.total_amount = 501;
+    model.stories[0]!.steps[2]!.values.total_amount = 501;
     await writeModelDirectory(modelDirectory, model);
     await expect(exportSuite()).rejects.toThrow('disagrees');
     expect(readFileSync(path.join(out, suiteManifest), 'utf8')).toBe(before);
@@ -114,11 +116,9 @@ describe('exportAcceptanceTests', () => {
     rmSync(modelDirectory, { recursive: true });
     await expect(exportSuite()).rejects.toThrow('model.json is required');
     const model = createAcceptanceModel();
-    for (const entity of model.entities) entity.examples = [];
+    model.stories = [];
     await writeModelDirectory(modelDirectory, model);
-    await expect(exportSuite()).rejects.toThrow(
-      'no examples with test metadata',
-    );
+    await expect(exportSuite()).rejects.toThrow('no domain stories');
   });
   it('surfaces invalid JSON and does not create output directories', async () => {
     writeFileSync(path.join(modelDirectory, 'model.json'), '{bad');

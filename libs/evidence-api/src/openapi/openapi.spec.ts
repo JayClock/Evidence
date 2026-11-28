@@ -17,6 +17,33 @@ import { buildDelivery } from '../projector.js';
 import { buildDeliveryContract } from '../delivery/modelDelivery.js';
 import { componentName } from '../delivery/schemaName.js';
 
+const addSample = (
+  model: ReturnType<typeof procurementEvolution>[number],
+  workObjectRef: string,
+  id: string,
+  values: Record<string, unknown>,
+  description?: string,
+) =>
+  model.stories.push({
+    type: 'story',
+    id: 'sample',
+    title: '样例',
+    kind: 'primary',
+    steps: [
+      {
+        id,
+        sequence: 1,
+        actorRef: 'role.buyer',
+        activity: '记录',
+        workObjectRef,
+        description,
+        asOf: '2026-01-01T00:00:00Z',
+        basedOn: [],
+        values,
+      },
+    ],
+  });
+
 const compileTypes = (source: string): readonly ts.Diagnostic[] => {
   const filename = '/virtual/contract.ts';
   const options: ts.CompilerOptions = {
@@ -100,27 +127,25 @@ describe('OpenAPI consumer contract', () => {
     const route = baseline.routes.find(
       (item) => item.id === 'route.confirm.confirmation.payment',
     )!;
-    const entity = document.entities.find(
-      (item) => item.id === route.entityRef,
-    )!;
-    entity.examples = [
-      {
-        label: 'standard',
-        description: 'A complete business moment.',
-        value: Object.fromEntries(
-          route.outputFields.map((field) => [
-            field.name,
-            field.valueType === 'timestamp'
-              ? '2026-01-01T00:00:00Z'
-              : ['money', 'decimal', 'int', 'uint', 'double'].includes(
-                    field.valueType,
-                  )
-                ? 42
-                : 'sample',
-          ]),
-        ),
-      },
-    ];
+    const values = Object.fromEntries(
+      route.outputFields.map((field) => [
+        field.name,
+        field.valueType === 'timestamp'
+          ? '2026-01-01T00:00:00Z'
+          : ['money', 'decimal', 'int', 'uint', 'double'].includes(
+                field.valueType,
+              )
+            ? 42
+            : 'sample',
+      ]),
+    );
+    addSample(
+      document,
+      route.entityRef,
+      'standard',
+      values,
+      'A complete business moment.',
+    );
 
     const snapshot = buildDelivery(document);
     const operation = operationFor(snapshot, route.id);
@@ -133,16 +158,13 @@ describe('OpenAPI consumer contract', () => {
     expect(snapshot.diagnostics).toEqual([]);
     expect(Object.values(requestExamples)).toHaveLength(1);
     expect(Object.values(requestExamples)[0]).toMatchObject({
-      summary: 'standard',
+      summary: 'sample#standard',
       value: Object.fromEntries(
-        route.fields.map((field) => [
-          field.name,
-          entity.examples![0]!.value[field.name],
-        ]),
+        route.fields.map((field) => [field.name, values[field.name]]),
       ),
     });
     expect(Object.values(responseExamples)[0]).toMatchObject({
-      summary: 'standard',
+      summary: 'sample#standard',
     });
     expect(Object.values(componentExamples)).toHaveLength(1);
     expect(contractProblems(snapshot.openapi)).toEqual([]);
@@ -173,9 +195,7 @@ describe('OpenAPI consumer contract', () => {
     },
   ])('rejects invalid example facts: $label', (example) => {
     const document = structuredClone(stages[3]!);
-    document.entities.find(
-      (entity) => entity.id === 'confirmation.payment',
-    )!.examples = [example];
+    addSample(document, 'confirmation.payment', example.label, example.value);
     expect(buildDelivery(document).diagnostics).toContainEqual(
       expect.objectContaining({ code: 'API_EXAMPLE_INVALID' }),
     );
@@ -264,11 +284,10 @@ describe('OpenAPI consumer contract', () => {
 
 it('publishes distinct HAL collection schemas with linked summaries', () => {
   const model = structuredClone(stages[1]!);
-  model.entities.find(
-    (entity) => entity.id === 'contract.agreement',
-  )!.examples = [
-    { label: 'signed', value: { id: 'a', signed_at: '2026-01-01T00:00:00Z' } },
-  ];
+  addSample(model, 'contract.agreement', 'signed', {
+    id: 'a',
+    signed_at: '2026-01-01T00:00:00Z',
+  });
   const snapshot = buildDelivery(model);
   const operation = operationFor(snapshot, 'route.list.contract.agreement');
   const media = operation.responses['200']!.content!['application/hal+json']!;

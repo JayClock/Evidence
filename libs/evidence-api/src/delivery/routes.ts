@@ -2,7 +2,6 @@ import { fieldFor } from './fieldOrigin.js';
 export { fieldFor } from './fieldOrigin.js';
 import {
   type DomainModelDocument,
-  type ModelExampleAST,
   type RuleAST,
   type TerminalRemedyKind,
 } from '@evidence-poc/evidence-schema';
@@ -80,7 +79,11 @@ export interface DeliveryRouteResponse {
   entityRef?: string;
 }
 
-export type DeliveryExample = ModelExampleAST;
+export interface DeliveryExample {
+  label: string;
+  description?: string;
+  value: Record<string, unknown>;
+}
 
 export const SHARED_REQUEST_IDS = 'request_ids';
 
@@ -132,18 +135,19 @@ const examplesOf = (
   graph: DomainGraph,
   entityRef: string,
 ): readonly DeliveryExample[] => {
-  const examples = graph.getEntity(entityRef)?.examples;
-  return Array.isArray(examples)
-    ? examples.filter(
-        (example) =>
-          example !== null &&
-          typeof example === 'object' &&
-          typeof example.label === 'string' &&
-          example.value !== null &&
-          typeof example.value === 'object' &&
-          !Array.isArray(example.value),
+  return graph.document.stories.flatMap((story) =>
+    story.steps
+      .filter(
+        (step) =>
+          step.workObjectRef === entityRef &&
+          (step.expectedStatus ?? 200) < 400,
       )
-    : [];
+      .map((step) => ({
+        label: `${story.id}#${step.id}`,
+        description: step.description,
+        value: step.values,
+      })),
+  );
 };
 
 /** Classifies every attribute of one object once, in declaration order. */

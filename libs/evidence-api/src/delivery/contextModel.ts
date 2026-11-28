@@ -29,9 +29,12 @@ export function contextModelOf(input: DomainModelDocument) {
     relationships: [],
     rules: [],
   });
-  const items = [input.entities, input.relationships, input.rules].flatMap(
-    (array) => [...array],
-  );
+  const items = [
+    input.entities,
+    input.relationships,
+    input.rules,
+    input.stories,
+  ].flatMap((array) => [...array]);
   const ids = items.flatMap((item) => {
     const id = stringOf(recordOf(item)?.['id']);
     return id === undefined ? [] : [id];

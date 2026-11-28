@@ -54,12 +54,7 @@ export const buildProjection = ({
   const model = index.document;
   const baseline = buildModelDelivery(model);
   const diagnostics: Diagnostic[] = [...index.diagnostics];
-  const checked = strictValidateDomainModel({
-    manifest: model.manifest,
-    entities: model.entities,
-    relationships: model.relationships,
-    rules: model.rules,
-  });
+  const checked = strictValidateDomainModel(model);
   for (const issue of checked.issues) {
     diagnostics.push(
       errorDiagnostic('FM_INVALID', issue.message, issue.objectId, issue.path),
