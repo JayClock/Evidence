@@ -127,6 +127,15 @@ export const deleteRuleMutator = (
 ): boolean => {
   const index = draft.rules.findIndex((rule) => rule.id === ruleId);
   if (index === -1) fail('rule.notFound', `unknown rule '${ruleId}'.`);
+  const branches = draft.stories.filter(
+    (story) => story.forkedFrom?.triggerRuleRef === ruleId,
+  );
+  if (branches.length)
+    fail(
+      'rule.referenced',
+      `rule '${ruleId}' is a story fork trigger.`,
+      branches.map((story) => story.id),
+    );
   const holders = draft.entities.filter((entity) =>
     entity.attributes?.some(
       (attribute) => attribute.derivedByRuleRef === ruleId,

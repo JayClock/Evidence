@@ -130,7 +130,7 @@ Renderer behavior is shared through Nx libraries:
 | chat thread and message parts | `desktop-ui-chat` |
 | desktop MCP bridge and services | `desktop-services` |
 | browser sensor/event DTOs and labels     | `@evidence-poc/evidence-agent/browser`                                       |
-| inline acceptance compilation            | `@evidence-poc/evidence-acceptance/projection`                               |
+| domain story acceptance compilation      | `@evidence-poc/evidence-acceptance/projection`                               |
 | shared scripted API/renderer fixtures    | `@evidence-poc/desktop-testing` (tests only)                                 |
 
 The feature libraries own their colocated tests. `EditorScreen` still coordinates

@@ -1,8 +1,8 @@
 {
   "components": {
     "examples": {
-      "route_read_confirmation_advertising_campaign-live_1": {
-        "summary": "campaign-live",
+      "route_read_confirmation_advertising_negotiation-to-daily-report_step-7_1": {
+        "summary": "negotiation-to-daily-report#step-7",
         "value": {
           "_links": {
             "self": {
@@ -14,8 +14,8 @@
           "placement": "首页推荐位"
         }
       },
-      "route_read_confirmation_daily-report_report-published_1": {
-        "summary": "report-published",
+      "route_read_confirmation_daily-report_negotiation-to-daily-report_step-9_1": {
+        "summary": "negotiation-to-daily-report#step-9",
         "value": {
           "_links": {
             "self": {
@@ -28,22 +28,8 @@
           "report_ref": "archive-summer-20260702"
         }
       },
-      "route_read_confirmation_payment_gateway-paid_1": {
-        "summary": "gateway-paid",
-        "value": {
-          "_links": {
-            "self": {
-              "href": "/payments/{paymentId}"
-            }
-          },
-          "confirmed_at": "2026-06-01T10:00:00Z",
-          "gateway_reference": "gateway-txn-01",
-          "id": "payment-proof-one",
-          "paid_amount_minor": 250000
-        }
-      },
-      "route_read_confirmation_payment_summer-payment-proof_2": {
-        "summary": "summer-payment-proof",
+      "route_read_confirmation_payment_negotiation-to-daily-report_step-5_1": {
+        "summary": "negotiation-to-daily-report#step-5",
         "value": {
           "_links": {
             "self": {
@@ -56,22 +42,22 @@
           "paid_amount_minor": 720000
         }
       },
-      "route_read_contract_ads-promotion-order_payment-order_1": {
-        "summary": "payment-order",
+      "route_read_confirmation_payment_prepayment-only_step-3_2": {
+        "summary": "prepayment-only#step-3",
         "value": {
           "_links": {
             "self": {
-              "href": "/ads-promotion-orders/{contractId}"
+              "href": "/payments/{paymentId}"
             }
           },
-          "agreed_amount_minor": 250000,
-          "campaign_id": "campaign-pay",
-          "id": "ads-order-pay",
-          "signed_at": "2026-06-01T09:00:00Z"
+          "confirmed_at": "2026-06-01T10:00:00Z",
+          "gateway_reference": "gateway-txn-01",
+          "id": "payment-proof-one",
+          "paid_amount_minor": 250000
         }
       },
-      "route_read_contract_ads-promotion-order_sign-campaign-order_2": {
-        "summary": "sign-campaign-order",
+      "route_read_contract_ads-promotion-order_negotiation-to-daily-report_step-3_1": {
+        "summary": "negotiation-to-daily-report#step-3",
         "value": {
           "_links": {
             "self": {
@@ -84,8 +70,22 @@
           "signed_at": "2026-07-01T11:00:00Z"
         }
       },
-      "route_read_proposal_ads-promotion-proposal_return-quote_1": {
-        "summary": "return-quote",
+      "route_read_contract_ads-promotion-order_prepayment-only_step-1_2": {
+        "summary": "prepayment-only#step-1",
+        "value": {
+          "_links": {
+            "self": {
+              "href": "/ads-promotion-orders/{contractId}"
+            }
+          },
+          "agreed_amount_minor": 250000,
+          "campaign_id": "campaign-pay",
+          "id": "ads-order-pay",
+          "signed_at": "2026-06-01T09:00:00Z"
+        }
+      },
+      "route_read_proposal_ads-promotion-proposal_negotiation-to-daily-report_step-2_1": {
+        "summary": "negotiation-to-daily-report#step-2",
         "value": {
           "_links": {
             "self": {
@@ -99,8 +99,8 @@
           "started_at": "2026-07-01T10:00:00Z"
         }
       },
-      "route_read_request_advertising_request-launch_1": {
-        "summary": "request-launch",
+      "route_read_request_advertising_negotiation-to-daily-report_step-6_1": {
+        "summary": "negotiation-to-daily-report#step-6",
         "value": {
           "_links": {
             "self": {
@@ -113,8 +113,8 @@
           "started_at": "2026-07-01T13:00:00Z"
         }
       },
-      "route_read_request_daily-report_report-accepted_1": {
-        "summary": "report-accepted",
+      "route_read_request_daily-report_negotiation-to-daily-report_step-8_1": {
+        "summary": "negotiation-to-daily-report#step-8",
         "value": {
           "_links": {
             "self": {
@@ -127,21 +127,8 @@
           "started_at": "2026-07-03T00:10:00Z"
         }
       },
-      "route_read_request_payment_payment-window_1": {
-        "summary": "payment-window",
-        "value": {
-          "_links": {
-            "self": {
-              "href": "/ads-promotion-orders/{contractId}/payment"
-            }
-          },
-          "expired_at": "2026-06-02T09:15:00Z",
-          "id": "pay-request-one",
-          "started_at": "2026-06-01T09:15:00Z"
-        }
-      },
-      "route_read_request_payment_summer-payment-window_2": {
-        "summary": "summer-payment-window",
+      "route_read_request_payment_negotiation-to-daily-report_step-4_1": {
+        "summary": "negotiation-to-daily-report#step-4",
         "value": {
           "_links": {
             "self": {
@@ -153,8 +140,21 @@
           "started_at": "2026-07-01T11:05:00Z"
         }
       },
-      "route_read_rfp_ads-promotion-inquiry_request-campaign-plan_1": {
-        "summary": "request-campaign-plan",
+      "route_read_request_payment_prepayment-only_step-2_2": {
+        "summary": "prepayment-only#step-2",
+        "value": {
+          "_links": {
+            "self": {
+              "href": "/ads-promotion-orders/{contractId}/payment"
+            }
+          },
+          "expired_at": "2026-06-02T09:15:00Z",
+          "id": "pay-request-one",
+          "started_at": "2026-06-01T09:15:00Z"
+        }
+      },
+      "route_read_rfp_ads-promotion-inquiry_negotiation-to-daily-report_step-1_1": {
+        "summary": "negotiation-to-daily-report#step-1",
         "value": {
           "_links": {
             "self": {
@@ -334,10 +334,10 @@
                 "href": "/payments/{paymentId}"
               }
             },
-            "confirmed_at": "2026-06-01T10:00:00Z",
-            "gateway_reference": "gateway-txn-01",
-            "id": "payment-proof-one",
-            "paid_amount_minor": 250000
+            "confirmed_at": "2026-07-01T12:00:00Z",
+            "gateway_reference": "gateway-txn-02",
+            "id": "payment-proof-summer",
+            "paid_amount_minor": 720000
           },
           {
             "_links": {
@@ -345,10 +345,10 @@
                 "href": "/payments/{paymentId}"
               }
             },
-            "confirmed_at": "2026-07-01T12:00:00Z",
-            "gateway_reference": "gateway-txn-02",
-            "id": "payment-proof-summer",
-            "paid_amount_minor": 720000
+            "confirmed_at": "2026-06-01T10:00:00Z",
+            "gateway_reference": "gateway-txn-01",
+            "id": "payment-proof-one",
+            "paid_amount_minor": 250000
           }
         ],
         "properties": {
@@ -434,10 +434,10 @@
                 "href": "/ads-promotion-orders/{contractId}"
               }
             },
-            "agreed_amount_minor": 250000,
-            "campaign_id": "campaign-pay",
-            "id": "ads-order-pay",
-            "signed_at": "2026-06-01T09:00:00Z"
+            "agreed_amount_minor": 720000,
+            "campaign_id": "campaign-summer",
+            "id": "ads-order-summer",
+            "signed_at": "2026-07-01T11:00:00Z"
           },
           {
             "_links": {
@@ -445,10 +445,10 @@
                 "href": "/ads-promotion-orders/{contractId}"
               }
             },
-            "agreed_amount_minor": 720000,
-            "campaign_id": "campaign-summer",
-            "id": "ads-order-summer",
-            "signed_at": "2026-07-01T11:00:00Z"
+            "agreed_amount_minor": 250000,
+            "campaign_id": "campaign-pay",
+            "id": "ads-order-pay",
+            "signed_at": "2026-06-01T09:00:00Z"
           }
         ],
         "properties": {
@@ -1028,9 +1028,9 @@
                 "href": "/ads-promotion-orders/{contractId}/payment"
               }
             },
-            "expired_at": "2026-06-02T09:15:00Z",
-            "id": "pay-request-one",
-            "started_at": "2026-06-01T09:15:00Z"
+            "expired_at": "2026-07-02T11:05:00Z",
+            "id": "pay-request-summer",
+            "started_at": "2026-07-01T11:05:00Z"
           },
           {
             "_links": {
@@ -1038,9 +1038,9 @@
                 "href": "/ads-promotion-orders/{contractId}/payment"
               }
             },
-            "expired_at": "2026-07-02T11:05:00Z",
-            "id": "pay-request-summer",
-            "started_at": "2026-07-01T11:05:00Z"
+            "expired_at": "2026-06-02T09:15:00Z",
+            "id": "pay-request-one",
+            "started_at": "2026-06-01T09:15:00Z"
           }
         ],
         "properties": {
@@ -1348,8 +1348,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_list_rfp_ads-promotion-inquiry_request-campaign-plan_1": {
-                    "summary": "request-campaign-plan",
+                  "route_list_rfp_ads-promotion-inquiry_negotiation-to-daily-report_step-1_1": {
+                    "summary": "negotiation-to-daily-report#step-1",
                     "value": {
                       "_embedded": {
                         "ads-promotion-inquiries": [
@@ -1434,8 +1434,8 @@
           "content": {
             "application/json": {
               "examples": {
-                "route_open_rfp_ads-promotion-inquiry_request-campaign-plan_1": {
-                  "summary": "request-campaign-plan",
+                "route_open_rfp_ads-promotion-inquiry_negotiation-to-daily-report_step-1_1": {
+                  "summary": "negotiation-to-daily-report#step-1",
                   "value": {
                     "budget_minor": 800000,
                     "id": "inquiry-summer",
@@ -1488,8 +1488,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_open_rfp_ads-promotion-inquiry_request-campaign-plan_1": {
-                    "summary": "request-campaign-plan",
+                  "route_open_rfp_ads-promotion-inquiry_negotiation-to-daily-report_step-1_1": {
+                    "summary": "negotiation-to-daily-report#step-1",
                     "value": {
                       "_links": {
                         "next:proposal.ads-promotion-proposal": {
@@ -1580,8 +1580,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_read_rfp_ads-promotion-inquiry_request-campaign-plan_1": {
-                    "summary": "request-campaign-plan",
+                  "route_read_rfp_ads-promotion-inquiry_negotiation-to-daily-report_step-1_1": {
+                    "summary": "negotiation-to-daily-report#step-1",
                     "value": {
                       "_links": {
                         "next:proposal.ads-promotion-proposal": {
@@ -1665,8 +1665,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_read_proposal_ads-promotion-proposal_return-quote_1": {
-                    "summary": "return-quote",
+                  "route_read_proposal_ads-promotion-proposal_negotiation-to-daily-report_step-2_1": {
+                    "summary": "negotiation-to-daily-report#step-2",
                     "value": {
                       "_links": {
                         "next:contract.ads-promotion-order": {
@@ -1747,8 +1747,8 @@
           "content": {
             "application/json": {
               "examples": {
-                "route_propose_proposal_ads-promotion-proposal_return-quote_1": {
-                  "summary": "return-quote",
+                "route_propose_proposal_ads-promotion-proposal_negotiation-to-daily-report_step-2_1": {
+                  "summary": "negotiation-to-daily-report#step-2",
                   "value": {
                     "id": "quote-summer",
                     "placement": "首页推荐位",
@@ -1801,8 +1801,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_propose_proposal_ads-promotion-proposal_return-quote_1": {
-                    "summary": "return-quote",
+                  "route_propose_proposal_ads-promotion-proposal_negotiation-to-daily-report_step-2_1": {
+                    "summary": "negotiation-to-daily-report#step-2",
                     "value": {
                       "_links": {
                         "next:contract.ads-promotion-order": {
@@ -1898,20 +1898,20 @@
           "content": {
             "application/json": {
               "examples": {
-                "route_sign-from-proposal_ads-promotion-proposal_contract_ads-promotion-order_payment-order_1": {
-                  "summary": "payment-order",
-                  "value": {
-                    "agreed_amount_minor": 250000,
-                    "campaign_id": "campaign-pay",
-                    "id": "ads-order-pay"
-                  }
-                },
-                "route_sign-from-proposal_ads-promotion-proposal_contract_ads-promotion-order_sign-campaign-order_2": {
-                  "summary": "sign-campaign-order",
+                "route_sign-from-proposal_ads-promotion-proposal_contract_ads-promotion-order_negotiation-to-daily-report_step-3_1": {
+                  "summary": "negotiation-to-daily-report#step-3",
                   "value": {
                     "agreed_amount_minor": 720000,
                     "campaign_id": "campaign-summer",
                     "id": "ads-order-summer"
+                  }
+                },
+                "route_sign-from-proposal_ads-promotion-proposal_contract_ads-promotion-order_prepayment-only_step-1_2": {
+                  "summary": "prepayment-only#step-1",
+                  "value": {
+                    "agreed_amount_minor": 250000,
+                    "campaign_id": "campaign-pay",
+                    "id": "ads-order-pay"
                   }
                 }
               },
@@ -1960,38 +1960,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_sign-from-proposal_ads-promotion-proposal_contract_ads-promotion-order_payment-order_1": {
-                    "summary": "payment-order",
-                    "value": {
-                      "_links": {
-                        "next:request.advertising": {
-                          "href": "/ads-promotion-orders/{contractId}/advertising",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "next:request.daily-report": {
-                          "href": "/ads-promotion-orders/{contractId}/daily-reports",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "next:request.payment": {
-                          "href": "/ads-promotion-orders/{contractId}/payment",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/ads-promotion-orders/{contractId}",
-                          "templated": true
-                        }
-                      },
-                      "agreed_amount_minor": 250000,
-                      "campaign_id": "campaign-pay",
-                      "id": "ads-order-pay",
-                      "signed_at": "2026-06-01T09:00:00Z"
-                    }
-                  },
-                  "route_sign-from-proposal_ads-promotion-proposal_contract_ads-promotion-order_sign-campaign-order_2": {
-                    "summary": "sign-campaign-order",
+                  "route_sign-from-proposal_ads-promotion-proposal_contract_ads-promotion-order_negotiation-to-daily-report_step-3_1": {
+                    "summary": "negotiation-to-daily-report#step-3",
                     "value": {
                       "_links": {
                         "next:request.advertising": {
@@ -2018,6 +1988,36 @@
                       "campaign_id": "campaign-summer",
                       "id": "ads-order-summer",
                       "signed_at": "2026-07-01T11:00:00Z"
+                    }
+                  },
+                  "route_sign-from-proposal_ads-promotion-proposal_contract_ads-promotion-order_prepayment-only_step-1_2": {
+                    "summary": "prepayment-only#step-1",
+                    "value": {
+                      "_links": {
+                        "next:request.advertising": {
+                          "href": "/ads-promotion-orders/{contractId}/advertising",
+                          "method": "POST",
+                          "templated": true
+                        },
+                        "next:request.daily-report": {
+                          "href": "/ads-promotion-orders/{contractId}/daily-reports",
+                          "method": "POST",
+                          "templated": true
+                        },
+                        "next:request.payment": {
+                          "href": "/ads-promotion-orders/{contractId}/payment",
+                          "method": "POST",
+                          "templated": true
+                        },
+                        "self": {
+                          "href": "/ads-promotion-orders/{contractId}",
+                          "templated": true
+                        }
+                      },
+                      "agreed_amount_minor": 250000,
+                      "campaign_id": "campaign-pay",
+                      "id": "ads-order-pay",
+                      "signed_at": "2026-06-01T09:00:00Z"
                     }
                   }
                 },
@@ -2095,8 +2095,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_list_contract_ads-promotion-order_payment-order_1": {
-                    "summary": "payment-order",
+                  "route_list_contract_ads-promotion-order_negotiation-to-daily-report_step-3_1": {
+                    "summary": "negotiation-to-daily-report#step-3",
                     "value": {
                       "_embedded": {
                         "ads-promotion-orders": [
@@ -2107,10 +2107,10 @@
                                 "templated": true
                               }
                             },
-                            "agreed_amount_minor": 250000,
-                            "campaign_id": "campaign-pay",
-                            "id": "ads-order-pay",
-                            "signed_at": "2026-06-01T09:00:00Z"
+                            "agreed_amount_minor": 720000,
+                            "campaign_id": "campaign-summer",
+                            "id": "ads-order-summer",
+                            "signed_at": "2026-07-01T11:00:00Z"
                           }
                         ]
                       },
@@ -2138,8 +2138,8 @@
                       "total": 1
                     }
                   },
-                  "route_list_contract_ads-promotion-order_sign-campaign-order_2": {
-                    "summary": "sign-campaign-order",
+                  "route_list_contract_ads-promotion-order_prepayment-only_step-1_2": {
+                    "summary": "prepayment-only#step-1",
                     "value": {
                       "_embedded": {
                         "ads-promotion-orders": [
@@ -2150,10 +2150,10 @@
                                 "templated": true
                               }
                             },
-                            "agreed_amount_minor": 720000,
-                            "campaign_id": "campaign-summer",
-                            "id": "ads-order-summer",
-                            "signed_at": "2026-07-01T11:00:00Z"
+                            "agreed_amount_minor": 250000,
+                            "campaign_id": "campaign-pay",
+                            "id": "ads-order-pay",
+                            "signed_at": "2026-06-01T09:00:00Z"
                           }
                         ]
                       },
@@ -2240,20 +2240,20 @@
           "content": {
             "application/json": {
               "examples": {
-                "route_sign_contract_ads-promotion-order_payment-order_1": {
-                  "summary": "payment-order",
-                  "value": {
-                    "agreed_amount_minor": 250000,
-                    "campaign_id": "campaign-pay",
-                    "id": "ads-order-pay"
-                  }
-                },
-                "route_sign_contract_ads-promotion-order_sign-campaign-order_2": {
-                  "summary": "sign-campaign-order",
+                "route_sign_contract_ads-promotion-order_negotiation-to-daily-report_step-3_1": {
+                  "summary": "negotiation-to-daily-report#step-3",
                   "value": {
                     "agreed_amount_minor": 720000,
                     "campaign_id": "campaign-summer",
                     "id": "ads-order-summer"
+                  }
+                },
+                "route_sign_contract_ads-promotion-order_prepayment-only_step-1_2": {
+                  "summary": "prepayment-only#step-1",
+                  "value": {
+                    "agreed_amount_minor": 250000,
+                    "campaign_id": "campaign-pay",
+                    "id": "ads-order-pay"
                   }
                 }
               },
@@ -2302,38 +2302,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_sign_contract_ads-promotion-order_payment-order_1": {
-                    "summary": "payment-order",
-                    "value": {
-                      "_links": {
-                        "next:request.advertising": {
-                          "href": "/ads-promotion-orders/{contractId}/advertising",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "next:request.daily-report": {
-                          "href": "/ads-promotion-orders/{contractId}/daily-reports",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "next:request.payment": {
-                          "href": "/ads-promotion-orders/{contractId}/payment",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/ads-promotion-orders/{contractId}",
-                          "templated": true
-                        }
-                      },
-                      "agreed_amount_minor": 250000,
-                      "campaign_id": "campaign-pay",
-                      "id": "ads-order-pay",
-                      "signed_at": "2026-06-01T09:00:00Z"
-                    }
-                  },
-                  "route_sign_contract_ads-promotion-order_sign-campaign-order_2": {
-                    "summary": "sign-campaign-order",
+                  "route_sign_contract_ads-promotion-order_negotiation-to-daily-report_step-3_1": {
+                    "summary": "negotiation-to-daily-report#step-3",
                     "value": {
                       "_links": {
                         "next:request.advertising": {
@@ -2360,6 +2330,36 @@
                       "campaign_id": "campaign-summer",
                       "id": "ads-order-summer",
                       "signed_at": "2026-07-01T11:00:00Z"
+                    }
+                  },
+                  "route_sign_contract_ads-promotion-order_prepayment-only_step-1_2": {
+                    "summary": "prepayment-only#step-1",
+                    "value": {
+                      "_links": {
+                        "next:request.advertising": {
+                          "href": "/ads-promotion-orders/{contractId}/advertising",
+                          "method": "POST",
+                          "templated": true
+                        },
+                        "next:request.daily-report": {
+                          "href": "/ads-promotion-orders/{contractId}/daily-reports",
+                          "method": "POST",
+                          "templated": true
+                        },
+                        "next:request.payment": {
+                          "href": "/ads-promotion-orders/{contractId}/payment",
+                          "method": "POST",
+                          "templated": true
+                        },
+                        "self": {
+                          "href": "/ads-promotion-orders/{contractId}",
+                          "templated": true
+                        }
+                      },
+                      "agreed_amount_minor": 250000,
+                      "campaign_id": "campaign-pay",
+                      "id": "ads-order-pay",
+                      "signed_at": "2026-06-01T09:00:00Z"
                     }
                   }
                 },
@@ -2446,38 +2446,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_read_contract_ads-promotion-order_payment-order_1": {
-                    "summary": "payment-order",
-                    "value": {
-                      "_links": {
-                        "next:request.advertising": {
-                          "href": "/ads-promotion-orders/{contractId}/advertising",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "next:request.daily-report": {
-                          "href": "/ads-promotion-orders/{contractId}/daily-reports",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "next:request.payment": {
-                          "href": "/ads-promotion-orders/{contractId}/payment",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/ads-promotion-orders/{contractId}",
-                          "templated": true
-                        }
-                      },
-                      "agreed_amount_minor": 250000,
-                      "campaign_id": "campaign-pay",
-                      "id": "ads-order-pay",
-                      "signed_at": "2026-06-01T09:00:00Z"
-                    }
-                  },
-                  "route_read_contract_ads-promotion-order_sign-campaign-order_2": {
-                    "summary": "sign-campaign-order",
+                  "route_read_contract_ads-promotion-order_negotiation-to-daily-report_step-3_1": {
+                    "summary": "negotiation-to-daily-report#step-3",
                     "value": {
                       "_links": {
                         "next:request.advertising": {
@@ -2504,6 +2474,36 @@
                       "campaign_id": "campaign-summer",
                       "id": "ads-order-summer",
                       "signed_at": "2026-07-01T11:00:00Z"
+                    }
+                  },
+                  "route_read_contract_ads-promotion-order_prepayment-only_step-1_2": {
+                    "summary": "prepayment-only#step-1",
+                    "value": {
+                      "_links": {
+                        "next:request.advertising": {
+                          "href": "/ads-promotion-orders/{contractId}/advertising",
+                          "method": "POST",
+                          "templated": true
+                        },
+                        "next:request.daily-report": {
+                          "href": "/ads-promotion-orders/{contractId}/daily-reports",
+                          "method": "POST",
+                          "templated": true
+                        },
+                        "next:request.payment": {
+                          "href": "/ads-promotion-orders/{contractId}/payment",
+                          "method": "POST",
+                          "templated": true
+                        },
+                        "self": {
+                          "href": "/ads-promotion-orders/{contractId}",
+                          "templated": true
+                        }
+                      },
+                      "agreed_amount_minor": 250000,
+                      "campaign_id": "campaign-pay",
+                      "id": "ads-order-pay",
+                      "signed_at": "2026-06-01T09:00:00Z"
                     }
                   }
                 },
@@ -2577,8 +2577,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_read_request_advertising_request-launch_1": {
-                    "summary": "request-launch",
+                  "route_read_request_advertising_negotiation-to-daily-report_step-6_1": {
+                    "summary": "negotiation-to-daily-report#step-6",
                     "value": {
                       "_links": {
                         "next:confirmation.advertising": {
@@ -2660,8 +2660,8 @@
           "content": {
             "application/json": {
               "examples": {
-                "route_request_request_advertising_request-launch_1": {
-                  "summary": "request-launch",
+                "route_request_request_advertising_negotiation-to-daily-report_step-6_1": {
+                  "summary": "negotiation-to-daily-report#step-6",
                   "value": {
                     "id": "launch-request-summer",
                     "placement": "首页推荐位"
@@ -2697,8 +2697,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_request_request_advertising_request-launch_1": {
-                    "summary": "request-launch",
+                  "route_request_request_advertising_negotiation-to-daily-report_step-6_1": {
+                    "summary": "negotiation-to-daily-report#step-6",
                     "value": {
                       "_links": {
                         "next:confirmation.advertising": {
@@ -2795,8 +2795,8 @@
           "content": {
             "application/json": {
               "examples": {
-                "route_confirm_confirmation_advertising_campaign-live_1": {
-                  "summary": "campaign-live",
+                "route_confirm_confirmation_advertising_negotiation-to-daily-report_step-7_1": {
+                  "summary": "negotiation-to-daily-report#step-7",
                   "value": {
                     "id": "launch-proof-summer",
                     "placement": "首页推荐位"
@@ -2832,8 +2832,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_confirm_confirmation_advertising_campaign-live_1": {
-                    "summary": "campaign-live",
+                  "route_confirm_confirmation_advertising_negotiation-to-daily-report_step-7_1": {
+                    "summary": "negotiation-to-daily-report#step-7",
                     "value": {
                       "_links": {
                         "next:request.daily-report": {
@@ -2936,8 +2936,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_ledger_request_daily-report_report-accepted_1": {
-                    "summary": "report-accepted",
+                  "route_ledger_request_daily-report_negotiation-to-daily-report_step-8_1": {
+                    "summary": "negotiation-to-daily-report#step-8",
                     "value": {
                       "_embedded": {
                         "daily-reports": [
@@ -3032,8 +3032,8 @@
           "content": {
             "application/json": {
               "examples": {
-                "route_request_request_daily-report_report-accepted_1": {
-                  "summary": "report-accepted",
+                "route_request_request_daily-report_negotiation-to-daily-report_step-8_1": {
+                  "summary": "negotiation-to-daily-report#step-8",
                   "value": {
                     "id": "report-request-summer",
                     "report_date": "2026-07-02"
@@ -3069,8 +3069,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_request_request_daily-report_report-accepted_1": {
-                    "summary": "report-accepted",
+                  "route_request_request_daily-report_negotiation-to-daily-report_step-8_1": {
+                    "summary": "negotiation-to-daily-report#step-8",
                     "value": {
                       "_links": {
                         "next:confirmation.daily-report": {
@@ -3177,8 +3177,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_read_request_daily-report_report-accepted_1": {
-                    "summary": "report-accepted",
+                  "route_read_request_daily-report_negotiation-to-daily-report_step-8_1": {
+                    "summary": "negotiation-to-daily-report#step-8",
                     "value": {
                       "_links": {
                         "next:confirmation.daily-report": {
@@ -3280,8 +3280,8 @@
           "content": {
             "application/json": {
               "examples": {
-                "route_confirm_confirmation_daily-report_report-published_1": {
-                  "summary": "report-published",
+                "route_confirm_confirmation_daily-report_negotiation-to-daily-report_step-9_1": {
+                  "summary": "negotiation-to-daily-report#step-9",
                   "value": {
                     "id": "daily-report-summer",
                     "impressions": 12904,
@@ -3334,8 +3334,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_confirm_confirmation_daily-report_report-published_1": {
-                    "summary": "report-published",
+                  "route_confirm_confirmation_daily-report_negotiation-to-daily-report_step-9_1": {
+                    "summary": "negotiation-to-daily-report#step-9",
                     "value": {
                       "_links": {
                         "request:request.daily-report": {
@@ -3429,27 +3429,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_read_request_payment_payment-window_1": {
-                    "summary": "payment-window",
-                    "value": {
-                      "_links": {
-                        "next:confirmation.payment": {
-                          "href": "/ads-promotion-orders/{contractId}/payment/confirmation",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/ads-promotion-orders/{contractId}/payment",
-                          "templated": true
-                        }
-                      },
-                      "expired_at": "2026-06-02T09:15:00Z",
-                      "id": "pay-request-one",
-                      "started_at": "2026-06-01T09:15:00Z"
-                    }
-                  },
-                  "route_read_request_payment_summer-payment-window_2": {
-                    "summary": "summer-payment-window",
+                  "route_read_request_payment_negotiation-to-daily-report_step-4_1": {
+                    "summary": "negotiation-to-daily-report#step-4",
                     "value": {
                       "_links": {
                         "next:confirmation.payment": {
@@ -3465,6 +3446,25 @@
                       "expired_at": "2026-07-02T11:05:00Z",
                       "id": "pay-request-summer",
                       "started_at": "2026-07-01T11:05:00Z"
+                    }
+                  },
+                  "route_read_request_payment_prepayment-only_step-2_2": {
+                    "summary": "prepayment-only#step-2",
+                    "value": {
+                      "_links": {
+                        "next:confirmation.payment": {
+                          "href": "/ads-promotion-orders/{contractId}/payment/confirmation",
+                          "method": "POST",
+                          "templated": true
+                        },
+                        "self": {
+                          "href": "/ads-promotion-orders/{contractId}/payment",
+                          "templated": true
+                        }
+                      },
+                      "expired_at": "2026-06-02T09:15:00Z",
+                      "id": "pay-request-one",
+                      "started_at": "2026-06-01T09:15:00Z"
                     }
                   }
                 },
@@ -3530,16 +3530,16 @@
           "content": {
             "application/json": {
               "examples": {
-                "route_request_request_payment_payment-window_1": {
-                  "summary": "payment-window",
-                  "value": {
-                    "id": "pay-request-one"
-                  }
-                },
-                "route_request_request_payment_summer-payment-window_2": {
-                  "summary": "summer-payment-window",
+                "route_request_request_payment_negotiation-to-daily-report_step-4_1": {
+                  "summary": "negotiation-to-daily-report#step-4",
                   "value": {
                     "id": "pay-request-summer"
+                  }
+                },
+                "route_request_request_payment_prepayment-only_step-2_2": {
+                  "summary": "prepayment-only#step-2",
+                  "value": {
+                    "id": "pay-request-one"
                   }
                 }
               },
@@ -3566,27 +3566,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_request_request_payment_payment-window_1": {
-                    "summary": "payment-window",
-                    "value": {
-                      "_links": {
-                        "next:confirmation.payment": {
-                          "href": "/ads-promotion-orders/{contractId}/payment/confirmation",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/ads-promotion-orders/{contractId}/payment",
-                          "templated": true
-                        }
-                      },
-                      "expired_at": "2026-06-02T09:15:00Z",
-                      "id": "pay-request-one",
-                      "started_at": "2026-06-01T09:15:00Z"
-                    }
-                  },
-                  "route_request_request_payment_summer-payment-window_2": {
-                    "summary": "summer-payment-window",
+                  "route_request_request_payment_negotiation-to-daily-report_step-4_1": {
+                    "summary": "negotiation-to-daily-report#step-4",
                     "value": {
                       "_links": {
                         "next:confirmation.payment": {
@@ -3602,6 +3583,25 @@
                       "expired_at": "2026-07-02T11:05:00Z",
                       "id": "pay-request-summer",
                       "started_at": "2026-07-01T11:05:00Z"
+                    }
+                  },
+                  "route_request_request_payment_prepayment-only_step-2_2": {
+                    "summary": "prepayment-only#step-2",
+                    "value": {
+                      "_links": {
+                        "next:confirmation.payment": {
+                          "href": "/ads-promotion-orders/{contractId}/payment/confirmation",
+                          "method": "POST",
+                          "templated": true
+                        },
+                        "self": {
+                          "href": "/ads-promotion-orders/{contractId}/payment",
+                          "templated": true
+                        }
+                      },
+                      "expired_at": "2026-06-02T09:15:00Z",
+                      "id": "pay-request-one",
+                      "started_at": "2026-06-01T09:15:00Z"
                     }
                   }
                 },
@@ -3682,18 +3682,18 @@
           "content": {
             "application/json": {
               "examples": {
-                "route_confirm_confirmation_payment_gateway-paid_1": {
-                  "summary": "gateway-paid",
-                  "value": {
-                    "gateway_reference": "gateway-txn-01",
-                    "id": "payment-proof-one"
-                  }
-                },
-                "route_confirm_confirmation_payment_summer-payment-proof_2": {
-                  "summary": "summer-payment-proof",
+                "route_confirm_confirmation_payment_negotiation-to-daily-report_step-5_1": {
+                  "summary": "negotiation-to-daily-report#step-5",
                   "value": {
                     "gateway_reference": "gateway-txn-02",
                     "id": "payment-proof-summer"
+                  }
+                },
+                "route_confirm_confirmation_payment_prepayment-only_step-3_2": {
+                  "summary": "prepayment-only#step-3",
+                  "value": {
+                    "gateway_reference": "gateway-txn-01",
+                    "id": "payment-proof-one"
                   }
                 }
               },
@@ -3726,33 +3726,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_confirm_confirmation_payment_gateway-paid_1": {
-                    "summary": "gateway-paid",
-                    "value": {
-                      "_links": {
-                        "next:request.advertising": {
-                          "href": "/ads-promotion-orders/{contractId}/advertising",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "request:request.payment": {
-                          "href": "/ads-promotion-orders/{contractId}/payment",
-                          "method": "GET",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/payments/{paymentId}",
-                          "templated": true
-                        }
-                      },
-                      "confirmed_at": "2026-06-01T10:00:00Z",
-                      "gateway_reference": "gateway-txn-01",
-                      "id": "payment-proof-one",
-                      "paid_amount_minor": 250000
-                    }
-                  },
-                  "route_confirm_confirmation_payment_summer-payment-proof_2": {
-                    "summary": "summer-payment-proof",
+                  "route_confirm_confirmation_payment_negotiation-to-daily-report_step-5_1": {
+                    "summary": "negotiation-to-daily-report#step-5",
                     "value": {
                       "_links": {
                         "next:request.advertising": {
@@ -3774,6 +3749,31 @@
                       "gateway_reference": "gateway-txn-02",
                       "id": "payment-proof-summer",
                       "paid_amount_minor": 720000
+                    }
+                  },
+                  "route_confirm_confirmation_payment_prepayment-only_step-3_2": {
+                    "summary": "prepayment-only#step-3",
+                    "value": {
+                      "_links": {
+                        "next:request.advertising": {
+                          "href": "/ads-promotion-orders/{contractId}/advertising",
+                          "method": "POST",
+                          "templated": true
+                        },
+                        "request:request.payment": {
+                          "href": "/ads-promotion-orders/{contractId}/payment",
+                          "method": "GET",
+                          "templated": true
+                        },
+                        "self": {
+                          "href": "/payments/{paymentId}",
+                          "templated": true
+                        }
+                      },
+                      "confirmed_at": "2026-06-01T10:00:00Z",
+                      "gateway_reference": "gateway-txn-01",
+                      "id": "payment-proof-one",
+                      "paid_amount_minor": 250000
                     }
                   }
                 },
@@ -3864,8 +3864,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_read_confirmation_advertising_campaign-live_1": {
-                    "summary": "campaign-live",
+                  "route_read_confirmation_advertising_negotiation-to-daily-report_step-7_1": {
+                    "summary": "negotiation-to-daily-report#step-7",
                     "value": {
                       "_links": {
                         "next:request.daily-report": {
@@ -3955,8 +3955,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_read_confirmation_daily-report_report-published_1": {
-                    "summary": "report-published",
+                  "route_read_confirmation_daily-report_negotiation-to-daily-report_step-9_1": {
+                    "summary": "negotiation-to-daily-report#step-9",
                     "value": {
                       "_links": {
                         "request:request.daily-report": {
@@ -4038,33 +4038,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_read_confirmation_payment_gateway-paid_1": {
-                    "summary": "gateway-paid",
-                    "value": {
-                      "_links": {
-                        "next:request.advertising": {
-                          "href": "/ads-promotion-orders/{contractId}/advertising",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "request:request.payment": {
-                          "href": "/ads-promotion-orders/{contractId}/payment",
-                          "method": "GET",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/payments/{paymentId}",
-                          "templated": true
-                        }
-                      },
-                      "confirmed_at": "2026-06-01T10:00:00Z",
-                      "gateway_reference": "gateway-txn-01",
-                      "id": "payment-proof-one",
-                      "paid_amount_minor": 250000
-                    }
-                  },
-                  "route_read_confirmation_payment_summer-payment-proof_2": {
-                    "summary": "summer-payment-proof",
+                  "route_read_confirmation_payment_negotiation-to-daily-report_step-5_1": {
+                    "summary": "negotiation-to-daily-report#step-5",
                     "value": {
                       "_links": {
                         "next:request.advertising": {
@@ -4086,6 +4061,31 @@
                       "gateway_reference": "gateway-txn-02",
                       "id": "payment-proof-summer",
                       "paid_amount_minor": 720000
+                    }
+                  },
+                  "route_read_confirmation_payment_prepayment-only_step-3_2": {
+                    "summary": "prepayment-only#step-3",
+                    "value": {
+                      "_links": {
+                        "next:request.advertising": {
+                          "href": "/ads-promotion-orders/{contractId}/advertising",
+                          "method": "POST",
+                          "templated": true
+                        },
+                        "request:request.payment": {
+                          "href": "/ads-promotion-orders/{contractId}/payment",
+                          "method": "GET",
+                          "templated": true
+                        },
+                        "self": {
+                          "href": "/payments/{paymentId}",
+                          "templated": true
+                        }
+                      },
+                      "confirmed_at": "2026-06-01T10:00:00Z",
+                      "gateway_reference": "gateway-txn-01",
+                      "id": "payment-proof-one",
+                      "paid_amount_minor": 250000
                     }
                   }
                 },

@@ -40,38 +40,5 @@
       "required": true,
       "meaning": "约定投放总价，单位为 CNY 分"
     }
-  ],
-  "examples": [
-    {
-      "label": "payment-order",
-      "value": {
-        "id": "ads-order-pay",
-        "campaign_id": "campaign-pay",
-        "agreed_amount_minor": 250000,
-        "signed_at": "2026-06-01T09:00:00Z"
-      },
-      "test": {
-        "flow": "prepayment-only",
-        "actingRoleRef": "role.advertiser",
-        "asOf": "2026-06-01T09:00:00Z"
-      }
-    },
-    {
-      "label": "sign-campaign-order",
-      "value": {
-        "id": "ads-order-summer",
-        "campaign_id": "campaign-summer",
-        "agreed_amount_minor": 720000,
-        "signed_at": "2026-07-01T11:00:00Z"
-      },
-      "test": {
-        "flow": "negotiation-to-daily-report",
-        "actingRoleRef": "role.advertiser",
-        "asOf": "2026-07-01T11:00:00Z",
-        "basedOn": [
-          "proposal.ads-promotion-proposal#return-quote"
-        ]
-      }
-    }
   ]
 }

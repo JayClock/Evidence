@@ -47,25 +47,5 @@
       "required": true,
       "meaning": "版位"
     }
-  ],
-  "examples": [
-    {
-      "label": "return-quote",
-      "value": {
-        "id": "quote-summer",
-        "quoted_amount_minor": 720000,
-        "placement": "首页推荐位",
-        "started_at": "2026-07-01T10:00:00Z",
-        "expired_at": "2026-07-03T10:00:00Z"
-      },
-      "test": {
-        "flow": "negotiation-to-daily-report",
-        "actingRoleRef": "role.agency",
-        "asOf": "2026-07-01T10:00:00Z",
-        "basedOn": [
-          "rfp.ads-promotion-inquiry#request-campaign-plan"
-        ]
-      }
-    }
   ]
 }

@@ -1,0 +1,129 @@
+{
+  "type": "story",
+  "id": "two-stories-one-sprint",
+  "kind": "primary",
+  "title": "同一冲刺交付两个需求",
+  "steps": [
+    {
+      "id": "step-1",
+      "sequence": 1,
+      "actorRef": "role.product-owner",
+      "activity": "签署",
+      "workObjectRef": "contract.iteration-plan",
+      "targetActorRef": "role.development-team",
+      "asOf": "2026-08-03T09:00:00Z",
+      "basedOn": [],
+      "values": {
+        "id": "iteration-42",
+        "sprint_goal": "买家可查看订单并导出历史记录",
+        "signed_at": "2026-08-03T09:00:00Z"
+      }
+    },
+    {
+      "id": "step-2",
+      "sequence": 2,
+      "actorRef": "role.product-owner",
+      "activity": "就「锁定待办基线并交付约定的故事」发起",
+      "workObjectRef": "request.backlog",
+      "targetActorRef": "role.development-team",
+      "asOf": "2026-08-03T10:00:00Z",
+      "basedOn": [
+        "step-1"
+      ],
+      "values": {
+        "id": "backlog-42",
+        "backlog_revision": "sprint-42-r1",
+        "story_count": 2,
+        "started_at": "2026-08-03T10:00:00Z",
+        "expired_at": "2026-08-17T10:00:00Z"
+      }
+    },
+    {
+      "id": "step-3",
+      "sequence": 3,
+      "actorRef": "role.development-team",
+      "activity": "就「锁定待办基线并交付约定的故事」出具",
+      "workObjectRef": "confirmation.backlog",
+      "targetActorRef": "role.product-owner",
+      "asOf": "2026-08-03T11:00:00Z",
+      "basedOn": [
+        "step-2"
+      ],
+      "values": {
+        "id": "locked-42",
+        "backlog_revision": "sprint-42-r1",
+        "confirmed_at": "2026-08-03T11:00:00Z"
+      }
+    },
+    {
+      "id": "step-4",
+      "sequence": 4,
+      "actorRef": "role.product-owner",
+      "activity": "就「锁定待办基线并交付约定的故事」出具",
+      "workObjectRef": "confirmation.story",
+      "asOf": "2026-08-06T10:00:00Z",
+      "basedOn": [
+        "step-3"
+      ],
+      "values": {
+        "id": "story-proof-52",
+        "story_id": "story-52",
+        "acceptance_note": "买家只看到自己的已签订单",
+        "confirmed_at": "2026-08-06T10:00:00Z"
+      }
+    },
+    {
+      "id": "step-5",
+      "sequence": 5,
+      "actorRef": "role.product-owner",
+      "activity": "就「锁定待办基线并交付约定的故事」出具",
+      "workObjectRef": "confirmation.story",
+      "asOf": "2026-08-12T14:00:00Z",
+      "basedOn": [
+        "step-3"
+      ],
+      "values": {
+        "id": "story-proof-53",
+        "story_id": "story-53",
+        "acceptance_note": "导出文件与页面筛选一致",
+        "confirmed_at": "2026-08-12T14:00:00Z"
+      }
+    },
+    {
+      "id": "step-6",
+      "sequence": 6,
+      "actorRef": "role.development-team",
+      "activity": "就「评审迭代成果」发起",
+      "workObjectRef": "request.review",
+      "targetActorRef": "role.product-owner",
+      "asOf": "2026-08-14T09:00:00Z",
+      "basedOn": [
+        "step-4",
+        "step-5"
+      ],
+      "values": {
+        "id": "review-request-42",
+        "demo_ref": "demo-sprint-42",
+        "started_at": "2026-08-14T09:00:00Z",
+        "expired_at": "2026-08-16T09:00:00Z"
+      }
+    },
+    {
+      "id": "step-7",
+      "sequence": 7,
+      "actorRef": "role.product-owner",
+      "activity": "就「评审迭代成果」出具",
+      "workObjectRef": "confirmation.review",
+      "targetActorRef": "role.development-team",
+      "asOf": "2026-08-14T13:00:00Z",
+      "basedOn": [
+        "step-6"
+      ],
+      "values": {
+        "id": "review-minutes-42",
+        "outcome": "同意验收结果并归档",
+        "confirmed_at": "2026-08-14T13:00:00Z"
+      }
+    }
+  ]
+}

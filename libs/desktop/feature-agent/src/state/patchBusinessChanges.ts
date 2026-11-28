@@ -15,11 +15,12 @@ export const PATCH_BUSINESS_LABELS = {
   escalation: '记录争议升级',
   terminalRemedy: '记录救济终点',
   evidenceSocket: '关联履约能力插槽',
+  story: '更新领域故事',
 } as const;
 
 export type PatchBusinessChange = keyof typeof PATCH_BUSINESS_LABELS;
 
-/** Report explicit relationships introduced by the patch, never guess from rationale or IDs. */
+/** Describe the relationships and stories changed by a model patch. */
 export const describeBusinessChanges = (
   diff: ModelDiff,
   document: DomainModelDocument,
@@ -58,6 +59,8 @@ export const describeBusinessChanges = (
   };
 
   const changes = new Set<PatchBusinessChange>();
+  if (diff.stories.some((story) => story.changeType !== 'unchanged'))
+    changes.add('story');
   for (const { changeType, base, target, fields } of diff.relationships) {
     if (target === undefined) continue;
     const introduced =

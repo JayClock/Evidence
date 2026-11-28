@@ -30,23 +30,5 @@
       "required": true,
       "meaning": "实际投放版位"
     }
-  ],
-  "examples": [
-    {
-      "label": "campaign-live",
-      "value": {
-        "id": "launch-proof-summer",
-        "placement": "首页推荐位",
-        "confirmed_at": "2026-07-02T00:00:00Z"
-      },
-      "test": {
-        "flow": "negotiation-to-daily-report",
-        "actingRoleRef": "role.agency",
-        "asOf": "2026-07-02T00:00:00Z",
-        "basedOn": [
-          "request.advertising#request-launch"
-        ]
-      }
-    }
   ]
 }

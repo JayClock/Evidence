@@ -20,7 +20,7 @@
               "sprint_goal": "买家可查看订单并导出历史记录"
             },
             "parameters": {},
-            "ref": "contract.iteration-plan#sprint-42",
+            "ref": "two-stories-one-sprint#step-1",
             "responseSchema": {
               "additionalProperties": false,
               "description": "签署迭代承诺计划（Iteration Plan），双方权责自此成立",
@@ -114,7 +114,7 @@
             "parameters": {
               "contractId": "capture_1_0"
             },
-            "ref": "request.backlog#propose-scope",
+            "ref": "two-stories-one-sprint#step-2",
             "responseSchema": {
               "additionalProperties": false,
               "description": "发起迭代待办履约请求（Sprint Backlog Request），开启一个有截止时间的履约窗口",
@@ -234,7 +234,7 @@
             "parameters": {
               "contractId": "capture_1_0"
             },
-            "ref": "confirmation.backlog#freeze-scope",
+            "ref": "two-stories-one-sprint#step-3",
             "responseSchema": {
               "additionalProperties": false,
               "description": "读取资源详情",
@@ -330,7 +330,7 @@
             "parameters": {
               "contractId": "capture_1_0"
             },
-            "ref": "confirmation.story#accept-01-history",
+            "ref": "two-stories-one-sprint#step-4",
             "responseSchema": {
               "additionalProperties": false,
               "description": "读取资源详情",
@@ -442,7 +442,7 @@
             "parameters": {
               "contractId": "capture_1_0"
             },
-            "ref": "confirmation.story#accept-02-export",
+            "ref": "two-stories-one-sprint#step-5",
             "responseSchema": {
               "additionalProperties": false,
               "description": "读取资源详情",
@@ -553,7 +553,7 @@
             "parameters": {
               "contractId": "capture_1_0"
             },
-            "ref": "request.review#review-iteration",
+            "ref": "two-stories-one-sprint#step-6",
             "responseSchema": {
               "additionalProperties": false,
               "description": "发起迭代评审请求（Sprint Review Request），开启一个有截止时间的履约窗口",
@@ -656,7 +656,7 @@
             "parameters": {
               "contractId": "capture_1_0"
             },
-            "ref": "confirmation.review#complete-review",
+            "ref": "two-stories-one-sprint#step-7",
             "responseSchema": {
               "additionalProperties": false,
               "description": "读取资源详情",

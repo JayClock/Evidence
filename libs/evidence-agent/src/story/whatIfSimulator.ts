@@ -158,22 +158,25 @@ export async function simulateWhatIf(
       },
     }),
   };
+  const causalSteps = [current, ...scenario.upstream];
+  const stepLabels = new Map(
+    causalSteps.map((step) => [
+      `${step.storyId}#${step.stepId}`,
+      step.entityLabel,
+    ]),
+  );
   const changes = whatIfBusinessFacts(
     graph,
     current.entityId,
     hypothesis?.values ?? {},
+    stepLabels,
   );
   const localExplanation = () =>
     buildLocalStoryExplanation(
       storyContext,
       changes,
       ruleOutcomes,
-      whatIfCommitment(
-        graph,
-        rules,
-        [current, ...scenario.upstream],
-        trial.factsOf,
-      ),
+      whatIfCommitment(graph, rules, causalSteps, trial.factsOf, stepLabels),
       obligations?.length === 1 ? obligations[0] : undefined,
     );
   const explain = async (systemPrompt: string, signal?: AbortSignal) => {
@@ -189,12 +192,18 @@ export async function simulateWhatIf(
           graph,
           current.entityId,
           trial.factsOf(current),
+          stepLabels,
         ),
         upstream: scenario.upstream.map((step) => ({
           workObjectTitle: step.entityLabel,
           actorLabel: scenes.get(step.sequence)?.activity.actor.roleLabel,
           displayDate: businessDate(step.asOf),
-          facts: whatIfBusinessFacts(graph, step.entityId, trial.factsOf(step)),
+          facts: whatIfBusinessFacts(
+            graph,
+            step.entityId,
+            trial.factsOf(step),
+            stepLabels,
+          ),
         })),
         ruleOutcomes: ruleOutcomes.map((outcome) => ({
           label: outcome.label,

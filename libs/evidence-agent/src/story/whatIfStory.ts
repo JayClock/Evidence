@@ -47,11 +47,14 @@ function businessValue(
   field: AttributeAST,
   value: unknown,
   graph: DomainGraph,
+  stepLabels: ReadonlyMap<string, string>,
 ): string {
   if (value == null) return '未填写';
   if (Array.isArray(value))
     return value.length
-      ? value.map((item) => businessValue(field, item, graph)).join('、')
+      ? value
+          .map((item) => businessValue(field, item, graph, stepLabels))
+          .join('、')
       : '无';
   if (
     field.valueType === 'money' ||
@@ -62,25 +65,21 @@ function businessValue(
     return formatBusinessQuantity(field, value) ?? '金额单位待核对';
   if (typeof value === 'boolean') return value ? '是' : '否';
   if (typeof value !== 'string') return '见所附明细';
-  return businessTextValue(
-    value,
-    field,
-    graph,
-    (ref) => graph.getEntity(ref.split('#')[0]!)?.label,
-  );
+  return businessTextValue(value, field, graph, (ref) => stepLabels.get(ref));
 }
 
 export function whatIfBusinessFacts(
   graph: DomainGraph,
   entityId: string,
   values: Readonly<Record<string, unknown>>,
+  stepLabels: ReadonlyMap<string, string>,
 ): BusinessFact[] {
   return graph
     .attributesOf(entityId)
     .filter(({ name }) => Object.hasOwn(values, name))
     .map((field) => ({
       label: field.label.replace(/最小(?:货币)?单位/gu, ''),
-      value: businessValue(field, values[field.name], graph),
+      value: businessValue(field, values[field.name], graph, stepLabels),
     }));
 }
 
@@ -90,6 +89,7 @@ export function whatIfCommitment(
   rules: readonly RuleAST[],
   steps: readonly FlowStepTrace[],
   valuesOf: (step: FlowStepTrace) => Record<string, unknown>,
+  stepLabels: ReadonlyMap<string, string>,
 ): BusinessFact | undefined {
   let deadline: BusinessFact | undefined;
   for (const rule of rules) {
@@ -107,7 +107,7 @@ export function whatIfCommitment(
       if (isWhatIfDeadline(field))
         deadline = {
           label: field.label,
-          value: businessValue(field, value, graph),
+          value: businessValue(field, value, graph, stepLabels),
         };
       if (
         ['money', 'int', 'uint', 'decimal', 'double'].includes(

@@ -33,20 +33,5 @@
       "required": true,
       "meaning": "迭代目标"
     }
-  ],
-  "examples": [
-    {
-      "label": "sprint-42",
-      "value": {
-        "id": "iteration-42",
-        "sprint_goal": "买家可查看订单并导出历史记录",
-        "signed_at": "2026-08-03T09:00:00Z"
-      },
-      "test": {
-        "flow": "two-stories-one-sprint",
-        "actingRoleRef": "role.product-owner",
-        "asOf": "2026-08-03T09:00:00Z"
-      }
-    }
   ]
 }

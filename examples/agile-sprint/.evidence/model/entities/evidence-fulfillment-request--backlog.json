@@ -48,25 +48,5 @@
       "required": true,
       "meaning": "约定故事数"
     }
-  ],
-  "examples": [
-    {
-      "label": "propose-scope",
-      "value": {
-        "id": "backlog-42",
-        "backlog_revision": "sprint-42-r1",
-        "story_count": 2,
-        "started_at": "2026-08-03T10:00:00Z",
-        "expired_at": "2026-08-17T10:00:00Z"
-      },
-      "test": {
-        "flow": "two-stories-one-sprint",
-        "actingRoleRef": "role.product-owner",
-        "asOf": "2026-08-03T10:00:00Z",
-        "basedOn": [
-          "contract.iteration-plan#sprint-42"
-        ]
-      }
-    }
   ]
 }

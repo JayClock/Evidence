@@ -38,17 +38,16 @@ See [API delivery](../../docs/api-projection-v6.md) for resource addresses, HAL,
 logical service ownership and compatibility checks. API snapshots and
 manifests and FM sources both use schema 7.0.
 
-## Inline examples
+## Story facts in OpenAPI and Bruno
 
-An entity's optional `examples` contains named **complete entity facts**, not
-workflow steps. Values must satisfy its response payload schema. The projection
-adds a HAL `_links.self` identity to response examples; request examples contain only
-caller-owned fields, never derived values or service timestamps. Invalid examples
-block export instead of being silently turned into passing tests.
+Successful story steps supply OpenAPI examples for their `workObjectRef`.
+Response examples include a HAL `_links.self` identity. Request examples include
+the caller-owned fields. The exporter validates example payloads against the
+projected contract.
 
-Test metadata in `examples[].test` is compiled by
-`evidence-acceptance/projection`, which the desktop scenario editor may import
-without loading Node I/O, the HTTP runner or a native executable.
+`evidence-acceptance/projection` expands each story’s `forkedFrom` prefix and
+compiles its HTTP steps, including declared rejections. The desktop scenario
+editor uses the same projection to preview a story’s acceptance flow.
 
 ## Verification
 

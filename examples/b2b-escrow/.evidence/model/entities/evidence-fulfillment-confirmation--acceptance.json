@@ -47,53 +47,5 @@
       "required": true,
       "derivedByRuleRef": "rule.acceptance-late-days"
     }
-  ],
-  "examples": [
-    {
-      "label": "single-on-time",
-      "value": {
-        "id": "single-on-time-confirmation-acceptance",
-        "confirmed_at": "2026-06-15T00:00:00Z",
-        "accepted": true,
-        "accepted_quantity": 999,
-        "late_days": 0
-      },
-      "test": {
-        "flow": "single-on-time",
-        "tags": [
-          "regression",
-          "single",
-          "on-time"
-        ],
-        "actingRoleRef": "role.fulfillment-buyer",
-        "asOf": "2026-06-15T00:00:00Z",
-        "basedOn": [
-          "request.acceptance#single-on-time"
-        ]
-      }
-    },
-    {
-      "label": "single-late",
-      "value": {
-        "id": "single-late-confirmation-acceptance",
-        "confirmed_at": "2026-06-30T00:00:00Z",
-        "accepted": true,
-        "accepted_quantity": 1000,
-        "late_days": 15
-      },
-      "test": {
-        "flow": "single-late",
-        "tags": [
-          "regression",
-          "single",
-          "late"
-        ],
-        "actingRoleRef": "role.fulfillment-buyer",
-        "asOf": "2026-06-30T00:00:00Z",
-        "basedOn": [
-          "request.acceptance#single-late"
-        ]
-      }
-    }
   ]
 }

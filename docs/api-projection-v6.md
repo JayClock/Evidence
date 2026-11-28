@@ -1,8 +1,8 @@
-# API delivery (FM v6, projection v7)
+# API delivery (FM v7, projection v7)
 
-FM source documents still use schema version 6.0. The API snapshot and export
-manifest use 7.0. The generated contract uses OpenAPI 3.1 with the business
-model's version in `info.version` and `x-evidence-model-version`.
+FM source documents, API snapshots and export manifests use schema version 7.0.
+The generated contract uses OpenAPI 3.1 with the business model's version in
+`info.version` and `x-evidence-model-version`.
 
 ## Business resource addresses
 
@@ -70,9 +70,9 @@ arbitrator. Conditional branch templates carry their relationship identity and
 are omitted from generic example responses. To render actual affordances use
 `resolveRuntimeHalLinks` with the service's decisions for this caller, condition
 and resource instance. Unknown conditions or missing URI bindings do not produce
-links. Write handlers must recheck eligibility. Executable examples for an
-exception command must name the breached request example (in `basedOn` or as a
-path-parameter source); the compiler refuses ambiguous branches.
+links. Write handlers must recheck eligibility. A story step that executes an
+exception command identifies the breached request step through `basedOn` or a path parameter’s `stepRef`. The compiler
+rejects ambiguous branches.
 
 Only caller-owned attributes appear in POST input, with
 `additionalProperties: false`. Derived and service-time response fields are
@@ -180,7 +180,7 @@ pnpm examples:verify
 ```
 
 Use Node 22 as described in ENVIRONMENT.md. The standalone Fastify SUT implements
-the v6 contract; its native tests follow created primary URIs and inspect HAL
+the B2B escrow contract. Its native tests follow created primary URIs and inspect HAL
 collections. Evidence runs generated flows with the pinned Bruno CLI and uses
 actual HTTP responses for schema validation. The acceptance tests exercise
 independently broken amounts, clocks and payloads, and chained response

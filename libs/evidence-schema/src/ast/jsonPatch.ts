@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { isJsonValue } from './json.js';
 
-// Model examples intentionally carry Record<string, unknown>. Accept their
+// Story facts intentionally carry Record<string, unknown>. Accept their
 // object types at compile time; the boundary guard validates every nested value.
 type JsonValue = null | boolean | number | string | object;
 

@@ -23,7 +23,7 @@
               "objective": "推广夏季新品"
             },
             "parameters": {},
-            "ref": "rfp.ads-promotion-inquiry#request-campaign-plan",
+            "ref": "negotiation-to-daily-report#step-1",
             "responseSchema": {
               "additionalProperties": false,
               "description": "读取资源详情",
@@ -147,7 +147,7 @@
             "parameters": {
               "inquiryId": "capture_1_0"
             },
-            "ref": "proposal.ads-promotion-proposal#return-quote",
+            "ref": "negotiation-to-daily-report#step-2",
             "responseSchema": {
               "additionalProperties": false,
               "description": "读取资源详情",
@@ -272,7 +272,7 @@
             "parameters": {
               "inquiryId": "capture_1_0"
             },
-            "ref": "contract.ads-promotion-order#sign-campaign-order",
+            "ref": "negotiation-to-daily-report#step-3",
             "responseSchema": {
               "additionalProperties": false,
               "description": "签署广告推广排期协议（Advertising Promotion Order），双方权责自此成立",
@@ -283,10 +283,10 @@
                       "href": "/ads-promotion-orders/{contractId}"
                     }
                   },
-                  "agreed_amount_minor": 250000,
-                  "campaign_id": "campaign-pay",
-                  "id": "ads-order-pay",
-                  "signed_at": "2026-06-01T09:00:00Z"
+                  "agreed_amount_minor": 720000,
+                  "campaign_id": "campaign-summer",
+                  "id": "ads-order-summer",
+                  "signed_at": "2026-07-01T11:00:00Z"
                 },
                 {
                   "_links": {
@@ -294,10 +294,10 @@
                       "href": "/ads-promotion-orders/{contractId}"
                     }
                   },
-                  "agreed_amount_minor": 720000,
-                  "campaign_id": "campaign-summer",
-                  "id": "ads-order-summer",
-                  "signed_at": "2026-07-01T11:00:00Z"
+                  "agreed_amount_minor": 250000,
+                  "campaign_id": "campaign-pay",
+                  "id": "ads-order-pay",
+                  "signed_at": "2026-06-01T09:00:00Z"
                 }
               ],
               "properties": {
@@ -391,7 +391,7 @@
             "parameters": {
               "contractId": "capture_3_0"
             },
-            "ref": "request.payment#summer-payment-window",
+            "ref": "negotiation-to-daily-report#step-4",
             "responseSchema": {
               "additionalProperties": false,
               "description": "发起预付款申请（Payment Request），开启一个有截止时间的履约窗口",
@@ -402,9 +402,9 @@
                       "href": "/ads-promotion-orders/{contractId}/payment"
                     }
                   },
-                  "expired_at": "2026-06-02T09:15:00Z",
-                  "id": "pay-request-one",
-                  "started_at": "2026-06-01T09:15:00Z"
+                  "expired_at": "2026-07-02T11:05:00Z",
+                  "id": "pay-request-summer",
+                  "started_at": "2026-07-01T11:05:00Z"
                 },
                 {
                   "_links": {
@@ -412,9 +412,9 @@
                       "href": "/ads-promotion-orders/{contractId}/payment"
                     }
                   },
-                  "expired_at": "2026-07-02T11:05:00Z",
-                  "id": "pay-request-summer",
-                  "started_at": "2026-07-01T11:05:00Z"
+                  "expired_at": "2026-06-02T09:15:00Z",
+                  "id": "pay-request-one",
+                  "started_at": "2026-06-01T09:15:00Z"
                 }
               ],
               "properties": {
@@ -497,7 +497,7 @@
             "parameters": {
               "contractId": "capture_3_0"
             },
-            "ref": "confirmation.payment#summer-payment-proof",
+            "ref": "negotiation-to-daily-report#step-5",
             "responseSchema": {
               "additionalProperties": false,
               "description": "读取资源详情",
@@ -508,10 +508,10 @@
                       "href": "/payments/{paymentId}"
                     }
                   },
-                  "confirmed_at": "2026-06-01T10:00:00Z",
-                  "gateway_reference": "gateway-txn-01",
-                  "id": "payment-proof-one",
-                  "paid_amount_minor": 250000
+                  "confirmed_at": "2026-07-01T12:00:00Z",
+                  "gateway_reference": "gateway-txn-02",
+                  "id": "payment-proof-summer",
+                  "paid_amount_minor": 720000
                 },
                 {
                   "_links": {
@@ -519,10 +519,10 @@
                       "href": "/payments/{paymentId}"
                     }
                   },
-                  "confirmed_at": "2026-07-01T12:00:00Z",
-                  "gateway_reference": "gateway-txn-02",
-                  "id": "payment-proof-summer",
-                  "paid_amount_minor": 720000
+                  "confirmed_at": "2026-06-01T10:00:00Z",
+                  "gateway_reference": "gateway-txn-01",
+                  "id": "payment-proof-one",
+                  "paid_amount_minor": 250000
                 }
               ],
               "properties": {
@@ -621,7 +621,7 @@
             "parameters": {
               "contractId": "capture_3_0"
             },
-            "ref": "request.advertising#request-launch",
+            "ref": "negotiation-to-daily-report#step-6",
             "responseSchema": {
               "additionalProperties": false,
               "description": "发起广告排期上线申请（Ad Campaign Request），开启一个有截止时间的履约窗口",
@@ -724,7 +724,7 @@
             "parameters": {
               "contractId": "capture_3_0"
             },
-            "ref": "confirmation.advertising#campaign-live",
+            "ref": "negotiation-to-daily-report#step-7",
             "responseSchema": {
               "additionalProperties": false,
               "description": "读取资源详情",
@@ -819,7 +819,7 @@
             "parameters": {
               "contractId": "capture_3_0"
             },
-            "ref": "request.daily-report#report-accepted",
+            "ref": "negotiation-to-daily-report#step-8",
             "responseSchema": {
               "additionalProperties": false,
               "description": "发起投放日报生成请求（Daily Report Request），开启一个有截止时间的履约窗口",
@@ -926,7 +926,7 @@
               "contractId": "capture_3_0",
               "reportId": "capture_8_0"
             },
-            "ref": "confirmation.daily-report#report-published",
+            "ref": "negotiation-to-daily-report#step-9",
             "responseSchema": {
               "additionalProperties": false,
               "description": "读取资源详情",
@@ -1034,7 +1034,7 @@
               "$[\"signed_at\"]": "2026-06-01T09:00:00Z"
             },
             "captures": {
-              "capture_10_0": "$.id"
+              "capture_1_0": "$.id"
             },
             "inputs": {
               "agreed_amount_minor": 250000,
@@ -1042,7 +1042,7 @@
               "id": "ads-order-pay"
             },
             "parameters": {},
-            "ref": "contract.ads-promotion-order#payment-order",
+            "ref": "prepayment-only#step-1",
             "responseSchema": {
               "additionalProperties": false,
               "description": "签署广告推广排期协议（Advertising Promotion Order），双方权责自此成立",
@@ -1053,10 +1053,10 @@
                       "href": "/ads-promotion-orders/{contractId}"
                     }
                   },
-                  "agreed_amount_minor": 250000,
-                  "campaign_id": "campaign-pay",
-                  "id": "ads-order-pay",
-                  "signed_at": "2026-06-01T09:00:00Z"
+                  "agreed_amount_minor": 720000,
+                  "campaign_id": "campaign-summer",
+                  "id": "ads-order-summer",
+                  "signed_at": "2026-07-01T11:00:00Z"
                 },
                 {
                   "_links": {
@@ -1064,10 +1064,10 @@
                       "href": "/ads-promotion-orders/{contractId}"
                     }
                   },
-                  "agreed_amount_minor": 720000,
-                  "campaign_id": "campaign-summer",
-                  "id": "ads-order-summer",
-                  "signed_at": "2026-07-01T11:00:00Z"
+                  "agreed_amount_minor": 250000,
+                  "campaign_id": "campaign-pay",
+                  "id": "ads-order-pay",
+                  "signed_at": "2026-06-01T09:00:00Z"
                 }
               ],
               "properties": {
@@ -1159,9 +1159,9 @@
               "id": "pay-request-one"
             },
             "parameters": {
-              "contractId": "capture_10_0"
+              "contractId": "capture_1_0"
             },
-            "ref": "request.payment#payment-window",
+            "ref": "prepayment-only#step-2",
             "responseSchema": {
               "additionalProperties": false,
               "description": "发起预付款申请（Payment Request），开启一个有截止时间的履约窗口",
@@ -1172,9 +1172,9 @@
                       "href": "/ads-promotion-orders/{contractId}/payment"
                     }
                   },
-                  "expired_at": "2026-06-02T09:15:00Z",
-                  "id": "pay-request-one",
-                  "started_at": "2026-06-01T09:15:00Z"
+                  "expired_at": "2026-07-02T11:05:00Z",
+                  "id": "pay-request-summer",
+                  "started_at": "2026-07-01T11:05:00Z"
                 },
                 {
                   "_links": {
@@ -1182,9 +1182,9 @@
                       "href": "/ads-promotion-orders/{contractId}/payment"
                     }
                   },
-                  "expired_at": "2026-07-02T11:05:00Z",
-                  "id": "pay-request-summer",
-                  "started_at": "2026-07-01T11:05:00Z"
+                  "expired_at": "2026-06-02T09:15:00Z",
+                  "id": "pay-request-one",
+                  "started_at": "2026-06-01T09:15:00Z"
                 }
               ],
               "properties": {
@@ -1265,9 +1265,9 @@
               "id": "payment-proof-one"
             },
             "parameters": {
-              "contractId": "capture_10_0"
+              "contractId": "capture_1_0"
             },
-            "ref": "confirmation.payment#gateway-paid",
+            "ref": "prepayment-only#step-3",
             "responseSchema": {
               "additionalProperties": false,
               "description": "读取资源详情",
@@ -1278,10 +1278,10 @@
                       "href": "/payments/{paymentId}"
                     }
                   },
-                  "confirmed_at": "2026-06-01T10:00:00Z",
-                  "gateway_reference": "gateway-txn-01",
-                  "id": "payment-proof-one",
-                  "paid_amount_minor": 250000
+                  "confirmed_at": "2026-07-01T12:00:00Z",
+                  "gateway_reference": "gateway-txn-02",
+                  "id": "payment-proof-summer",
+                  "paid_amount_minor": 720000
                 },
                 {
                   "_links": {
@@ -1289,10 +1289,10 @@
                       "href": "/payments/{paymentId}"
                     }
                   },
-                  "confirmed_at": "2026-07-01T12:00:00Z",
-                  "gateway_reference": "gateway-txn-02",
-                  "id": "payment-proof-summer",
-                  "paid_amount_minor": 720000
+                  "confirmed_at": "2026-06-01T10:00:00Z",
+                  "gateway_reference": "gateway-txn-01",
+                  "id": "payment-proof-one",
+                  "paid_amount_minor": 250000
                 }
               ],
               "properties": {

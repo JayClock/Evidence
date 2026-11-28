@@ -9,7 +9,11 @@ import { promisify } from 'node:util';
 import { runAcceptanceSuite } from './runner/acceptanceRunner.js';
 import { Ajv2020 } from 'ajv/dist/2020.js';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { readModelDirectory } from '@evidence-poc/evidence-model-io';
+import {
+  readModelDirectory,
+  writeModelDirectory,
+} from '@evidence-poc/evidence-model-io';
+import { forkStory } from '@evidence-poc/evidence-model-core';
 import { exportAcceptanceTests } from './exportTests.js';
 
 const backend = fileURLToPath(
@@ -88,6 +92,21 @@ function execute(fault = 'none') {
   );
 }
 
+async function payoutOverrideSteps() {
+  const { document } = await readModelDirectory(model);
+  return new Set(
+    document.stories.flatMap((story) =>
+      story.steps
+        .filter(
+          (step) =>
+            step.expectedStatus === 422 &&
+            Object.hasOwn(step.inputs ?? {}, 'payout_minor'),
+        )
+        .map((step) => `${story.id}#${step.id}`),
+    ),
+  );
+}
+
 describe(
   'generated acceptance against an independent backend process',
   { timeout: 20_000 },
@@ -158,11 +177,50 @@ describe(
       expect(report.selectedFlowCount).toBe(5);
       expect(steps).toHaveLength(121);
       expect(steps.every((step) => !step.errored && !step.skipped)).toBe(true);
+      const rejected = await payoutOverrideSteps();
+      const attempted = steps.filter((step) => rejected.has(step.name));
+      expect(attempted).toHaveLength(5);
+      expect(attempted.every((step) => step.status === 422)).toBe(true);
+    });
+    it('runs a selected fork on a fresh service using only its own prefix captures', async () => {
+      const { document } = await readModelDirectory(model);
+      const parent = document.stories.find(
+        (story) => story.id === 'single-on-time',
+      )!;
+      const [agreement, order, confirmation] = parent.steps;
+      forkStory(document, {
+        id: 'order-review',
+        title: '复核订单',
+        forkedFrom: { storyId: parent.id, stepId: order!.id },
+        steps: [
+          {
+            ...confirmation!,
+            id: 'reviewed',
+            sequence: 1,
+            basedOn: [`${parent.id}#${order!.id}`],
+          },
+        ],
+      });
+      const modelDirectory = path.join(root, 'model');
+      await writeModelDirectory(modelDirectory, document);
+      await exportAcceptanceTests({ modelDirectory, out: suite });
+      const report = await withBackend('none', (targetUrl) =>
+        runAcceptanceSuite({
+          suitePath: suite,
+          targetUrl,
+          filter: 'order-review',
+        }),
+      );
       expect(
-        steps
-          .filter((step) => step.name?.endsWith('-00-tamper'))
-          .every((step) => step.status === 422),
+        report.passed,
+        JSON.stringify(report.steps.filter((step) => !step.passed)),
       ).toBe(true);
+      expect(report.selectedFlowCount).toBe(1);
+      expect(report.steps.map((step) => step.name)).toEqual([
+        `${parent.id}#${agreement!.id}`,
+        `${parent.id}#${order!.id}`,
+        'order-review#reviewed',
+      ]);
     });
     it('goes red for an incorrect derived amount, and green again after fixing it', async () => {
       const broken = await execute('amount');
@@ -185,8 +243,9 @@ describe(
     it('goes red if a backend accepts caller-supplied derived fields', async () => {
       const broken = await execute('accept-derived');
       expect(broken.passed).toBe(false);
-      const step = broken.steps.find((step) =>
-        step.name.endsWith('-00-tamper'),
+      const rejected = await payoutOverrideSteps();
+      const step = broken.steps.find(
+        (step) => rejected.has(step.name) && !step.passed,
       )!;
       expect(step.assertions).toContainEqual({
         path: 'res.status',

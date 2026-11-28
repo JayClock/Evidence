@@ -15,7 +15,7 @@
 | **GET**  | `/performance-agreements/{contractId}/annual-target/revenues`                    | 从年度单例反向查关联收入，不需要年度路径参数                        |
 | POST     | `/performance-agreements/{contractId}/quarterly-targets/{targetId}/confirmation` | 独占季度锁账，不重复登记收入                                        |
 
-反向路径只提供 GET；两个 HAL 集合嵌入的收入项都指向同一条顶层凭证。服务仍须校验请求 ID 的业务关联和角色权限，不能把链接或数组形状当成授权。内联示例使用已知的调用方业务 ID，使两次归属可在验收中精确比对。
+反向路径只提供 GET；两个 HAL 集合嵌入的收入项都指向同一条顶层凭证。服务仍须校验请求 ID 的业务关联和角色权限，不能把链接或数组形状当成授权。共享结算故事使用已知的调用方业务 ID，使两次归属可在验收中精确比对。
 
 ## 编译与核验
 

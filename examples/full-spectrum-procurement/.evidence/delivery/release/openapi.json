@@ -1,8 +1,8 @@
 {
   "components": {
     "examples": {
-      "route_read_conf-advance-payment______1": {
-        "summary": "顺畅履约",
+      "route_read_conf-advance-payment_happy-path_step-6_1": {
+        "summary": "happy-path#step-6",
         "value": {
           "_links": {
             "self": {
@@ -16,38 +16,8 @@
           "confirmed_at": "2026-01-06T09:00:00Z"
         }
       },
-      "route_read_conf-advance-payment______2": {
-        "summary": "逾期交货",
-        "value": {
-          "_links": {
-            "self": {
-              "href": "/conf-advance-payments/{confAdvancePaymentId}"
-            }
-          },
-          "confirmed_amount": {
-            "currency": "CNY",
-            "minorUnits": 30000000
-          },
-          "confirmed_at": "2026-01-06T09:00:00Z"
-        }
-      },
-      "route_read_conf-advance-payment______3": {
-        "summary": "质检争议",
-        "value": {
-          "_links": {
-            "self": {
-              "href": "/conf-advance-payments/{confAdvancePaymentId}"
-            }
-          },
-          "confirmed_amount": {
-            "currency": "CNY",
-            "minorUnits": 30000000
-          },
-          "confirmed_at": "2026-01-06T09:00:00Z"
-        }
-      },
-      "route_read_conf-breach-settlement______1": {
-        "summary": "逾期交货",
+      "route_read_conf-breach-settlement_late-delivery_step-11_1": {
+        "summary": "late-delivery#step-11",
         "value": {
           "_links": {
             "self": {
@@ -61,32 +31,8 @@
           }
         }
       },
-      "route_read_conf-equipment-delivery______1": {
-        "summary": "顺畅履约",
-        "value": {
-          "_links": {
-            "self": {
-              "href": "/conf-equipment-deliveries/{confEquipmentDeliveryId}"
-            }
-          },
-          "confirmed_at": "2026-02-09T09:00:00Z",
-          "port_arrival_status": "已到港"
-        }
-      },
-      "route_read_conf-equipment-delivery______2": {
-        "summary": "逾期交货",
-        "value": {
-          "_links": {
-            "self": {
-              "href": "/conf-equipment-deliveries/{confEquipmentDeliveryId}"
-            }
-          },
-          "confirmed_at": "2026-02-12T09:00:00Z",
-          "port_arrival_status": "逾期到港"
-        }
-      },
-      "route_read_conf-equipment-delivery______3": {
-        "summary": "质检争议",
+      "route_read_conf-equipment-delivery_defect-escalation_step-8_1": {
+        "summary": "defect-escalation#step-8",
         "value": {
           "_links": {
             "self": {
@@ -97,8 +43,32 @@
           "port_arrival_status": "待技术核验"
         }
       },
-      "route_read_conf-escrow-freeze______1": {
-        "summary": "质检争议",
+      "route_read_conf-equipment-delivery_happy-path_step-8_2": {
+        "summary": "happy-path#step-8",
+        "value": {
+          "_links": {
+            "self": {
+              "href": "/conf-equipment-deliveries/{confEquipmentDeliveryId}"
+            }
+          },
+          "confirmed_at": "2026-02-09T09:00:00Z",
+          "port_arrival_status": "已到港"
+        }
+      },
+      "route_read_conf-equipment-delivery_late-delivery_step-8_3": {
+        "summary": "late-delivery#step-8",
+        "value": {
+          "_links": {
+            "self": {
+              "href": "/conf-equipment-deliveries/{confEquipmentDeliveryId}"
+            }
+          },
+          "confirmed_at": "2026-02-12T09:00:00Z",
+          "port_arrival_status": "逾期到港"
+        }
+      },
+      "route_read_conf-escrow-freeze_defect-escalation_step-11_1": {
+        "summary": "defect-escalation#step-11",
         "value": {
           "_links": {
             "self": {
@@ -109,8 +79,8 @@
           "frozen": true
         }
       },
-      "route_read_conf-escrow-release______1": {
-        "summary": "顺畅履约",
+      "route_read_conf-escrow-release_happy-path_step-11_1": {
+        "summary": "happy-path#step-11",
         "value": {
           "_links": {
             "self": {
@@ -124,8 +94,8 @@
           }
         }
       },
-      "route_read_conf-escrow-release______2": {
-        "summary": "逾期交货",
+      "route_read_conf-escrow-release_late-delivery_step-13_2": {
+        "summary": "late-delivery#step-13",
         "value": {
           "_links": {
             "self": {
@@ -139,8 +109,8 @@
           }
         }
       },
-      "route_read_doc-escrow-agreement______1": {
-        "summary": "顺畅履约",
+      "route_read_doc-escrow-agreement_happy-path_step-4_1": {
+        "summary": "happy-path#step-4",
         "value": {
           "_links": {
             "self": {
@@ -154,38 +124,8 @@
           "signed_at": "2026-01-04T09:00:00Z"
         }
       },
-      "route_read_doc-escrow-agreement______2": {
-        "summary": "逾期交货",
-        "value": {
-          "_links": {
-            "self": {
-              "href": "/doc-escrow-agreements/{agreementId}"
-            }
-          },
-          "escrow_locked_amount": {
-            "currency": "CNY",
-            "minorUnits": 100000000
-          },
-          "signed_at": "2026-01-04T09:00:00Z"
-        }
-      },
-      "route_read_doc-escrow-agreement______3": {
-        "summary": "质检争议",
-        "value": {
-          "_links": {
-            "self": {
-              "href": "/doc-escrow-agreements/{agreementId}"
-            }
-          },
-          "escrow_locked_amount": {
-            "currency": "CNY",
-            "minorUnits": 100000000
-          },
-          "signed_at": "2026-01-04T09:00:00Z"
-        }
-      },
-      "route_read_doc-procurement-contract______1": {
-        "summary": "顺畅履约",
+      "route_read_doc-procurement-contract_happy-path_step-3_1": {
+        "summary": "happy-path#step-3",
         "value": {
           "_links": {
             "self": {
@@ -198,45 +138,12 @@
           },
           "delivery_deadline_days": 35,
           "down_payment_rate": 0.3,
+          "penalty_daily_rate": 0.0005,
           "signed_at": "2026-01-03T09:00:00Z"
         }
       },
-      "route_read_doc-procurement-contract______2": {
-        "summary": "逾期交货",
-        "value": {
-          "_links": {
-            "self": {
-              "href": "/doc-procurement-contracts/{contractId}"
-            }
-          },
-          "contract_total_amount": {
-            "currency": "CNY",
-            "minorUnits": 100000000
-          },
-          "delivery_deadline_days": 35,
-          "down_payment_rate": 0.3,
-          "signed_at": "2026-01-03T09:00:00Z"
-        }
-      },
-      "route_read_doc-procurement-contract______3": {
-        "summary": "质检争议",
-        "value": {
-          "_links": {
-            "self": {
-              "href": "/doc-procurement-contracts/{contractId}"
-            }
-          },
-          "contract_total_amount": {
-            "currency": "CNY",
-            "minorUnits": 100000000
-          },
-          "delivery_deadline_days": 35,
-          "down_payment_rate": 0.3,
-          "signed_at": "2026-01-03T09:00:00Z"
-        }
-      },
-      "route_read_doc-sourcing-rfp______1": {
-        "summary": "顺畅履约",
+      "route_read_doc-sourcing-rfp_happy-path_step-1_1": {
+        "summary": "happy-path#step-1",
         "value": {
           "_links": {
             "self": {
@@ -251,40 +158,8 @@
           "started_at": "2026-01-01T09:00:00Z"
         }
       },
-      "route_read_doc-sourcing-rfp______2": {
-        "summary": "逾期交货",
-        "value": {
-          "_links": {
-            "self": {
-              "href": "/doc-sourcing-rfps/{rfpId}"
-            }
-          },
-          "expired_at": "2026-01-02T18:00:00Z",
-          "rfp_budget_ceiling": {
-            "currency": "CNY",
-            "minorUnits": 120000000
-          },
-          "started_at": "2026-01-01T09:00:00Z"
-        }
-      },
-      "route_read_doc-sourcing-rfp______3": {
-        "summary": "质检争议",
-        "value": {
-          "_links": {
-            "self": {
-              "href": "/doc-sourcing-rfps/{rfpId}"
-            }
-          },
-          "expired_at": "2026-01-02T18:00:00Z",
-          "rfp_budget_ceiling": {
-            "currency": "CNY",
-            "minorUnits": 120000000
-          },
-          "started_at": "2026-01-01T09:00:00Z"
-        }
-      },
-      "route_read_doc-supplier-proposal______1": {
-        "summary": "顺畅履约",
+      "route_read_doc-supplier-proposal_happy-path_step-2_1": {
+        "summary": "happy-path#step-2",
         "value": {
           "_links": {
             "self": {
@@ -299,40 +174,8 @@
           "started_at": "2026-01-02T09:00:00Z"
         }
       },
-      "route_read_doc-supplier-proposal______2": {
-        "summary": "逾期交货",
-        "value": {
-          "_links": {
-            "self": {
-              "href": "/doc-sourcing-rfps/{rfpId}/doc-supplier-proposal"
-            }
-          },
-          "expired_at": "2026-01-04T18:00:00Z",
-          "quoted_total_price": {
-            "currency": "CNY",
-            "minorUnits": 100000000
-          },
-          "started_at": "2026-01-02T09:00:00Z"
-        }
-      },
-      "route_read_doc-supplier-proposal______3": {
-        "summary": "质检争议",
-        "value": {
-          "_links": {
-            "self": {
-              "href": "/doc-sourcing-rfps/{rfpId}/doc-supplier-proposal"
-            }
-          },
-          "expired_at": "2026-01-04T18:00:00Z",
-          "quoted_total_price": {
-            "currency": "CNY",
-            "minorUnits": 100000000
-          },
-          "started_at": "2026-01-02T09:00:00Z"
-        }
-      },
-      "route_read_req-advance-payment______1": {
-        "summary": "顺畅履约",
+      "route_read_req-advance-payment_happy-path_step-5_1": {
+        "summary": "happy-path#step-5",
         "value": {
           "_links": {
             "self": {
@@ -347,40 +190,8 @@
           "started_at": "2026-01-05T09:00:00Z"
         }
       },
-      "route_read_req-advance-payment______2": {
-        "summary": "逾期交货",
-        "value": {
-          "_links": {
-            "self": {
-              "href": "/doc-procurement-contracts/{contractId}/req-advance-payment"
-            }
-          },
-          "advance_amount": {
-            "currency": "CNY",
-            "minorUnits": 30000000
-          },
-          "expired_at": "2026-01-07T18:00:00Z",
-          "started_at": "2026-01-05T09:00:00Z"
-        }
-      },
-      "route_read_req-advance-payment______3": {
-        "summary": "质检争议",
-        "value": {
-          "_links": {
-            "self": {
-              "href": "/doc-procurement-contracts/{contractId}/req-advance-payment"
-            }
-          },
-          "advance_amount": {
-            "currency": "CNY",
-            "minorUnits": 30000000
-          },
-          "expired_at": "2026-01-07T18:00:00Z",
-          "started_at": "2026-01-05T09:00:00Z"
-        }
-      },
-      "route_read_req-breach-penalty______1": {
-        "summary": "逾期交货",
+      "route_read_req-breach-penalty_late-delivery_step-9_1": {
+        "summary": "late-delivery#step-9",
         "value": {
           "_links": {
             "self": {
@@ -396,8 +207,8 @@
           "started_at": "2026-02-12T10:00:00Z"
         }
       },
-      "route_read_req-equipment-delivery______1": {
-        "summary": "顺畅履约",
+      "route_read_req-equipment-delivery_happy-path_step-7_1": {
+        "summary": "happy-path#step-7",
         "value": {
           "_links": {
             "self": {
@@ -409,34 +220,8 @@
           "started_at": "2026-01-07T09:00:00Z"
         }
       },
-      "route_read_req-equipment-delivery______2": {
-        "summary": "逾期交货",
-        "value": {
-          "_links": {
-            "self": {
-              "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries/{deliveryId}"
-            }
-          },
-          "expired_at": "2026-02-10T09:00:00Z",
-          "shipped_units_count": 2,
-          "started_at": "2026-01-07T09:00:00Z"
-        }
-      },
-      "route_read_req-equipment-delivery______3": {
-        "summary": "质检争议",
-        "value": {
-          "_links": {
-            "self": {
-              "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries/{deliveryId}"
-            }
-          },
-          "expired_at": "2026-02-10T09:00:00Z",
-          "shipped_units_count": 2,
-          "started_at": "2026-01-07T09:00:00Z"
-        }
-      },
-      "route_read_req-escrow-freeze______1": {
-        "summary": "质检争议",
+      "route_read_req-escrow-freeze_defect-escalation_step-10_1": {
+        "summary": "defect-escalation#step-10",
         "value": {
           "_links": {
             "self": {
@@ -447,8 +232,8 @@
           "started_at": "2026-02-12T10:00:00Z"
         }
       },
-      "route_read_req-escrow-release______1": {
-        "summary": "顺畅履约",
+      "route_read_req-escrow-release_happy-path_step-10_1": {
+        "summary": "happy-path#step-10",
         "value": {
           "_links": {
             "self": {
@@ -463,8 +248,8 @@
           "started_at": "2026-02-11T09:00:00Z"
         }
       },
-      "route_read_req-escrow-release______2": {
-        "summary": "逾期交货",
+      "route_read_req-escrow-release_late-delivery_step-12_2": {
+        "summary": "late-delivery#step-12",
         "value": {
           "_links": {
             "self": {
@@ -478,28 +263,6 @@
           },
           "started_at": "2026-02-14T09:00:00Z"
         }
-      },
-      "route_read_thing-compliance-checker______1": {
-        "summary": "执行标准",
-        "value": {
-          "_links": {
-            "self": {
-              "href": "/thing-compliance-checkers/{checkerId}"
-            }
-          },
-          "iso_standard_code": "ISO-10218"
-        }
-      },
-      "route_read_thing-tariff-calculator_______1": {
-        "summary": "合同日费率",
-        "value": {
-          "_links": {
-            "self": {
-              "href": "/thing-tariff-calculators/{calculatorId}"
-            }
-          },
-          "penalty_daily_rate": 0.0005
-        }
       }
     },
     "schemas": {
@@ -507,30 +270,6 @@
         "additionalProperties": false,
         "description": "读取资源详情",
         "examples": [
-          {
-            "_links": {
-              "self": {
-                "href": "/conf-advance-payments/{confAdvancePaymentId}"
-              }
-            },
-            "confirmed_amount": {
-              "currency": "CNY",
-              "minorUnits": 30000000
-            },
-            "confirmed_at": "2026-01-06T09:00:00Z"
-          },
-          {
-            "_links": {
-              "self": {
-                "href": "/conf-advance-payments/{confAdvancePaymentId}"
-              }
-            },
-            "confirmed_amount": {
-              "currency": "CNY",
-              "minorUnits": 30000000
-            },
-            "confirmed_at": "2026-01-06T09:00:00Z"
-          },
           {
             "_links": {
               "self": {
@@ -690,6 +429,15 @@
               }
             },
             "confirmed_at": "2026-02-09T09:00:00Z",
+            "port_arrival_status": "待技术核验"
+          },
+          {
+            "_links": {
+              "self": {
+                "href": "/conf-equipment-deliveries/{confEquipmentDeliveryId}"
+              }
+            },
+            "confirmed_at": "2026-02-09T09:00:00Z",
             "port_arrival_status": "已到港"
           },
           {
@@ -700,15 +448,6 @@
             },
             "confirmed_at": "2026-02-12T09:00:00Z",
             "port_arrival_status": "逾期到港"
-          },
-          {
-            "_links": {
-              "self": {
-                "href": "/conf-equipment-deliveries/{confEquipmentDeliveryId}"
-              }
-            },
-            "confirmed_at": "2026-02-09T09:00:00Z",
-            "port_arrival_status": "待技术核验"
           }
         ],
         "properties": {
@@ -920,30 +659,6 @@
               "minorUnits": 100000000
             },
             "signed_at": "2026-01-04T09:00:00Z"
-          },
-          {
-            "_links": {
-              "self": {
-                "href": "/doc-escrow-agreements/{agreementId}"
-              }
-            },
-            "escrow_locked_amount": {
-              "currency": "CNY",
-              "minorUnits": 100000000
-            },
-            "signed_at": "2026-01-04T09:00:00Z"
-          },
-          {
-            "_links": {
-              "self": {
-                "href": "/doc-escrow-agreements/{agreementId}"
-              }
-            },
-            "escrow_locked_amount": {
-              "currency": "CNY",
-              "minorUnits": 100000000
-            },
-            "signed_at": "2026-01-04T09:00:00Z"
           }
         ],
         "properties": {
@@ -1133,34 +848,7 @@
             },
             "delivery_deadline_days": 35,
             "down_payment_rate": 0.3,
-            "signed_at": "2026-01-03T09:00:00Z"
-          },
-          {
-            "_links": {
-              "self": {
-                "href": "/doc-procurement-contracts/{contractId}"
-              }
-            },
-            "contract_total_amount": {
-              "currency": "CNY",
-              "minorUnits": 100000000
-            },
-            "delivery_deadline_days": 35,
-            "down_payment_rate": 0.3,
-            "signed_at": "2026-01-03T09:00:00Z"
-          },
-          {
-            "_links": {
-              "self": {
-                "href": "/doc-procurement-contracts/{contractId}"
-              }
-            },
-            "contract_total_amount": {
-              "currency": "CNY",
-              "minorUnits": 100000000
-            },
-            "delivery_deadline_days": 35,
-            "down_payment_rate": 0.3,
+            "penalty_daily_rate": 0.0005,
             "signed_at": "2026-01-03T09:00:00Z"
           }
         ],
@@ -1229,6 +917,12 @@
             "x-evidence-caller-input": true,
             "x-evidence-origin": "caller"
           },
+          "penalty_daily_rate": {
+            "description": "主合同约定的每日万分之五基准违约金费率",
+            "type": "number",
+            "x-evidence-caller-input": true,
+            "x-evidence-origin": "caller"
+          },
           "signed_at": {
             "description": "双方加盖电子印章正式生效时刻",
             "format": "date-time",
@@ -1243,6 +937,7 @@
           "down_payment_rate",
           "delivery_deadline_days",
           "signed_at",
+          "penalty_daily_rate",
           "_links"
         ],
         "type": "object"
@@ -1367,6 +1062,12 @@
             "x-evidence-caller-input": true,
             "x-evidence-origin": "caller"
           },
+          "penalty_daily_rate": {
+            "description": "主合同约定的每日万分之五基准违约金费率",
+            "type": "number",
+            "x-evidence-caller-input": true,
+            "x-evidence-origin": "caller"
+          },
           "signed_at": {
             "description": "双方加盖电子印章正式生效时刻",
             "format": "date-time",
@@ -1385,32 +1086,6 @@
         "additionalProperties": false,
         "description": "读取资源详情",
         "examples": [
-          {
-            "_links": {
-              "self": {
-                "href": "/doc-sourcing-rfps/{rfpId}"
-              }
-            },
-            "expired_at": "2026-01-02T18:00:00Z",
-            "rfp_budget_ceiling": {
-              "currency": "CNY",
-              "minorUnits": 120000000
-            },
-            "started_at": "2026-01-01T09:00:00Z"
-          },
-          {
-            "_links": {
-              "self": {
-                "href": "/doc-sourcing-rfps/{rfpId}"
-              }
-            },
-            "expired_at": "2026-01-02T18:00:00Z",
-            "rfp_budget_ceiling": {
-              "currency": "CNY",
-              "minorUnits": 120000000
-            },
-            "started_at": "2026-01-01T09:00:00Z"
-          },
           {
             "_links": {
               "self": {
@@ -1629,32 +1304,6 @@
               "minorUnits": 100000000
             },
             "started_at": "2026-01-02T09:00:00Z"
-          },
-          {
-            "_links": {
-              "self": {
-                "href": "/doc-sourcing-rfps/{rfpId}/doc-supplier-proposal"
-              }
-            },
-            "expired_at": "2026-01-04T18:00:00Z",
-            "quoted_total_price": {
-              "currency": "CNY",
-              "minorUnits": 100000000
-            },
-            "started_at": "2026-01-02T09:00:00Z"
-          },
-          {
-            "_links": {
-              "self": {
-                "href": "/doc-sourcing-rfps/{rfpId}/doc-supplier-proposal"
-              }
-            },
-            "expired_at": "2026-01-04T18:00:00Z",
-            "quoted_total_price": {
-              "currency": "CNY",
-              "minorUnits": 100000000
-            },
-            "started_at": "2026-01-02T09:00:00Z"
           }
         ],
         "properties": {
@@ -1729,32 +1378,6 @@
         "additionalProperties": false,
         "description": "发起首期生产预付款支付请求（Advance Down Payment Request），开启一个有截止时间的履约窗口",
         "examples": [
-          {
-            "_links": {
-              "self": {
-                "href": "/doc-procurement-contracts/{contractId}/req-advance-payment"
-              }
-            },
-            "advance_amount": {
-              "currency": "CNY",
-              "minorUnits": 30000000
-            },
-            "expired_at": "2026-01-07T18:00:00Z",
-            "started_at": "2026-01-05T09:00:00Z"
-          },
-          {
-            "_links": {
-              "self": {
-                "href": "/doc-procurement-contracts/{contractId}/req-advance-payment"
-              }
-            },
-            "advance_amount": {
-              "currency": "CNY",
-              "minorUnits": 30000000
-            },
-            "expired_at": "2026-01-07T18:00:00Z",
-            "started_at": "2026-01-05T09:00:00Z"
-          },
           {
             "_links": {
               "self": {
@@ -2087,26 +1710,6 @@
         "additionalProperties": false,
         "description": "发起整机出厂及航运交付催告请求（Equipment Factory Dispatch Request），开启一个有截止时间的履约窗口",
         "examples": [
-          {
-            "_links": {
-              "self": {
-                "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries/{deliveryId}"
-              }
-            },
-            "expired_at": "2026-02-10T09:00:00Z",
-            "shipped_units_count": 2,
-            "started_at": "2026-01-07T09:00:00Z"
-          },
-          {
-            "_links": {
-              "self": {
-                "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries/{deliveryId}"
-              }
-            },
-            "expired_at": "2026-02-10T09:00:00Z",
-            "shipped_units_count": 2,
-            "started_at": "2026-01-07T09:00:00Z"
-          },
           {
             "_links": {
               "self": {
@@ -2464,16 +2067,6 @@
       "thing-compliance-checker": {
         "additionalProperties": false,
         "description": "读取资源详情",
-        "examples": [
-          {
-            "_links": {
-              "self": {
-                "href": "/thing-compliance-checkers/{checkerId}"
-              }
-            },
-            "iso_standard_code": "ISO-10218"
-          }
-        ],
         "properties": {
           "_links": {
             "additionalProperties": {
@@ -2769,16 +2362,6 @@
       "thing-tariff-calculator": {
         "additionalProperties": false,
         "description": "读取资源详情",
-        "examples": [
-          {
-            "_links": {
-              "self": {
-                "href": "/thing-tariff-calculators/{calculatorId}"
-              }
-            },
-            "penalty_daily_rate": 0.0005
-          }
-        ],
         "properties": {
           "_links": {
             "additionalProperties": {
@@ -2934,60 +2517,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_read_conf-advance-payment______1": {
-                    "summary": "顺畅履约",
-                    "value": {
-                      "_links": {
-                        "next:req-equipment-delivery": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "request:req-advance-payment": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-advance-payment",
-                          "method": "GET",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/conf-advance-payments/{confAdvancePaymentId}",
-                          "templated": true
-                        }
-                      },
-                      "confirmed_amount": {
-                        "currency": "CNY",
-                        "minorUnits": 30000000
-                      },
-                      "confirmed_at": "2026-01-06T09:00:00Z"
-                    }
-                  },
-                  "route_read_conf-advance-payment______2": {
-                    "summary": "逾期交货",
-                    "value": {
-                      "_links": {
-                        "next:req-equipment-delivery": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "request:req-advance-payment": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-advance-payment",
-                          "method": "GET",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/conf-advance-payments/{confAdvancePaymentId}",
-                          "templated": true
-                        }
-                      },
-                      "confirmed_amount": {
-                        "currency": "CNY",
-                        "minorUnits": 30000000
-                      },
-                      "confirmed_at": "2026-01-06T09:00:00Z"
-                    }
-                  },
-                  "route_read_conf-advance-payment______3": {
-                    "summary": "质检争议",
+                  "route_read_conf-advance-payment_happy-path_step-6_1": {
+                    "summary": "happy-path#step-6",
                     "value": {
                       "_links": {
                         "next:req-equipment-delivery": {
@@ -3079,8 +2610,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_read_conf-breach-settlement______1": {
-                    "summary": "逾期交货",
+                  "route_read_conf-breach-settlement_late-delivery_step-11_1": {
+                    "summary": "late-delivery#step-11",
                     "value": {
                       "_links": {
                         "self": {
@@ -3150,8 +2681,26 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_read_conf-equipment-delivery______1": {
-                    "summary": "顺畅履约",
+                  "route_read_conf-equipment-delivery_defect-escalation_step-8_1": {
+                    "summary": "defect-escalation#step-8",
+                    "value": {
+                      "_links": {
+                        "request:req-equipment-delivery": {
+                          "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries/{deliveryId}",
+                          "method": "GET",
+                          "templated": true
+                        },
+                        "self": {
+                          "href": "/conf-equipment-deliveries/{confEquipmentDeliveryId}",
+                          "templated": true
+                        }
+                      },
+                      "confirmed_at": "2026-02-09T09:00:00Z",
+                      "port_arrival_status": "待技术核验"
+                    }
+                  },
+                  "route_read_conf-equipment-delivery_happy-path_step-8_2": {
+                    "summary": "happy-path#step-8",
                     "value": {
                       "_links": {
                         "request:req-equipment-delivery": {
@@ -3168,8 +2717,8 @@
                       "port_arrival_status": "已到港"
                     }
                   },
-                  "route_read_conf-equipment-delivery______2": {
-                    "summary": "逾期交货",
+                  "route_read_conf-equipment-delivery_late-delivery_step-8_3": {
+                    "summary": "late-delivery#step-8",
                     "value": {
                       "_links": {
                         "request:req-equipment-delivery": {
@@ -3184,24 +2733,6 @@
                       },
                       "confirmed_at": "2026-02-12T09:00:00Z",
                       "port_arrival_status": "逾期到港"
-                    }
-                  },
-                  "route_read_conf-equipment-delivery______3": {
-                    "summary": "质检争议",
-                    "value": {
-                      "_links": {
-                        "request:req-equipment-delivery": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries/{deliveryId}",
-                          "method": "GET",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/conf-equipment-deliveries/{confEquipmentDeliveryId}",
-                          "templated": true
-                        }
-                      },
-                      "confirmed_at": "2026-02-09T09:00:00Z",
-                      "port_arrival_status": "待技术核验"
                     }
                   }
                 },
@@ -3266,8 +2797,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_read_conf-escrow-freeze______1": {
-                    "summary": "质检争议",
+                  "route_read_conf-escrow-freeze_defect-escalation_step-11_1": {
+                    "summary": "defect-escalation#step-11",
                     "value": {
                       "_links": {
                         "self": {
@@ -3334,8 +2865,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_read_conf-escrow-release______1": {
-                    "summary": "顺畅履约",
+                  "route_read_conf-escrow-release_happy-path_step-11_1": {
+                    "summary": "happy-path#step-11",
                     "value": {
                       "_links": {
                         "request:req-escrow-release": {
@@ -3355,8 +2886,8 @@
                       }
                     }
                   },
-                  "route_read_conf-escrow-release______2": {
-                    "summary": "逾期交货",
+                  "route_read_conf-escrow-release_late-delivery_step-13_2": {
+                    "summary": "late-delivery#step-13",
                     "value": {
                       "_links": {
                         "request:req-escrow-release": {
@@ -3429,76 +2960,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_list_doc-escrow-agreement______1": {
-                    "summary": "顺畅履约",
-                    "value": {
-                      "_embedded": {
-                        "doc-escrow-agreements": [
-                          {
-                            "_links": {
-                              "self": {
-                                "href": "/doc-escrow-agreements/{agreementId}",
-                                "templated": true
-                              }
-                            },
-                            "escrow_locked_amount": {
-                              "currency": "CNY",
-                              "minorUnits": 100000000
-                            },
-                            "signed_at": "2026-01-04T09:00:00Z"
-                          }
-                        ]
-                      },
-                      "_links": {
-                        "next:req-escrow-release": {
-                          "href": "/doc-escrow-agreements/{agreementId}/req-escrow-release",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/doc-escrow-agreements",
-                          "templated": false
-                        }
-                      },
-                      "total": 1
-                    }
-                  },
-                  "route_list_doc-escrow-agreement______2": {
-                    "summary": "逾期交货",
-                    "value": {
-                      "_embedded": {
-                        "doc-escrow-agreements": [
-                          {
-                            "_links": {
-                              "self": {
-                                "href": "/doc-escrow-agreements/{agreementId}",
-                                "templated": true
-                              }
-                            },
-                            "escrow_locked_amount": {
-                              "currency": "CNY",
-                              "minorUnits": 100000000
-                            },
-                            "signed_at": "2026-01-04T09:00:00Z"
-                          }
-                        ]
-                      },
-                      "_links": {
-                        "next:req-escrow-release": {
-                          "href": "/doc-escrow-agreements/{agreementId}/req-escrow-release",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/doc-escrow-agreements",
-                          "templated": false
-                        }
-                      },
-                      "total": 1
-                    }
-                  },
-                  "route_list_doc-escrow-agreement______3": {
-                    "summary": "质检争议",
+                  "route_list_doc-escrow-agreement_happy-path_step-4_1": {
+                    "summary": "happy-path#step-4",
                     "value": {
                       "_embedded": {
                         "doc-escrow-agreements": [
@@ -3580,26 +3043,8 @@
           "content": {
             "application/json": {
               "examples": {
-                "route_sign_doc-escrow-agreement______1": {
-                  "summary": "顺畅履约",
-                  "value": {
-                    "escrow_locked_amount": {
-                      "currency": "CNY",
-                      "minorUnits": 100000000
-                    }
-                  }
-                },
-                "route_sign_doc-escrow-agreement______2": {
-                  "summary": "逾期交货",
-                  "value": {
-                    "escrow_locked_amount": {
-                      "currency": "CNY",
-                      "minorUnits": 100000000
-                    }
-                  }
-                },
-                "route_sign_doc-escrow-agreement______3": {
-                  "summary": "质检争议",
+                "route_sign_doc-escrow-agreement_happy-path_step-4_1": {
+                  "summary": "happy-path#step-4",
                   "value": {
                     "escrow_locked_amount": {
                       "currency": "CNY",
@@ -3644,50 +3089,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_sign_doc-escrow-agreement______1": {
-                    "summary": "顺畅履约",
-                    "value": {
-                      "_links": {
-                        "next:req-escrow-release": {
-                          "href": "/doc-escrow-agreements/{agreementId}/req-escrow-release",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/doc-escrow-agreements/{agreementId}",
-                          "templated": true
-                        }
-                      },
-                      "escrow_locked_amount": {
-                        "currency": "CNY",
-                        "minorUnits": 100000000
-                      },
-                      "signed_at": "2026-01-04T09:00:00Z"
-                    }
-                  },
-                  "route_sign_doc-escrow-agreement______2": {
-                    "summary": "逾期交货",
-                    "value": {
-                      "_links": {
-                        "next:req-escrow-release": {
-                          "href": "/doc-escrow-agreements/{agreementId}/req-escrow-release",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/doc-escrow-agreements/{agreementId}",
-                          "templated": true
-                        }
-                      },
-                      "escrow_locked_amount": {
-                        "currency": "CNY",
-                        "minorUnits": 100000000
-                      },
-                      "signed_at": "2026-01-04T09:00:00Z"
-                    }
-                  },
-                  "route_sign_doc-escrow-agreement______3": {
-                    "summary": "质检争议",
+                  "route_sign_doc-escrow-agreement_happy-path_step-4_1": {
+                    "summary": "happy-path#step-4",
                     "value": {
                       "_links": {
                         "next:req-escrow-release": {
@@ -3781,50 +3184,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_read_doc-escrow-agreement______1": {
-                    "summary": "顺畅履约",
-                    "value": {
-                      "_links": {
-                        "next:req-escrow-release": {
-                          "href": "/doc-escrow-agreements/{agreementId}/req-escrow-release",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/doc-escrow-agreements/{agreementId}",
-                          "templated": true
-                        }
-                      },
-                      "escrow_locked_amount": {
-                        "currency": "CNY",
-                        "minorUnits": 100000000
-                      },
-                      "signed_at": "2026-01-04T09:00:00Z"
-                    }
-                  },
-                  "route_read_doc-escrow-agreement______2": {
-                    "summary": "逾期交货",
-                    "value": {
-                      "_links": {
-                        "next:req-escrow-release": {
-                          "href": "/doc-escrow-agreements/{agreementId}/req-escrow-release",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/doc-escrow-agreements/{agreementId}",
-                          "templated": true
-                        }
-                      },
-                      "escrow_locked_amount": {
-                        "currency": "CNY",
-                        "minorUnits": 100000000
-                      },
-                      "signed_at": "2026-01-04T09:00:00Z"
-                    }
-                  },
-                  "route_read_doc-escrow-agreement______3": {
-                    "summary": "质检争议",
+                  "route_read_doc-escrow-agreement_happy-path_step-4_1": {
+                    "summary": "happy-path#step-4",
                     "value": {
                       "_links": {
                         "next:req-escrow-release": {
@@ -3905,8 +3266,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_read_req-escrow-freeze______1": {
-                    "summary": "质检争议",
+                  "route_read_req-escrow-freeze_defect-escalation_step-10_1": {
+                    "summary": "defect-escalation#step-10",
                     "value": {
                       "_links": {
                         "self": {
@@ -3972,8 +3333,8 @@
           "content": {
             "application/json": {
               "examples": {
-                "route_request_req-escrow-freeze______1": {
-                  "summary": "质检争议",
+                "route_request_req-escrow-freeze_defect-escalation_step-10_1": {
+                  "summary": "defect-escalation#step-10",
                   "value": {}
                 }
               },
@@ -3991,8 +3352,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_request_req-escrow-freeze______1": {
-                    "summary": "质检争议",
+                  "route_request_req-escrow-freeze_defect-escalation_step-10_1": {
+                    "summary": "defect-escalation#step-10",
                     "value": {
                       "_links": {
                         "self": {
@@ -4074,8 +3435,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_read_req-escrow-release______1": {
-                    "summary": "顺畅履约",
+                  "route_read_req-escrow-release_happy-path_step-10_1": {
+                    "summary": "happy-path#step-10",
                     "value": {
                       "_links": {
                         "next:conf-escrow-release": {
@@ -4096,8 +3457,8 @@
                       "started_at": "2026-02-11T09:00:00Z"
                     }
                   },
-                  "route_read_req-escrow-release______2": {
-                    "summary": "逾期交货",
+                  "route_read_req-escrow-release_late-delivery_step-12_2": {
+                    "summary": "late-delivery#step-12",
                     "value": {
                       "_links": {
                         "next:conf-escrow-release": {
@@ -4177,8 +3538,8 @@
           "content": {
             "application/json": {
               "examples": {
-                "route_request_req-escrow-release______1": {
-                  "summary": "顺畅履约",
+                "route_request_req-escrow-release_happy-path_step-10_1": {
+                  "summary": "happy-path#step-10",
                   "value": {
                     "release_amount": {
                       "currency": "CNY",
@@ -4186,8 +3547,8 @@
                     }
                   }
                 },
-                "route_request_req-escrow-release______2": {
-                  "summary": "逾期交货",
+                "route_request_req-escrow-release_late-delivery_step-12_2": {
+                  "summary": "late-delivery#step-12",
                   "value": {
                     "release_amount": {
                       "currency": "CNY",
@@ -4232,8 +3593,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_request_req-escrow-release______1": {
-                    "summary": "顺畅履约",
+                  "route_request_req-escrow-release_happy-path_step-10_1": {
+                    "summary": "happy-path#step-10",
                     "value": {
                       "_links": {
                         "next:conf-escrow-release": {
@@ -4254,8 +3615,8 @@
                       "started_at": "2026-02-11T09:00:00Z"
                     }
                   },
-                  "route_request_req-escrow-release______2": {
-                    "summary": "逾期交货",
+                  "route_request_req-escrow-release_late-delivery_step-12_2": {
+                    "summary": "late-delivery#step-12",
                     "value": {
                       "_links": {
                         "next:conf-escrow-release": {
@@ -4350,8 +3711,8 @@
           "content": {
             "application/json": {
               "examples": {
-                "route_confirm_conf-escrow-release______1": {
-                  "summary": "顺畅履约",
+                "route_confirm_conf-escrow-release_happy-path_step-11_1": {
+                  "summary": "happy-path#step-11",
                   "value": {
                     "released_amount": {
                       "currency": "CNY",
@@ -4359,8 +3720,8 @@
                     }
                   }
                 },
-                "route_confirm_conf-escrow-release______2": {
-                  "summary": "逾期交货",
+                "route_confirm_conf-escrow-release_late-delivery_step-13_2": {
+                  "summary": "late-delivery#step-13",
                   "value": {
                     "released_amount": {
                       "currency": "CNY",
@@ -4405,8 +3766,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_confirm_conf-escrow-release______1": {
-                    "summary": "顺畅履约",
+                  "route_confirm_conf-escrow-release_happy-path_step-11_1": {
+                    "summary": "happy-path#step-11",
                     "value": {
                       "_links": {
                         "request:req-escrow-release": {
@@ -4426,8 +3787,8 @@
                       }
                     }
                   },
-                  "route_confirm_conf-escrow-release______2": {
-                    "summary": "逾期交货",
+                  "route_confirm_conf-escrow-release_late-delivery_step-13_2": {
+                    "summary": "late-delivery#step-13",
                     "value": {
                       "_links": {
                         "request:req-escrow-release": {
@@ -4513,8 +3874,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_list_doc-procurement-contract______1": {
-                    "summary": "顺畅履约",
+                  "route_list_doc-procurement-contract_happy-path_step-3_1": {
+                    "summary": "happy-path#step-3",
                     "value": {
                       "_embedded": {
                         "doc-procurement-contracts": [
@@ -4531,88 +3892,7 @@
                             },
                             "delivery_deadline_days": 35,
                             "down_payment_rate": 0.3,
-                            "signed_at": "2026-01-03T09:00:00Z"
-                          }
-                        ]
-                      },
-                      "_links": {
-                        "next:req-advance-payment": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-advance-payment",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "next:req-equipment-delivery": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/doc-procurement-contracts",
-                          "templated": false
-                        }
-                      },
-                      "total": 1
-                    }
-                  },
-                  "route_list_doc-procurement-contract______2": {
-                    "summary": "逾期交货",
-                    "value": {
-                      "_embedded": {
-                        "doc-procurement-contracts": [
-                          {
-                            "_links": {
-                              "self": {
-                                "href": "/doc-procurement-contracts/{contractId}",
-                                "templated": true
-                              }
-                            },
-                            "contract_total_amount": {
-                              "currency": "CNY",
-                              "minorUnits": 100000000
-                            },
-                            "delivery_deadline_days": 35,
-                            "down_payment_rate": 0.3,
-                            "signed_at": "2026-01-03T09:00:00Z"
-                          }
-                        ]
-                      },
-                      "_links": {
-                        "next:req-advance-payment": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-advance-payment",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "next:req-equipment-delivery": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/doc-procurement-contracts",
-                          "templated": false
-                        }
-                      },
-                      "total": 1
-                    }
-                  },
-                  "route_list_doc-procurement-contract______3": {
-                    "summary": "质检争议",
-                    "value": {
-                      "_embedded": {
-                        "doc-procurement-contracts": [
-                          {
-                            "_links": {
-                              "self": {
-                                "href": "/doc-procurement-contracts/{contractId}",
-                                "templated": true
-                              }
-                            },
-                            "contract_total_amount": {
-                              "currency": "CNY",
-                              "minorUnits": 100000000
-                            },
-                            "delivery_deadline_days": 35,
-                            "down_payment_rate": 0.3,
+                            "penalty_daily_rate": 0.0005,
                             "signed_at": "2026-01-03T09:00:00Z"
                           }
                         ]
@@ -4690,37 +3970,16 @@
           "content": {
             "application/json": {
               "examples": {
-                "route_sign_doc-procurement-contract______1": {
-                  "summary": "顺畅履约",
+                "route_sign_doc-procurement-contract_happy-path_step-3_1": {
+                  "summary": "happy-path#step-3",
                   "value": {
                     "contract_total_amount": {
                       "currency": "CNY",
                       "minorUnits": 100000000
                     },
                     "delivery_deadline_days": 35,
-                    "down_payment_rate": 0.3
-                  }
-                },
-                "route_sign_doc-procurement-contract______2": {
-                  "summary": "逾期交货",
-                  "value": {
-                    "contract_total_amount": {
-                      "currency": "CNY",
-                      "minorUnits": 100000000
-                    },
-                    "delivery_deadline_days": 35,
-                    "down_payment_rate": 0.3
-                  }
-                },
-                "route_sign_doc-procurement-contract______3": {
-                  "summary": "质检争议",
-                  "value": {
-                    "contract_total_amount": {
-                      "currency": "CNY",
-                      "minorUnits": 100000000
-                    },
-                    "delivery_deadline_days": 35,
-                    "down_payment_rate": 0.3
+                    "down_payment_rate": 0.3,
+                    "penalty_daily_rate": 0.0005
                   }
                 }
               },
@@ -4764,12 +4023,18 @@
                     "description": "签约后卖方排产前须支付的预付款百分比",
                     "type": "number",
                     "x-evidence-caller-input": true
+                  },
+                  "penalty_daily_rate": {
+                    "description": "主合同约定的每日万分之五基准违约金费率",
+                    "type": "number",
+                    "x-evidence-caller-input": true
                   }
                 },
                 "required": [
                   "contract_total_amount",
                   "down_payment_rate",
-                  "delivery_deadline_days"
+                  "delivery_deadline_days",
+                  "penalty_daily_rate"
                 ],
                 "type": "object"
               }
@@ -4782,8 +4047,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_sign_doc-procurement-contract______1": {
-                    "summary": "顺畅履约",
+                  "route_sign_doc-procurement-contract_happy-path_step-3_1": {
+                    "summary": "happy-path#step-3",
                     "value": {
                       "_links": {
                         "next:req-advance-payment": {
@@ -4812,72 +4077,7 @@
                       },
                       "delivery_deadline_days": 35,
                       "down_payment_rate": 0.3,
-                      "signed_at": "2026-01-03T09:00:00Z"
-                    }
-                  },
-                  "route_sign_doc-procurement-contract______2": {
-                    "summary": "逾期交货",
-                    "value": {
-                      "_links": {
-                        "next:req-advance-payment": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-advance-payment",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "next:req-equipment-delivery": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/doc-procurement-contracts/{contractId}",
-                          "templated": true
-                        },
-                        "subject:thing-robot-workstation": {
-                          "href": "/thing-robot-workstations/{workstationId}",
-                          "method": "GET",
-                          "templated": true
-                        }
-                      },
-                      "contract_total_amount": {
-                        "currency": "CNY",
-                        "minorUnits": 100000000
-                      },
-                      "delivery_deadline_days": 35,
-                      "down_payment_rate": 0.3,
-                      "signed_at": "2026-01-03T09:00:00Z"
-                    }
-                  },
-                  "route_sign_doc-procurement-contract______3": {
-                    "summary": "质检争议",
-                    "value": {
-                      "_links": {
-                        "next:req-advance-payment": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-advance-payment",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "next:req-equipment-delivery": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/doc-procurement-contracts/{contractId}",
-                          "templated": true
-                        },
-                        "subject:thing-robot-workstation": {
-                          "href": "/thing-robot-workstations/{workstationId}",
-                          "method": "GET",
-                          "templated": true
-                        }
-                      },
-                      "contract_total_amount": {
-                        "currency": "CNY",
-                        "minorUnits": 100000000
-                      },
-                      "delivery_deadline_days": 35,
-                      "down_payment_rate": 0.3,
+                      "penalty_daily_rate": 0.0005,
                       "signed_at": "2026-01-03T09:00:00Z"
                     }
                   }
@@ -4965,8 +4165,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_read_doc-procurement-contract______1": {
-                    "summary": "顺畅履约",
+                  "route_read_doc-procurement-contract_happy-path_step-3_1": {
+                    "summary": "happy-path#step-3",
                     "value": {
                       "_links": {
                         "next:req-advance-payment": {
@@ -4995,72 +4195,7 @@
                       },
                       "delivery_deadline_days": 35,
                       "down_payment_rate": 0.3,
-                      "signed_at": "2026-01-03T09:00:00Z"
-                    }
-                  },
-                  "route_read_doc-procurement-contract______2": {
-                    "summary": "逾期交货",
-                    "value": {
-                      "_links": {
-                        "next:req-advance-payment": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-advance-payment",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "next:req-equipment-delivery": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/doc-procurement-contracts/{contractId}",
-                          "templated": true
-                        },
-                        "subject:thing-robot-workstation": {
-                          "href": "/thing-robot-workstations/{workstationId}",
-                          "method": "GET",
-                          "templated": true
-                        }
-                      },
-                      "contract_total_amount": {
-                        "currency": "CNY",
-                        "minorUnits": 100000000
-                      },
-                      "delivery_deadline_days": 35,
-                      "down_payment_rate": 0.3,
-                      "signed_at": "2026-01-03T09:00:00Z"
-                    }
-                  },
-                  "route_read_doc-procurement-contract______3": {
-                    "summary": "质检争议",
-                    "value": {
-                      "_links": {
-                        "next:req-advance-payment": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-advance-payment",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "next:req-equipment-delivery": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/doc-procurement-contracts/{contractId}",
-                          "templated": true
-                        },
-                        "subject:thing-robot-workstation": {
-                          "href": "/thing-robot-workstations/{workstationId}",
-                          "method": "GET",
-                          "templated": true
-                        }
-                      },
-                      "contract_total_amount": {
-                        "currency": "CNY",
-                        "minorUnits": 100000000
-                      },
-                      "delivery_deadline_days": 35,
-                      "down_payment_rate": 0.3,
+                      "penalty_daily_rate": 0.0005,
                       "signed_at": "2026-01-03T09:00:00Z"
                     }
                   }
@@ -5135,52 +4270,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_read_req-advance-payment______1": {
-                    "summary": "顺畅履约",
-                    "value": {
-                      "_links": {
-                        "next:conf-advance-payment": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-advance-payment/confirmation",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-advance-payment",
-                          "templated": true
-                        }
-                      },
-                      "advance_amount": {
-                        "currency": "CNY",
-                        "minorUnits": 30000000
-                      },
-                      "expired_at": "2026-01-07T18:00:00Z",
-                      "started_at": "2026-01-05T09:00:00Z"
-                    }
-                  },
-                  "route_read_req-advance-payment______2": {
-                    "summary": "逾期交货",
-                    "value": {
-                      "_links": {
-                        "next:conf-advance-payment": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-advance-payment/confirmation",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-advance-payment",
-                          "templated": true
-                        }
-                      },
-                      "advance_amount": {
-                        "currency": "CNY",
-                        "minorUnits": 30000000
-                      },
-                      "expired_at": "2026-01-07T18:00:00Z",
-                      "started_at": "2026-01-05T09:00:00Z"
-                    }
-                  },
-                  "route_read_req-advance-payment______3": {
-                    "summary": "质检争议",
+                  "route_read_req-advance-payment_happy-path_step-5_1": {
+                    "summary": "happy-path#step-5",
                     "value": {
                       "_links": {
                         "next:conf-advance-payment": {
@@ -5260,26 +4351,8 @@
           "content": {
             "application/json": {
               "examples": {
-                "route_request_req-advance-payment______1": {
-                  "summary": "顺畅履约",
-                  "value": {
-                    "advance_amount": {
-                      "currency": "CNY",
-                      "minorUnits": 30000000
-                    }
-                  }
-                },
-                "route_request_req-advance-payment______2": {
-                  "summary": "逾期交货",
-                  "value": {
-                    "advance_amount": {
-                      "currency": "CNY",
-                      "minorUnits": 30000000
-                    }
-                  }
-                },
-                "route_request_req-advance-payment______3": {
-                  "summary": "质检争议",
+                "route_request_req-advance-payment_happy-path_step-5_1": {
+                  "summary": "happy-path#step-5",
                   "value": {
                     "advance_amount": {
                       "currency": "CNY",
@@ -5324,52 +4397,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_request_req-advance-payment______1": {
-                    "summary": "顺畅履约",
-                    "value": {
-                      "_links": {
-                        "next:conf-advance-payment": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-advance-payment/confirmation",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-advance-payment",
-                          "templated": true
-                        }
-                      },
-                      "advance_amount": {
-                        "currency": "CNY",
-                        "minorUnits": 30000000
-                      },
-                      "expired_at": "2026-01-07T18:00:00Z",
-                      "started_at": "2026-01-05T09:00:00Z"
-                    }
-                  },
-                  "route_request_req-advance-payment______2": {
-                    "summary": "逾期交货",
-                    "value": {
-                      "_links": {
-                        "next:conf-advance-payment": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-advance-payment/confirmation",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-advance-payment",
-                          "templated": true
-                        }
-                      },
-                      "advance_amount": {
-                        "currency": "CNY",
-                        "minorUnits": 30000000
-                      },
-                      "expired_at": "2026-01-07T18:00:00Z",
-                      "started_at": "2026-01-05T09:00:00Z"
-                    }
-                  },
-                  "route_request_req-advance-payment______3": {
-                    "summary": "质检争议",
+                  "route_request_req-advance-payment_happy-path_step-5_1": {
+                    "summary": "happy-path#step-5",
                     "value": {
                       "_links": {
                         "next:conf-advance-payment": {
@@ -5464,26 +4493,8 @@
           "content": {
             "application/json": {
               "examples": {
-                "route_confirm_conf-advance-payment______1": {
-                  "summary": "顺畅履约",
-                  "value": {
-                    "confirmed_amount": {
-                      "currency": "CNY",
-                      "minorUnits": 30000000
-                    }
-                  }
-                },
-                "route_confirm_conf-advance-payment______2": {
-                  "summary": "逾期交货",
-                  "value": {
-                    "confirmed_amount": {
-                      "currency": "CNY",
-                      "minorUnits": 30000000
-                    }
-                  }
-                },
-                "route_confirm_conf-advance-payment______3": {
-                  "summary": "质检争议",
+                "route_confirm_conf-advance-payment_happy-path_step-6_1": {
+                  "summary": "happy-path#step-6",
                   "value": {
                     "confirmed_amount": {
                       "currency": "CNY",
@@ -5528,60 +4539,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_confirm_conf-advance-payment______1": {
-                    "summary": "顺畅履约",
-                    "value": {
-                      "_links": {
-                        "next:req-equipment-delivery": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "request:req-advance-payment": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-advance-payment",
-                          "method": "GET",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/conf-advance-payments/{confAdvancePaymentId}",
-                          "templated": true
-                        }
-                      },
-                      "confirmed_amount": {
-                        "currency": "CNY",
-                        "minorUnits": 30000000
-                      },
-                      "confirmed_at": "2026-01-06T09:00:00Z"
-                    }
-                  },
-                  "route_confirm_conf-advance-payment______2": {
-                    "summary": "逾期交货",
-                    "value": {
-                      "_links": {
-                        "next:req-equipment-delivery": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "request:req-advance-payment": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-advance-payment",
-                          "method": "GET",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/conf-advance-payments/{confAdvancePaymentId}",
-                          "templated": true
-                        }
-                      },
-                      "confirmed_amount": {
-                        "currency": "CNY",
-                        "minorUnits": 30000000
-                      },
-                      "confirmed_at": "2026-01-06T09:00:00Z"
-                    }
-                  },
-                  "route_confirm_conf-advance-payment______3": {
-                    "summary": "质检争议",
+                  "route_confirm_conf-advance-payment_happy-path_step-6_1": {
+                    "summary": "happy-path#step-6",
                     "value": {
                       "_links": {
                         "next:req-equipment-delivery": {
@@ -5686,8 +4645,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_ledger_req-breach-penalty______1": {
-                    "summary": "逾期交货",
+                  "route_ledger_req-breach-penalty_late-delivery_step-9_1": {
+                    "summary": "late-delivery#step-9",
                     "value": {
                       "_embedded": {
                         "req-breach-penalties": [
@@ -5787,8 +4746,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_read_req-breach-penalty______1": {
-                    "summary": "逾期交货",
+                  "route_read_req-breach-penalty_late-delivery_step-9_1": {
+                    "summary": "late-delivery#step-9",
                     "value": {
                       "_links": {
                         "self": {
@@ -5867,72 +4826,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_ledger_req-equipment-delivery______1": {
-                    "summary": "顺畅履约",
-                    "value": {
-                      "_embedded": {
-                        "req-equipment-deliveries": [
-                          {
-                            "_links": {
-                              "self": {
-                                "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries/{deliveryId}",
-                                "templated": true
-                              }
-                            },
-                            "expired_at": "2026-02-10T09:00:00Z",
-                            "shipped_units_count": 2,
-                            "started_at": "2026-01-07T09:00:00Z"
-                          }
-                        ]
-                      },
-                      "_links": {
-                        "next:conf-equipment-delivery": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries/{deliveryId}/confirmation",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries",
-                          "templated": true
-                        }
-                      },
-                      "total": 1
-                    }
-                  },
-                  "route_ledger_req-equipment-delivery______2": {
-                    "summary": "逾期交货",
-                    "value": {
-                      "_embedded": {
-                        "req-equipment-deliveries": [
-                          {
-                            "_links": {
-                              "self": {
-                                "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries/{deliveryId}",
-                                "templated": true
-                              }
-                            },
-                            "expired_at": "2026-02-10T09:00:00Z",
-                            "shipped_units_count": 2,
-                            "started_at": "2026-01-07T09:00:00Z"
-                          }
-                        ]
-                      },
-                      "_links": {
-                        "next:conf-equipment-delivery": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries/{deliveryId}/confirmation",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries",
-                          "templated": true
-                        }
-                      },
-                      "total": 1
-                    }
-                  },
-                  "route_ledger_req-equipment-delivery______3": {
-                    "summary": "质检争议",
+                  "route_ledger_req-equipment-delivery_happy-path_step-7_1": {
+                    "summary": "happy-path#step-7",
                     "value": {
                       "_embedded": {
                         "req-equipment-deliveries": [
@@ -6022,20 +4917,8 @@
           "content": {
             "application/json": {
               "examples": {
-                "route_request_req-equipment-delivery______1": {
-                  "summary": "顺畅履约",
-                  "value": {
-                    "shipped_units_count": 2
-                  }
-                },
-                "route_request_req-equipment-delivery______2": {
-                  "summary": "逾期交货",
-                  "value": {
-                    "shipped_units_count": 2
-                  }
-                },
-                "route_request_req-equipment-delivery______3": {
-                  "summary": "质检争议",
+                "route_request_req-equipment-delivery_happy-path_step-7_1": {
+                  "summary": "happy-path#step-7",
                   "value": {
                     "shipped_units_count": 2
                   }
@@ -6074,46 +4957,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_request_req-equipment-delivery______1": {
-                    "summary": "顺畅履约",
-                    "value": {
-                      "_links": {
-                        "next:conf-equipment-delivery": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries/{deliveryId}/confirmation",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries/{deliveryId}",
-                          "templated": true
-                        }
-                      },
-                      "expired_at": "2026-02-10T09:00:00Z",
-                      "shipped_units_count": 2,
-                      "started_at": "2026-01-07T09:00:00Z"
-                    }
-                  },
-                  "route_request_req-equipment-delivery______2": {
-                    "summary": "逾期交货",
-                    "value": {
-                      "_links": {
-                        "next:conf-equipment-delivery": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries/{deliveryId}/confirmation",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries/{deliveryId}",
-                          "templated": true
-                        }
-                      },
-                      "expired_at": "2026-02-10T09:00:00Z",
-                      "shipped_units_count": 2,
-                      "started_at": "2026-01-07T09:00:00Z"
-                    }
-                  },
-                  "route_request_req-equipment-delivery______3": {
-                    "summary": "质检争议",
+                  "route_request_req-equipment-delivery_happy-path_step-7_1": {
+                    "summary": "happy-path#step-7",
                     "value": {
                       "_links": {
                         "next:conf-equipment-delivery": {
@@ -6214,46 +5059,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_read_req-equipment-delivery______1": {
-                    "summary": "顺畅履约",
-                    "value": {
-                      "_links": {
-                        "next:conf-equipment-delivery": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries/{deliveryId}/confirmation",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries/{deliveryId}",
-                          "templated": true
-                        }
-                      },
-                      "expired_at": "2026-02-10T09:00:00Z",
-                      "shipped_units_count": 2,
-                      "started_at": "2026-01-07T09:00:00Z"
-                    }
-                  },
-                  "route_read_req-equipment-delivery______2": {
-                    "summary": "逾期交货",
-                    "value": {
-                      "_links": {
-                        "next:conf-equipment-delivery": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries/{deliveryId}/confirmation",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries/{deliveryId}",
-                          "templated": true
-                        }
-                      },
-                      "expired_at": "2026-02-10T09:00:00Z",
-                      "shipped_units_count": 2,
-                      "started_at": "2026-01-07T09:00:00Z"
-                    }
-                  },
-                  "route_read_req-equipment-delivery______3": {
-                    "summary": "质检争议",
+                  "route_read_req-equipment-delivery_happy-path_step-7_1": {
+                    "summary": "happy-path#step-7",
                     "value": {
                       "_links": {
                         "next:conf-equipment-delivery": {
@@ -6350,8 +5157,8 @@
           "content": {
             "application/json": {
               "examples": {
-                "route_branch-rel-breach-claims-overdue_req-breach-penalty______1": {
-                  "summary": "逾期交货",
+                "route_branch-rel-breach-claims-overdue_req-breach-penalty_late-delivery_step-9_1": {
+                  "summary": "late-delivery#step-9",
                   "value": {
                     "overdue_days": 2
                   }
@@ -6390,8 +5197,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_branch-rel-breach-claims-overdue_req-breach-penalty______1": {
-                    "summary": "逾期交货",
+                  "route_branch-rel-breach-claims-overdue_req-breach-penalty_late-delivery_step-9_1": {
+                    "summary": "late-delivery#step-9",
                     "value": {
                       "_links": {
                         "self": {
@@ -6495,22 +5302,22 @@
           "content": {
             "application/json": {
               "examples": {
-                "route_confirm_conf-equipment-delivery______1": {
-                  "summary": "顺畅履约",
+                "route_confirm_conf-equipment-delivery_defect-escalation_step-8_1": {
+                  "summary": "defect-escalation#step-8",
+                  "value": {
+                    "port_arrival_status": "待技术核验"
+                  }
+                },
+                "route_confirm_conf-equipment-delivery_happy-path_step-8_2": {
+                  "summary": "happy-path#step-8",
                   "value": {
                     "port_arrival_status": "已到港"
                   }
                 },
-                "route_confirm_conf-equipment-delivery______2": {
-                  "summary": "逾期交货",
+                "route_confirm_conf-equipment-delivery_late-delivery_step-8_3": {
+                  "summary": "late-delivery#step-8",
                   "value": {
                     "port_arrival_status": "逾期到港"
-                  }
-                },
-                "route_confirm_conf-equipment-delivery______3": {
-                  "summary": "质检争议",
-                  "value": {
-                    "port_arrival_status": "待技术核验"
                   }
                 }
               },
@@ -6537,8 +5344,26 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_confirm_conf-equipment-delivery______1": {
-                    "summary": "顺畅履约",
+                  "route_confirm_conf-equipment-delivery_defect-escalation_step-8_1": {
+                    "summary": "defect-escalation#step-8",
+                    "value": {
+                      "_links": {
+                        "request:req-equipment-delivery": {
+                          "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries/{deliveryId}",
+                          "method": "GET",
+                          "templated": true
+                        },
+                        "self": {
+                          "href": "/conf-equipment-deliveries/{confEquipmentDeliveryId}",
+                          "templated": true
+                        }
+                      },
+                      "confirmed_at": "2026-02-09T09:00:00Z",
+                      "port_arrival_status": "待技术核验"
+                    }
+                  },
+                  "route_confirm_conf-equipment-delivery_happy-path_step-8_2": {
+                    "summary": "happy-path#step-8",
                     "value": {
                       "_links": {
                         "request:req-equipment-delivery": {
@@ -6555,8 +5380,8 @@
                       "port_arrival_status": "已到港"
                     }
                   },
-                  "route_confirm_conf-equipment-delivery______2": {
-                    "summary": "逾期交货",
+                  "route_confirm_conf-equipment-delivery_late-delivery_step-8_3": {
+                    "summary": "late-delivery#step-8",
                     "value": {
                       "_links": {
                         "request:req-equipment-delivery": {
@@ -6571,24 +5396,6 @@
                       },
                       "confirmed_at": "2026-02-12T09:00:00Z",
                       "port_arrival_status": "逾期到港"
-                    }
-                  },
-                  "route_confirm_conf-equipment-delivery______3": {
-                    "summary": "质检争议",
-                    "value": {
-                      "_links": {
-                        "request:req-equipment-delivery": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries/{deliveryId}",
-                          "method": "GET",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/conf-equipment-deliveries/{confEquipmentDeliveryId}",
-                          "templated": true
-                        }
-                      },
-                      "confirmed_at": "2026-02-09T09:00:00Z",
-                      "port_arrival_status": "待技术核验"
                     }
                   }
                 },
@@ -6657,78 +5464,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_list_doc-sourcing-rfp______1": {
-                    "summary": "顺畅履约",
-                    "value": {
-                      "_embedded": {
-                        "doc-sourcing-rfps": [
-                          {
-                            "_links": {
-                              "self": {
-                                "href": "/doc-sourcing-rfps/{rfpId}",
-                                "templated": true
-                              }
-                            },
-                            "expired_at": "2026-01-02T18:00:00Z",
-                            "rfp_budget_ceiling": {
-                              "currency": "CNY",
-                              "minorUnits": 120000000
-                            },
-                            "started_at": "2026-01-01T09:00:00Z"
-                          }
-                        ]
-                      },
-                      "_links": {
-                        "next:doc-supplier-proposal": {
-                          "href": "/doc-sourcing-rfps/{rfpId}/doc-supplier-proposal",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/doc-sourcing-rfps",
-                          "templated": false
-                        }
-                      },
-                      "total": 1
-                    }
-                  },
-                  "route_list_doc-sourcing-rfp______2": {
-                    "summary": "逾期交货",
-                    "value": {
-                      "_embedded": {
-                        "doc-sourcing-rfps": [
-                          {
-                            "_links": {
-                              "self": {
-                                "href": "/doc-sourcing-rfps/{rfpId}",
-                                "templated": true
-                              }
-                            },
-                            "expired_at": "2026-01-02T18:00:00Z",
-                            "rfp_budget_ceiling": {
-                              "currency": "CNY",
-                              "minorUnits": 120000000
-                            },
-                            "started_at": "2026-01-01T09:00:00Z"
-                          }
-                        ]
-                      },
-                      "_links": {
-                        "next:doc-supplier-proposal": {
-                          "href": "/doc-sourcing-rfps/{rfpId}/doc-supplier-proposal",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/doc-sourcing-rfps",
-                          "templated": false
-                        }
-                      },
-                      "total": 1
-                    }
-                  },
-                  "route_list_doc-sourcing-rfp______3": {
-                    "summary": "质检争议",
+                  "route_list_doc-sourcing-rfp_happy-path_step-1_1": {
+                    "summary": "happy-path#step-1",
                     "value": {
                       "_embedded": {
                         "doc-sourcing-rfps": [
@@ -6810,26 +5547,8 @@
           "content": {
             "application/json": {
               "examples": {
-                "route_open_doc-sourcing-rfp______1": {
-                  "summary": "顺畅履约",
-                  "value": {
-                    "rfp_budget_ceiling": {
-                      "currency": "CNY",
-                      "minorUnits": 120000000
-                    }
-                  }
-                },
-                "route_open_doc-sourcing-rfp______2": {
-                  "summary": "逾期交货",
-                  "value": {
-                    "rfp_budget_ceiling": {
-                      "currency": "CNY",
-                      "minorUnits": 120000000
-                    }
-                  }
-                },
-                "route_open_doc-sourcing-rfp______3": {
-                  "summary": "质检争议",
+                "route_open_doc-sourcing-rfp_happy-path_step-1_1": {
+                  "summary": "happy-path#step-1",
                   "value": {
                     "rfp_budget_ceiling": {
                       "currency": "CNY",
@@ -6874,52 +5593,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_open_doc-sourcing-rfp______1": {
-                    "summary": "顺畅履约",
-                    "value": {
-                      "_links": {
-                        "next:doc-supplier-proposal": {
-                          "href": "/doc-sourcing-rfps/{rfpId}/doc-supplier-proposal",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/doc-sourcing-rfps/{rfpId}",
-                          "templated": true
-                        }
-                      },
-                      "expired_at": "2026-01-02T18:00:00Z",
-                      "rfp_budget_ceiling": {
-                        "currency": "CNY",
-                        "minorUnits": 120000000
-                      },
-                      "started_at": "2026-01-01T09:00:00Z"
-                    }
-                  },
-                  "route_open_doc-sourcing-rfp______2": {
-                    "summary": "逾期交货",
-                    "value": {
-                      "_links": {
-                        "next:doc-supplier-proposal": {
-                          "href": "/doc-sourcing-rfps/{rfpId}/doc-supplier-proposal",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/doc-sourcing-rfps/{rfpId}",
-                          "templated": true
-                        }
-                      },
-                      "expired_at": "2026-01-02T18:00:00Z",
-                      "rfp_budget_ceiling": {
-                        "currency": "CNY",
-                        "minorUnits": 120000000
-                      },
-                      "started_at": "2026-01-01T09:00:00Z"
-                    }
-                  },
-                  "route_open_doc-sourcing-rfp______3": {
-                    "summary": "质检争议",
+                  "route_open_doc-sourcing-rfp_happy-path_step-1_1": {
+                    "summary": "happy-path#step-1",
                     "value": {
                       "_links": {
                         "next:doc-supplier-proposal": {
@@ -7007,52 +5682,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_read_doc-sourcing-rfp______1": {
-                    "summary": "顺畅履约",
-                    "value": {
-                      "_links": {
-                        "next:doc-supplier-proposal": {
-                          "href": "/doc-sourcing-rfps/{rfpId}/doc-supplier-proposal",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/doc-sourcing-rfps/{rfpId}",
-                          "templated": true
-                        }
-                      },
-                      "expired_at": "2026-01-02T18:00:00Z",
-                      "rfp_budget_ceiling": {
-                        "currency": "CNY",
-                        "minorUnits": 120000000
-                      },
-                      "started_at": "2026-01-01T09:00:00Z"
-                    }
-                  },
-                  "route_read_doc-sourcing-rfp______2": {
-                    "summary": "逾期交货",
-                    "value": {
-                      "_links": {
-                        "next:doc-supplier-proposal": {
-                          "href": "/doc-sourcing-rfps/{rfpId}/doc-supplier-proposal",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/doc-sourcing-rfps/{rfpId}",
-                          "templated": true
-                        }
-                      },
-                      "expired_at": "2026-01-02T18:00:00Z",
-                      "rfp_budget_ceiling": {
-                        "currency": "CNY",
-                        "minorUnits": 120000000
-                      },
-                      "started_at": "2026-01-01T09:00:00Z"
-                    }
-                  },
-                  "route_read_doc-sourcing-rfp______3": {
-                    "summary": "质检争议",
+                  "route_read_doc-sourcing-rfp_happy-path_step-1_1": {
+                    "summary": "happy-path#step-1",
                     "value": {
                       "_links": {
                         "next:doc-supplier-proposal": {
@@ -7133,52 +5764,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_read_doc-supplier-proposal______1": {
-                    "summary": "顺畅履约",
-                    "value": {
-                      "_links": {
-                        "next:doc-procurement-contract": {
-                          "href": "/doc-sourcing-rfps/{rfpId}/doc-supplier-proposal/doc-procurement-contracts",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/doc-sourcing-rfps/{rfpId}/doc-supplier-proposal",
-                          "templated": true
-                        }
-                      },
-                      "expired_at": "2026-01-04T18:00:00Z",
-                      "quoted_total_price": {
-                        "currency": "CNY",
-                        "minorUnits": 100000000
-                      },
-                      "started_at": "2026-01-02T09:00:00Z"
-                    }
-                  },
-                  "route_read_doc-supplier-proposal______2": {
-                    "summary": "逾期交货",
-                    "value": {
-                      "_links": {
-                        "next:doc-procurement-contract": {
-                          "href": "/doc-sourcing-rfps/{rfpId}/doc-supplier-proposal/doc-procurement-contracts",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/doc-sourcing-rfps/{rfpId}/doc-supplier-proposal",
-                          "templated": true
-                        }
-                      },
-                      "expired_at": "2026-01-04T18:00:00Z",
-                      "quoted_total_price": {
-                        "currency": "CNY",
-                        "minorUnits": 100000000
-                      },
-                      "started_at": "2026-01-02T09:00:00Z"
-                    }
-                  },
-                  "route_read_doc-supplier-proposal______3": {
-                    "summary": "质检争议",
+                  "route_read_doc-supplier-proposal_happy-path_step-2_1": {
+                    "summary": "happy-path#step-2",
                     "value": {
                       "_links": {
                         "next:doc-procurement-contract": {
@@ -7256,26 +5843,8 @@
           "content": {
             "application/json": {
               "examples": {
-                "route_propose_doc-supplier-proposal______1": {
-                  "summary": "顺畅履约",
-                  "value": {
-                    "quoted_total_price": {
-                      "currency": "CNY",
-                      "minorUnits": 100000000
-                    }
-                  }
-                },
-                "route_propose_doc-supplier-proposal______2": {
-                  "summary": "逾期交货",
-                  "value": {
-                    "quoted_total_price": {
-                      "currency": "CNY",
-                      "minorUnits": 100000000
-                    }
-                  }
-                },
-                "route_propose_doc-supplier-proposal______3": {
-                  "summary": "质检争议",
+                "route_propose_doc-supplier-proposal_happy-path_step-2_1": {
+                  "summary": "happy-path#step-2",
                   "value": {
                     "quoted_total_price": {
                       "currency": "CNY",
@@ -7320,52 +5889,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_propose_doc-supplier-proposal______1": {
-                    "summary": "顺畅履约",
-                    "value": {
-                      "_links": {
-                        "next:doc-procurement-contract": {
-                          "href": "/doc-sourcing-rfps/{rfpId}/doc-supplier-proposal/doc-procurement-contracts",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/doc-sourcing-rfps/{rfpId}/doc-supplier-proposal",
-                          "templated": true
-                        }
-                      },
-                      "expired_at": "2026-01-04T18:00:00Z",
-                      "quoted_total_price": {
-                        "currency": "CNY",
-                        "minorUnits": 100000000
-                      },
-                      "started_at": "2026-01-02T09:00:00Z"
-                    }
-                  },
-                  "route_propose_doc-supplier-proposal______2": {
-                    "summary": "逾期交货",
-                    "value": {
-                      "_links": {
-                        "next:doc-procurement-contract": {
-                          "href": "/doc-sourcing-rfps/{rfpId}/doc-supplier-proposal/doc-procurement-contracts",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/doc-sourcing-rfps/{rfpId}/doc-supplier-proposal",
-                          "templated": true
-                        }
-                      },
-                      "expired_at": "2026-01-04T18:00:00Z",
-                      "quoted_total_price": {
-                        "currency": "CNY",
-                        "minorUnits": 100000000
-                      },
-                      "started_at": "2026-01-02T09:00:00Z"
-                    }
-                  },
-                  "route_propose_doc-supplier-proposal______3": {
-                    "summary": "质检争议",
+                  "route_propose_doc-supplier-proposal_happy-path_step-2_1": {
+                    "summary": "happy-path#step-2",
                     "value": {
                       "_links": {
                         "next:doc-procurement-contract": {
@@ -7458,37 +5983,16 @@
           "content": {
             "application/json": {
               "examples": {
-                "route_sign-from-doc-supplier-proposal_doc-procurement-contract______1": {
-                  "summary": "顺畅履约",
+                "route_sign-from-doc-supplier-proposal_doc-procurement-contract_happy-path_step-3_1": {
+                  "summary": "happy-path#step-3",
                   "value": {
                     "contract_total_amount": {
                       "currency": "CNY",
                       "minorUnits": 100000000
                     },
                     "delivery_deadline_days": 35,
-                    "down_payment_rate": 0.3
-                  }
-                },
-                "route_sign-from-doc-supplier-proposal_doc-procurement-contract______2": {
-                  "summary": "逾期交货",
-                  "value": {
-                    "contract_total_amount": {
-                      "currency": "CNY",
-                      "minorUnits": 100000000
-                    },
-                    "delivery_deadline_days": 35,
-                    "down_payment_rate": 0.3
-                  }
-                },
-                "route_sign-from-doc-supplier-proposal_doc-procurement-contract______3": {
-                  "summary": "质检争议",
-                  "value": {
-                    "contract_total_amount": {
-                      "currency": "CNY",
-                      "minorUnits": 100000000
-                    },
-                    "delivery_deadline_days": 35,
-                    "down_payment_rate": 0.3
+                    "down_payment_rate": 0.3,
+                    "penalty_daily_rate": 0.0005
                   }
                 }
               },
@@ -7532,12 +6036,18 @@
                     "description": "签约后卖方排产前须支付的预付款百分比",
                     "type": "number",
                     "x-evidence-caller-input": true
+                  },
+                  "penalty_daily_rate": {
+                    "description": "主合同约定的每日万分之五基准违约金费率",
+                    "type": "number",
+                    "x-evidence-caller-input": true
                   }
                 },
                 "required": [
                   "contract_total_amount",
                   "down_payment_rate",
-                  "delivery_deadline_days"
+                  "delivery_deadline_days",
+                  "penalty_daily_rate"
                 ],
                 "type": "object"
               }
@@ -7550,8 +6060,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_sign-from-doc-supplier-proposal_doc-procurement-contract______1": {
-                    "summary": "顺畅履约",
+                  "route_sign-from-doc-supplier-proposal_doc-procurement-contract_happy-path_step-3_1": {
+                    "summary": "happy-path#step-3",
                     "value": {
                       "_links": {
                         "next:req-advance-payment": {
@@ -7580,72 +6090,7 @@
                       },
                       "delivery_deadline_days": 35,
                       "down_payment_rate": 0.3,
-                      "signed_at": "2026-01-03T09:00:00Z"
-                    }
-                  },
-                  "route_sign-from-doc-supplier-proposal_doc-procurement-contract______2": {
-                    "summary": "逾期交货",
-                    "value": {
-                      "_links": {
-                        "next:req-advance-payment": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-advance-payment",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "next:req-equipment-delivery": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/doc-procurement-contracts/{contractId}",
-                          "templated": true
-                        },
-                        "subject:thing-robot-workstation": {
-                          "href": "/thing-robot-workstations/{workstationId}",
-                          "method": "GET",
-                          "templated": true
-                        }
-                      },
-                      "contract_total_amount": {
-                        "currency": "CNY",
-                        "minorUnits": 100000000
-                      },
-                      "delivery_deadline_days": 35,
-                      "down_payment_rate": 0.3,
-                      "signed_at": "2026-01-03T09:00:00Z"
-                    }
-                  },
-                  "route_sign-from-doc-supplier-proposal_doc-procurement-contract______3": {
-                    "summary": "质检争议",
-                    "value": {
-                      "_links": {
-                        "next:req-advance-payment": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-advance-payment",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "next:req-equipment-delivery": {
-                          "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries",
-                          "method": "POST",
-                          "templated": true
-                        },
-                        "self": {
-                          "href": "/doc-procurement-contracts/{contractId}",
-                          "templated": true
-                        },
-                        "subject:thing-robot-workstation": {
-                          "href": "/thing-robot-workstations/{workstationId}",
-                          "method": "GET",
-                          "templated": true
-                        }
-                      },
-                      "contract_total_amount": {
-                        "currency": "CNY",
-                        "minorUnits": 100000000
-                      },
-                      "delivery_deadline_days": 35,
-                      "down_payment_rate": 0.3,
+                      "penalty_daily_rate": 0.0005,
                       "signed_at": "2026-01-03T09:00:00Z"
                     }
                   }
@@ -7723,33 +6168,6 @@
           "200": {
             "content": {
               "application/hal+json": {
-                "examples": {
-                  "route_list_thing-compliance-checker______1": {
-                    "summary": "执行标准",
-                    "value": {
-                      "_embedded": {
-                        "thing-compliance-checkers": [
-                          {
-                            "_links": {
-                              "self": {
-                                "href": "/thing-compliance-checkers/{checkerId}",
-                                "templated": true
-                              }
-                            },
-                            "iso_standard_code": "ISO-10218"
-                          }
-                        ]
-                      },
-                      "_links": {
-                        "self": {
-                          "href": "/thing-compliance-checkers",
-                          "templated": false
-                        }
-                      },
-                      "total": 1
-                    }
-                  }
-                },
                 "schema": {
                   "$ref": "#/components/schemas/thing-compliance-checkerCollection"
                 },
@@ -7798,20 +6216,6 @@
           "200": {
             "content": {
               "application/hal+json": {
-                "examples": {
-                  "route_read_thing-compliance-checker______1": {
-                    "summary": "执行标准",
-                    "value": {
-                      "_links": {
-                        "self": {
-                          "href": "/thing-compliance-checkers/{checkerId}",
-                          "templated": true
-                        }
-                      },
-                      "iso_standard_code": "ISO-10218"
-                    }
-                  }
-                },
                 "schema": {
                   "$ref": "#/components/schemas/thing-compliance-checker"
                 },
@@ -7938,33 +6342,6 @@
           "200": {
             "content": {
               "application/hal+json": {
-                "examples": {
-                  "route_list_thing-tariff-calculator_______1": {
-                    "summary": "合同日费率",
-                    "value": {
-                      "_embedded": {
-                        "thing-tariff-calculators": [
-                          {
-                            "_links": {
-                              "self": {
-                                "href": "/thing-tariff-calculators/{calculatorId}",
-                                "templated": true
-                              }
-                            },
-                            "penalty_daily_rate": 0.0005
-                          }
-                        ]
-                      },
-                      "_links": {
-                        "self": {
-                          "href": "/thing-tariff-calculators",
-                          "templated": false
-                        }
-                      },
-                      "total": 1
-                    }
-                  }
-                },
                 "schema": {
                   "$ref": "#/components/schemas/thing-tariff-calculatorCollection"
                 },
@@ -8013,20 +6390,6 @@
           "200": {
             "content": {
               "application/hal+json": {
-                "examples": {
-                  "route_read_thing-tariff-calculator_______1": {
-                    "summary": "合同日费率",
-                    "value": {
-                      "_links": {
-                        "self": {
-                          "href": "/thing-tariff-calculators/{calculatorId}",
-                          "templated": true
-                        }
-                      },
-                      "penalty_daily_rate": 0.0005
-                    }
-                  }
-                },
                 "schema": {
                   "$ref": "#/components/schemas/thing-tariff-calculator"
                 },

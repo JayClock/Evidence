@@ -41,41 +41,5 @@
   ],
   "callbackRoleRefs": [
     "role.payment-gateway"
-  ],
-  "examples": [
-    {
-      "label": "gateway-paid",
-      "value": {
-        "id": "payment-proof-one",
-        "paid_amount_minor": 250000,
-        "gateway_reference": "gateway-txn-01",
-        "confirmed_at": "2026-06-01T10:00:00Z"
-      },
-      "test": {
-        "flow": "prepayment-only",
-        "actingRoleRef": "role.payment-gateway",
-        "asOf": "2026-06-01T10:00:00Z",
-        "basedOn": [
-          "request.payment#payment-window"
-        ]
-      }
-    },
-    {
-      "label": "summer-payment-proof",
-      "value": {
-        "id": "payment-proof-summer",
-        "paid_amount_minor": 720000,
-        "gateway_reference": "gateway-txn-02",
-        "confirmed_at": "2026-07-01T12:00:00Z"
-      },
-      "test": {
-        "flow": "negotiation-to-daily-report",
-        "actingRoleRef": "role.payment-gateway",
-        "asOf": "2026-07-01T12:00:00Z",
-        "basedOn": [
-          "request.payment#summer-payment-window"
-        ]
-      }
-    }
   ]
 }

@@ -1,0 +1,59 @@
+{
+  "type": "story",
+  "id": "prepayment-only",
+  "kind": "primary",
+  "title": "广告预付款",
+  "steps": [
+    {
+      "id": "step-1",
+      "sequence": 1,
+      "actorRef": "role.advertiser",
+      "activity": "签署",
+      "workObjectRef": "contract.ads-promotion-order",
+      "targetActorRef": "role.agency",
+      "asOf": "2026-06-01T09:00:00Z",
+      "basedOn": [],
+      "values": {
+        "id": "ads-order-pay",
+        "campaign_id": "campaign-pay",
+        "agreed_amount_minor": 250000,
+        "signed_at": "2026-06-01T09:00:00Z"
+      }
+    },
+    {
+      "id": "step-2",
+      "sequence": 2,
+      "actorRef": "role.agency",
+      "activity": "就「支付广告投放预付款」发起",
+      "workObjectRef": "request.payment",
+      "targetActorRef": "role.advertiser",
+      "asOf": "2026-06-01T09:15:00Z",
+      "basedOn": [
+        "step-1"
+      ],
+      "values": {
+        "id": "pay-request-one",
+        "started_at": "2026-06-01T09:15:00Z",
+        "expired_at": "2026-06-02T09:15:00Z"
+      }
+    },
+    {
+      "id": "step-3",
+      "sequence": 3,
+      "actorRef": "role.payment-gateway",
+      "activity": "就「支付广告投放预付款」出具",
+      "workObjectRef": "confirmation.payment",
+      "targetActorRef": "role.agency",
+      "asOf": "2026-06-01T10:00:00Z",
+      "basedOn": [
+        "step-2"
+      ],
+      "values": {
+        "id": "payment-proof-one",
+        "paid_amount_minor": 250000,
+        "gateway_reference": "gateway-txn-01",
+        "confirmed_at": "2026-06-01T10:00:00Z"
+      }
+    }
+  ]
+}

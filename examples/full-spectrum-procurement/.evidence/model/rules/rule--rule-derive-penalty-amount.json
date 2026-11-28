@@ -10,16 +10,12 @@
       "ref": "req-breach-penalty",
       "cardinality": "one"
     },
-    "calculator": {
-      "ref": "thing-tariff-calculator",
-      "cardinality": "one"
-    },
     "contract": {
       "ref": "doc-procurement-contract",
       "cardinality": "one"
     }
   },
-  "expression": "{\"minorUnits\": dyn(int(double(contract.contract_total_amount.minorUnits) * calculator.penalty_daily_rate * double(req.overdue_days))), \"currency\": contract.contract_total_amount.currency}",
+  "expression": "{\"minorUnits\": dyn(int(double(contract.contract_total_amount.minorUnits) * contract.penalty_daily_rate * double(req.overdue_days))), \"currency\": contract.contract_total_amount.currency}",
   "resultType": "money",
   "target": {
     "entityRef": "req-breach-penalty",

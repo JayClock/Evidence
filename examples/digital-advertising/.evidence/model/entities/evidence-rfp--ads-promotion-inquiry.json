@@ -47,22 +47,5 @@
       "required": true,
       "meaning": "预算上限，单位为 CNY 分"
     }
-  ],
-  "examples": [
-    {
-      "label": "request-campaign-plan",
-      "value": {
-        "id": "inquiry-summer",
-        "objective": "推广夏季新品",
-        "budget_minor": 800000,
-        "started_at": "2026-07-01T09:00:00Z",
-        "expired_at": "2026-07-04T09:00:00Z"
-      },
-      "test": {
-        "flow": "negotiation-to-daily-report",
-        "actingRoleRef": "role.advertiser",
-        "asOf": "2026-07-01T09:00:00Z"
-      }
-    }
   ]
 }

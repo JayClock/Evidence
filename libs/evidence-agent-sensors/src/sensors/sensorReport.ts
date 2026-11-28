@@ -160,7 +160,7 @@ export const fmCheckIssues = (report: FmCheckReport): SensorIssue[] => {
     issues.push(
       issue('check_fm', 'warn', 'FM_SCOPE_GAP', message, {
         suggestion:
-          '补齐责任闭环后再交给下游；HTTP 验收使用内联样例导出的标准脚本。',
+          '补齐责任闭环后再交给下游。HTTP 验收使用领域故事导出的 Bruno 集合。',
       }),
     );
   }

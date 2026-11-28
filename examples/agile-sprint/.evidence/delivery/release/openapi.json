@@ -1,8 +1,8 @@
 {
   "components": {
     "examples": {
-      "route_read_confirmation_backlog_freeze-scope_1": {
-        "summary": "freeze-scope",
+      "route_read_confirmation_backlog_two-stories-one-sprint_step-3_1": {
+        "summary": "two-stories-one-sprint#step-3",
         "value": {
           "_links": {
             "self": {
@@ -14,8 +14,8 @@
           "id": "locked-42"
         }
       },
-      "route_read_confirmation_review_complete-review_1": {
-        "summary": "complete-review",
+      "route_read_confirmation_review_two-stories-one-sprint_step-7_1": {
+        "summary": "two-stories-one-sprint#step-7",
         "value": {
           "_links": {
             "self": {
@@ -27,8 +27,8 @@
           "outcome": "同意验收结果并归档"
         }
       },
-      "route_read_confirmation_story_accept-01-history_1": {
-        "summary": "accept-01-history",
+      "route_read_confirmation_story_two-stories-one-sprint_step-4_1": {
+        "summary": "two-stories-one-sprint#step-4",
         "value": {
           "_links": {
             "self": {
@@ -41,8 +41,8 @@
           "story_id": "story-52"
         }
       },
-      "route_read_confirmation_story_accept-02-export_2": {
-        "summary": "accept-02-export",
+      "route_read_confirmation_story_two-stories-one-sprint_step-5_2": {
+        "summary": "two-stories-one-sprint#step-5",
         "value": {
           "_links": {
             "self": {
@@ -55,8 +55,8 @@
           "story_id": "story-53"
         }
       },
-      "route_read_contract_iteration-plan_sprint-42_1": {
-        "summary": "sprint-42",
+      "route_read_contract_iteration-plan_two-stories-one-sprint_step-1_1": {
+        "summary": "two-stories-one-sprint#step-1",
         "value": {
           "_links": {
             "self": {
@@ -68,8 +68,8 @@
           "sprint_goal": "买家可查看订单并导出历史记录"
         }
       },
-      "route_read_request_backlog_propose-scope_1": {
-        "summary": "propose-scope",
+      "route_read_request_backlog_two-stories-one-sprint_step-2_1": {
+        "summary": "two-stories-one-sprint#step-2",
         "value": {
           "_links": {
             "self": {
@@ -83,8 +83,8 @@
           "story_count": 2
         }
       },
-      "route_read_request_review_review-iteration_1": {
-        "summary": "review-iteration",
+      "route_read_request_review_two-stories-one-sprint_step-6_1": {
+        "summary": "two-stories-one-sprint#step-6",
         "value": {
           "_links": {
             "self": {
@@ -817,8 +817,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_read_confirmation_backlog_freeze-scope_1": {
-                    "summary": "freeze-scope",
+                  "route_read_confirmation_backlog_two-stories-one-sprint_step-3_1": {
+                    "summary": "two-stories-one-sprint#step-3",
                     "value": {
                       "_links": {
                         "next:confirmation.story": {
@@ -904,8 +904,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_list_contract_iteration-plan_sprint-42_1": {
-                    "summary": "sprint-42",
+                  "route_list_contract_iteration-plan_two-stories-one-sprint_step-1_1": {
+                    "summary": "two-stories-one-sprint#step-1",
                     "value": {
                       "_embedded": {
                         "iteration-plans": [
@@ -995,8 +995,8 @@
           "content": {
             "application/json": {
               "examples": {
-                "route_sign_contract_iteration-plan_sprint-42_1": {
-                  "summary": "sprint-42",
+                "route_sign_contract_iteration-plan_two-stories-one-sprint_step-1_1": {
+                  "summary": "two-stories-one-sprint#step-1",
                   "value": {
                     "id": "iteration-42",
                     "sprint_goal": "买家可查看订单并导出历史记录"
@@ -1032,8 +1032,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_sign_contract_iteration-plan_sprint-42_1": {
-                    "summary": "sprint-42",
+                  "route_sign_contract_iteration-plan_two-stories-one-sprint_step-1_1": {
+                    "summary": "two-stories-one-sprint#step-1",
                     "value": {
                       "_links": {
                         "next:request.backlog": {
@@ -1135,8 +1135,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_read_contract_iteration-plan_sprint-42_1": {
-                    "summary": "sprint-42",
+                  "route_read_contract_iteration-plan_two-stories-one-sprint_step-1_1": {
+                    "summary": "two-stories-one-sprint#step-1",
                     "value": {
                       "_links": {
                         "next:request.backlog": {
@@ -1225,8 +1225,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_read_request_backlog_propose-scope_1": {
-                    "summary": "propose-scope",
+                  "route_read_request_backlog_two-stories-one-sprint_step-2_1": {
+                    "summary": "two-stories-one-sprint#step-2",
                     "value": {
                       "_links": {
                         "confirmations:confirmation.story": {
@@ -1329,8 +1329,8 @@
           "content": {
             "application/json": {
               "examples": {
-                "route_request_request_backlog_propose-scope_1": {
-                  "summary": "propose-scope",
+                "route_request_request_backlog_two-stories-one-sprint_step-2_1": {
+                  "summary": "two-stories-one-sprint#step-2",
                   "value": {
                     "backlog_revision": "sprint-42-r1",
                     "id": "backlog-42",
@@ -1383,8 +1383,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_request_request_backlog_propose-scope_1": {
-                    "summary": "propose-scope",
+                  "route_request_request_backlog_two-stories-one-sprint_step-2_1": {
+                    "summary": "two-stories-one-sprint#step-2",
                     "value": {
                       "_links": {
                         "confirmations:confirmation.story": {
@@ -1502,8 +1502,8 @@
           "content": {
             "application/json": {
               "examples": {
-                "route_confirm_confirmation_backlog_freeze-scope_1": {
-                  "summary": "freeze-scope",
+                "route_confirm_confirmation_backlog_two-stories-one-sprint_step-3_1": {
+                  "summary": "two-stories-one-sprint#step-3",
                   "value": {
                     "id": "locked-42"
                   }
@@ -1532,8 +1532,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_confirm_confirmation_backlog_freeze-scope_1": {
-                    "summary": "freeze-scope",
+                  "route_confirm_confirmation_backlog_two-stories-one-sprint_step-3_1": {
+                    "summary": "two-stories-one-sprint#step-3",
                     "value": {
                       "_links": {
                         "next:confirmation.story": {
@@ -1641,8 +1641,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_read_request_review_review-iteration_1": {
-                    "summary": "review-iteration",
+                  "route_read_request_review_two-stories-one-sprint_step-6_1": {
+                    "summary": "two-stories-one-sprint#step-6",
                     "value": {
                       "_links": {
                         "next:confirmation.review": {
@@ -1724,8 +1724,8 @@
           "content": {
             "application/json": {
               "examples": {
-                "route_request_request_review_review-iteration_1": {
-                  "summary": "review-iteration",
+                "route_request_request_review_two-stories-one-sprint_step-6_1": {
+                  "summary": "two-stories-one-sprint#step-6",
                   "value": {
                     "demo_ref": "demo-sprint-42",
                     "id": "review-request-42"
@@ -1761,8 +1761,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_request_request_review_review-iteration_1": {
-                    "summary": "review-iteration",
+                  "route_request_request_review_two-stories-one-sprint_step-6_1": {
+                    "summary": "two-stories-one-sprint#step-6",
                     "value": {
                       "_links": {
                         "next:confirmation.review": {
@@ -1859,8 +1859,8 @@
           "content": {
             "application/json": {
               "examples": {
-                "route_confirm_confirmation_review_complete-review_1": {
-                  "summary": "complete-review",
+                "route_confirm_confirmation_review_two-stories-one-sprint_step-7_1": {
+                  "summary": "two-stories-one-sprint#step-7",
                   "value": {
                     "id": "review-minutes-42",
                     "outcome": "同意验收结果并归档"
@@ -1896,8 +1896,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_confirm_confirmation_review_complete-review_1": {
-                    "summary": "complete-review",
+                  "route_confirm_confirmation_review_two-stories-one-sprint_step-7_1": {
+                    "summary": "two-stories-one-sprint#step-7",
                     "value": {
                       "_links": {
                         "request:request.review": {
@@ -1990,8 +1990,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_list_confirmation_story_accept-01-history_1": {
-                    "summary": "accept-01-history",
+                  "route_list_confirmation_story_two-stories-one-sprint_step-4_1": {
+                    "summary": "two-stories-one-sprint#step-4",
                     "value": {
                       "_embedded": {
                         "stories": [
@@ -2018,8 +2018,8 @@
                       "total": 1
                     }
                   },
-                  "route_list_confirmation_story_accept-02-export_2": {
-                    "summary": "accept-02-export",
+                  "route_list_confirmation_story_two-stories-one-sprint_step-5_2": {
+                    "summary": "two-stories-one-sprint#step-5",
                     "value": {
                       "_embedded": {
                         "stories": [
@@ -2100,16 +2100,16 @@
           "content": {
             "application/json": {
               "examples": {
-                "route_confirm_confirmation_story_accept-01-history_1": {
-                  "summary": "accept-01-history",
+                "route_confirm_confirmation_story_two-stories-one-sprint_step-4_1": {
+                  "summary": "two-stories-one-sprint#step-4",
                   "value": {
                     "acceptance_note": "买家只看到自己的已签订单",
                     "id": "story-proof-52",
                     "story_id": "story-52"
                   }
                 },
-                "route_confirm_confirmation_story_accept-02-export_2": {
-                  "summary": "accept-02-export",
+                "route_confirm_confirmation_story_two-stories-one-sprint_step-5_2": {
+                  "summary": "two-stories-one-sprint#step-5",
                   "value": {
                     "acceptance_note": "导出文件与页面筛选一致",
                     "id": "story-proof-53",
@@ -2152,8 +2152,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_confirm_confirmation_story_accept-01-history_1": {
-                    "summary": "accept-01-history",
+                  "route_confirm_confirmation_story_two-stories-one-sprint_step-4_1": {
+                    "summary": "two-stories-one-sprint#step-4",
                     "value": {
                       "_links": {
                         "request:request.backlog": {
@@ -2172,8 +2172,8 @@
                       "story_id": "story-52"
                     }
                   },
-                  "route_confirm_confirmation_story_accept-02-export_2": {
-                    "summary": "accept-02-export",
+                  "route_confirm_confirmation_story_two-stories-one-sprint_step-5_2": {
+                    "summary": "two-stories-one-sprint#step-5",
                     "value": {
                       "_links": {
                         "request:request.backlog": {
@@ -2267,8 +2267,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_read_confirmation_review_complete-review_1": {
-                    "summary": "complete-review",
+                  "route_read_confirmation_review_two-stories-one-sprint_step-7_1": {
+                    "summary": "two-stories-one-sprint#step-7",
                     "value": {
                       "_links": {
                         "request:request.review": {
@@ -2348,8 +2348,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_read_confirmation_story_accept-01-history_1": {
-                    "summary": "accept-01-history",
+                  "route_read_confirmation_story_two-stories-one-sprint_step-4_1": {
+                    "summary": "two-stories-one-sprint#step-4",
                     "value": {
                       "_links": {
                         "request:request.backlog": {
@@ -2368,8 +2368,8 @@
                       "story_id": "story-52"
                     }
                   },
-                  "route_read_confirmation_story_accept-02-export_2": {
-                    "summary": "accept-02-export",
+                  "route_read_confirmation_story_two-stories-one-sprint_step-5_2": {
+                    "summary": "two-stories-one-sprint#step-5",
                     "value": {
                       "_links": {
                         "request:request.backlog": {

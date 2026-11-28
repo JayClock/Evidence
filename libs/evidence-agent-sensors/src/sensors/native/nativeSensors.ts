@@ -18,7 +18,7 @@ import { runNativeKeyDataAudit } from './nativeKeyDataAudit.js';
 /**
  * The native sensor set, in one pass over one model read.
  *
- * The document, inline examples and the digest are loaded once, so every
+ * The document, its stories and the digest are loaded once, so every
  * sensor describes the same bytes. That is what makes a fresh verdict comparable
  * with a saved one.
  */

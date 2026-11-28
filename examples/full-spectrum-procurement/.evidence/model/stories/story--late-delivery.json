@@ -1,0 +1,132 @@
+{
+  "type": "story",
+  "id": "late-delivery",
+  "kind": "breach_branch",
+  "title": "逾期交货",
+  "steps": [
+    {
+      "id": "step-8",
+      "sequence": 1,
+      "actorRef": "role-seller",
+      "activity": "就「完成整机出厂与航运交付」出具",
+      "workObjectRef": "conf-equipment-delivery",
+      "targetActorRef": "role-buyer",
+      "asOf": "2026-02-12T09:00:00Z",
+      "basedOn": [
+        "happy-path#step-7"
+      ],
+      "values": {
+        "port_arrival_status": "逾期到港",
+        "confirmed_at": "2026-02-12T09:00:00Z"
+      }
+    },
+    {
+      "id": "step-9",
+      "sequence": 2,
+      "actorRef": "role-buyer",
+      "activity": "就「赔付交货逾期违约金」发起",
+      "workObjectRef": "req-breach-penalty",
+      "targetActorRef": "role-seller",
+      "asOf": "2026-02-12T10:00:00Z",
+      "basedOn": [
+        "step-8",
+        "happy-path#step-7"
+      ],
+      "values": {
+        "overdue_days": 2,
+        "claimed_penalty_amount": {
+          "minorUnits": 100000,
+          "currency": "CNY"
+        },
+        "started_at": "2026-02-12T10:00:00Z",
+        "expired_at": "2026-02-15T18:00:00Z"
+      },
+      "expect": {
+        "$.claimed_penalty_amount.minorUnits": 100000
+      }
+    },
+    {
+      "id": "step-10",
+      "sequence": 3,
+      "actorRef": "role-seller",
+      "activity": "登记",
+      "workObjectRef": "doc-sgs-inspection-cert",
+      "targetActorRef": "role-buyer",
+      "asOf": "2026-02-13T09:00:00Z",
+      "basedOn": [
+        "step-8"
+      ],
+      "values": {
+        "passed_safety_checks": true,
+        "created_at": "2026-02-13T09:00:00Z",
+        "iso_standard_code": "ISO-10218"
+      }
+    },
+    {
+      "id": "step-11",
+      "sequence": 4,
+      "actorRef": "role-seller",
+      "activity": "就「赔付交货逾期违约金」出具",
+      "workObjectRef": "conf-breach-settlement",
+      "targetActorRef": "role-buyer",
+      "asOf": "2026-02-13T10:00:00Z",
+      "basedOn": [
+        "step-9"
+      ],
+      "values": {
+        "settled_penalty_amount": {
+          "minorUnits": 100000,
+          "currency": "CNY"
+        },
+        "confirmed_at": "2026-02-13T10:00:00Z"
+      }
+    },
+    {
+      "id": "step-12",
+      "sequence": 5,
+      "actorRef": "role-escrow-depositor",
+      "activity": "就「释放托管尾款」发起",
+      "workObjectRef": "req-escrow-release",
+      "targetActorRef": "role-escrow-agent",
+      "asOf": "2026-02-14T09:00:00Z",
+      "basedOn": [
+        "step-10",
+        "step-11",
+        "happy-path#step-4"
+      ],
+      "values": {
+        "release_amount": {
+          "minorUnits": 69900000,
+          "currency": "CNY"
+        },
+        "started_at": "2026-02-14T09:00:00Z",
+        "expired_at": "2026-02-17T18:00:00Z"
+      }
+    },
+    {
+      "id": "step-13",
+      "sequence": 6,
+      "actorRef": "role-escrow-agent",
+      "activity": "就「释放托管尾款」出具",
+      "workObjectRef": "conf-escrow-release",
+      "targetActorRef": "role-escrow-depositor",
+      "asOf": "2026-02-14T10:00:00Z",
+      "basedOn": [
+        "step-12"
+      ],
+      "values": {
+        "released_amount": {
+          "minorUnits": 69900000,
+          "currency": "CNY"
+        },
+        "confirmed_at": "2026-02-14T10:00:00Z"
+      }
+    }
+  ],
+  "forkedFrom": {
+    "storyId": "happy-path",
+    "stepId": "step-7",
+    "reason": "逾期交货",
+    "triggerRuleRef": "rule-breach-detection-overdue"
+  }
+}

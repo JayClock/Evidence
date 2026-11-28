@@ -48,25 +48,5 @@
       "required": true,
       "meaning": "季度指标金额，单位为 CNY 分"
     }
-  ],
-  "examples": [
-    {
-      "label": "open-q1",
-      "value": {
-        "id": "target-2026-q1",
-        "quarter": "2026-Q1",
-        "target_amount_minor": 12000000,
-        "started_at": "2026-01-02T10:00:00Z",
-        "expired_at": "2026-04-02T10:00:00Z"
-      },
-      "test": {
-        "flow": "credit-quarter-and-year-once",
-        "actingRoleRef": "role.finance",
-        "asOf": "2026-01-02T10:00:00Z",
-        "basedOn": [
-          "contract.performance-agreement#sign-fy26"
-        ]
-      }
-    }
   ]
 }

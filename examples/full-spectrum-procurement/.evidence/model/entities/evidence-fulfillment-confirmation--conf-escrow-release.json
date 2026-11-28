@@ -6,44 +6,6 @@
   "contextRef": "ctx-escrow-settlement",
   "responsibleRoleRef": "role-escrow-agent",
   "label": "托管尾款清算放款确认（Final Escrow Release Confirmation）",
-  "examples": [
-    {
-      "label": "顺畅履约",
-      "value": {
-        "released_amount": {
-          "minorUnits": 70000000,
-          "currency": "CNY"
-        },
-        "confirmed_at": "2026-02-11T10:00:00Z"
-      },
-      "test": {
-        "flow": "happy-path",
-        "actingRoleRef": "role-escrow-agent",
-        "asOf": "2026-02-11T10:00:00Z",
-        "basedOn": [
-          "req-escrow-release#顺畅履约"
-        ]
-      }
-    },
-    {
-      "label": "逾期交货",
-      "value": {
-        "released_amount": {
-          "minorUnits": 69900000,
-          "currency": "CNY"
-        },
-        "confirmed_at": "2026-02-14T10:00:00Z"
-      },
-      "test": {
-        "flow": "late-delivery",
-        "actingRoleRef": "role-escrow-agent",
-        "asOf": "2026-02-14T10:00:00Z",
-        "basedOn": [
-          "req-escrow-release#逾期交货"
-        ]
-      }
-    }
-  ],
   "attributes": [
     {
       "name": "released_amount",

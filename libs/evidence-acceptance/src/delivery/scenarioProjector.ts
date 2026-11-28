@@ -10,15 +10,13 @@ import {
 } from '@evidence-poc/evidence-model-core';
 import { evaluateRuleOnExample } from '@evidence-poc/evidence-cel';
 import {
-  buildDeliveryRoutes,
-  type DeliveryRoute,
-} from '@evidence-poc/evidence-api/delivery';
-import {
   allowedCallerRoleRefs,
   buildDeliveryContract,
+  buildDeliveryRoutes,
+  compareText,
+  componentName,
+  type DeliveryRoute,
 } from '@evidence-poc/evidence-api/delivery';
-import { componentName } from '@evidence-poc/evidence-api/delivery';
-import { compareText } from '@evidence-poc/evidence-api/delivery';
 
 /** Ephemeral compiler IR, never a persisted or user-authored suite format. */
 export interface AcceptanceStep {
@@ -72,10 +70,7 @@ const stable = (value: unknown): string =>
       : item,
   );
 
-/**
- * Direct model -> test projection. A graph orders declared examples, not invented
- * business cases. Unsupported or ambiguous mappings are errors, never skipped.
- */
+/** Compile each selected story with its inherited steps and its own response captures. */
 export function projectAcceptanceTests(
   model: DomainModelDocument,
   routes: readonly DeliveryRoute[] = buildDeliveryRoutes(model),

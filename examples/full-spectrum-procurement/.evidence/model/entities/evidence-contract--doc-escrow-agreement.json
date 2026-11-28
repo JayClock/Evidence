@@ -9,62 +9,6 @@
     "role-escrow-agent"
   ],
   "label": "买方与托管行资金托管协议（Buyer–Bank Escrow Agreement）",
-  "examples": [
-    {
-      "label": "顺畅履约",
-      "value": {
-        "escrow_locked_amount": {
-          "minorUnits": 100000000,
-          "currency": "CNY"
-        },
-        "signed_at": "2026-01-04T09:00:00Z"
-      },
-      "test": {
-        "flow": "happy-path",
-        "actingRoleRef": "role-escrow-depositor",
-        "asOf": "2026-01-04T09:00:00Z",
-        "basedOn": [
-          "doc-procurement-contract#顺畅履约"
-        ]
-      }
-    },
-    {
-      "label": "逾期交货",
-      "value": {
-        "escrow_locked_amount": {
-          "minorUnits": 100000000,
-          "currency": "CNY"
-        },
-        "signed_at": "2026-01-04T09:00:00Z"
-      },
-      "test": {
-        "flow": "late-delivery",
-        "actingRoleRef": "role-escrow-depositor",
-        "asOf": "2026-01-04T09:00:00Z",
-        "basedOn": [
-          "doc-procurement-contract#逾期交货"
-        ]
-      }
-    },
-    {
-      "label": "质检争议",
-      "value": {
-        "escrow_locked_amount": {
-          "minorUnits": 100000000,
-          "currency": "CNY"
-        },
-        "signed_at": "2026-01-04T09:00:00Z"
-      },
-      "test": {
-        "flow": "defect-escalation",
-        "actingRoleRef": "role-escrow-depositor",
-        "asOf": "2026-01-04T09:00:00Z",
-        "basedOn": [
-          "doc-procurement-contract#质检争议"
-        ]
-      }
-    }
-  ],
   "attributes": [
     {
       "name": "escrow_locked_amount",

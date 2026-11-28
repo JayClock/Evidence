@@ -84,7 +84,7 @@ describe('checkReportProblem', () => {
 });
 
 describe('loadModel', () => {
-  it('indexes the checked model and its inline examples', async () => {
+  it('indexes the checked model and its story facts', async () => {
     const check = await checkReportOf(modelDirectory);
     const { index, diagnostics } = await loadModel(modelDirectory, check);
 
@@ -136,7 +136,7 @@ describe('loadModel', () => {
 });
 
 describe('loadModelFromDocument', () => {
-  it('indexes an in-memory document and its inline examples without a fake check', async () => {
+  it('indexes an in-memory document and its story facts without a fake check', async () => {
     const { document } = await readModelRoot(modelDirectory);
     const original = JSON.stringify(document);
     const { index, diagnostics } = loadModelFromDocument(document);
@@ -157,7 +157,7 @@ describe('loadModelFromDocument', () => {
     );
   });
 
-  it('pins indexed inputs and fingerprints inline example edits', async () => {
+  it('pins indexed inputs and fingerprints story edits', async () => {
     const { document } = await readModelRoot(modelDirectory);
     const loaded = loadModelFromDocument(document).index!;
     const originalName = loaded.document.manifest.name;

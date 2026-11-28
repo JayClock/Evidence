@@ -34,39 +34,5 @@
       "keyData": true,
       "derivedByRuleRef": "rule.request.payment-deadline"
     }
-  ],
-  "examples": [
-    {
-      "label": "payment-window",
-      "value": {
-        "id": "pay-request-one",
-        "started_at": "2026-06-01T09:15:00Z",
-        "expired_at": "2026-06-02T09:15:00Z"
-      },
-      "test": {
-        "flow": "prepayment-only",
-        "actingRoleRef": "role.agency",
-        "asOf": "2026-06-01T09:15:00Z",
-        "basedOn": [
-          "contract.ads-promotion-order#payment-order"
-        ]
-      }
-    },
-    {
-      "label": "summer-payment-window",
-      "value": {
-        "id": "pay-request-summer",
-        "started_at": "2026-07-01T11:05:00Z",
-        "expired_at": "2026-07-02T11:05:00Z"
-      },
-      "test": {
-        "flow": "negotiation-to-daily-report",
-        "actingRoleRef": "role.agency",
-        "asOf": "2026-07-01T11:05:00Z",
-        "basedOn": [
-          "contract.ads-promotion-order#sign-campaign-order"
-        ]
-      }
-    }
   ]
 }

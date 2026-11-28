@@ -33,7 +33,7 @@ const manifest = z.object({
                   method: z.enum(['GET', 'POST']),
                   path: z.string().regex(/^\/(?![/\\])[^\\?#]*$/),
                 }),
-                asOf: z.string().datetime(),
+                asOf: z.string().datetime({ offset: true }),
                 actingRoleRef: z.string().min(1),
                 status: z.number().int().min(100).max(599),
                 inputs: data,

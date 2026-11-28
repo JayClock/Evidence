@@ -41,24 +41,5 @@
       "required": true,
       "meaning": "投放版位"
     }
-  ],
-  "examples": [
-    {
-      "label": "request-launch",
-      "value": {
-        "id": "launch-request-summer",
-        "placement": "首页推荐位",
-        "started_at": "2026-07-01T13:00:00Z",
-        "expired_at": "2026-07-03T13:00:00Z"
-      },
-      "test": {
-        "flow": "negotiation-to-daily-report",
-        "actingRoleRef": "role.advertiser",
-        "asOf": "2026-07-01T13:00:00Z",
-        "basedOn": [
-          "confirmation.payment#summer-payment-proof"
-        ]
-      }
-    }
   ]
 }

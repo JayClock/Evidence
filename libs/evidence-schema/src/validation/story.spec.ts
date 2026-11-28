@@ -79,6 +79,7 @@ describe('domain story validation', () => {
       { targetActorRef: 'role.missing' },
       { workObjectRef: 'role.buyer' },
       { values: { missing: true } },
+      { values: { started_at: 'yesterday' } },
       { pathParameters: { id: { stepRef: 'absent', jsonpath: '$.id' } } },
     ])
       expect(
@@ -105,6 +106,7 @@ describe('domain story validation', () => {
     for (const patch of [
       { inputs: {} },
       { asOf: 'yesterday' },
+      { asOf: '2026-02-30T00:00:00Z' },
       { values: cycle },
       { values: { amount: Infinity } },
       { expect: { error: true } },

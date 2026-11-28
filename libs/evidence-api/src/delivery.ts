@@ -1,7 +1,7 @@
 /**
  * The delivery field contract, without a filesystem behind it.
  *
- * The renderer paints field badges and authors inline scenarios without
+ * The renderer paints field badges and authors story steps without
  * loader, runner or filesystem adapters. Keep the package root's Node-only
  * exports out of browser bundles.
  */

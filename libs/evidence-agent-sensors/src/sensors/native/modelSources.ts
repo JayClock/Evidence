@@ -15,7 +15,7 @@ import {
 /**
  * Reads a model root once for every sensor.
  *
- * Every sensor shares one read: the digest, the document and inline examples all describe the same bytes, which is what makes `inputChanged` honest.
+ * The document and its digest come from the same model files, including stories.
  */
 export interface ModelSources {
   model: DomainModelDocument;

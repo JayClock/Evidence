@@ -9,68 +9,6 @@
     "role-seller"
   ],
   "label": "高端智能装备国际采购主买卖契约（Master Equipment Procurement Agreement）",
-  "examples": [
-    {
-      "label": "顺畅履约",
-      "value": {
-        "contract_total_amount": {
-          "minorUnits": 100000000,
-          "currency": "CNY"
-        },
-        "down_payment_rate": 0.3,
-        "delivery_deadline_days": 35,
-        "signed_at": "2026-01-03T09:00:00Z"
-      },
-      "test": {
-        "flow": "happy-path",
-        "actingRoleRef": "role-buyer",
-        "asOf": "2026-01-03T09:00:00Z",
-        "basedOn": [
-          "doc-supplier-proposal#顺畅履约"
-        ]
-      }
-    },
-    {
-      "label": "逾期交货",
-      "value": {
-        "contract_total_amount": {
-          "minorUnits": 100000000,
-          "currency": "CNY"
-        },
-        "down_payment_rate": 0.3,
-        "delivery_deadline_days": 35,
-        "signed_at": "2026-01-03T09:00:00Z"
-      },
-      "test": {
-        "flow": "late-delivery",
-        "actingRoleRef": "role-buyer",
-        "asOf": "2026-01-03T09:00:00Z",
-        "basedOn": [
-          "doc-supplier-proposal#逾期交货"
-        ]
-      }
-    },
-    {
-      "label": "质检争议",
-      "value": {
-        "contract_total_amount": {
-          "minorUnits": 100000000,
-          "currency": "CNY"
-        },
-        "down_payment_rate": 0.3,
-        "delivery_deadline_days": 35,
-        "signed_at": "2026-01-03T09:00:00Z"
-      },
-      "test": {
-        "flow": "defect-escalation",
-        "actingRoleRef": "role-buyer",
-        "asOf": "2026-01-03T09:00:00Z",
-        "basedOn": [
-          "doc-supplier-proposal#质检争议"
-        ]
-      }
-    }
-  ],
   "attributes": [
     {
       "name": "contract_total_amount",
@@ -102,6 +40,19 @@
       "valueType": "timestamp",
       "required": true,
       "keyData": true
+    },
+    {
+      "name": "penalty_daily_rate",
+      "label": "日罚息基准费率",
+      "meaning": "主合同约定的每日万分之五基准违约金费率",
+      "valueType": "decimal",
+      "required": true,
+      "keyData": true,
+      "source": {
+        "kind": "domain-source",
+        "entityRef": "thing-tariff-calculator",
+        "attribute": "penalty_daily_rate"
+      }
     }
   ]
 }

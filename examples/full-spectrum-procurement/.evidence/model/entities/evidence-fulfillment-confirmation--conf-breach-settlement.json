@@ -6,26 +6,6 @@
   "contextRef": "ctx-main-procurement",
   "responsibleRoleRef": "role-seller",
   "label": "违约金抵扣与赔偿结清确认凭据（Penalty Compensation Settlement Receipt）",
-  "examples": [
-    {
-      "label": "逾期交货",
-      "value": {
-        "settled_penalty_amount": {
-          "minorUnits": 100000,
-          "currency": "CNY"
-        },
-        "confirmed_at": "2026-02-13T10:00:00Z"
-      },
-      "test": {
-        "flow": "late-delivery",
-        "actingRoleRef": "role-seller",
-        "asOf": "2026-02-13T10:00:00Z",
-        "basedOn": [
-          "req-breach-penalty#逾期交货"
-        ]
-      }
-    }
-  ],
   "attributes": [
     {
       "name": "settled_penalty_amount",

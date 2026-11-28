@@ -34,49 +34,5 @@
       "keyData": true,
       "derivedByRuleRef": "rule.deposit-lock-expiry"
     }
-  ],
-  "examples": [
-    {
-      "label": "single-on-time",
-      "value": {
-        "id": "single-on-time-request-deposit-lock",
-        "started_at": "2026-06-02T00:01:00Z",
-        "expired_at": "2026-06-04T00:01:00Z"
-      },
-      "test": {
-        "flow": "single-on-time",
-        "tags": [
-          "regression",
-          "single",
-          "on-time"
-        ],
-        "actingRoleRef": "role.escrow-buyer",
-        "asOf": "2026-06-02T00:01:00Z",
-        "basedOn": [
-          "contract.escrow#single-on-time"
-        ]
-      }
-    },
-    {
-      "label": "single-late",
-      "value": {
-        "id": "single-late-request-deposit-lock",
-        "started_at": "2026-06-02T00:01:00Z",
-        "expired_at": "2026-06-04T00:01:00Z"
-      },
-      "test": {
-        "flow": "single-late",
-        "tags": [
-          "regression",
-          "single",
-          "late"
-        ],
-        "actingRoleRef": "role.escrow-buyer",
-        "asOf": "2026-06-02T00:01:00Z",
-        "basedOn": [
-          "contract.escrow#single-late"
-        ]
-      }
-    }
   ]
 }

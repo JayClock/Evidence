@@ -34,49 +34,5 @@
       "keyData": true,
       "derivedByRuleRef": "rule.commitment-expiry"
     }
-  ],
-  "examples": [
-    {
-      "label": "single-on-time",
-      "value": {
-        "id": "single-on-time-request-commitment",
-        "started_at": "2026-06-01T00:02:00Z",
-        "expired_at": "2026-06-03T00:02:00Z"
-      },
-      "test": {
-        "flow": "single-on-time",
-        "tags": [
-          "regression",
-          "single",
-          "on-time"
-        ],
-        "actingRoleRef": "role.procurement-seller",
-        "asOf": "2026-06-01T00:02:00Z",
-        "basedOn": [
-          "confirmation.order#single-on-time"
-        ]
-      }
-    },
-    {
-      "label": "single-late",
-      "value": {
-        "id": "single-late-request-commitment",
-        "started_at": "2026-06-01T00:02:00Z",
-        "expired_at": "2026-06-03T00:02:00Z"
-      },
-      "test": {
-        "flow": "single-late",
-        "tags": [
-          "regression",
-          "single",
-          "late"
-        ],
-        "actingRoleRef": "role.procurement-seller",
-        "asOf": "2026-06-01T00:02:00Z",
-        "basedOn": [
-          "confirmation.order#single-late"
-        ]
-      }
-    }
   ]
 }

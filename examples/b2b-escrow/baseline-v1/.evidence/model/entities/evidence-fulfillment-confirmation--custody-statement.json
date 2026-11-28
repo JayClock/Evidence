@@ -31,49 +31,5 @@
       "valueType": "bool",
       "required": true
     }
-  ],
-  "examples": [
-    {
-      "label": "single-on-time",
-      "value": {
-        "id": "single-on-time-confirmation-custody-statement",
-        "confirmed_at": "2026-06-02T00:02:00Z",
-        "acknowledged": true
-      },
-      "test": {
-        "flow": "single-on-time",
-        "tags": [
-          "regression",
-          "single",
-          "on-time"
-        ],
-        "actingRoleRef": "role.escrow-buyer",
-        "asOf": "2026-06-02T00:02:00Z",
-        "basedOn": [
-          "request.custody-statement#single-on-time"
-        ]
-      }
-    },
-    {
-      "label": "single-late",
-      "value": {
-        "id": "single-late-confirmation-custody-statement",
-        "confirmed_at": "2026-06-02T00:02:00Z",
-        "acknowledged": true
-      },
-      "test": {
-        "flow": "single-late",
-        "tags": [
-          "regression",
-          "single",
-          "late"
-        ],
-        "actingRoleRef": "role.escrow-buyer",
-        "asOf": "2026-06-02T00:02:00Z",
-        "basedOn": [
-          "request.custody-statement#single-late"
-        ]
-      }
-    }
   ]
 }

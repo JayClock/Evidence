@@ -82,6 +82,7 @@ export {
   type ModelDiffSummary,
   type RelationshipDiff,
   type RuleDiff,
+  type StoryDiff,
 } from './diff/modelDiff.js';
 
 export {

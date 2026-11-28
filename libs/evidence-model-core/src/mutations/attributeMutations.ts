@@ -61,6 +61,10 @@ const requireUnreferencedSource = (
         : [];
     }),
   );
+  for (const story of model.stories)
+    for (const step of story.steps)
+      if (step.workObjectRef === entityRef && Object.hasOwn(step.values, name))
+        readers.push(`${story.id}#${step.id}`);
   if (readers.length > 0)
     fail(
       'attribute.referenced',

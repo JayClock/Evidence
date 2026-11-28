@@ -161,8 +161,24 @@ export const entityReferences = (
       references.push({
         id: rule.id,
         description: `rule '${rule.id}'`,
-        removable: true,
+        removable: !document.stories.some(
+          (story) => story.forkedFrom?.triggerRuleRef === rule.id,
+        ),
       });
+    }
+  }
+  for (const story of document.stories) {
+    for (const step of story.steps) {
+      if (
+        [step.actorRef, step.targetActorRef, step.workObjectRef].includes(
+          entityId,
+        )
+      )
+        references.push({
+          id: story.id,
+          description: `story step '${story.id}#${step.id}'`,
+          removable: false,
+        });
     }
   }
   return references;

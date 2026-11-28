@@ -52,11 +52,12 @@ describe('full-spectrum model lifecycle acceptance', () => {
     const model = fullSpectrumModel();
     for (const flow of resolveStoryTraces(model)) {
       const values = new Map(flow.steps.map((s) => [s.entityId, s.values]));
-      // Test inputs supplied by the two external domain capabilities.
-      values.set('thing-compliance-checker', {
-        iso_standard_code: 'ISO-10218',
-      });
-      values.set('thing-tariff-calculator', { penalty_daily_rate: 0.0005 });
+      expect(values.get('doc-procurement-contract')?.penalty_daily_rate).toBe(
+        0.0005,
+      );
+      expect(values.get('doc-sgs-inspection-cert')?.iso_standard_code).toBe(
+        'ISO-10218',
+      );
       for (const rule of model.rules) {
         const bindings = Object.fromEntries(
           Object.entries(rule.bindings).flatMap(([alias, binding]) =>

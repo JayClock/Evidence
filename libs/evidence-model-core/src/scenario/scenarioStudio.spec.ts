@@ -3,6 +3,9 @@ import {
   createProcurementModel,
 } from '../testing/modelFixture.js';
 import { createModelSession } from '../session/createModelSession.js';
+import { deleteEntityMutator } from '../mutations/entityMutations.js';
+import { removeAttributeMutator } from '../mutations/attributeMutations.js';
+import { deleteRuleMutator } from '../mutations/ruleMutations.js';
 import {
   createStory,
   deleteStory,
@@ -61,7 +64,11 @@ it('rolls back broken dependencies and fork anchors and records edits in session
     forkStory(d, {
       id: 'child',
       title: '子故事',
-      forkedFrom: { storyId: story.id, stepId: 'confirm' },
+      forkedFrom: {
+        storyId: story.id,
+        stepId: 'confirm',
+        triggerRuleRef: 'rule.payment-completed',
+      },
       steps: [{ ...story.steps[2], basedOn: ['payment#confirm'] }],
     }),
   );
@@ -69,6 +76,14 @@ it('rolls back broken dependencies and fork anchors and records edits in session
   for (const op of [
     (d: typeof before) => deleteStory(d, story.id),
     (d: typeof before) => removeStoryStep(d, story.id, 'confirm'),
+    (d: typeof before) =>
+      deleteEntityMutator(d, 'confirmation.payment', { cascade: true }),
+    (d: typeof before) =>
+      removeAttributeMutator(d, 'confirmation.payment', 'paid_minor_units', {
+        cascade: true,
+      }),
+    (d: typeof before) =>
+      deleteRuleMutator(d, 'rule.payment-completed', { cascade: true }),
     (d: typeof before) =>
       reorderStorySteps(d, story.id, ['confirm', 'request', 'sign']),
   ]) {

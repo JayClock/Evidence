@@ -1,15 +1,18 @@
-import type { DomainModelDocument, EntityAST } from '@evidence-poc/evidence-schema';
+import type {
+  DomainModelDocument,
+  EntityAST,
+} from '@evidence-poc/evidence-schema';
 
-import { createProcurementModel } from '../testing/modelFixture.js';
+import {
+  createPaymentStory,
+  createProcurementModel,
+} from '../testing/modelFixture.js';
 import { diffDomainModels } from './modelDiff.js';
 
 const clone = (): DomainModelDocument =>
   structuredClone(createProcurementModel());
 
-const entity = (
-  document: DomainModelDocument,
-  id: string,
-): EntityAST => {
+const entity = (document: DomainModelDocument, id: string): EntityAST => {
   const found = document.entities.find((candidate) => candidate.id === id);
 
   if (found === undefined) {
@@ -20,6 +23,17 @@ const entity = (
 };
 
 describe('diffDomainModels', () => {
+  it('counts story-only edits in patch review', () => {
+    const base = clone();
+    base.stories.push(createPaymentStory());
+    const target = structuredClone(base);
+    target.stories[0]!.steps[0]!.activity = '复核';
+    const { stories, summary } = diffDomainModels(base, target);
+    expect(stories).toMatchObject([
+      { changeType: 'modified', fields: ['steps'] },
+    ]);
+    expect(summary.modifiedCount).toBe(1);
+  });
   it('reports no change for two copies of the same model', () => {
     const diff = diffDomainModels(clone(), clone());
 
@@ -36,9 +50,9 @@ describe('diffDomainModels', () => {
       true,
     );
     expect(diff.contexts).toHaveLength(2);
-    expect(diff.relationships.every((item) => item.changeType === 'unchanged')).toBe(
-      true,
-    );
+    expect(
+      diff.relationships.every((item) => item.changeType === 'unchanged'),
+    ).toBe(true);
   });
 
   it('separates Context containers from business objects', () => {

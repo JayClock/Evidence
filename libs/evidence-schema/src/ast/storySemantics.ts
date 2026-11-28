@@ -1,13 +1,19 @@
-import type { RefinementCtx } from 'zod';
+import { z, type RefinementCtx } from 'zod';
 import type { DomainModelDocument } from './document.js';
 import { HTTP_VALUE_SCHEMAS } from './httpValues.js';
-import type { StoryStepAST } from './story.js';
+import { StoryTimestampSchema, type StoryStepAST } from './story.js';
 import {
   canonicalStepRef,
   storyLineageSteps,
   type OwnedStoryStep,
 } from './storyLineage.js';
 import type { ValidationCode } from '../validation/errors.js';
+
+const storyValueSchemas = {
+  ...HTTP_VALUE_SCHEMAS,
+  date: z.string().date(),
+  timestamp: StoryTimestampSchema,
+};
 
 export function validateStories(
   document: DomainModelDocument,
@@ -74,7 +80,7 @@ export function validateStories(
             );
             if (
               !attribute ||
-              !HTTP_VALUE_SCHEMAS[attribute.valueType ?? 'dynamic'].safeParse(
+              !storyValueSchemas[attribute.valueType ?? 'dynamic'].safeParse(
                 value,
               ).success
             )

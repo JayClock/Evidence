@@ -6,53 +6,6 @@
   "contextRef": "ctx-main-procurement",
   "responsibleRoleRef": "role-seller",
   "label": "国际海运多式联运提单签收确认（Multimodal Delivery Confirmation）",
-  "examples": [
-    {
-      "label": "顺畅履约",
-      "value": {
-        "port_arrival_status": "已到港",
-        "confirmed_at": "2026-02-09T09:00:00Z"
-      },
-      "test": {
-        "flow": "happy-path",
-        "actingRoleRef": "role-seller",
-        "asOf": "2026-02-09T09:00:00Z",
-        "basedOn": [
-          "req-equipment-delivery#顺畅履约"
-        ]
-      }
-    },
-    {
-      "label": "逾期交货",
-      "value": {
-        "port_arrival_status": "逾期到港",
-        "confirmed_at": "2026-02-12T09:00:00Z"
-      },
-      "test": {
-        "flow": "late-delivery",
-        "actingRoleRef": "role-seller",
-        "asOf": "2026-02-12T09:00:00Z",
-        "basedOn": [
-          "req-equipment-delivery#逾期交货"
-        ]
-      }
-    },
-    {
-      "label": "质检争议",
-      "value": {
-        "port_arrival_status": "待技术核验",
-        "confirmed_at": "2026-02-09T09:00:00Z"
-      },
-      "test": {
-        "flow": "defect-escalation",
-        "actingRoleRef": "role-seller",
-        "asOf": "2026-02-09T09:00:00Z",
-        "basedOn": [
-          "req-equipment-delivery#质检争议"
-        ]
-      }
-    }
-  ],
   "attributes": [
     {
       "name": "port_arrival_status",

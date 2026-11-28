@@ -1,0 +1,100 @@
+{
+  "type": "story",
+  "id": "credit-quarter-and-year-once",
+  "kind": "primary",
+  "title": "季度与年度共用一笔结算凭证",
+  "steps": [
+    {
+      "id": "step-1",
+      "sequence": 1,
+      "actorRef": "role.account-owner",
+      "activity": "签署",
+      "workObjectRef": "contract.performance-agreement",
+      "targetActorRef": "role.finance",
+      "asOf": "2026-01-01T09:00:00Z",
+      "basedOn": [],
+      "values": {
+        "id": "agreement-fy26",
+        "fiscal_year": 2026,
+        "signed_at": "2026-01-01T09:00:00Z"
+      }
+    },
+    {
+      "id": "step-2",
+      "sequence": 2,
+      "actorRef": "role.account-owner",
+      "activity": "就「达到年度收入目标」发起",
+      "workObjectRef": "request.annual-target",
+      "targetActorRef": "role.finance",
+      "asOf": "2026-01-02T09:00:00Z",
+      "basedOn": [
+        "step-1"
+      ],
+      "values": {
+        "id": "target-2026",
+        "target_amount_minor": 50000000,
+        "started_at": "2026-01-02T09:00:00Z",
+        "expired_at": "2027-01-02T09:00:00Z"
+      }
+    },
+    {
+      "id": "step-3",
+      "sequence": 3,
+      "actorRef": "role.finance",
+      "activity": "就「达到季度收入目标」发起",
+      "workObjectRef": "request.quarterly-target",
+      "targetActorRef": "role.account-owner",
+      "asOf": "2026-01-02T10:00:00Z",
+      "basedOn": [
+        "step-1"
+      ],
+      "values": {
+        "id": "target-2026-q1",
+        "quarter": "2026-Q1",
+        "target_amount_minor": 12000000,
+        "started_at": "2026-01-02T10:00:00Z",
+        "expired_at": "2026-04-02T10:00:00Z"
+      }
+    },
+    {
+      "id": "step-4",
+      "sequence": 4,
+      "actorRef": "role.finance",
+      "activity": "就「达到年度收入目标、达到季度收入目标」出具",
+      "workObjectRef": "confirmation.revenue",
+      "targetActorRef": "role.account-owner",
+      "asOf": "2026-03-27T15:00:00Z",
+      "basedOn": [
+        "step-3",
+        "step-2"
+      ],
+      "values": {
+        "id": "revenue-001",
+        "booking_ref": "booking-928",
+        "amount_minor": 52000000,
+        "request_ids": [
+          "target-2026-q1",
+          "target-2026"
+        ],
+        "confirmed_at": "2026-03-27T15:00:00Z"
+      }
+    },
+    {
+      "id": "step-5",
+      "sequence": 5,
+      "actorRef": "role.account-owner",
+      "activity": "就「达到季度收入目标」出具",
+      "workObjectRef": "confirmation.quarter-close",
+      "targetActorRef": "role.finance",
+      "asOf": "2026-03-31T16:00:00Z",
+      "basedOn": [
+        "step-4"
+      ],
+      "values": {
+        "id": "quarter-close-001",
+        "revenue_confirmation_id": "revenue-001",
+        "confirmed_at": "2026-03-31T16:00:00Z"
+      }
+    }
+  ]
+}

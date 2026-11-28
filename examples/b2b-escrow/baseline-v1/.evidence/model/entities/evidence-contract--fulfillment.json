@@ -41,51 +41,5 @@
       "valueType": "id",
       "required": true
     }
-  ],
-  "examples": [
-    {
-      "label": "single-on-time",
-      "value": {
-        "id": "single-on-time-contract-fulfillment",
-        "signed_at": "2026-06-03T00:00:00Z",
-        "order_confirmation_id": "single-on-time-confirmation-order",
-        "deposit_confirmation_id": "single-on-time-confirmation-deposit-lock"
-      },
-      "test": {
-        "flow": "single-on-time",
-        "tags": [
-          "regression",
-          "single",
-          "on-time"
-        ],
-        "actingRoleRef": "role.fulfillment-buyer",
-        "asOf": "2026-06-03T00:00:00Z",
-        "basedOn": [
-          "confirmation.custody-statement#single-on-time"
-        ]
-      }
-    },
-    {
-      "label": "single-late",
-      "value": {
-        "id": "single-late-contract-fulfillment",
-        "signed_at": "2026-06-03T00:00:00Z",
-        "order_confirmation_id": "single-late-confirmation-order",
-        "deposit_confirmation_id": "single-late-confirmation-deposit-lock"
-      },
-      "test": {
-        "flow": "single-late",
-        "tags": [
-          "regression",
-          "single",
-          "late"
-        ],
-        "actingRoleRef": "role.fulfillment-buyer",
-        "asOf": "2026-06-03T00:00:00Z",
-        "basedOn": [
-          "confirmation.custody-statement#single-late"
-        ]
-      }
-    }
   ]
 }

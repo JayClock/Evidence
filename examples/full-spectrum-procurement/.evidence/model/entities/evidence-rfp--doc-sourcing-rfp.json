@@ -6,56 +6,6 @@
   "contextRef": "ctx-sourcing",
   "responsibleRoleRef": "role-buyer",
   "label": "智能装备全球采购招标建议书（Global Procurement RFP）",
-  "examples": [
-    {
-      "label": "顺畅履约",
-      "value": {
-        "rfp_budget_ceiling": {
-          "minorUnits": 120000000,
-          "currency": "CNY"
-        },
-        "started_at": "2026-01-01T09:00:00Z",
-        "expired_at": "2026-01-02T18:00:00Z"
-      },
-      "test": {
-        "flow": "happy-path",
-        "actingRoleRef": "role-buyer",
-        "asOf": "2026-01-01T09:00:00Z"
-      }
-    },
-    {
-      "label": "逾期交货",
-      "value": {
-        "rfp_budget_ceiling": {
-          "minorUnits": 120000000,
-          "currency": "CNY"
-        },
-        "started_at": "2026-01-01T09:00:00Z",
-        "expired_at": "2026-01-02T18:00:00Z"
-      },
-      "test": {
-        "flow": "late-delivery",
-        "actingRoleRef": "role-buyer",
-        "asOf": "2026-01-01T09:00:00Z"
-      }
-    },
-    {
-      "label": "质检争议",
-      "value": {
-        "rfp_budget_ceiling": {
-          "minorUnits": 120000000,
-          "currency": "CNY"
-        },
-        "started_at": "2026-01-01T09:00:00Z",
-        "expired_at": "2026-01-02T18:00:00Z"
-      },
-      "test": {
-        "flow": "defect-escalation",
-        "actingRoleRef": "role-buyer",
-        "asOf": "2026-01-01T09:00:00Z"
-      }
-    }
-  ],
   "attributes": [
     {
       "name": "rfp_budget_ceiling",

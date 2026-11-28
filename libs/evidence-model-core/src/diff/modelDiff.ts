@@ -1,6 +1,7 @@
 import {
   type AttributeAST,
   type DomainModelDocument,
+  type DomainStoryAST,
   type EntityAST,
   type KeyDataSourceKind,
   type RelationshipAST,
@@ -62,6 +63,15 @@ export interface RuleDiff {
   target?: RuleAST;
 }
 
+export interface StoryDiff {
+  id: string;
+  title: string;
+  changeType: DiffChangeType;
+  fields: readonly string[];
+  base?: DomainStoryAST;
+  target?: DomainStoryAST;
+}
+
 /**
  * One key data item whose provider decision changed.
  *
@@ -104,6 +114,7 @@ export interface ModelDiff {
   entities: readonly EntityDiff[];
   relationships: readonly RelationshipDiff[];
   rules: readonly RuleDiff[];
+  stories: readonly StoryDiff[];
   keyData: readonly KeyDataDiff[];
 }
 
@@ -338,7 +349,9 @@ const byId = <T extends { id: string }>(
   items: readonly T[],
 ): ReadonlyMap<string, T> => new Map(items.map((item) => [item.id, item]));
 
-const unionIds = (...maps: readonly ReadonlyMap<string, unknown>[]): string[] => {
+const unionIds = (
+  ...maps: readonly ReadonlyMap<string, unknown>[]
+): string[] => {
   const ids = new Set<string>();
 
   for (const map of maps) {
@@ -360,10 +373,8 @@ const keyDataDiffs = (
   base: DomainModelDocument,
   target: DomainModelDocument,
 ): readonly KeyDataDiff[] => {
-  const keyOf = (entry: {
-    entityRef: string;
-    attribute: string;
-  }): string => `${entry.entityRef}#${entry.attribute}`;
+  const keyOf = (entry: { entityRef: string; attribute: string }): string =>
+    `${entry.entityRef}#${entry.attribute}`;
   const baseEntries = new Map(
     buildKeyDataLedger(base).entries.map((entry) => [keyOf(entry), entry]),
   );
@@ -398,7 +409,9 @@ const keyDataDiffs = (
             ? 'removed'
             : 'modified',
       ...(baseEntry === undefined ? {} : { baseSource: baseEntry.source }),
-      ...(targetEntry === undefined ? {} : { targetSource: targetEntry.source }),
+      ...(targetEntry === undefined
+        ? {}
+        : { targetSource: targetEntry.source }),
       ...(baseEntry?.expression === undefined
         ? {}
         : { baseExpression: baseEntry.expression }),
@@ -448,10 +461,39 @@ export const diffDomainModels = (
   const rules = unionIds(baseRules, targetRules).map((id) =>
     ruleDiff(id, baseRules.get(id), targetRules.get(id)),
   );
+  const baseStories = byId(base.stories);
+  const targetStories = byId(target.stories);
+  const stories = unionIds(baseStories, targetStories).map((id): StoryDiff => {
+    const before = baseStories.get(id);
+    const after = targetStories.get(id);
+    const fields =
+      before && after
+        ? changedFields(before, after, [
+            'title',
+            'kind',
+            'description',
+            'tags',
+            'notes',
+            'forkedFrom',
+            'steps',
+          ])
+        : [];
+    return {
+      id,
+      title: (after ?? before)!.title,
+      fields,
+      changeType: markModified(changeTypeOf(!!before, !!after), fields),
+      base: before,
+      target: after,
+    };
+  });
   const keyData = keyDataDiffs(base, target);
-  const changed = [...entityDiffs, ...relationships, ...rules].filter(
-    (item) => item.changeType !== 'unchanged',
-  );
+  const changed = [
+    ...entityDiffs,
+    ...relationships,
+    ...rules,
+    ...stories,
+  ].filter((item) => item.changeType !== 'unchanged');
   const baseDecisionOwed = buildKeyDataLedger(base).decisionOwed.length;
   const targetDecisionOwed = buildKeyDataLedger(target).decisionOwed.length;
 
@@ -474,6 +516,7 @@ export const diffDomainModels = (
     entities: entityDiffs.filter((diff) => diff.category !== 'context'),
     relationships,
     rules,
+    stories,
     keyData,
   };
 };

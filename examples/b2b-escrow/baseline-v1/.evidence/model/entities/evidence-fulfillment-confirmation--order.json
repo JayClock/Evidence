@@ -75,59 +75,5 @@
       "keyData": true,
       "derivedByRuleRef": "rule.order-delivery-deadline"
     }
-  ],
-  "examples": [
-    {
-      "label": "single-on-time",
-      "value": {
-        "id": "single-on-time-confirmation-order",
-        "confirmed_at": "2026-06-01T00:01:00Z",
-        "subtotal_minor": 1297701,
-        "gross_amount_minor": 1466402,
-        "quantity": 999,
-        "retention_bps": 500,
-        "daily_penalty_bps": 100,
-        "delivery_deadline": "2026-06-15T00:00:00Z"
-      },
-      "test": {
-        "flow": "single-on-time",
-        "tags": [
-          "regression",
-          "single",
-          "on-time"
-        ],
-        "actingRoleRef": "role.procurement-seller",
-        "asOf": "2026-06-01T00:01:00Z",
-        "basedOn": [
-          "request.order#single-on-time"
-        ]
-      }
-    },
-    {
-      "label": "single-late",
-      "value": {
-        "id": "single-late-confirmation-order",
-        "confirmed_at": "2026-06-01T00:01:00Z",
-        "subtotal_minor": 1199000,
-        "gross_amount_minor": 1354870,
-        "quantity": 1000,
-        "retention_bps": 500,
-        "daily_penalty_bps": 100,
-        "delivery_deadline": "2026-06-15T00:00:00Z"
-      },
-      "test": {
-        "flow": "single-late",
-        "tags": [
-          "regression",
-          "single",
-          "late"
-        ],
-        "actingRoleRef": "role.procurement-seller",
-        "asOf": "2026-06-01T00:01:00Z",
-        "basedOn": [
-          "request.order#single-late"
-        ]
-      }
-    }
   ]
 }

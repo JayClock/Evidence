@@ -1,0 +1,217 @@
+{
+  "type": "story",
+  "id": "happy-path",
+  "kind": "primary",
+  "title": "顺畅履约",
+  "steps": [
+    {
+      "id": "step-1",
+      "sequence": 1,
+      "actorRef": "role-buyer",
+      "activity": "发出",
+      "workObjectRef": "doc-sourcing-rfp",
+      "targetActorRef": "role-seller",
+      "asOf": "2026-01-01T09:00:00Z",
+      "basedOn": [],
+      "values": {
+        "rfp_budget_ceiling": {
+          "minorUnits": 120000000,
+          "currency": "CNY"
+        },
+        "started_at": "2026-01-01T09:00:00Z",
+        "expired_at": "2026-01-02T18:00:00Z"
+      }
+    },
+    {
+      "id": "step-2",
+      "sequence": 2,
+      "actorRef": "role-seller",
+      "activity": "提交",
+      "workObjectRef": "doc-supplier-proposal",
+      "targetActorRef": "role-buyer",
+      "asOf": "2026-01-02T09:00:00Z",
+      "basedOn": [
+        "step-1"
+      ],
+      "values": {
+        "quoted_total_price": {
+          "minorUnits": 100000000,
+          "currency": "CNY"
+        },
+        "started_at": "2026-01-02T09:00:00Z",
+        "expired_at": "2026-01-04T18:00:00Z"
+      }
+    },
+    {
+      "id": "step-3",
+      "sequence": 3,
+      "actorRef": "role-buyer",
+      "activity": "签署",
+      "workObjectRef": "doc-procurement-contract",
+      "targetActorRef": "role-seller",
+      "asOf": "2026-01-03T09:00:00Z",
+      "basedOn": [
+        "step-2"
+      ],
+      "values": {
+        "contract_total_amount": {
+          "minorUnits": 100000000,
+          "currency": "CNY"
+        },
+        "down_payment_rate": 0.3,
+        "delivery_deadline_days": 35,
+        "signed_at": "2026-01-03T09:00:00Z",
+        "penalty_daily_rate": 0.0005
+      }
+    },
+    {
+      "id": "step-4",
+      "sequence": 4,
+      "actorRef": "role-escrow-depositor",
+      "activity": "签署",
+      "workObjectRef": "doc-escrow-agreement",
+      "targetActorRef": "role-escrow-agent",
+      "asOf": "2026-01-04T09:00:00Z",
+      "basedOn": [
+        "step-3"
+      ],
+      "values": {
+        "escrow_locked_amount": {
+          "minorUnits": 100000000,
+          "currency": "CNY"
+        },
+        "signed_at": "2026-01-04T09:00:00Z"
+      }
+    },
+    {
+      "id": "step-5",
+      "sequence": 5,
+      "actorRef": "role-seller",
+      "activity": "就「支付首期生产预付款」发起",
+      "workObjectRef": "req-advance-payment",
+      "targetActorRef": "role-buyer",
+      "asOf": "2026-01-05T09:00:00Z",
+      "basedOn": [
+        "step-3",
+        "step-4"
+      ],
+      "values": {
+        "advance_amount": {
+          "minorUnits": 30000000,
+          "currency": "CNY"
+        },
+        "started_at": "2026-01-05T09:00:00Z",
+        "expired_at": "2026-01-07T18:00:00Z"
+      }
+    },
+    {
+      "id": "step-6",
+      "sequence": 6,
+      "actorRef": "role-buyer",
+      "activity": "就「支付首期生产预付款」出具",
+      "workObjectRef": "conf-advance-payment",
+      "targetActorRef": "role-seller",
+      "asOf": "2026-01-06T09:00:00Z",
+      "basedOn": [
+        "step-5"
+      ],
+      "values": {
+        "confirmed_amount": {
+          "minorUnits": 30000000,
+          "currency": "CNY"
+        },
+        "confirmed_at": "2026-01-06T09:00:00Z"
+      }
+    },
+    {
+      "id": "step-7",
+      "sequence": 7,
+      "actorRef": "role-buyer",
+      "activity": "就「完成整机出厂与航运交付」发起",
+      "workObjectRef": "req-equipment-delivery",
+      "targetActorRef": "role-seller",
+      "asOf": "2026-01-07T09:00:00Z",
+      "basedOn": [
+        "step-6"
+      ],
+      "values": {
+        "shipped_units_count": 2,
+        "started_at": "2026-01-07T09:00:00Z",
+        "expired_at": "2026-02-10T09:00:00Z"
+      }
+    },
+    {
+      "id": "step-8",
+      "sequence": 8,
+      "actorRef": "role-seller",
+      "activity": "就「完成整机出厂与航运交付」出具",
+      "workObjectRef": "conf-equipment-delivery",
+      "targetActorRef": "role-buyer",
+      "asOf": "2026-02-09T09:00:00Z",
+      "basedOn": [
+        "step-7"
+      ],
+      "values": {
+        "port_arrival_status": "已到港",
+        "confirmed_at": "2026-02-09T09:00:00Z"
+      }
+    },
+    {
+      "id": "step-9",
+      "sequence": 9,
+      "actorRef": "role-seller",
+      "activity": "登记",
+      "workObjectRef": "doc-sgs-inspection-cert",
+      "targetActorRef": "role-buyer",
+      "asOf": "2026-02-10T10:00:00Z",
+      "basedOn": [
+        "step-8"
+      ],
+      "values": {
+        "passed_safety_checks": true,
+        "created_at": "2026-02-10T10:00:00Z",
+        "iso_standard_code": "ISO-10218"
+      }
+    },
+    {
+      "id": "step-10",
+      "sequence": 10,
+      "actorRef": "role-escrow-depositor",
+      "activity": "就「释放托管尾款」发起",
+      "workObjectRef": "req-escrow-release",
+      "targetActorRef": "role-escrow-agent",
+      "asOf": "2026-02-11T09:00:00Z",
+      "basedOn": [
+        "step-9",
+        "step-4"
+      ],
+      "values": {
+        "release_amount": {
+          "minorUnits": 70000000,
+          "currency": "CNY"
+        },
+        "started_at": "2026-02-11T09:00:00Z",
+        "expired_at": "2026-02-15T18:00:00Z"
+      }
+    },
+    {
+      "id": "step-11",
+      "sequence": 11,
+      "actorRef": "role-escrow-agent",
+      "activity": "就「释放托管尾款」出具",
+      "workObjectRef": "conf-escrow-release",
+      "targetActorRef": "role-escrow-depositor",
+      "asOf": "2026-02-11T10:00:00Z",
+      "basedOn": [
+        "step-10"
+      ],
+      "values": {
+        "released_amount": {
+          "minorUnits": 70000000,
+          "currency": "CNY"
+        },
+        "confirmed_at": "2026-02-11T10:00:00Z"
+      }
+    }
+  ]
+}

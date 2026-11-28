@@ -31,49 +31,5 @@
       "valueType": "bool",
       "required": true
     }
-  ],
-  "examples": [
-    {
-      "label": "single-on-time",
-      "value": {
-        "id": "single-on-time-confirmation-commitment",
-        "confirmed_at": "2026-06-01T00:02:00Z",
-        "acknowledged": true
-      },
-      "test": {
-        "flow": "single-on-time",
-        "tags": [
-          "regression",
-          "single",
-          "on-time"
-        ],
-        "actingRoleRef": "role.procurement-buyer",
-        "asOf": "2026-06-01T00:02:00Z",
-        "basedOn": [
-          "request.commitment#single-on-time"
-        ]
-      }
-    },
-    {
-      "label": "single-late",
-      "value": {
-        "id": "single-late-confirmation-commitment",
-        "confirmed_at": "2026-06-01T00:02:00Z",
-        "acknowledged": true
-      },
-      "test": {
-        "flow": "single-late",
-        "tags": [
-          "regression",
-          "single",
-          "late"
-        ],
-        "actingRoleRef": "role.procurement-buyer",
-        "asOf": "2026-06-01T00:02:00Z",
-        "basedOn": [
-          "request.commitment#single-late"
-        ]
-      }
-    }
   ]
 }

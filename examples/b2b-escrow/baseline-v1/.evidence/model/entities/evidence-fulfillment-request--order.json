@@ -34,49 +34,5 @@
       "keyData": true,
       "derivedByRuleRef": "rule.order-expiry"
     }
-  ],
-  "examples": [
-    {
-      "label": "single-on-time",
-      "value": {
-        "id": "single-on-time-request-order",
-        "started_at": "2026-06-01T00:01:00Z",
-        "expired_at": "2026-06-03T00:01:00Z"
-      },
-      "test": {
-        "flow": "single-on-time",
-        "tags": [
-          "regression",
-          "single",
-          "on-time"
-        ],
-        "actingRoleRef": "role.procurement-buyer",
-        "asOf": "2026-06-01T00:01:00Z",
-        "basedOn": [
-          "contract.agreement#single-on-time"
-        ]
-      }
-    },
-    {
-      "label": "single-late",
-      "value": {
-        "id": "single-late-request-order",
-        "started_at": "2026-06-01T00:01:00Z",
-        "expired_at": "2026-06-03T00:01:00Z"
-      },
-      "test": {
-        "flow": "single-late",
-        "tags": [
-          "regression",
-          "single",
-          "late"
-        ],
-        "actingRoleRef": "role.procurement-buyer",
-        "asOf": "2026-06-01T00:01:00Z",
-        "basedOn": [
-          "contract.agreement#single-late"
-        ]
-      }
-    }
   ]
 }

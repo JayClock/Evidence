@@ -11,7 +11,7 @@ import { assertOpenApiContract } from '@evidence-poc/evidence-api';
 import { renderAcceptanceSuite } from './renderer/brunoSuite.js';
 import { writeOutput } from '@evidence-poc/evidence-api';
 
-/** Direct source loader: inline examples are the only acceptance source. */
+/** Compile the workspace’s domain stories and publish the generated collection. */
 export async function exportAcceptanceTests(options: {
   modelDirectory: string;
   out: string;

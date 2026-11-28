@@ -31,23 +31,5 @@
       "meaning": "锁定的待办版本",
       "derivedByRuleRef": "rule.locked-backlog-revision"
     }
-  ],
-  "examples": [
-    {
-      "label": "freeze-scope",
-      "value": {
-        "id": "locked-42",
-        "backlog_revision": "sprint-42-r1",
-        "confirmed_at": "2026-08-03T11:00:00Z"
-      },
-      "test": {
-        "flow": "two-stories-one-sprint",
-        "actingRoleRef": "role.development-team",
-        "asOf": "2026-08-03T11:00:00Z",
-        "basedOn": [
-          "request.backlog#propose-scope"
-        ]
-      }
-    }
   ]
 }

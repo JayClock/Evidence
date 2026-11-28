@@ -7,32 +7,6 @@
   "contextRef": "ctx-main-procurement",
   "responsibleRoleRef": "role-buyer",
   "label": "交货逾期违约赔偿与滞纳金索赔请求（Late Delivery Penalty Request）",
-  "examples": [
-    {
-      "label": "逾期交货",
-      "value": {
-        "overdue_days": 2,
-        "claimed_penalty_amount": {
-          "minorUnits": 100000,
-          "currency": "CNY"
-        },
-        "started_at": "2026-02-12T10:00:00Z",
-        "expired_at": "2026-02-15T18:00:00Z"
-      },
-      "test": {
-        "flow": "late-delivery",
-        "actingRoleRef": "role-buyer",
-        "asOf": "2026-02-12T10:00:00Z",
-        "basedOn": [
-          "conf-equipment-delivery#逾期交货",
-          "req-equipment-delivery#逾期交货"
-        ],
-        "expect": {
-          "$.claimed_penalty_amount.minorUnits": 100000
-        }
-      }
-    }
-  ],
   "attributes": [
     {
       "name": "overdue_days",

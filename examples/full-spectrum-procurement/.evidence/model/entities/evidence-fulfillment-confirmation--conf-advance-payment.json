@@ -6,62 +6,6 @@
   "contextRef": "ctx-main-procurement",
   "responsibleRoleRef": "role-buyer",
   "label": "首期预付款到账回执登记（Advance Payment Receipt Filing）",
-  "examples": [
-    {
-      "label": "顺畅履约",
-      "value": {
-        "confirmed_amount": {
-          "minorUnits": 30000000,
-          "currency": "CNY"
-        },
-        "confirmed_at": "2026-01-06T09:00:00Z"
-      },
-      "test": {
-        "flow": "happy-path",
-        "actingRoleRef": "role-buyer",
-        "asOf": "2026-01-06T09:00:00Z",
-        "basedOn": [
-          "req-advance-payment#顺畅履约"
-        ]
-      }
-    },
-    {
-      "label": "逾期交货",
-      "value": {
-        "confirmed_amount": {
-          "minorUnits": 30000000,
-          "currency": "CNY"
-        },
-        "confirmed_at": "2026-01-06T09:00:00Z"
-      },
-      "test": {
-        "flow": "late-delivery",
-        "actingRoleRef": "role-buyer",
-        "asOf": "2026-01-06T09:00:00Z",
-        "basedOn": [
-          "req-advance-payment#逾期交货"
-        ]
-      }
-    },
-    {
-      "label": "质检争议",
-      "value": {
-        "confirmed_amount": {
-          "minorUnits": 30000000,
-          "currency": "CNY"
-        },
-        "confirmed_at": "2026-01-06T09:00:00Z"
-      },
-      "test": {
-        "flow": "defect-escalation",
-        "actingRoleRef": "role-buyer",
-        "asOf": "2026-01-06T09:00:00Z",
-        "basedOn": [
-          "req-advance-payment#质检争议"
-        ]
-      }
-    }
-  ],
   "attributes": [
     {
       "name": "confirmed_amount",

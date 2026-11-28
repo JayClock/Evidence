@@ -1,8 +1,8 @@
 {
   "components": {
     "examples": {
-      "route_read_confirmation_quarter-close_lock-q1-ledger_1": {
-        "summary": "lock-q1-ledger",
+      "route_read_confirmation_quarter-close_credit-quarter-and-year-once_step-5_1": {
+        "summary": "credit-quarter-and-year-once#step-5",
         "value": {
           "_links": {
             "self": {
@@ -14,8 +14,8 @@
           "revenue_confirmation_id": "revenue-001"
         }
       },
-      "route_read_confirmation_revenue_post-revenue-once_1": {
-        "summary": "post-revenue-once",
+      "route_read_confirmation_revenue_credit-quarter-and-year-once_step-4_1": {
+        "summary": "credit-quarter-and-year-once#step-4",
         "value": {
           "_links": {
             "self": {
@@ -32,8 +32,8 @@
           ]
         }
       },
-      "route_read_contract_performance-agreement_sign-fy26_1": {
-        "summary": "sign-fy26",
+      "route_read_contract_performance-agreement_credit-quarter-and-year-once_step-1_1": {
+        "summary": "credit-quarter-and-year-once#step-1",
         "value": {
           "_links": {
             "self": {
@@ -45,8 +45,8 @@
           "signed_at": "2026-01-01T09:00:00Z"
         }
       },
-      "route_read_request_annual-target_open-year_1": {
-        "summary": "open-year",
+      "route_read_request_annual-target_credit-quarter-and-year-once_step-2_1": {
+        "summary": "credit-quarter-and-year-once#step-2",
         "value": {
           "_links": {
             "self": {
@@ -59,8 +59,8 @@
           "target_amount_minor": 50000000
         }
       },
-      "route_read_request_quarterly-target_open-q1_1": {
-        "summary": "open-q1",
+      "route_read_request_quarterly-target_credit-quarter-and-year-once_step-3_1": {
+        "summary": "credit-quarter-and-year-once#step-3",
         "value": {
           "_links": {
             "self": {
@@ -907,8 +907,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_list_contract_performance-agreement_sign-fy26_1": {
-                    "summary": "sign-fy26",
+                  "route_list_contract_performance-agreement_credit-quarter-and-year-once_step-1_1": {
+                    "summary": "credit-quarter-and-year-once#step-1",
                     "value": {
                       "_embedded": {
                         "performance-agreements": [
@@ -998,8 +998,8 @@
           "content": {
             "application/json": {
               "examples": {
-                "route_sign_contract_performance-agreement_sign-fy26_1": {
-                  "summary": "sign-fy26",
+                "route_sign_contract_performance-agreement_credit-quarter-and-year-once_step-1_1": {
+                  "summary": "credit-quarter-and-year-once#step-1",
                   "value": {
                     "fiscal_year": 2026,
                     "id": "agreement-fy26"
@@ -1045,8 +1045,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_sign_contract_performance-agreement_sign-fy26_1": {
-                    "summary": "sign-fy26",
+                  "route_sign_contract_performance-agreement_credit-quarter-and-year-once_step-1_1": {
+                    "summary": "credit-quarter-and-year-once#step-1",
                     "value": {
                       "_links": {
                         "next:request.annual-target": {
@@ -1148,8 +1148,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_read_contract_performance-agreement_sign-fy26_1": {
-                    "summary": "sign-fy26",
+                  "route_read_contract_performance-agreement_credit-quarter-and-year-once_step-1_1": {
+                    "summary": "credit-quarter-and-year-once#step-1",
                     "value": {
                       "_links": {
                         "next:request.annual-target": {
@@ -1238,8 +1238,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_read_request_annual-target_open-year_1": {
-                    "summary": "open-year",
+                  "route_read_request_annual-target_credit-quarter-and-year-once_step-2_1": {
+                    "summary": "credit-quarter-and-year-once#step-2",
                     "value": {
                       "_links": {
                         "confirmations:confirmation.revenue": {
@@ -1331,8 +1331,8 @@
           "content": {
             "application/json": {
               "examples": {
-                "route_request_request_annual-target_open-year_1": {
-                  "summary": "open-year",
+                "route_request_request_annual-target_credit-quarter-and-year-once_step-2_1": {
+                  "summary": "credit-quarter-and-year-once#step-2",
                   "value": {
                     "id": "target-2026",
                     "target_amount_minor": 50000000
@@ -1378,8 +1378,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_request_request_annual-target_open-year_1": {
-                    "summary": "open-year",
+                  "route_request_request_annual-target_credit-quarter-and-year-once_step-2_1": {
+                    "summary": "credit-quarter-and-year-once#step-2",
                     "value": {
                       "_links": {
                         "confirmations:confirmation.revenue": {
@@ -1487,8 +1487,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_list-from-request_annual-target_confirmation_revenue_post-revenue-once_1": {
-                    "summary": "post-revenue-once",
+                  "route_list-from-request_annual-target_confirmation_revenue_credit-quarter-and-year-once_step-4_1": {
+                    "summary": "credit-quarter-and-year-once#step-4",
                     "value": {
                       "_embedded": {
                         "revenues": [
@@ -1586,8 +1586,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_ledger_request_quarterly-target_open-q1_1": {
-                    "summary": "open-q1",
+                  "route_ledger_request_quarterly-target_credit-quarter-and-year-once_step-3_1": {
+                    "summary": "credit-quarter-and-year-once#step-3",
                     "value": {
                       "_embedded": {
                         "quarterly-targets": [
@@ -1693,8 +1693,8 @@
           "content": {
             "application/json": {
               "examples": {
-                "route_request_request_quarterly-target_open-q1_1": {
-                  "summary": "open-q1",
+                "route_request_request_quarterly-target_credit-quarter-and-year-once_step-3_1": {
+                  "summary": "credit-quarter-and-year-once#step-3",
                   "value": {
                     "id": "target-2026-q1",
                     "quarter": "2026-Q1",
@@ -1747,8 +1747,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_request_request_quarterly-target_open-q1_1": {
-                    "summary": "open-q1",
+                  "route_request_request_quarterly-target_credit-quarter-and-year-once_step-3_1": {
+                    "summary": "credit-quarter-and-year-once#step-3",
                     "value": {
                       "_links": {
                         "confirmations:confirmation.revenue": {
@@ -1875,8 +1875,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_read_request_quarterly-target_open-q1_1": {
-                    "summary": "open-q1",
+                  "route_read_request_quarterly-target_credit-quarter-and-year-once_step-3_1": {
+                    "summary": "credit-quarter-and-year-once#step-3",
                     "value": {
                       "_links": {
                         "confirmations:confirmation.revenue": {
@@ -1989,8 +1989,8 @@
           "content": {
             "application/json": {
               "examples": {
-                "route_confirm_confirmation_quarter-close_lock-q1-ledger_1": {
-                  "summary": "lock-q1-ledger",
+                "route_confirm_confirmation_quarter-close_credit-quarter-and-year-once_step-5_1": {
+                  "summary": "credit-quarter-and-year-once#step-5",
                   "value": {
                     "id": "quarter-close-001"
                   }
@@ -2019,8 +2019,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_confirm_confirmation_quarter-close_lock-q1-ledger_1": {
-                    "summary": "lock-q1-ledger",
+                  "route_confirm_confirmation_quarter-close_credit-quarter-and-year-once_step-5_1": {
+                    "summary": "credit-quarter-and-year-once#step-5",
                     "value": {
                       "_links": {
                         "request:request.quarterly-target": {
@@ -2126,8 +2126,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_list-from-request_quarterly-target_confirmation_revenue_post-revenue-once_1": {
-                    "summary": "post-revenue-once",
+                  "route_list-from-request_quarterly-target_confirmation_revenue_credit-quarter-and-year-once_step-4_1": {
+                    "summary": "credit-quarter-and-year-once#step-4",
                     "value": {
                       "_embedded": {
                         "revenues": [
@@ -2225,8 +2225,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_read_confirmation_quarter-close_lock-q1-ledger_1": {
-                    "summary": "lock-q1-ledger",
+                  "route_read_confirmation_quarter-close_credit-quarter-and-year-once_step-5_1": {
+                    "summary": "credit-quarter-and-year-once#step-5",
                     "value": {
                       "_links": {
                         "request:request.quarterly-target": {
@@ -2301,8 +2301,8 @@
           "content": {
             "application/json": {
               "examples": {
-                "route_confirm_confirmation_revenue_post-revenue-once_1": {
-                  "summary": "post-revenue-once",
+                "route_confirm_confirmation_revenue_credit-quarter-and-year-once_step-4_1": {
+                  "summary": "credit-quarter-and-year-once#step-4",
                   "value": {
                     "amount_minor": 52000000,
                     "booking_ref": "booking-928",
@@ -2371,8 +2371,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_confirm_confirmation_revenue_post-revenue-once_1": {
-                    "summary": "post-revenue-once",
+                  "route_confirm_confirmation_revenue_credit-quarter-and-year-once_step-4_1": {
+                    "summary": "credit-quarter-and-year-once#step-4",
                     "value": {
                       "_links": {
                         "next:confirmation.quarter-close": {
@@ -2492,8 +2492,8 @@
             "content": {
               "application/hal+json": {
                 "examples": {
-                  "route_read_confirmation_revenue_post-revenue-once_1": {
-                    "summary": "post-revenue-once",
+                  "route_read_confirmation_revenue_credit-quarter-and-year-once_step-4_1": {
+                    "summary": "credit-quarter-and-year-once#step-4",
                     "value": {
                       "_links": {
                         "next:confirmation.quarter-close": {

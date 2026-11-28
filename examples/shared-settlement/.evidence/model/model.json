@@ -1,6 +1,6 @@
 {
   "type": "fm_model",
-  "schemaVersion": "6.0",
+  "schemaVersion": "7.0",
   "id": "shared-settlement",
   "name": "季度与年度收入核销",
   "version": "1.0.0",

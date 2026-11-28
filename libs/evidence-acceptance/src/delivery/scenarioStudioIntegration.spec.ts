@@ -7,6 +7,7 @@ import {
 import { createAcceptanceModel } from '@evidence-poc/evidence-api/testing';
 import { projectAcceptanceTests } from './scenarioProjector.js';
 import { renderBruno } from '../renderer/brunoRenderer.js';
+import { renderAcceptanceSuite } from '../renderer/brunoSuite.js';
 
 describe('scenario studio to standard acceptance', () => {
   it('round trips forked stories through traces and Bruno export', () => {
@@ -20,6 +21,7 @@ describe('scenario studio to standard acceptance', () => {
         steps: [
           {
             ...parent.steps[2]!,
+            asOf: '2026-03-31T18:00:00+08:00',
             basedOn: ['payment#requested'],
             pathParameters: {
               paymentId: { stepRef: 'payment#requested', jsonpath: '$.id' },
@@ -35,6 +37,9 @@ describe('scenario studio to standard acceptance', () => {
     const projection = projectAcceptanceTests(restored);
     expect(projection.flows).toHaveLength(2);
     expect(projection.flows.every((f) => f.steps.length === 3)).toBe(true);
+    expect(
+      renderAcceptanceSuite(projection)['environments/test.bru'],
+    ).toContain('2026-03-31T18:00:00+08:00');
     const files = renderBruno(projection);
     expect(Object.values(files).join('\n')).toContain('eq 500');
     expect(

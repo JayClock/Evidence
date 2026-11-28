@@ -1,0 +1,176 @@
+{
+  "type": "story",
+  "id": "negotiation-to-daily-report",
+  "kind": "primary",
+  "title": "从广告洽谈到日报",
+  "steps": [
+    {
+      "id": "step-1",
+      "sequence": 1,
+      "actorRef": "role.advertiser",
+      "activity": "发出",
+      "workObjectRef": "rfp.ads-promotion-inquiry",
+      "targetActorRef": "role.agency",
+      "asOf": "2026-07-01T09:00:00Z",
+      "basedOn": [],
+      "values": {
+        "id": "inquiry-summer",
+        "objective": "推广夏季新品",
+        "budget_minor": 800000,
+        "started_at": "2026-07-01T09:00:00Z",
+        "expired_at": "2026-07-04T09:00:00Z"
+      }
+    },
+    {
+      "id": "step-2",
+      "sequence": 2,
+      "actorRef": "role.agency",
+      "activity": "提交",
+      "workObjectRef": "proposal.ads-promotion-proposal",
+      "targetActorRef": "role.advertiser",
+      "asOf": "2026-07-01T10:00:00Z",
+      "basedOn": [
+        "step-1"
+      ],
+      "values": {
+        "id": "quote-summer",
+        "quoted_amount_minor": 720000,
+        "placement": "首页推荐位",
+        "started_at": "2026-07-01T10:00:00Z",
+        "expired_at": "2026-07-03T10:00:00Z"
+      }
+    },
+    {
+      "id": "step-3",
+      "sequence": 3,
+      "actorRef": "role.advertiser",
+      "activity": "签署",
+      "workObjectRef": "contract.ads-promotion-order",
+      "targetActorRef": "role.agency",
+      "asOf": "2026-07-01T11:00:00Z",
+      "basedOn": [
+        "step-2"
+      ],
+      "values": {
+        "id": "ads-order-summer",
+        "campaign_id": "campaign-summer",
+        "agreed_amount_minor": 720000,
+        "signed_at": "2026-07-01T11:00:00Z"
+      }
+    },
+    {
+      "id": "step-4",
+      "sequence": 4,
+      "actorRef": "role.agency",
+      "activity": "就「支付广告投放预付款」发起",
+      "workObjectRef": "request.payment",
+      "targetActorRef": "role.advertiser",
+      "asOf": "2026-07-01T11:05:00Z",
+      "basedOn": [
+        "step-3"
+      ],
+      "values": {
+        "id": "pay-request-summer",
+        "started_at": "2026-07-01T11:05:00Z",
+        "expired_at": "2026-07-02T11:05:00Z"
+      }
+    },
+    {
+      "id": "step-5",
+      "sequence": 5,
+      "actorRef": "role.payment-gateway",
+      "activity": "就「支付广告投放预付款」出具",
+      "workObjectRef": "confirmation.payment",
+      "targetActorRef": "role.agency",
+      "asOf": "2026-07-01T12:00:00Z",
+      "basedOn": [
+        "step-4"
+      ],
+      "values": {
+        "id": "payment-proof-summer",
+        "paid_amount_minor": 720000,
+        "gateway_reference": "gateway-txn-02",
+        "confirmed_at": "2026-07-01T12:00:00Z"
+      }
+    },
+    {
+      "id": "step-6",
+      "sequence": 6,
+      "actorRef": "role.advertiser",
+      "activity": "就「按约定排期上线广告」发起",
+      "workObjectRef": "request.advertising",
+      "targetActorRef": "role.agency",
+      "asOf": "2026-07-01T13:00:00Z",
+      "basedOn": [
+        "step-5"
+      ],
+      "values": {
+        "id": "launch-request-summer",
+        "placement": "首页推荐位",
+        "started_at": "2026-07-01T13:00:00Z",
+        "expired_at": "2026-07-03T13:00:00Z"
+      }
+    },
+    {
+      "id": "step-7",
+      "sequence": 7,
+      "actorRef": "role.agency",
+      "activity": "就「按约定排期上线广告」出具",
+      "workObjectRef": "confirmation.advertising",
+      "targetActorRef": "role.advertiser",
+      "asOf": "2026-07-02T00:00:00Z",
+      "basedOn": [
+        "step-6"
+      ],
+      "values": {
+        "id": "launch-proof-summer",
+        "placement": "首页推荐位",
+        "confirmed_at": "2026-07-02T00:00:00Z"
+      }
+    },
+    {
+      "id": "step-8",
+      "sequence": 8,
+      "actorRef": "role.advertiser",
+      "activity": "就「汇总并交付广告投放日报」发起",
+      "workObjectRef": "request.daily-report",
+      "targetActorRef": "role.agency",
+      "asOf": "2026-07-03T00:10:00Z",
+      "basedOn": [
+        "step-7"
+      ],
+      "values": {
+        "id": "report-request-summer",
+        "report_date": "2026-07-02",
+        "started_at": "2026-07-03T00:10:00Z",
+        "expired_at": "2026-07-04T00:10:00Z"
+      },
+      "expectedStatus": 202,
+      "expect": {
+        "$._links.self.href": "/ads-promotion-orders/ads-order-summer/daily-reports/report-request-summer"
+      }
+    },
+    {
+      "id": "step-9",
+      "sequence": 9,
+      "actorRef": "role.agency",
+      "activity": "就「汇总并交付广告投放日报」出具",
+      "workObjectRef": "confirmation.daily-report",
+      "targetActorRef": "role.advertiser",
+      "asOf": "2026-07-03T00:20:00Z",
+      "basedOn": [
+        "step-8"
+      ],
+      "values": {
+        "id": "daily-report-summer",
+        "impressions": 12904,
+        "report_ref": "archive-summer-20260702",
+        "confirmed_at": "2026-07-03T00:20:00Z"
+      },
+      "expectedStatus": 201,
+      "expect": {
+        "$._links.self.href": "/daily-report-confirmations/daily-report-summer"
+      }
+    }
+  ]
+}

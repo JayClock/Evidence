@@ -75,7 +75,7 @@ uses the pinned Bruno CLI installed by pnpm. `--json` emits a machine-readable r
 writing it. See [acceptance execution](libs/evidence-acceptance/README.md#running-the-collection)
 for what direct Bruno runs do and what `evidence test` adds.
 
-Generated request clocks default to the model examples. `test --as-of <UTC>`
+Generated requests use the business clock declared on each story step. `test --as-of <UTC>`
 overrides request clocks, **not the compiled expected values**. Only trusted test
 backends should consume `x-evidence-asof`; production clocks and authorization
 must not trust client headers. See `examples/b2b-escrow/README.md` for the

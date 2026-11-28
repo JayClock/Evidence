@@ -37,41 +37,5 @@
       "required": true,
       "meaning": "已满足的验收条件"
     }
-  ],
-  "examples": [
-    {
-      "label": "accept-01-history",
-      "value": {
-        "id": "story-proof-52",
-        "story_id": "story-52",
-        "acceptance_note": "买家只看到自己的已签订单",
-        "confirmed_at": "2026-08-06T10:00:00Z"
-      },
-      "test": {
-        "flow": "two-stories-one-sprint",
-        "actingRoleRef": "role.product-owner",
-        "asOf": "2026-08-06T10:00:00Z",
-        "basedOn": [
-          "confirmation.backlog#freeze-scope"
-        ]
-      }
-    },
-    {
-      "label": "accept-02-export",
-      "value": {
-        "id": "story-proof-53",
-        "story_id": "story-53",
-        "acceptance_note": "导出文件与页面筛选一致",
-        "confirmed_at": "2026-08-12T14:00:00Z"
-      },
-      "test": {
-        "flow": "two-stories-one-sprint",
-        "actingRoleRef": "role.product-owner",
-        "asOf": "2026-08-12T14:00:00Z",
-        "basedOn": [
-          "confirmation.backlog#freeze-scope"
-        ]
-      }
-    }
   ]
 }

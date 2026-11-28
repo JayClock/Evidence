@@ -1,0 +1,488 @@
+{
+  "type": "story",
+  "id": "milestone-on-time",
+  "kind": "primary",
+  "title": "分期托管按期结算",
+  "tags": [
+    "dod",
+    "milestone",
+    "on-time"
+  ],
+  "steps": [
+    {
+      "id": "step-1",
+      "sequence": 1,
+      "actorRef": "role.procurement-buyer",
+      "activity": "签署",
+      "workObjectRef": "contract.agreement",
+      "targetActorRef": "role.procurement-seller",
+      "asOf": "2026-06-01T00:00:00Z",
+      "basedOn": [],
+      "values": {
+        "id": "milestone-on-time-contract-agreement",
+        "signed_at": "2026-06-01T00:00:00Z",
+        "quantity": 1000,
+        "tier_threshold": 1000,
+        "tier1_unit_price_minor": 1299,
+        "tier2_unit_price_minor": 1199,
+        "tax_bps": 1300,
+        "retention_bps": 500,
+        "daily_penalty_bps": 100,
+        "delivery_deadline": "2026-06-15T00:00:00Z"
+      }
+    },
+    {
+      "id": "step-2",
+      "sequence": 2,
+      "actorRef": "role.procurement-buyer",
+      "activity": "就「确认采购订单」发起",
+      "workObjectRef": "request.order",
+      "targetActorRef": "role.procurement-seller",
+      "asOf": "2026-06-01T00:01:00Z",
+      "basedOn": [
+        "step-1"
+      ],
+      "values": {
+        "id": "milestone-on-time-request-order",
+        "started_at": "2026-06-01T00:01:00Z",
+        "expired_at": "2026-06-03T00:01:00Z"
+      }
+    },
+    {
+      "id": "step-3",
+      "sequence": 3,
+      "actorRef": "role.procurement-seller",
+      "activity": "就「确认采购订单」出具",
+      "workObjectRef": "confirmation.order",
+      "targetActorRef": "role.procurement-buyer",
+      "asOf": "2026-06-01T00:01:00Z",
+      "basedOn": [
+        "step-2"
+      ],
+      "values": {
+        "id": "milestone-on-time-confirmation-order",
+        "confirmed_at": "2026-06-01T00:01:00Z",
+        "subtotal_minor": 1199000,
+        "gross_amount_minor": 1354870,
+        "quantity": 1000,
+        "retention_bps": 500,
+        "daily_penalty_bps": 100,
+        "delivery_deadline": "2026-06-15T00:00:00Z"
+      }
+    },
+    {
+      "id": "step-4",
+      "sequence": 4,
+      "actorRef": "role.procurement-seller",
+      "activity": "就「确认采购订单并承诺履行」发起",
+      "workObjectRef": "request.commitment",
+      "targetActorRef": "role.procurement-buyer",
+      "asOf": "2026-06-01T00:02:00Z",
+      "basedOn": [
+        "step-3"
+      ],
+      "values": {
+        "id": "milestone-on-time-request-commitment",
+        "started_at": "2026-06-01T00:02:00Z",
+        "expired_at": "2026-06-03T00:02:00Z"
+      }
+    },
+    {
+      "id": "step-5",
+      "sequence": 5,
+      "actorRef": "role.procurement-buyer",
+      "activity": "就「确认采购订单并承诺履行」出具",
+      "workObjectRef": "confirmation.commitment",
+      "targetActorRef": "role.procurement-seller",
+      "asOf": "2026-06-01T00:02:00Z",
+      "basedOn": [
+        "step-4"
+      ],
+      "values": {
+        "id": "milestone-on-time-confirmation-commitment",
+        "confirmed_at": "2026-06-01T00:02:00Z",
+        "acknowledged": true
+      }
+    },
+    {
+      "id": "step-6",
+      "sequence": 6,
+      "actorRef": "role.escrow-buyer",
+      "activity": "签署",
+      "workObjectRef": "contract.escrow",
+      "targetActorRef": "role.escrow-escrow",
+      "asOf": "2026-06-02T00:00:00Z",
+      "basedOn": [
+        "step-5"
+      ],
+      "values": {
+        "id": "milestone-on-time-contract-escrow",
+        "signed_at": "2026-06-02T00:00:00Z",
+        "order_confirmation_id": "milestone-on-time-confirmation-order"
+      }
+    },
+    {
+      "id": "step-7",
+      "sequence": 7,
+      "actorRef": "role.escrow-buyer",
+      "activity": "就「锁定全额托管款」发起",
+      "workObjectRef": "request.deposit-lock",
+      "targetActorRef": "role.escrow-escrow",
+      "asOf": "2026-06-02T00:01:00Z",
+      "basedOn": [
+        "step-6"
+      ],
+      "values": {
+        "id": "milestone-on-time-request-deposit-lock",
+        "started_at": "2026-06-02T00:01:00Z",
+        "expired_at": "2026-06-04T00:01:00Z"
+      }
+    },
+    {
+      "id": "step-8",
+      "sequence": 8,
+      "actorRef": "role.escrow-escrow",
+      "activity": "就「锁定全额托管款」出具",
+      "workObjectRef": "confirmation.deposit-lock",
+      "targetActorRef": "role.escrow-buyer",
+      "asOf": "2026-06-02T00:01:00Z",
+      "basedOn": [
+        "step-7"
+      ],
+      "values": {
+        "id": "milestone-on-time-confirmation-deposit-lock",
+        "confirmed_at": "2026-06-02T00:01:00Z",
+        "locked_amount_minor": 1354870
+      }
+    },
+    {
+      "id": "step-9",
+      "sequence": 9,
+      "actorRef": "role.escrow-escrow",
+      "activity": "就「核对托管资金流水」发起",
+      "workObjectRef": "request.custody-statement",
+      "targetActorRef": "role.escrow-buyer",
+      "asOf": "2026-06-02T00:02:00Z",
+      "basedOn": [
+        "step-8"
+      ],
+      "values": {
+        "id": "milestone-on-time-request-custody-statement",
+        "started_at": "2026-06-02T00:02:00Z",
+        "expired_at": "2026-06-04T00:02:00Z"
+      }
+    },
+    {
+      "id": "step-10",
+      "sequence": 10,
+      "actorRef": "role.escrow-buyer",
+      "activity": "就「核对托管资金流水」出具",
+      "workObjectRef": "confirmation.custody-statement",
+      "targetActorRef": "role.escrow-escrow",
+      "asOf": "2026-06-02T00:02:00Z",
+      "basedOn": [
+        "step-9"
+      ],
+      "values": {
+        "id": "milestone-on-time-confirmation-custody-statement",
+        "confirmed_at": "2026-06-02T00:02:00Z",
+        "acknowledged": true
+      }
+    },
+    {
+      "id": "step-11",
+      "sequence": 11,
+      "actorRef": "role.fulfillment-buyer",
+      "activity": "签署",
+      "workObjectRef": "contract.fulfillment",
+      "targetActorRef": "role.fulfillment-seller",
+      "asOf": "2026-06-03T00:00:00Z",
+      "basedOn": [
+        "step-10"
+      ],
+      "values": {
+        "id": "milestone-on-time-contract-fulfillment",
+        "signed_at": "2026-06-03T00:00:00Z",
+        "order_confirmation_id": "milestone-on-time-confirmation-order",
+        "deposit_confirmation_id": "milestone-on-time-confirmation-deposit-lock"
+      }
+    },
+    {
+      "id": "step-12",
+      "sequence": 12,
+      "actorRef": "role.fulfillment-buyer",
+      "activity": "就「交付首期里程碑成果」发起",
+      "workObjectRef": "request.first-milestone",
+      "targetActorRef": "role.fulfillment-seller",
+      "asOf": "2026-06-10T00:00:00Z",
+      "basedOn": [
+        "step-11"
+      ],
+      "values": {
+        "id": "milestone-on-time-request-first-milestone",
+        "started_at": "2026-06-10T00:00:00Z",
+        "expired_at": "2026-06-12T00:00:00Z"
+      }
+    },
+    {
+      "id": "step-13",
+      "sequence": 13,
+      "actorRef": "role.fulfillment-seller",
+      "activity": "就「交付首期里程碑成果」出具",
+      "workObjectRef": "confirmation.first-milestone",
+      "targetActorRef": "role.fulfillment-buyer",
+      "asOf": "2026-06-10T00:00:00Z",
+      "basedOn": [
+        "step-12"
+      ],
+      "values": {
+        "id": "milestone-on-time-confirmation-first-milestone",
+        "confirmed_at": "2026-06-10T00:00:00Z",
+        "delivered_quantity": 500
+      }
+    },
+    {
+      "id": "step-14",
+      "sequence": 14,
+      "actorRef": "role.fulfillment-buyer",
+      "activity": "就「交付终期里程碑成果」发起",
+      "workObjectRef": "request.final-milestone",
+      "targetActorRef": "role.fulfillment-seller",
+      "asOf": "2026-06-15T00:00:00Z",
+      "basedOn": [
+        "step-13"
+      ],
+      "values": {
+        "id": "milestone-on-time-request-final-milestone",
+        "started_at": "2026-06-15T00:00:00Z",
+        "expired_at": "2026-06-17T00:00:00Z"
+      }
+    },
+    {
+      "id": "step-15",
+      "sequence": 15,
+      "actorRef": "role.fulfillment-seller",
+      "activity": "就「交付终期里程碑成果」出具",
+      "workObjectRef": "confirmation.final-milestone",
+      "targetActorRef": "role.fulfillment-buyer",
+      "asOf": "2026-06-15T00:00:00Z",
+      "basedOn": [
+        "step-14"
+      ],
+      "values": {
+        "id": "milestone-on-time-confirmation-final-milestone",
+        "confirmed_at": "2026-06-15T00:00:00Z",
+        "delivered_quantity": 500
+      }
+    },
+    {
+      "id": "step-16",
+      "sequence": 16,
+      "actorRef": "role.fulfillment-seller",
+      "activity": "就「验收里程碑交付成果」发起",
+      "workObjectRef": "request.milestone-acceptance",
+      "targetActorRef": "role.fulfillment-buyer",
+      "asOf": "2026-06-15T00:00:00Z",
+      "basedOn": [
+        "step-15"
+      ],
+      "values": {
+        "id": "milestone-on-time-request-milestone-acceptance",
+        "started_at": "2026-06-15T00:00:00Z",
+        "expired_at": "2026-06-17T00:00:00Z"
+      }
+    },
+    {
+      "id": "step-17",
+      "sequence": 17,
+      "actorRef": "role.fulfillment-buyer",
+      "activity": "就「验收里程碑交付成果」出具",
+      "workObjectRef": "confirmation.milestone-acceptance",
+      "targetActorRef": "role.fulfillment-seller",
+      "asOf": "2026-06-15T00:00:00Z",
+      "basedOn": [
+        "step-16"
+      ],
+      "values": {
+        "id": "milestone-on-time-confirmation-milestone-acceptance",
+        "confirmed_at": "2026-06-15T00:00:00Z",
+        "accepted": true,
+        "accepted_quantity": 1000,
+        "late_days": 0
+      }
+    },
+    {
+      "id": "step-18",
+      "sequence": 18,
+      "actorRef": "role.settlement-seller",
+      "activity": "签署",
+      "workObjectRef": "contract.settlement",
+      "targetActorRef": "role.settlement-escrow",
+      "asOf": "2026-06-15T00:00:00Z",
+      "basedOn": [
+        "step-17"
+      ],
+      "values": {
+        "id": "milestone-on-time-contract-settlement",
+        "signed_at": "2026-06-15T00:00:00Z",
+        "order_confirmation_id": "milestone-on-time-confirmation-order",
+        "deposit_confirmation_id": "milestone-on-time-confirmation-deposit-lock",
+        "acceptance_confirmation_id": "milestone-on-time-confirmation-milestone-acceptance"
+      }
+    },
+    {
+      "id": "step-19",
+      "sequence": 19,
+      "actorRef": "role.settlement-seller",
+      "activity": "就「划付阶段款项」发起",
+      "workObjectRef": "request.milestone-release",
+      "targetActorRef": "role.settlement-escrow",
+      "asOf": "2026-06-15T00:00:00Z",
+      "basedOn": [
+        "step-18"
+      ],
+      "values": {
+        "id": "milestone-on-time-request-milestone-release",
+        "started_at": "2026-06-15T00:00:00Z",
+        "expired_at": "2026-06-17T00:00:00Z"
+      }
+    },
+    {
+      "id": "step-20",
+      "sequence": 20,
+      "actorRef": "role.settlement-escrow",
+      "activity": "就「划付阶段款项」出具",
+      "workObjectRef": "confirmation.milestone-release",
+      "targetActorRef": "role.settlement-seller",
+      "asOf": "2026-06-15T00:00:00Z",
+      "basedOn": [
+        "step-19"
+      ],
+      "values": {
+        "id": "milestone-on-time-confirmation-milestone-release-00-tamper",
+        "confirmed_at": "2026-06-15T00:00:00Z",
+        "gross_amount_minor": 1354870,
+        "retention_minor": 67744,
+        "late_penalty_minor": 0,
+        "payout_minor": 1287126
+      },
+      "expectedStatus": 422,
+      "inputs": {
+        "id": "milestone-on-time-forged",
+        "payout_minor": 999999
+      },
+      "expect": {
+        "$.error": "INVALID_INPUT"
+      }
+    },
+    {
+      "id": "step-21",
+      "sequence": 21,
+      "actorRef": "role.settlement-escrow",
+      "activity": "就「划付阶段款项」出具",
+      "workObjectRef": "confirmation.milestone-release",
+      "targetActorRef": "role.settlement-seller",
+      "asOf": "2026-06-15T00:00:00Z",
+      "basedOn": [
+        "step-19"
+      ],
+      "values": {
+        "id": "milestone-on-time-confirmation-milestone-release-01-time-tamper",
+        "confirmed_at": "2026-06-15T00:00:00Z",
+        "gross_amount_minor": 1354870,
+        "retention_minor": 67744,
+        "late_penalty_minor": 0,
+        "payout_minor": 1287126
+      },
+      "expectedStatus": 422,
+      "inputs": {
+        "id": "milestone-on-time-backdated",
+        "confirmed_at": "2000-01-01T00:00:00Z"
+      },
+      "expect": {
+        "$.error": "INVALID_INPUT"
+      }
+    },
+    {
+      "id": "step-22",
+      "sequence": 22,
+      "actorRef": "role.settlement-escrow",
+      "activity": "就「划付阶段款项」出具",
+      "workObjectRef": "confirmation.milestone-release",
+      "targetActorRef": "role.settlement-seller",
+      "asOf": "2026-06-15T00:00:00Z",
+      "basedOn": [
+        "step-19"
+      ],
+      "values": {
+        "id": "milestone-on-time-confirmation-milestone-release-10-confirmed",
+        "confirmed_at": "2026-06-15T00:00:00Z",
+        "gross_amount_minor": 1354870,
+        "retention_minor": 67744,
+        "late_penalty_minor": 0,
+        "payout_minor": 1287126
+      }
+    },
+    {
+      "id": "step-23",
+      "sequence": 23,
+      "actorRef": "role.settlement-escrow",
+      "activity": "就「划付阶段款项」出具",
+      "workObjectRef": "confirmation.milestone-release",
+      "targetActorRef": "role.settlement-seller",
+      "asOf": "2026-06-15T00:00:00Z",
+      "basedOn": [
+        "step-22"
+      ],
+      "values": {
+        "id": "milestone-on-time-confirmation-milestone-release-20-duplicate",
+        "confirmed_at": "2026-06-15T00:00:00Z",
+        "gross_amount_minor": 1354870,
+        "retention_minor": 67744,
+        "late_penalty_minor": 0,
+        "payout_minor": 1287126
+      },
+      "expectedStatus": 409,
+      "inputs": {
+        "id": "milestone-on-time-duplicate"
+      },
+      "expect": {
+        "$.error": "ALREADY_CONFIRMED"
+      }
+    },
+    {
+      "id": "step-24",
+      "sequence": 24,
+      "actorRef": "role.settlement-escrow",
+      "activity": "就「核对阶段托管流水」发起",
+      "workObjectRef": "request.milestone-statement",
+      "targetActorRef": "role.settlement-seller",
+      "asOf": "2026-06-15T00:00:00Z",
+      "basedOn": [
+        "step-22"
+      ],
+      "values": {
+        "id": "milestone-on-time-request-milestone-statement",
+        "started_at": "2026-06-15T00:00:00Z",
+        "expired_at": "2026-06-17T00:00:00Z"
+      }
+    },
+    {
+      "id": "step-25",
+      "sequence": 25,
+      "actorRef": "role.settlement-seller",
+      "activity": "就「核对阶段托管流水」出具",
+      "workObjectRef": "confirmation.milestone-statement",
+      "targetActorRef": "role.settlement-escrow",
+      "asOf": "2026-06-15T00:00:00Z",
+      "basedOn": [
+        "step-24"
+      ],
+      "values": {
+        "id": "milestone-on-time-confirmation-milestone-statement",
+        "confirmed_at": "2026-06-15T00:00:00Z",
+        "acknowledged": true
+      }
+    }
+  ]
+}

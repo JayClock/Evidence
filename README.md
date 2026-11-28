@@ -24,7 +24,7 @@
 
 **Evidence 致力于成为后端领域的 Pencil 与形式化安全门禁。**
 
-它提供了一套基于**履约建模法（Fulfillment Modeling v6）**的领域描述语言（DSL）与**桌面可视化建模工作台（Canvas & Inspector）**。确立**“宏观形式化确定，微观生成式灵活”**的设计原则：在脱离具体语言的环境中精确表达业务权责、事实凭证与派生规则，锁死架构与契约底线，为 AI Coding 提供不可伪造的外部验收基线。
+它提供了一套基于**履约建模法（Fulfillment Modeling v7）**的领域描述语言（DSL）与**桌面可视化建模工作台（Canvas & Inspector）**。确立**“宏观形式化确定，微观生成式灵活”**的设计原则：在脱离具体语言的环境中精确表达业务权责、事实凭证与派生规则，锁死架构与契约底线，为 AI Coding 提供不可伪造的外部验收基线。
 
 ### 研发范式对比
 
@@ -47,7 +47,7 @@ Evidence 不仅是一个桌面设计器，更是贯穿**业务意图澄清 ➔ �
 │                              端到端 AI Coding 研发工作流                                │
 │                                                                                        │
 │  [阶段 1: 业务意图]    [阶段 2: 履约建模]    [阶段 3: 架构师门禁]    [阶段 4: 契约向下投影]    [阶段 5: AI 驱动编码]     [阶段 6: HTTP 验收]  │
-│    需求澄清访谈  ──>    FM v6 形式化模型 ──>   桌面图谱与故事  ──>   OpenAPI + Bruno  ──>   多语言 TDD 实现  ──>   运行时黑盒验证   │
+│    需求澄清访谈  ──>    FM v7 形式化模型 ──>   桌面图谱与故事  ──>   OpenAPI + Bruno  ──>   多语言 TDD 实现  ──>   运行时黑盒验证   │
 │   (AI 建模)           (AST + CEL 守护)      (Human Gate)         (Evidence Export)      (Red-Green 循环)       (Bruno + oasdiff)│
 │                                                                                        │
 │   ── 宏观由 Evidence 门禁锁死安全边界与验收用例；微观由 AI Coding 自由探索具体语言实现 ──      │
@@ -86,7 +86,7 @@ pnpm evidence export --workspace examples/b2b-escrow --verify
 ```
 
 - **OpenAPI 3.1 规格**：自动导出 RESTful 接口契约，服务端派生属性已严格从 Request Input 中剔除；
-- **Bruno 黑盒验收测试集**：内联样例直出验收，包含依赖捕获、金额断言与显式负向错误用例。
+- **Bruno 黑盒验收测试集**：每条领域故事生成可独立执行的 HTTP 流程，包含依赖捕获、金额断言与显式负向用例。
 - **契约冻结**：契约与断言一经导出即作为不可篡改的“外部法典”，防止后续 AI 实现时私自修改测试以迁就代码。
 
 ### 5. AI 驱动多语言 TDD 编码（Polyglot Implementation via TDD）
@@ -116,7 +116,7 @@ pnpm evidence export --workspace examples/b2b-escrow --verify
 
 ## ✨ 核心能力
 
-### 1. 业务履约模型 DSL（Fulfillment Modeling v6）
+### 1. 业务履约模型 DSL（Fulfillment Modeling v7）
 
 抛弃贫血的 CRUD 实体思维，采用以**权责、请求、确认、事实证据**为核心的原语：
 
@@ -126,18 +126,20 @@ pnpm evidence export --workspace examples/b2b-escrow --verify
 - **Evidence**：由确认动作产生的不可逆事实凭证（附带业务发生时间戳）。
 - **CEL Derivation Rules**：使用 Google Common Expression Language 声明式定义派生属性，杜绝将服务端计算逻辑暴露为接口入参。
 
+- **Domain Story** 记录谁向谁做了什么、形成哪份凭证。`forkedFrom` 指定父故事的分叉步骤，子故事只保存后续步骤。
+
 ### 2. 可视化建模工作台（Desktop Canvas & Inspector）
 
 基于 Electron + 现代化 Web 画布构建的桌面端建模环境：
 
 - **领域图谱画布**：直观拖拽实体、连线建立履约流、展示因果依赖拓扑。
 - **声明式属性检查器（Inspector）**：所见即所得地配置字段契约、关键数据台账（Key Data Ledger）与派生规则。
-- **目录工作区**：打开目标目录，只在根目录下的 `.evidence/` 读写项目数据。模型按实体、关系、规则拆分，由 Git 管理。
+- **目录工作区**：打开目标目录，只在根目录下的 `.evidence/` 读写项目数据。模型按实体、关系、规则和故事拆分，由 Git 管理。
 
 ### 3. 静态模型校验与标准化 HTTP 验收
 
 - **AST 严格静态门禁**：即时检测悬空引用、派生对称性破坏、角色权责失配等致命建模缺陷。
-- **内联样例直出验收**：实体 `examples[].test` 声明测试流程，编译期 CEL 求值产生派生断言，直接导出 Bruno 集合；由 Bruno CLI 对真实后端执行 HTTP 验收。静态检查通过不代表后端验收通过。
+- **领域故事驱动验收**。编译器展开 `stories` 的继承步骤，通过 CEL 计算派生断言，再由 Bruno CLI 对真实后端执行每条流程。
 - **纯 TypeScript 原生化**：核心引擎完全在内存执行，为画布提供按键级（Keystroke-level）的实时 Lint 反馈。
 
 ### 4. AI 智能体协同建模（MCP / Agent Core）
@@ -266,7 +268,7 @@ pnpm desktop
 
 ```text
 <目标目录>/.evidence/
-  model/               # 模型源：model.json、entities、relationships、rules
+  model/               # 模型源：model.json、entities、relationships、rules、stories
   config.json          # 工作区版本声明
   delivery/            # 自动同步的上下文草稿；release/ 存显式完整导出的 OpenAPI
   acceptance/          # Bruno 集合与验收清单
@@ -304,7 +306,7 @@ pnpm evidence diff examples/b2b-escrow/baseline-v1 examples/b2b-escrow --format 
 
 ### 3. HTTP 验收
 
-- [x] **标准场景验收导出**：从内联 `examples[].test` 直接导出 Bruno 集合，支持依赖捕获、派生断言和显式负向用例。
+- [x] **标准场景验收导出**。从 `.evidence/model/stories/` 导出 Bruno 集合，支持分支继承、依赖捕获、派生断言和显式负向用例。
 
 ### 4. 架构与工程规范通用化（Industry Standard Refactoring）
 

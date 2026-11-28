@@ -11,8 +11,9 @@ const uniqueTexts = z
     'must contain unique non-empty strings',
   );
 
-const rfc3339Timestamp = z
+export const StoryTimestampSchema = z
   .string()
+  .datetime({ offset: true, message: 'invalid business clock' })
   .regex(
     /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/,
     'asOf must be an RFC 3339 timestamp with an explicit offset',
@@ -46,7 +47,7 @@ export const StoryForkAnchorSchema = z
   .object({
     storyId: DomainIdSchema,
     stepId: StoryStepIdSchema,
-    asOf: rfc3339Timestamp.optional(),
+    asOf: StoryTimestampSchema.optional(),
     triggerRuleRef: DomainIdSchema.optional(),
     reason: nonEmptyText.optional(),
   })
@@ -62,7 +63,7 @@ export const StoryStepASTSchema = z
     activity: nonEmptyText,
     workObjectRef: DomainIdSchema,
     targetActorRef: DomainIdSchema.optional(),
-    asOf: rfc3339Timestamp,
+    asOf: StoryTimestampSchema,
     basedOn: z
       .array(StoryStepRefSchema)
       .refine(

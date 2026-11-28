@@ -33,20 +33,5 @@
       "required": true,
       "meaning": "会计年度"
     }
-  ],
-  "examples": [
-    {
-      "label": "sign-fy26",
-      "value": {
-        "id": "agreement-fy26",
-        "fiscal_year": 2026,
-        "signed_at": "2026-01-01T09:00:00Z"
-      },
-      "test": {
-        "flow": "credit-quarter-and-year-once",
-        "actingRoleRef": "role.account-owner",
-        "asOf": "2026-01-01T09:00:00Z"
-      }
-    }
   ]
 }

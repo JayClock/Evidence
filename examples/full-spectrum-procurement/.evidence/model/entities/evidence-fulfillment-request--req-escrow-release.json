@@ -7,49 +7,6 @@
   "contextRef": "ctx-escrow-settlement",
   "responsibleRoleRef": "role-escrow-depositor",
   "label": "验收合格后托管尾款放款请求（Final Escrow Release Request）",
-  "examples": [
-    {
-      "label": "顺畅履约",
-      "value": {
-        "release_amount": {
-          "minorUnits": 70000000,
-          "currency": "CNY"
-        },
-        "started_at": "2026-02-11T09:00:00Z",
-        "expired_at": "2026-02-15T18:00:00Z"
-      },
-      "test": {
-        "flow": "happy-path",
-        "actingRoleRef": "role-escrow-depositor",
-        "asOf": "2026-02-11T09:00:00Z",
-        "basedOn": [
-          "doc-sgs-inspection-cert#顺畅履约",
-          "doc-escrow-agreement#顺畅履约"
-        ]
-      }
-    },
-    {
-      "label": "逾期交货",
-      "value": {
-        "release_amount": {
-          "minorUnits": 69900000,
-          "currency": "CNY"
-        },
-        "started_at": "2026-02-14T09:00:00Z",
-        "expired_at": "2026-02-17T18:00:00Z"
-      },
-      "test": {
-        "flow": "late-delivery",
-        "actingRoleRef": "role-escrow-depositor",
-        "asOf": "2026-02-14T09:00:00Z",
-        "basedOn": [
-          "doc-sgs-inspection-cert#逾期交货",
-          "conf-breach-settlement#逾期交货",
-          "doc-escrow-agreement#逾期交货"
-        ]
-      }
-    }
-  ],
   "attributes": [
     {
       "name": "release_amount",

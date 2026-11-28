@@ -31,49 +31,5 @@
       "valueType": "int",
       "required": true
     }
-  ],
-  "examples": [
-    {
-      "label": "single-on-time",
-      "value": {
-        "id": "single-on-time-confirmation-delivery",
-        "confirmed_at": "2026-06-15T00:00:00Z",
-        "delivered_quantity": 999
-      },
-      "test": {
-        "flow": "single-on-time",
-        "tags": [
-          "regression",
-          "single",
-          "on-time"
-        ],
-        "actingRoleRef": "role.fulfillment-seller",
-        "asOf": "2026-06-15T00:00:00Z",
-        "basedOn": [
-          "request.delivery#single-on-time"
-        ]
-      }
-    },
-    {
-      "label": "single-late",
-      "value": {
-        "id": "single-late-confirmation-delivery",
-        "confirmed_at": "2026-06-30T00:00:00Z",
-        "delivered_quantity": 1000
-      },
-      "test": {
-        "flow": "single-late",
-        "tags": [
-          "regression",
-          "single",
-          "late"
-        ],
-        "actingRoleRef": "role.fulfillment-seller",
-        "asOf": "2026-06-30T00:00:00Z",
-        "basedOn": [
-          "request.delivery#single-late"
-        ]
-      }
-    }
   ]
 }

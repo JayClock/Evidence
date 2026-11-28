@@ -20,7 +20,7 @@
               "id": "agreement-fy26"
             },
             "parameters": {},
-            "ref": "contract.performance-agreement#sign-fy26",
+            "ref": "credit-quarter-and-year-once#step-1",
             "responseSchema": {
               "additionalProperties": false,
               "description": "签署业绩责任与分成协议（Performance Agreement），双方权责自此成立",
@@ -122,7 +122,7 @@
             "parameters": {
               "contractId": "capture_1_0"
             },
-            "ref": "request.annual-target#open-year",
+            "ref": "credit-quarter-and-year-once#step-2",
             "responseSchema": {
               "additionalProperties": false,
               "description": "发起年度收入考核指标（Annual Revenue Target），开启一个有截止时间的履约窗口",
@@ -240,7 +240,7 @@
             "parameters": {
               "contractId": "capture_1_0"
             },
-            "ref": "request.quarterly-target#open-q1",
+            "ref": "credit-quarter-and-year-once#step-3",
             "responseSchema": {
               "additionalProperties": false,
               "description": "发起季度收入考核指标（Quarterly Revenue Target），开启一个有截止时间的履约窗口",
@@ -369,7 +369,7 @@
               ]
             },
             "parameters": {},
-            "ref": "confirmation.revenue#post-revenue-once",
+            "ref": "credit-quarter-and-year-once#step-4",
             "responseSchema": {
               "additionalProperties": false,
               "description": "读取资源详情",
@@ -490,7 +490,7 @@
               "contractId": "capture_1_0",
               "targetId": "capture_4_0"
             },
-            "ref": "confirmation.quarter-close#lock-q1-ledger",
+            "ref": "credit-quarter-and-year-once#step-5",
             "responseSchema": {
               "additionalProperties": false,
               "description": "读取资源详情",

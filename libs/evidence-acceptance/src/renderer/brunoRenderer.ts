@@ -160,7 +160,8 @@ export function brunoRequestPath(
   stepIndex: number,
   ref: string,
 ): string {
-  const slug = (ref.split('#', 1)[0] ?? '')
+  const slug = ref
+    .slice(ref.lastIndexOf('#') + 1)
     .toLowerCase()
     .replace(/[^a-z0-9_-]+/g, '-')
     .slice(0, 64);
@@ -182,7 +183,7 @@ export function renderBruno(
     'bruno.json': `${JSON.stringify({ version: '1', name: `${projection.modelId} acceptance`, type: 'collection' }, null, 2)}\n`,
     'collection.bru': file(
       block('docs', [
-        'Generated from inline model examples. Do not edit. Test environment only.',
+        'Generated from domain stories. Do not edit. Test environment only.',
       ]),
     ),
     'flows/folder.bru': file(

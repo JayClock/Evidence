@@ -1,6 +1,6 @@
 {
   "type": "fm_model",
-  "schemaVersion": "6.0",
+  "schemaVersion": "7.0",
   "id": "b2b-escrow",
   "name": "B2B escrow procurement and milestone settlement",
   "version": "2.0.0",

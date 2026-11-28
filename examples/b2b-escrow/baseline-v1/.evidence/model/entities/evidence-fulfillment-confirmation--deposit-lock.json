@@ -33,49 +33,5 @@
       "keyData": true,
       "derivedByRuleRef": "rule.locked-amount"
     }
-  ],
-  "examples": [
-    {
-      "label": "single-on-time",
-      "value": {
-        "id": "single-on-time-confirmation-deposit-lock",
-        "confirmed_at": "2026-06-02T00:01:00Z",
-        "locked_amount_minor": 1466402
-      },
-      "test": {
-        "flow": "single-on-time",
-        "tags": [
-          "regression",
-          "single",
-          "on-time"
-        ],
-        "actingRoleRef": "role.escrow-escrow",
-        "asOf": "2026-06-02T00:01:00Z",
-        "basedOn": [
-          "request.deposit-lock#single-on-time"
-        ]
-      }
-    },
-    {
-      "label": "single-late",
-      "value": {
-        "id": "single-late-confirmation-deposit-lock",
-        "confirmed_at": "2026-06-02T00:01:00Z",
-        "locked_amount_minor": 1354870
-      },
-      "test": {
-        "flow": "single-late",
-        "tags": [
-          "regression",
-          "single",
-          "late"
-        ],
-        "actingRoleRef": "role.escrow-escrow",
-        "asOf": "2026-06-02T00:01:00Z",
-        "basedOn": [
-          "request.deposit-lock#single-late"
-        ]
-      }
-    }
   ]
 }

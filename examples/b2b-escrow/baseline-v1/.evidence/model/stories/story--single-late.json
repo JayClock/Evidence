@@ -1,0 +1,454 @@
+{
+  "type": "story",
+  "id": "single-late",
+  "kind": "primary",
+  "title": "单笔托管逾期履约",
+  "tags": [
+    "late",
+    "regression",
+    "single"
+  ],
+  "steps": [
+    {
+      "id": "step-1",
+      "sequence": 1,
+      "actorRef": "role.procurement-buyer",
+      "activity": "签署",
+      "workObjectRef": "contract.agreement",
+      "targetActorRef": "role.procurement-seller",
+      "asOf": "2026-06-01T00:00:00Z",
+      "basedOn": [],
+      "values": {
+        "id": "single-late-contract-agreement",
+        "signed_at": "2026-06-01T00:00:00Z",
+        "quantity": 1000,
+        "tier_threshold": 1000,
+        "tier1_unit_price_minor": 1299,
+        "tier2_unit_price_minor": 1199,
+        "tax_bps": 1300,
+        "retention_bps": 500,
+        "daily_penalty_bps": 100,
+        "delivery_deadline": "2026-06-15T00:00:00Z"
+      }
+    },
+    {
+      "id": "step-2",
+      "sequence": 2,
+      "actorRef": "role.procurement-buyer",
+      "activity": "发起",
+      "workObjectRef": "request.order",
+      "targetActorRef": "role.procurement-seller",
+      "asOf": "2026-06-01T00:01:00Z",
+      "basedOn": [
+        "step-1"
+      ],
+      "values": {
+        "id": "single-late-request-order",
+        "started_at": "2026-06-01T00:01:00Z",
+        "expired_at": "2026-06-03T00:01:00Z"
+      }
+    },
+    {
+      "id": "step-3",
+      "sequence": 3,
+      "actorRef": "role.procurement-seller",
+      "activity": "出具",
+      "workObjectRef": "confirmation.order",
+      "targetActorRef": "role.procurement-buyer",
+      "asOf": "2026-06-01T00:01:00Z",
+      "basedOn": [
+        "step-2"
+      ],
+      "values": {
+        "id": "single-late-confirmation-order",
+        "confirmed_at": "2026-06-01T00:01:00Z",
+        "subtotal_minor": 1199000,
+        "gross_amount_minor": 1354870,
+        "quantity": 1000,
+        "retention_bps": 500,
+        "daily_penalty_bps": 100,
+        "delivery_deadline": "2026-06-15T00:00:00Z"
+      }
+    },
+    {
+      "id": "step-4",
+      "sequence": 4,
+      "actorRef": "role.procurement-seller",
+      "activity": "发起",
+      "workObjectRef": "request.commitment",
+      "targetActorRef": "role.procurement-buyer",
+      "asOf": "2026-06-01T00:02:00Z",
+      "basedOn": [
+        "step-3"
+      ],
+      "values": {
+        "id": "single-late-request-commitment",
+        "started_at": "2026-06-01T00:02:00Z",
+        "expired_at": "2026-06-03T00:02:00Z"
+      }
+    },
+    {
+      "id": "step-5",
+      "sequence": 5,
+      "actorRef": "role.procurement-buyer",
+      "activity": "出具",
+      "workObjectRef": "confirmation.commitment",
+      "targetActorRef": "role.procurement-seller",
+      "asOf": "2026-06-01T00:02:00Z",
+      "basedOn": [
+        "step-4"
+      ],
+      "values": {
+        "id": "single-late-confirmation-commitment",
+        "confirmed_at": "2026-06-01T00:02:00Z",
+        "acknowledged": true
+      }
+    },
+    {
+      "id": "step-6",
+      "sequence": 6,
+      "actorRef": "role.escrow-buyer",
+      "activity": "签署",
+      "workObjectRef": "contract.escrow",
+      "targetActorRef": "role.escrow-escrow",
+      "asOf": "2026-06-02T00:00:00Z",
+      "basedOn": [
+        "step-5"
+      ],
+      "values": {
+        "id": "single-late-contract-escrow",
+        "signed_at": "2026-06-02T00:00:00Z",
+        "order_confirmation_id": "single-late-confirmation-order"
+      }
+    },
+    {
+      "id": "step-7",
+      "sequence": 7,
+      "actorRef": "role.escrow-buyer",
+      "activity": "发起",
+      "workObjectRef": "request.deposit-lock",
+      "targetActorRef": "role.escrow-escrow",
+      "asOf": "2026-06-02T00:01:00Z",
+      "basedOn": [
+        "step-6"
+      ],
+      "values": {
+        "id": "single-late-request-deposit-lock",
+        "started_at": "2026-06-02T00:01:00Z",
+        "expired_at": "2026-06-04T00:01:00Z"
+      }
+    },
+    {
+      "id": "step-8",
+      "sequence": 8,
+      "actorRef": "role.escrow-escrow",
+      "activity": "出具",
+      "workObjectRef": "confirmation.deposit-lock",
+      "targetActorRef": "role.escrow-buyer",
+      "asOf": "2026-06-02T00:01:00Z",
+      "basedOn": [
+        "step-7"
+      ],
+      "values": {
+        "id": "single-late-confirmation-deposit-lock",
+        "confirmed_at": "2026-06-02T00:01:00Z",
+        "locked_amount_minor": 1354870
+      }
+    },
+    {
+      "id": "step-9",
+      "sequence": 9,
+      "actorRef": "role.escrow-escrow",
+      "activity": "发起",
+      "workObjectRef": "request.custody-statement",
+      "targetActorRef": "role.escrow-buyer",
+      "asOf": "2026-06-02T00:02:00Z",
+      "basedOn": [
+        "step-8"
+      ],
+      "values": {
+        "id": "single-late-request-custody-statement",
+        "started_at": "2026-06-02T00:02:00Z",
+        "expired_at": "2026-06-04T00:02:00Z"
+      }
+    },
+    {
+      "id": "step-10",
+      "sequence": 10,
+      "actorRef": "role.escrow-buyer",
+      "activity": "出具",
+      "workObjectRef": "confirmation.custody-statement",
+      "targetActorRef": "role.escrow-escrow",
+      "asOf": "2026-06-02T00:02:00Z",
+      "basedOn": [
+        "step-9"
+      ],
+      "values": {
+        "id": "single-late-confirmation-custody-statement",
+        "confirmed_at": "2026-06-02T00:02:00Z",
+        "acknowledged": true
+      }
+    },
+    {
+      "id": "step-11",
+      "sequence": 11,
+      "actorRef": "role.fulfillment-buyer",
+      "activity": "签署",
+      "workObjectRef": "contract.fulfillment",
+      "targetActorRef": "role.fulfillment-seller",
+      "asOf": "2026-06-03T00:00:00Z",
+      "basedOn": [
+        "step-10"
+      ],
+      "values": {
+        "id": "single-late-contract-fulfillment",
+        "signed_at": "2026-06-03T00:00:00Z",
+        "order_confirmation_id": "single-late-confirmation-order",
+        "deposit_confirmation_id": "single-late-confirmation-deposit-lock"
+      }
+    },
+    {
+      "id": "step-12",
+      "sequence": 12,
+      "actorRef": "role.fulfillment-buyer",
+      "activity": "发起",
+      "workObjectRef": "request.delivery",
+      "targetActorRef": "role.fulfillment-seller",
+      "asOf": "2026-06-30T00:00:00Z",
+      "basedOn": [
+        "step-11"
+      ],
+      "values": {
+        "id": "single-late-request-delivery",
+        "started_at": "2026-06-30T00:00:00Z",
+        "expired_at": "2026-07-02T00:00:00Z"
+      }
+    },
+    {
+      "id": "step-13",
+      "sequence": 13,
+      "actorRef": "role.fulfillment-seller",
+      "activity": "出具",
+      "workObjectRef": "confirmation.delivery",
+      "targetActorRef": "role.fulfillment-buyer",
+      "asOf": "2026-06-30T00:00:00Z",
+      "basedOn": [
+        "step-12"
+      ],
+      "values": {
+        "id": "single-late-confirmation-delivery",
+        "confirmed_at": "2026-06-30T00:00:00Z",
+        "delivered_quantity": 1000
+      }
+    },
+    {
+      "id": "step-14",
+      "sequence": 14,
+      "actorRef": "role.fulfillment-seller",
+      "activity": "发起",
+      "workObjectRef": "request.acceptance",
+      "targetActorRef": "role.fulfillment-buyer",
+      "asOf": "2026-06-30T00:00:00Z",
+      "basedOn": [
+        "step-13"
+      ],
+      "values": {
+        "id": "single-late-request-acceptance",
+        "started_at": "2026-06-30T00:00:00Z",
+        "expired_at": "2026-07-02T00:00:00Z"
+      }
+    },
+    {
+      "id": "step-15",
+      "sequence": 15,
+      "actorRef": "role.fulfillment-buyer",
+      "activity": "出具",
+      "workObjectRef": "confirmation.acceptance",
+      "targetActorRef": "role.fulfillment-seller",
+      "asOf": "2026-06-30T00:00:00Z",
+      "basedOn": [
+        "step-14"
+      ],
+      "values": {
+        "id": "single-late-confirmation-acceptance",
+        "confirmed_at": "2026-06-30T00:00:00Z",
+        "accepted": true,
+        "accepted_quantity": 1000,
+        "late_days": 15
+      }
+    },
+    {
+      "id": "step-16",
+      "sequence": 16,
+      "actorRef": "role.settlement-seller",
+      "activity": "签署",
+      "workObjectRef": "contract.settlement",
+      "targetActorRef": "role.settlement-escrow",
+      "asOf": "2026-06-30T00:00:00Z",
+      "basedOn": [
+        "step-15"
+      ],
+      "values": {
+        "id": "single-late-contract-settlement",
+        "signed_at": "2026-06-30T00:00:00Z",
+        "order_confirmation_id": "single-late-confirmation-order",
+        "deposit_confirmation_id": "single-late-confirmation-deposit-lock",
+        "acceptance_confirmation_id": "single-late-confirmation-acceptance"
+      }
+    },
+    {
+      "id": "step-17",
+      "sequence": 17,
+      "actorRef": "role.settlement-seller",
+      "activity": "发起",
+      "workObjectRef": "request.release",
+      "targetActorRef": "role.settlement-escrow",
+      "asOf": "2026-06-30T00:00:00Z",
+      "basedOn": [
+        "step-16"
+      ],
+      "values": {
+        "id": "single-late-request-release",
+        "started_at": "2026-06-30T00:00:00Z",
+        "expired_at": "2026-07-02T00:00:00Z"
+      }
+    },
+    {
+      "id": "step-18",
+      "sequence": 18,
+      "actorRef": "role.settlement-escrow",
+      "activity": "出具",
+      "workObjectRef": "confirmation.release",
+      "targetActorRef": "role.settlement-seller",
+      "asOf": "2026-06-30T00:00:00Z",
+      "basedOn": [
+        "step-17"
+      ],
+      "values": {
+        "id": "single-late-confirmation-release-00-tamper",
+        "confirmed_at": "2026-06-30T00:00:00Z",
+        "gross_amount_minor": 1354870,
+        "retention_minor": 67744,
+        "late_penalty_minor": 203231,
+        "payout_minor": 1083895
+      },
+      "expectedStatus": 422,
+      "inputs": {
+        "id": "single-late-forged",
+        "payout_minor": 999999
+      },
+      "expect": {
+        "$.error": "INVALID_INPUT"
+      }
+    },
+    {
+      "id": "step-19",
+      "sequence": 19,
+      "actorRef": "role.settlement-escrow",
+      "activity": "出具",
+      "workObjectRef": "confirmation.release",
+      "targetActorRef": "role.settlement-seller",
+      "asOf": "2026-06-30T00:00:00Z",
+      "basedOn": [
+        "step-17"
+      ],
+      "values": {
+        "id": "single-late-confirmation-release-01-time-tamper",
+        "confirmed_at": "2026-06-30T00:00:00Z",
+        "gross_amount_minor": 1354870,
+        "retention_minor": 67744,
+        "late_penalty_minor": 203231,
+        "payout_minor": 1083895
+      },
+      "expectedStatus": 422,
+      "inputs": {
+        "id": "single-late-backdated",
+        "confirmed_at": "2000-01-01T00:00:00Z"
+      },
+      "expect": {
+        "$.error": "INVALID_INPUT"
+      }
+    },
+    {
+      "id": "step-20",
+      "sequence": 20,
+      "actorRef": "role.settlement-escrow",
+      "activity": "出具",
+      "workObjectRef": "confirmation.release",
+      "targetActorRef": "role.settlement-seller",
+      "asOf": "2026-06-30T00:00:00Z",
+      "basedOn": [
+        "step-17"
+      ],
+      "values": {
+        "id": "single-late-confirmation-release-10-confirmed",
+        "confirmed_at": "2026-06-30T00:00:00Z",
+        "gross_amount_minor": 1354870,
+        "retention_minor": 67744,
+        "late_penalty_minor": 203231,
+        "payout_minor": 1083895
+      }
+    },
+    {
+      "id": "step-21",
+      "sequence": 21,
+      "actorRef": "role.settlement-escrow",
+      "activity": "出具",
+      "workObjectRef": "confirmation.release",
+      "targetActorRef": "role.settlement-seller",
+      "asOf": "2026-06-30T00:00:00Z",
+      "basedOn": [
+        "step-20"
+      ],
+      "values": {
+        "id": "single-late-confirmation-release-20-duplicate",
+        "confirmed_at": "2026-06-30T00:00:00Z",
+        "gross_amount_minor": 1354870,
+        "retention_minor": 67744,
+        "late_penalty_minor": 203231,
+        "payout_minor": 1083895
+      },
+      "expectedStatus": 409,
+      "inputs": {
+        "id": "single-late-duplicate"
+      },
+      "expect": {
+        "$.error": "ALREADY_CONFIRMED"
+      }
+    },
+    {
+      "id": "step-22",
+      "sequence": 22,
+      "actorRef": "role.settlement-escrow",
+      "activity": "发起",
+      "workObjectRef": "request.settlement-receipt",
+      "targetActorRef": "role.settlement-seller",
+      "asOf": "2026-06-30T00:00:00Z",
+      "basedOn": [
+        "step-20"
+      ],
+      "values": {
+        "id": "single-late-request-settlement-receipt",
+        "started_at": "2026-06-30T00:00:00Z",
+        "expired_at": "2026-07-02T00:00:00Z"
+      }
+    },
+    {
+      "id": "step-23",
+      "sequence": 23,
+      "actorRef": "role.settlement-seller",
+      "activity": "出具",
+      "workObjectRef": "confirmation.settlement-receipt",
+      "targetActorRef": "role.settlement-escrow",
+      "asOf": "2026-06-30T00:00:00Z",
+      "basedOn": [
+        "step-22"
+      ],
+      "values": {
+        "id": "single-late-confirmation-settlement-receipt",
+        "confirmed_at": "2026-06-30T00:00:00Z",
+        "acknowledged": true
+      }
+    }
+  ]
+}

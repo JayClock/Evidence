@@ -31,49 +31,5 @@
       "valueType": "bool",
       "required": true
     }
-  ],
-  "examples": [
-    {
-      "label": "single-on-time",
-      "value": {
-        "id": "single-on-time-confirmation-settlement-receipt",
-        "confirmed_at": "2026-06-15T00:00:00Z",
-        "acknowledged": true
-      },
-      "test": {
-        "flow": "single-on-time",
-        "tags": [
-          "regression",
-          "single",
-          "on-time"
-        ],
-        "actingRoleRef": "role.settlement-seller",
-        "asOf": "2026-06-15T00:00:00Z",
-        "basedOn": [
-          "request.settlement-receipt#single-on-time"
-        ]
-      }
-    },
-    {
-      "label": "single-late",
-      "value": {
-        "id": "single-late-confirmation-settlement-receipt",
-        "confirmed_at": "2026-06-30T00:00:00Z",
-        "acknowledged": true
-      },
-      "test": {
-        "flow": "single-late",
-        "tags": [
-          "regression",
-          "single",
-          "late"
-        ],
-        "actingRoleRef": "role.settlement-seller",
-        "asOf": "2026-06-30T00:00:00Z",
-        "basedOn": [
-          "request.settlement-receipt#single-late"
-        ]
-      }
-    }
   ]
 }

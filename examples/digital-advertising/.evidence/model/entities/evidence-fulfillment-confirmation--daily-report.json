@@ -37,28 +37,5 @@
       "required": true,
       "meaning": "归档报表标识"
     }
-  ],
-  "examples": [
-    {
-      "label": "report-published",
-      "value": {
-        "id": "daily-report-summer",
-        "impressions": 12904,
-        "report_ref": "archive-summer-20260702",
-        "confirmed_at": "2026-07-03T00:20:00Z"
-      },
-      "test": {
-        "flow": "negotiation-to-daily-report",
-        "actingRoleRef": "role.agency",
-        "asOf": "2026-07-03T00:20:00Z",
-        "basedOn": [
-          "request.daily-report#report-accepted"
-        ],
-        "expectedStatus": 201,
-        "expect": {
-          "$._links.self.href": "/daily-report-confirmations/daily-report-summer"
-        }
-      }
-    }
   ]
 }

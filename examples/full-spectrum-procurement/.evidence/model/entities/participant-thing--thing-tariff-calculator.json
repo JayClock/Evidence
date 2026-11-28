@@ -6,14 +6,6 @@
   "domainRole": "calculator",
   "contextRef": "ctx-fintech-domain",
   "label": "税费与罚息测算器（Tariff Calculator）",
-  "examples": [
-    {
-      "label": "合同日费率",
-      "value": {
-        "penalty_daily_rate": 0.0005
-      }
-    }
-  ],
   "attributes": [
     {
       "name": "penalty_daily_rate",

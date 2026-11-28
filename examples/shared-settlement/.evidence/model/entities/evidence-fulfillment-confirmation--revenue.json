@@ -44,29 +44,5 @@
       "required": true,
       "meaning": "精确记录本笔收入核销的季度与年度指标请求实例"
     }
-  ],
-  "examples": [
-    {
-      "label": "post-revenue-once",
-      "value": {
-        "id": "revenue-001",
-        "booking_ref": "booking-928",
-        "amount_minor": 52000000,
-        "request_ids": [
-          "target-2026-q1",
-          "target-2026"
-        ],
-        "confirmed_at": "2026-03-27T15:00:00Z"
-      },
-      "test": {
-        "flow": "credit-quarter-and-year-once",
-        "actingRoleRef": "role.finance",
-        "asOf": "2026-03-27T15:00:00Z",
-        "basedOn": [
-          "request.quarterly-target#open-q1",
-          "request.annual-target#open-year"
-        ]
-      }
-    }
   ]
 }

@@ -4,7 +4,8 @@ Nx project: `evidence-acceptance`; package: `@evidence-poc/evidence-acceptance`.
 
 Consumes [`evidence-api`](../evidence-api/README.md) projections and owns:
 
-- Compilation of inline `examples[].test` flows to a native Bruno collection.
+- Compilation of top-level domain stories into a native Bruno collection.
+  Each fork runs its inherited prefix and its own steps with flow-local response captures.
 - Combined contract/test export (`renderDeliverables`) and atomic suite publishing.
 - Execution via the pinned Bruno CLI, flow selection, regression/DoD gates and
   response-schema validation and drift reporting.

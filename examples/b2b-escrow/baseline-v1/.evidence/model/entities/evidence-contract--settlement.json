@@ -48,53 +48,5 @@
       "valueType": "id",
       "required": true
     }
-  ],
-  "examples": [
-    {
-      "label": "single-on-time",
-      "value": {
-        "id": "single-on-time-contract-settlement",
-        "signed_at": "2026-06-15T00:00:00Z",
-        "order_confirmation_id": "single-on-time-confirmation-order",
-        "deposit_confirmation_id": "single-on-time-confirmation-deposit-lock",
-        "acceptance_confirmation_id": "single-on-time-confirmation-acceptance"
-      },
-      "test": {
-        "flow": "single-on-time",
-        "tags": [
-          "regression",
-          "single",
-          "on-time"
-        ],
-        "actingRoleRef": "role.settlement-seller",
-        "asOf": "2026-06-15T00:00:00Z",
-        "basedOn": [
-          "confirmation.acceptance#single-on-time"
-        ]
-      }
-    },
-    {
-      "label": "single-late",
-      "value": {
-        "id": "single-late-contract-settlement",
-        "signed_at": "2026-06-30T00:00:00Z",
-        "order_confirmation_id": "single-late-confirmation-order",
-        "deposit_confirmation_id": "single-late-confirmation-deposit-lock",
-        "acceptance_confirmation_id": "single-late-confirmation-acceptance"
-      },
-      "test": {
-        "flow": "single-late",
-        "tags": [
-          "regression",
-          "single",
-          "late"
-        ],
-        "actingRoleRef": "role.settlement-seller",
-        "asOf": "2026-06-30T00:00:00Z",
-        "basedOn": [
-          "confirmation.acceptance#single-late"
-        ]
-      }
-    }
   ]
 }

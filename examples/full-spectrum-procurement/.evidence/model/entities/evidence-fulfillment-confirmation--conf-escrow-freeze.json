@@ -24,22 +24,5 @@
       "required": true,
       "keyData": true
     }
-  ],
-  "examples": [
-    {
-      "label": "质检争议",
-      "value": {
-        "frozen": true,
-        "confirmed_at": "2026-02-12T11:00:00Z"
-      },
-      "test": {
-        "flow": "defect-escalation",
-        "actingRoleRef": "role-escrow-agent",
-        "asOf": "2026-02-12T11:00:00Z",
-        "basedOn": [
-          "req-escrow-freeze#质检争议"
-        ]
-      }
-    }
   ]
 }

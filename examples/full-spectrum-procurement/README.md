@@ -15,7 +15,9 @@
 - **`late-delivery`**：交付窗口在 2 月 10 日 09:00 UTC 截止，交付确认在 2 月 12 日 09:00 UTC 形成。凭证仍然留存，但证明的是**迟了两天**。买方按合同总额 × 固定日费率 0.05% × 2 索赔 1,000 元；卖方确认抵扣后，银行实际划付 699,000 元。
 - **`defect-escalation`**：有交付确认，但技术检验不合格。买方依据不合格备案和质押凭单申请冻结；到银行登记 `frozen: true`，才有停止划付的证明。记录到此为止，不推定仲裁受理或裁决。
 
-这些是独立样例。签约和确认各记一个时刻；征询、报价及履约请求各有开始和截止时刻。签约时的托管金额检查只要求金额为正，报价检查也只要求报价为正，两者都不是资金守恒或技术资质认证。
+逾期交货和质检争议从主故事的第 7 步分叉，此时买方刚提出交付请求。两条分支通过 `happy-path#step-7` 继承前七步，分别记录后续的交付、索赔或冻结。合同载明日费率 `0.0005`，检验备案记录适用标准 `ISO-10218`。[故事源文件](.evidence/model/stories/)
+
+签约和确认各记一个时刻。征询、报价及履约请求各有开始和截止时刻。签约时的托管金额检查只要求金额为正，报价检查也只要求报价为正。
 
 ## 阅读与核验
 
@@ -29,4 +31,4 @@ pnpm evidence story --workspace examples/full-spectrum-procurement --no-ai --exp
 pnpm exec vitest run libs/evidence-schema/tests/fixtures/fullSpectrumProcurement.spec.ts libs/evidence-model-core/src/validation/fullSpectrumProcurement.spec.ts libs/evidence-acceptance/src/fullSpectrumVerification.spec.ts
 ```
 
-不带 `--scope` 的检查验证模型一致性，不证明两份合同已经可以独立交付。按两个合同做完整性检查时，仍有托管方作为请求权利人的正向履约、补偿与升级交接关系未满足仓库的交付门禁。三个故事和 [OpenAPI](.evidence/delivery/release/openapi.json) 不代表已通过真实 HTTP 验收。
+不带 `--scope` 的检查验证模型一致性。按两个合同做完整性检查时，托管方作为请求权利人的正向履约、补偿与升级交接关系仍有待补齐。三个故事的 Bruno HTTP 导出会在 SGS 检验备案步骤报告缺少 POST 路由。[生成的 OpenAPI](.evidence/delivery/release/openapi.json)

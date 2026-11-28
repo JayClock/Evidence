@@ -30,23 +30,5 @@
       "required": true,
       "meaning": "评审结论"
     }
-  ],
-  "examples": [
-    {
-      "label": "complete-review",
-      "value": {
-        "id": "review-minutes-42",
-        "outcome": "同意验收结果并归档",
-        "confirmed_at": "2026-08-14T13:00:00Z"
-      },
-      "test": {
-        "flow": "two-stories-one-sprint",
-        "actingRoleRef": "role.product-owner",
-        "asOf": "2026-08-14T13:00:00Z",
-        "basedOn": [
-          "request.review#review-iteration"
-        ]
-      }
-    }
   ]
 }

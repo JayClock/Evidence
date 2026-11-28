@@ -1,12 +1,12 @@
 import { z } from 'zod';
 
 /**
- * Identifier grammar shared by every Fulfillment Modeling (FM) v6 source object.
+ * Identifier grammar shared by every Fulfillment Modeling (FM) source object.
  *
  * These patterns are the single source of truth for the schema package and are
  * reused by the model core and the disk adapter.
  */
-/** Entity, Relationship and Rule ids: `context.product-procurement`. */
+/** Entity, relationship, rule and story IDs: `context.product-procurement`. */
 export const DOMAIN_ID_PATTERN = /^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$/;
 
 /** Attribute names stay lower snake_case: `confirmed_at`, `total_minor_units`. */
