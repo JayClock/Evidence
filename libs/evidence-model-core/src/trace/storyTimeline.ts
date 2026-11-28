@@ -11,8 +11,6 @@ import { createDomainGraph, type DomainGraph } from '../model/graph.js';
 import type { FlowScenarioTrace, FlowStepTrace } from './types.js';
 
 const HOUR_MS = 3_600_000;
-const REHEARSAL_START = Date.UTC(2000, 0, 1);
-export const MAX_REHEARSAL_HOURS = 24 * 365;
 
 export interface StoryTimelineMark {
   readonly time: number;
@@ -25,12 +23,11 @@ interface Observation {
   readonly key: string;
   readonly entityId: string;
   readonly time: number;
-  readonly stepIndex?: number;
+  readonly stepIndex: number;
   readonly values: Readonly<Record<string, unknown>>;
 }
 
 export interface StoryTimeline {
-  readonly kind: 'examples' | 'rehearsal';
   readonly start: number;
   readonly end: number;
   readonly marks: readonly StoryTimelineMark[];
@@ -75,7 +72,6 @@ const refOf = ({ entityId, exampleLabel }: FlowStepTrace) =>
 
 const buildTimeline = (
   graph: DomainGraph,
-  kind: StoryTimeline['kind'],
   observations: readonly Observation[],
   ancestors: ReadonlyMap<string, ReadonlySet<string>>,
   marks: StoryTimelineMark[],
@@ -120,7 +116,6 @@ const buildTimeline = (
     start,
   );
   return {
-    kind,
     start,
     end,
     marks,
@@ -137,7 +132,6 @@ const buildTimeline = (
             event.key === exampleKey ||
             inputs?.has(event.key)) &&
           (throughStepIndex === undefined ||
-            event.stepIndex === undefined ||
             event.stepIndex <= throughStepIndex),
       );
       const visibleKeys = new Set(visible.map(({ key }) => key));
@@ -396,53 +390,8 @@ export const createScenarioTimeline = (
   });
   return buildTimeline(
     createDomainGraph(document),
-    'examples',
     evaluated,
     ancestors,
     marks,
-  );
-};
-
-/** Rehearse one modeled request with an explicit elapsed-hours assumption and no confirmation. */
-export const createRequestRehearsal = (
-  document: DomainModelDocument,
-  requestId: string,
-  windowHours: number,
-): StoryTimeline | null => {
-  const graph = createDomainGraph(document);
-  const request = graph.fulfillmentPair(requestId)?.request;
-  if (
-    !request ||
-    !Number.isSafeInteger(windowHours) ||
-    windowHours <= 0 ||
-    windowHours > MAX_REHEARSAL_HOURS
-  )
-    return null;
-  const startField = timeAttributeOf(request, 'start');
-  const deadlineField = timeAttributeOf(request, 'deadline');
-  if (!startField || !deadlineField) return null;
-  const deadline = REHEARSAL_START + windowHours * HOUR_MS;
-  return buildTimeline(
-    graph,
-    'rehearsal',
-    [
-      {
-        key: requestId,
-        time: REHEARSAL_START,
-        entityId: requestId,
-        values: {
-          [startField.name]: new Date(REHEARSAL_START).toISOString(),
-          [deadlineField.name]: new Date(deadline).toISOString(),
-        },
-      },
-    ],
-    new Map(),
-    [
-      {
-        time: REHEARSAL_START,
-        label: `${request.label}（假设发起）`,
-        kind: 'step',
-      },
-    ],
   );
 };

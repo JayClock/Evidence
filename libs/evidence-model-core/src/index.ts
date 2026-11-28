@@ -148,9 +148,7 @@ export {
   type WhatIfHypothesis,
 } from './trace/whatIfScenario.js';
 export {
-  createRequestRehearsal,
   createScenarioTimeline,
-  MAX_REHEARSAL_HOURS,
   type StoryTimeline,
   type StoryTimelineMark,
   type TimelineObligation,

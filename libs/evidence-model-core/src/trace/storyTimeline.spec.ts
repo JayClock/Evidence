@@ -5,10 +5,7 @@ import type {
   RuleAST,
 } from '@evidence-poc/evidence-schema';
 import { collectFlowScenarios } from './flowAggregator.js';
-import {
-  createRequestRehearsal,
-  createScenarioTimeline,
-} from './storyTimeline.js';
+import { createScenarioTimeline } from './storyTimeline.js';
 
 const iso = (hours: number) =>
   new Date(Date.UTC(2026, 0, 1, hours)).toISOString();
@@ -231,13 +228,10 @@ describe('story timeline', () => {
     expect(createScenarioTimeline(document, flow)).toBeNull();
   });
 
-  it('uses only explicit sandbox input, distinguishing overdue from a modeled breach', () => {
+  it('reports an overdue flow request without a modeled breach rule', () => {
     const document = model();
     document.rules = [];
-    expect(createRequestRehearsal(document, request.id, 0)).toBeNull();
-    expect(createRequestRehearsal(document, confirmation.id, 8)).toBeNull();
-    const timeline = createRequestRehearsal(document, request.id, 8)!;
-    expect(timeline.kind).toBe('rehearsal');
+    const timeline = timelineOf(document);
     expect(timeline.at(timeline.start)[0]?.status).toBe('waiting');
     expect(timeline.at(timeline.end)).toMatchObject([
       { status: 'overdue', responses: [] },
