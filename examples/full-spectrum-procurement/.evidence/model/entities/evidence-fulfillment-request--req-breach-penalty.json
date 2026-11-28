@@ -37,7 +37,7 @@
     {
       "name": "overdue_days",
       "label": "实际逾期天数",
-      "meaning": "超出合同发货时限的日历天数",
+      "meaning": "超出约定到港交付时限的日历天数",
       "valueType": "int",
       "required": true,
       "keyData": true

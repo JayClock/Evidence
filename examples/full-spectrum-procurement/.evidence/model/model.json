@@ -5,7 +5,7 @@
   "name": "工业智能制造装备跨境采购与托管清结算全生命周期履约模型",
   "version": "1.0.0",
   "ruleLanguage": "CEL",
-  "description": "全节点覆盖模型：覆盖寻源比选、主采购合同、多方托管监管、技术核验与阶梯费率测算、违约追偿与跨合同凭证角色化的全要素8X Flow复杂工业级案例",
+  "description": "买方与供应商约定设备交付，另与银行约定尾款托管。以交付、质检与放款凭证追溯正常履约、逾期索赔和质量争议。",
   "entryContextRefs": [
     "ctx-main-procurement",
     "ctx-escrow-settlement"

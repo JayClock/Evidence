@@ -20,7 +20,7 @@
     {
       "name": "expired_at",
       "timeRole": "deadline",
-      "label": "仲裁受理期限",
+      "label": "冻结办理期限",
       "meaning": "独立托管代理应受理冻结请求的截止时刻",
       "valueType": "timestamp",
       "required": true,

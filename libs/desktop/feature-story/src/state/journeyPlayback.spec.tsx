@@ -58,7 +58,12 @@ it('walks across responsibility lanes, resets branch focus when switching scenar
   );
   const bar = render(<StoryPlayerBar playback={hook.result.current} />);
   expect(screen.getByLabelText('当前旅程分支')).toHaveTextContent('违约补偿');
-  expect(screen.getByText(/发货交期逾期自动判定/)).toBeInTheDocument();
+  const overdueRule = document.rules.find(
+    (rule) => rule.id === 'rule-breach-detection-overdue',
+  )!;
+  expect(
+    screen.getByText(overdueRule.label, { exact: false }),
+  ).toBeInTheDocument();
   act(() => hook.result.current.selectFlow('defect-escalation'));
   expect(hook.result.current.canvasFocus).toBeNull();
   await load();

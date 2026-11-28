@@ -2,7 +2,7 @@
   "type": "rule",
   "id": "rule-derive-penalty-amount",
   "kind": "derivation",
-  "label": "逾期交付日阶梯违约赔偿金派生算法",
+  "label": "按逾期天数与固定日费率核算违约金",
   "description": "依据逾期天数与基准日费率派生违约金总额[req.breach.penalty]",
   "contextRef": "ctx-main-procurement",
   "bindings": {

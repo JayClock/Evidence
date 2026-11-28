@@ -5,7 +5,7 @@
   "flowKind": "escalation",
   "sourceRef": "req-escrow-freeze",
   "targetRef": "doc-sgs-inspection-cert",
-  "label": "质检不合格触发独立仲裁",
+  "label": "买方以不合格的检验证书备案申请冻结尾款",
   "sourceCardinality": {
     "min": 1,
     "max": 1

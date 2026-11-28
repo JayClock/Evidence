@@ -3,6 +3,6 @@
   "id": "role-clearing-engine",
   "category": "role",
   "kind": "domain",
-  "contextRef": "ctx-fintech-domain",
-  "label": "清算引擎（Clearing Engine）"
+  "contextRef": "ctx-main-procurement",
+  "label": "违约金核算员（Penalty Assessor）"
 }

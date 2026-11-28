@@ -10,7 +10,7 @@
     {
       "name": "frozen",
       "label": "资金冻结标志",
-      "meaning": "托管银行已停止尾款划付并移交独立争议解决程序",
+      "meaning": "托管银行已停止尾款划付",
       "valueType": "bool",
       "required": true,
       "keyData": true
@@ -18,8 +18,8 @@
     {
       "name": "confirmed_at",
       "timeRole": "occurrence",
-      "label": "冻结受理时刻",
-      "meaning": "托管行正式确认冻结并出具仲裁受理凭据的时刻",
+      "label": "冻结确认时刻",
+      "meaning": "托管行停止划付并登记冻结结果的时刻",
       "valueType": "timestamp",
       "required": true,
       "keyData": true

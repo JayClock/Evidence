@@ -117,7 +117,7 @@
             "ref": "request.backlog#propose-scope",
             "responseSchema": {
               "additionalProperties": false,
-              "description": "发起待办基线确认请求（Backlog Confirmation Request），开启一个有截止时间的履约窗口",
+              "description": "发起迭代待办履约请求（Sprint Backlog Request），开启一个有截止时间的履约窗口",
               "examples": [
                 {
                   "_links": {

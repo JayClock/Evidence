@@ -614,7 +614,7 @@
       },
       "request_backlog": {
         "additionalProperties": false,
-        "description": "发起待办基线确认请求（Backlog Confirmation Request），开启一个有截止时间的履约窗口",
+        "description": "发起迭代待办履约请求（Sprint Backlog Request），开启一个有截止时间的履约窗口",
         "examples": [
           {
             "_links": {
@@ -1441,7 +1441,7 @@
                 }
               }
             },
-            "description": "发起待办基线确认请求（Backlog Confirmation Request），开启一个有截止时间的履约窗口",
+            "description": "发起迭代待办履约请求（Sprint Backlog Request），开启一个有截止时间的履约窗口",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -1460,7 +1460,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "发起待办基线确认请求（Backlog Confirmation Request），开启一个有截止时间的履约窗口",
+        "summary": "发起迭代待办履约请求（Sprint Backlog Request），开启一个有截止时间的履约窗口",
         "tags": [
           "context:context.sprint"
         ],

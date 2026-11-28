@@ -89,8 +89,8 @@
     },
     {
       "name": "delivery_deadline_days",
-      "label": "发货交期允许天数",
-      "meaning": "自收到预付款到出厂发货的最大允许日历天数",
+      "label": "到港交付期限（天）",
+      "meaning": "自收到预付款至约定到港交付的最大允许日历天数",
       "valueType": "int",
       "required": true
     },

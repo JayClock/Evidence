@@ -588,7 +588,7 @@
             "x-evidence-origin": "caller"
           },
           "confirmed_at": {
-            "description": "银行系统清算入账并生成回执时刻",
+            "description": "买方依据银行到账回执登记支付结果的时刻",
             "format": "date-time",
             "readOnly": true,
             "type": "string",
@@ -796,7 +796,7 @@
             "type": "object"
           },
           "confirmed_at": {
-            "description": "托管行正式确认冻结并出具仲裁受理凭据的时刻",
+            "description": "托管行停止划付并登记冻结结果的时刻",
             "format": "date-time",
             "readOnly": true,
             "type": "string",
@@ -804,7 +804,7 @@
             "x-evidence-origin": "service-time"
           },
           "frozen": {
-            "description": "托管银行已停止尾款划付并移交独立争议解决程序",
+            "description": "托管银行已停止尾款划付",
             "type": "boolean",
             "x-evidence-caller-input": true,
             "x-evidence-origin": "caller"
@@ -907,7 +907,7 @@
       },
       "doc-escrow-agreement": {
         "additionalProperties": false,
-        "description": "签署买方与托管行三方资金托管监管协议（Tripartite Escrow Agreement），双方权责自此成立",
+        "description": "签署买方与托管行资金托管协议（Buyer–Bank Escrow Agreement），双方权责自此成立",
         "examples": [
           {
             "_links": {
@@ -1219,7 +1219,7 @@
                 "type": "string"
               }
             ],
-            "description": "自收到预付款到出厂发货的最大允许日历天数",
+            "description": "自收到预付款至约定到港交付的最大允许日历天数",
             "x-evidence-caller-input": true,
             "x-evidence-origin": "caller"
           },
@@ -1357,7 +1357,7 @@
                 "type": "string"
               }
             ],
-            "description": "自收到预付款到出厂发货的最大允许日历天数",
+            "description": "自收到预付款至约定到港交付的最大允许日历天数",
             "x-evidence-caller-input": true,
             "x-evidence-origin": "caller"
           },
@@ -1922,7 +1922,7 @@
                 "type": "string"
               }
             ],
-            "description": "超出合同发货时限的日历天数",
+            "description": "超出约定到港交付时限的日历天数",
             "x-evidence-caller-input": true,
             "x-evidence-origin": "caller"
           },
@@ -2065,7 +2065,7 @@
                 "type": "string"
               }
             ],
-            "description": "超出合同发货时限的日历天数",
+            "description": "超出约定到港交付时限的日历天数",
             "x-evidence-caller-input": true,
             "x-evidence-origin": "caller"
           },
@@ -3724,7 +3724,7 @@
                 }
               }
             },
-            "description": "签署买方与托管行三方资金托管监管协议（Tripartite Escrow Agreement），双方权责自此成立",
+            "description": "签署买方与托管行资金托管协议（Buyer–Bank Escrow Agreement），双方权责自此成立",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -3743,7 +3743,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "签署买方与托管行三方资金托管监管协议（Tripartite Escrow Agreement），双方权责自此成立",
+        "summary": "签署买方与托管行资金托管协议（Buyer–Bank Escrow Agreement），双方权责自此成立",
         "tags": [
           "context:ctx-escrow-settlement"
         ],
@@ -4541,6 +4541,11 @@
                           "method": "POST",
                           "templated": true
                         },
+                        "next:req-equipment-delivery": {
+                          "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries",
+                          "method": "POST",
+                          "templated": true
+                        },
                         "self": {
                           "href": "/doc-procurement-contracts",
                           "templated": false
@@ -4574,6 +4579,11 @@
                       "_links": {
                         "next:req-advance-payment": {
                           "href": "/doc-procurement-contracts/{contractId}/req-advance-payment",
+                          "method": "POST",
+                          "templated": true
+                        },
+                        "next:req-equipment-delivery": {
+                          "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries",
                           "method": "POST",
                           "templated": true
                         },
@@ -4613,6 +4623,11 @@
                           "method": "POST",
                           "templated": true
                         },
+                        "next:req-equipment-delivery": {
+                          "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries",
+                          "method": "POST",
+                          "templated": true
+                        },
                         "self": {
                           "href": "/doc-procurement-contracts",
                           "templated": false
@@ -4628,6 +4643,11 @@
                 "x-evidence-link-templates": {
                   "next:req-advance-payment": {
                     "href": "/doc-procurement-contracts/{contractId}/req-advance-payment",
+                    "method": "POST",
+                    "templated": true
+                  },
+                  "next:req-equipment-delivery": {
+                    "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries",
                     "method": "POST",
                     "templated": true
                   },
@@ -4737,7 +4757,7 @@
                         "type": "string"
                       }
                     ],
-                    "description": "自收到预付款到出厂发货的最大允许日历天数",
+                    "description": "自收到预付款至约定到港交付的最大允许日历天数",
                     "x-evidence-caller-input": true
                   },
                   "down_payment_rate": {
@@ -4771,6 +4791,11 @@
                           "method": "POST",
                           "templated": true
                         },
+                        "next:req-equipment-delivery": {
+                          "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries",
+                          "method": "POST",
+                          "templated": true
+                        },
                         "self": {
                           "href": "/doc-procurement-contracts/{contractId}",
                           "templated": true
@@ -4796,6 +4821,11 @@
                       "_links": {
                         "next:req-advance-payment": {
                           "href": "/doc-procurement-contracts/{contractId}/req-advance-payment",
+                          "method": "POST",
+                          "templated": true
+                        },
+                        "next:req-equipment-delivery": {
+                          "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries",
                           "method": "POST",
                           "templated": true
                         },
@@ -4827,6 +4857,11 @@
                           "method": "POST",
                           "templated": true
                         },
+                        "next:req-equipment-delivery": {
+                          "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries",
+                          "method": "POST",
+                          "templated": true
+                        },
                         "self": {
                           "href": "/doc-procurement-contracts/{contractId}",
                           "templated": true
@@ -4853,6 +4888,11 @@
                 "x-evidence-link-templates": {
                   "next:req-advance-payment": {
                     "href": "/doc-procurement-contracts/{contractId}/req-advance-payment",
+                    "method": "POST",
+                    "templated": true
+                  },
+                  "next:req-equipment-delivery": {
+                    "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries",
                     "method": "POST",
                     "templated": true
                   },
@@ -4934,6 +4974,11 @@
                           "method": "POST",
                           "templated": true
                         },
+                        "next:req-equipment-delivery": {
+                          "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries",
+                          "method": "POST",
+                          "templated": true
+                        },
                         "self": {
                           "href": "/doc-procurement-contracts/{contractId}",
                           "templated": true
@@ -4959,6 +5004,11 @@
                       "_links": {
                         "next:req-advance-payment": {
                           "href": "/doc-procurement-contracts/{contractId}/req-advance-payment",
+                          "method": "POST",
+                          "templated": true
+                        },
+                        "next:req-equipment-delivery": {
+                          "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries",
                           "method": "POST",
                           "templated": true
                         },
@@ -4990,6 +5040,11 @@
                           "method": "POST",
                           "templated": true
                         },
+                        "next:req-equipment-delivery": {
+                          "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries",
+                          "method": "POST",
+                          "templated": true
+                        },
                         "self": {
                           "href": "/doc-procurement-contracts/{contractId}",
                           "templated": true
@@ -5016,6 +5071,11 @@
                 "x-evidence-link-templates": {
                   "next:req-advance-payment": {
                     "href": "/doc-procurement-contracts/{contractId}/req-advance-payment",
+                    "method": "POST",
+                    "templated": true
+                  },
+                  "next:req-equipment-delivery": {
+                    "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries",
                     "method": "POST",
                     "templated": true
                   },
@@ -5568,7 +5628,7 @@
                 }
               }
             },
-            "description": "登记首期预付款到账确认书（Advance Payment Bank Confirmation）",
+            "description": "登记首期预付款到账回执登记（Advance Payment Receipt Filing）",
             "headers": {
               "Location": {
                 "description": "新凭证地址",
@@ -5587,7 +5647,7 @@
             "description": "输入内容或业务角色不成立"
           }
         },
-        "summary": "登记首期预付款到账确认书（Advance Payment Bank Confirmation）",
+        "summary": "登记首期预付款到账回执登记（Advance Payment Receipt Filing）",
         "tags": [
           "context:ctx-main-procurement"
         ],
@@ -6312,7 +6372,7 @@
                         "type": "string"
                       }
                     ],
-                    "description": "超出合同发货时限的日历天数",
+                    "description": "超出约定到港交付时限的日历天数",
                     "x-evidence-caller-input": true
                   }
                 },
@@ -7465,7 +7525,7 @@
                         "type": "string"
                       }
                     ],
-                    "description": "自收到预付款到出厂发货的最大允许日历天数",
+                    "description": "自收到预付款至约定到港交付的最大允许日历天数",
                     "x-evidence-caller-input": true
                   },
                   "down_payment_rate": {
@@ -7499,6 +7559,11 @@
                           "method": "POST",
                           "templated": true
                         },
+                        "next:req-equipment-delivery": {
+                          "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries",
+                          "method": "POST",
+                          "templated": true
+                        },
                         "self": {
                           "href": "/doc-procurement-contracts/{contractId}",
                           "templated": true
@@ -7524,6 +7589,11 @@
                       "_links": {
                         "next:req-advance-payment": {
                           "href": "/doc-procurement-contracts/{contractId}/req-advance-payment",
+                          "method": "POST",
+                          "templated": true
+                        },
+                        "next:req-equipment-delivery": {
+                          "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries",
                           "method": "POST",
                           "templated": true
                         },
@@ -7555,6 +7625,11 @@
                           "method": "POST",
                           "templated": true
                         },
+                        "next:req-equipment-delivery": {
+                          "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries",
+                          "method": "POST",
+                          "templated": true
+                        },
                         "self": {
                           "href": "/doc-procurement-contracts/{contractId}",
                           "templated": true
@@ -7581,6 +7656,11 @@
                 "x-evidence-link-templates": {
                   "next:req-advance-payment": {
                     "href": "/doc-procurement-contracts/{contractId}/req-advance-payment",
+                    "method": "POST",
+                    "templated": true
+                  },
+                  "next:req-equipment-delivery": {
+                    "href": "/doc-procurement-contracts/{contractId}/req-equipment-deliveries",
                     "method": "POST",
                     "templated": true
                   },

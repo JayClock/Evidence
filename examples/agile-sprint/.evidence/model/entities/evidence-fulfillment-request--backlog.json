@@ -3,8 +3,8 @@
   "id": "request.backlog",
   "category": "evidence",
   "kind": "fulfillment_request",
-  "fulfillmentAction": "确认迭代待办基线",
-  "label": "待办基线确认请求（Backlog Confirmation Request）",
+  "fulfillmentAction": "锁定待办基线并交付约定的故事",
+  "label": "迭代待办履约请求（Sprint Backlog Request）",
   "contextRef": "context.sprint",
   "responsibleRoleRef": "role.product-owner",
   "attributes": [

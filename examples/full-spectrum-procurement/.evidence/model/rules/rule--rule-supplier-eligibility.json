@@ -2,8 +2,8 @@
   "type": "rule",
   "id": "rule-supplier-eligibility",
   "kind": "eligibility",
-  "label": "高端装备供应商准入与技术能力认证门禁",
-  "description": "供应商参与竞标必须满足最低设备额定负载及安全合规标准[doc.supplier.proposal]",
+  "label": "竞标报价必须为正",
+  "description": "只接收报价金额大于零的投标方案。",
   "contextRef": "ctx-sourcing",
   "bindings": {
     "proposal": {

@@ -1,8 +1,8 @@
 {
   "type": "entity",
-  "id": "role-sourcing-gateway",
+  "id": "role-escrow-custody",
   "category": "role",
   "kind": "context",
   "contextRef": "ctx-main-procurement",
-  "label": "寻源网关（Sourcing Gateway）"
+  "label": "资金托管上下文（Escrow Custody Context）"
 }

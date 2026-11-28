@@ -5,7 +5,7 @@
   "kind": "other_evidence",
   "contextRef": "ctx-main-procurement",
   "responsibleRoleRef": "role-seller",
-  "label": "SGS中立国际技术质量公证证书（SGS Technical Inspection Certificate）",
+  "label": "SGS 技术检验证书备案（Inspection Certificate Filing）",
   "examples": [
     {
       "label": "顺畅履约",
@@ -65,8 +65,8 @@
     {
       "name": "created_at",
       "timeRole": "occurrence",
-      "label": "证书颁发盖章时刻",
-      "meaning": "检测实验室签发防伪报告的电子签章时刻",
+      "label": "证书备案时刻",
+      "meaning": "卖方提交第三方签发的证书并登记检验结果的时刻",
       "valueType": "timestamp",
       "required": true,
       "keyData": true

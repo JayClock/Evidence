@@ -4,7 +4,7 @@
   "kind": "plays_role",
   "sourceRef": "party-sgs-inspection",
   "targetRef": "role-technical-inspector",
-  "label": "SGS出入境检测行扮演中立第三方质检官",
+  "label": "SGS 提供独立的检验出证服务，不代替卖方承担交付责任",
   "sourceCardinality": {
     "min": 1,
     "max": 1

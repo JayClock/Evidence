@@ -1,0 +1,16 @@
+{
+  "type": "relationship",
+  "id": "rel-claim-to-contract",
+  "kind": "references",
+  "sourceRef": "req-breach-penalty",
+  "targetRef": "doc-procurement-contract",
+  "label": "买方依据同一采购合同主张逾期违约金",
+  "sourceCardinality": {
+    "min": 0,
+    "max": "many"
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

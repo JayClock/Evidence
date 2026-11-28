@@ -2,8 +2,8 @@
   "type": "rule",
   "id": "rule-invariant-escrow-balance",
   "kind": "invariant",
-  "label": "托管账户全额资金锁定守恒不变式",
-  "description": "托管账户中已划拨与仍冻结资金总和必须严格等于主采购合同总额[doc.escrow.agreement]",
+  "label": "约定托管金额必须为正",
+  "description": "签订托管协议时，约定的待清算金额必须大于零。",
   "contextRef": "ctx-escrow-settlement",
   "bindings": {
     "escrow": {

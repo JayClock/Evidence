@@ -14,7 +14,7 @@
 | GET       | `/iteration-plans/{contractId}/stories`              | HAL 账本视图；各条目的 `self` 指向各自的凭证                |
 | GET       | `/stories/{storyId}`                                 | 权威凭证详情，也是追加成功时的 `201 Location` 与 HAL `self` |
 
-故事验收只属于迭代，不属于广告订单。该案例没有金额逻辑；服务时钟形成 `signed_at`、`started_at` 和 `confirmed_at`，`expired_at` 由模型中的履约窗口派生。
+每份故事验收只追溯到本迭代的一份锁定基线；从该基线反查，可以看到多份故事验收。该案例没有金额逻辑；服务时钟形成 `signed_at`、`started_at` 和 `confirmed_at`，`expired_at` 由模型中的履约窗口派生。
 
 ## 编译与核验
 

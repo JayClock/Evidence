@@ -5,7 +5,7 @@
   "flowKind": "escalation",
   "sourceRef": "conf-escrow-freeze",
   "targetRef": "req-escrow-freeze",
-  "label": "独立托管机构受理资金冻结仲裁请求",
+  "label": "托管银行确认已按申请冻结尾款",
   "sourceCardinality": {
     "min": 1,
     "max": 1

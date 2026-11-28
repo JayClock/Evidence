@@ -3,6 +3,6 @@
   "id": "role-technical-inspector",
   "category": "role",
   "kind": "third_party",
-  "contextRef": "ctx-inspection-domain",
-  "label": "技术质检方（Technical Inspector）"
+  "contextRef": "ctx-main-procurement",
+  "label": "第三方检验出证系统（Inspection Certificate Service）"
 }

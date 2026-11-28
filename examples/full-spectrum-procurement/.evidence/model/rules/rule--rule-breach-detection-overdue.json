@@ -2,8 +2,8 @@
   "type": "rule",
   "id": "rule-breach-detection-overdue",
   "kind": "breach",
-  "label": "发货交期逾期自动判定违约触发规则",
-  "description": "提单签收确认时刻超过发货请求约定截止期时判定卖方违约[req.equipment.delivery]",
+  "label": "到港交付逾期判定",
+  "description": "交付确认时刻晚于交付请求的截止时刻，判定卖方交付逾期。",
   "contextRef": "ctx-main-procurement",
   "bindings": {
     "del_req": {

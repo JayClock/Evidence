@@ -1,0 +1,16 @@
+{
+  "type": "relationship",
+  "id": "rel-escrow-plays-context-role",
+  "kind": "plays_role",
+  "sourceRef": "ctx-escrow-settlement",
+  "targetRef": "role-escrow-custody",
+  "label": "采购侧将独立的银行托管协议视为资金托管上下文",
+  "sourceCardinality": {
+    "min": 1,
+    "max": 1
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

@@ -5,7 +5,7 @@
   "kind": "fulfillment_confirmation",
   "contextRef": "ctx-main-procurement",
   "responsibleRoleRef": "role-buyer",
-  "label": "首期预付款到账确认书（Advance Payment Bank Confirmation）",
+  "label": "首期预付款到账回执登记（Advance Payment Receipt Filing）",
   "examples": [
     {
       "label": "顺畅履约",
@@ -74,8 +74,8 @@
     {
       "name": "confirmed_at",
       "timeRole": "occurrence",
-      "label": "电汇入账确认时刻",
-      "meaning": "银行系统清算入账并生成回执时刻",
+      "label": "到账回执登记时刻",
+      "meaning": "买方依据银行到账回执登记支付结果的时刻",
       "valueType": "timestamp",
       "required": true,
       "keyData": true

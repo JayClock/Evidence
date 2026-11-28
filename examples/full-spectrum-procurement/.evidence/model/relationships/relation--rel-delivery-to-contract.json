@@ -1,0 +1,16 @@
+{
+  "type": "relationship",
+  "id": "rel-delivery-to-contract",
+  "kind": "references",
+  "sourceRef": "req-equipment-delivery",
+  "targetRef": "doc-procurement-contract",
+  "label": "买方依据采购合同要求卖方交付约定的设备",
+  "sourceCardinality": {
+    "min": 0,
+    "max": "many"
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

@@ -1511,6 +1511,11 @@
                         ]
                       },
                       "_links": {
+                        "next:confirmation.quarter-close": {
+                          "href": "/performance-agreements/{contractId}/quarterly-targets/{targetId}/confirmation",
+                          "method": "POST",
+                          "templated": true
+                        },
                         "self": {
                           "href": "/performance-agreements/{contractId}/annual-target/revenues",
                           "templated": true
@@ -1524,6 +1529,11 @@
                   "$ref": "#/components/schemas/confirmation_revenueCollection"
                 },
                 "x-evidence-link-templates": {
+                  "next:confirmation.quarter-close": {
+                    "href": "/performance-agreements/{contractId}/quarterly-targets/{targetId}/confirmation",
+                    "method": "POST",
+                    "templated": true
+                  },
                   "self": {
                     "href": "/performance-agreements/{contractId}/annual-target/revenues",
                     "templated": true
@@ -2140,6 +2150,11 @@
                         ]
                       },
                       "_links": {
+                        "next:confirmation.quarter-close": {
+                          "href": "/performance-agreements/{contractId}/quarterly-targets/{targetId}/confirmation",
+                          "method": "POST",
+                          "templated": true
+                        },
                         "self": {
                           "href": "/performance-agreements/{contractId}/quarterly-targets/{targetId}/revenues",
                           "templated": true
@@ -2153,6 +2168,11 @@
                   "$ref": "#/components/schemas/confirmation_revenueCollection"
                 },
                 "x-evidence-link-templates": {
+                  "next:confirmation.quarter-close": {
+                    "href": "/performance-agreements/{contractId}/quarterly-targets/{targetId}/confirmation",
+                    "method": "POST",
+                    "templated": true
+                  },
                   "self": {
                     "href": "/performance-agreements/{contractId}/quarterly-targets/{targetId}/revenues",
                     "templated": true
@@ -2355,6 +2375,11 @@
                     "summary": "post-revenue-once",
                     "value": {
                       "_links": {
+                        "next:confirmation.quarter-close": {
+                          "href": "/performance-agreements/{contractId}/quarterly-targets/{targetId}/confirmation",
+                          "method": "POST",
+                          "templated": true
+                        },
                         "request:request.annual-target": {
                           "href": "/performance-agreements/{contractId}/annual-target",
                           "method": "GET",
@@ -2385,6 +2410,11 @@
                   "$ref": "#/components/schemas/confirmation_revenue"
                 },
                 "x-evidence-link-templates": {
+                  "next:confirmation.quarter-close": {
+                    "href": "/performance-agreements/{contractId}/quarterly-targets/{targetId}/confirmation",
+                    "method": "POST",
+                    "templated": true
+                  },
                   "request:request.annual-target": {
                     "href": "/performance-agreements/{contractId}/annual-target",
                     "method": "GET",
@@ -2466,6 +2496,11 @@
                     "summary": "post-revenue-once",
                     "value": {
                       "_links": {
+                        "next:confirmation.quarter-close": {
+                          "href": "/performance-agreements/{contractId}/quarterly-targets/{targetId}/confirmation",
+                          "method": "POST",
+                          "templated": true
+                        },
                         "request:request.annual-target": {
                           "href": "/performance-agreements/{contractId}/annual-target",
                           "method": "GET",
@@ -2496,6 +2531,11 @@
                   "$ref": "#/components/schemas/confirmation_revenue"
                 },
                 "x-evidence-link-templates": {
+                  "next:confirmation.quarter-close": {
+                    "href": "/performance-agreements/{contractId}/quarterly-targets/{targetId}/confirmation",
+                    "method": "POST",
+                    "templated": true
+                  },
                   "request:request.annual-target": {
                     "href": "/performance-agreements/{contractId}/annual-target",
                     "method": "GET",

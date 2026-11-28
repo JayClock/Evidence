@@ -8,7 +8,7 @@
     "role-escrow-depositor",
     "role-escrow-agent"
   ],
-  "label": "买方与托管行三方资金托管监管协议（Tripartite Escrow Agreement）",
+  "label": "买方与托管行资金托管协议（Buyer–Bank Escrow Agreement）",
   "examples": [
     {
       "label": "顺畅履约",
