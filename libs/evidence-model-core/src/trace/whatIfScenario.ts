@@ -1,16 +1,24 @@
 import type { RuleAST } from '@evidence-poc/evidence-schema';
 import {
   evaluateRuleOnExample,
+  isTimestampText,
   validateTypedValue,
 } from '@evidence-poc/evidence-cel';
 import type { DomainGraph } from '../model/graph.js';
 import type { FlowStepTrace } from './types.js';
+import { isWhatIfDeadline } from './whatIfRules.js';
 
 export interface WhatIfHypothesis {
   /** An explicit RFC 3339 clock; never inferred from the machine's date. */
   readonly asOf?: string;
   /** Partial overrides of the current step's declared input attributes only. */
   readonly values?: Readonly<Record<string, unknown>>;
+}
+
+export interface WhatIfCompletionGap {
+  readonly requestId: string;
+  readonly ruleId: string;
+  readonly deadline: string;
 }
 
 type DerivationRule = RuleAST & { target: NonNullable<RuleAST['target']> };
@@ -68,6 +76,17 @@ export function createWhatIfScenario(
     return [...found.values()].sort((a, b) => a.sequence - b.sequence);
   };
   const upstream = ancestors(current);
+  const pair = graph.fulfillmentPair(current.entityId);
+  const missingConfirmations = (pair?.confirmations ?? [])
+    .filter(({ id }) => !upstream.some(({ entityId }) => entityId === id))
+    .map(({ label }) => label);
+  const downstream = new Set(
+    pair ? [...pair.confirmations, ...pair.proofs].map(({ id }) => id) : [],
+  );
+  const requestFields = pair?.request.attributes;
+  const deadlineField =
+    requestFields?.find(({ timeRole }) => timeRole === 'deadline') ??
+    requestFields?.find(isWhatIfDeadline);
   const derived = new Set(
     graph
       .rules()
@@ -125,13 +144,18 @@ export function createWhatIfScenario(
                 .filter((source) => source.entityId === binding.ref)
                 .map(materialize);
         if (binding.cardinality === 'many') bindings[alias] = candidates;
-        else {
-          if (candidates.length !== 1)
-            throw new Error(
-              `${rule.id}: binding '${alias}' requires one '${binding.ref}' example, found ${candidates.length}.`,
-            );
-          bindings[alias] = candidates[0];
-        }
+        else if (candidates.length === 1) bindings[alias] = candidates[0];
+        else if (
+          candidates.length === 0 &&
+          step === current &&
+          (rule.kind === 'completion' || rule.kind === 'breach') &&
+          downstream.has(binding.ref)
+        )
+          bindings[alias] = null;
+        else
+          throw new Error(
+            `${rule.id}: binding '${alias}' requires one '${binding.ref}' example, found ${candidates.length}.`,
+          );
       }
       return bindings;
     };
@@ -204,12 +228,60 @@ export function createWhatIfScenario(
       const result = evaluateRuleOnExample(graph.document, rule, {
         asOf,
         bindings: bindingsOf(rule),
+        absentEvidenceRefs: downstream,
       });
       if (typeof result !== 'boolean')
         throw new Error(`${rule.id}: a decision rule must return boolean.`);
       return { ruleId: rule.id, result };
     };
-    return { asOf, valuesOf: materialize, factsOf, bindingsOf, decide };
+    const requestDeadline = () => {
+      if (!deadlineField) return;
+      const value = materialize(current)[deadlineField.name];
+      if (!isTimestampText(value)) return;
+      return {
+        field: deadlineField,
+        value,
+        overdue: Date.parse(asOf) > Date.parse(value),
+      };
+    };
+    const completionGap = (
+      outcomes: readonly {
+        kind: RuleAST['kind'];
+        ruleId: string;
+        result: boolean;
+      }[],
+    ): WhatIfCompletionGap | undefined => {
+      if (
+        !pair ||
+        outcomes.some(({ kind, result }) => kind === 'breach' && result)
+      )
+        return;
+      const [completion, other] = outcomes.filter(
+        ({ kind }) => kind === 'completion',
+      );
+      if (!completion || completion.result || other) return;
+      const deadline = requestDeadline();
+      if (!deadline?.overdue) return;
+      return {
+        requestId: pair.request.id,
+        ruleId: completion.ruleId,
+        deadline: deadline.value,
+      };
+    };
+    return {
+      asOf,
+      valuesOf: materialize,
+      factsOf,
+      bindingsOf,
+      decide,
+      requestDeadline,
+      completionGap,
+    };
   };
-  return { upstream, inputAttributes, apply };
+  return {
+    upstream,
+    inputAttributes,
+    missingConfirmations,
+    apply,
+  };
 }

@@ -134,17 +134,19 @@ export type {
 } from './trace/types.js';
 export { formatBusinessQuantity } from './trace/businessQuantity.js';
 export {
+  isWhatIfDeadline,
   isWhatIfFulfillmentEvidence,
   whatIfDecisionRules,
+  whatIfRulesForStep,
 } from './trace/whatIfRules.js';
 export {
   buildDeterministicFallbackChallenges,
-  isWhatIfDeadline,
   type WhatIfChallenge,
   type WhatIfChallengeCategory,
 } from './trace/whatIfChallenges.js';
 export {
   createWhatIfScenario,
+  type WhatIfCompletionGap,
   type WhatIfHypothesis,
 } from './trace/whatIfScenario.js';
 export {

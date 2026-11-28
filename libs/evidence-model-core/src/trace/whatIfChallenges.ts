@@ -13,6 +13,7 @@ import {
 import type { DomainGraph } from '../model/graph.js';
 import { formatBusinessQuantity } from './businessQuantity.js';
 import type { FlowStepTrace } from './types.js';
+import { isWhatIfDeadline, whatIfRulesForStep } from './whatIfRules.js';
 import {
   createWhatIfScenario,
   type WhatIfHypothesis,
@@ -45,10 +46,6 @@ type BoundField = {
 };
 
 const impactQuestion = '会产生什么业务后果？对后续流程有何影响？';
-
-export const isWhatIfDeadline = ({ timeRole, name, valueType }: AttributeAST) =>
-  timeRole === 'deadline' ||
-  (valueType === 'timestamp' && (name === 'deadline' || name === 'expired_at'));
 
 const record = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -173,11 +170,32 @@ function deficitChallenge(
   };
 }
 
+function missingDelivery(
+  graph: DomainGraph,
+  step: FlowStepTrace,
+  missing: readonly string[],
+): string {
+  const pair = graph.fulfillmentPair(step.entityId);
+  if (!pair) return `仍未满足《${step.entityLabel}》关联的履约条件`;
+  const { request, obligorRoleRef } = pair;
+  const obligor =
+    (obligorRoleRef && graph.getEntity(obligorRoleRef)?.label) ?? '义务方';
+  const evidence = missing.map((label) => `《${label}》`).join('、');
+  if (request.fulfillmentAction) {
+    const action = `${obligor}仍未完成「${request.fulfillmentAction}」`;
+    return evidence ? `${action}且未出具${evidence}` : action;
+  }
+  return evidence
+    ? `仍未收到${obligor}出具的${evidence}`
+    : `${obligor}仍未交付《${request.label}》约定的成果`;
+}
+
 function overdueChallenge(
   step: FlowStepTrace,
   field: AttributeAST,
   deadline: unknown,
   occurrence?: AttributeAST,
+  delivery = `仍未满足《${step.entityLabel}》关联的履约条件`,
 ): Candidate | undefined {
   if (typeof deadline !== 'string' || validateTypedValue(deadline, 'timestamp'))
     return;
@@ -203,7 +221,7 @@ function overdueChallenge(
     : `「${field.label}」次日（${date}）`;
   const change = occurrence
     ? `《${step.entityLabel}》上的「${occurrence.label}」推迟到${when}`
-    : `到${when}仍未按《${step.entityLabel}》履约`;
+    : `到${when}，${delivery}`;
   return {
     category: 'overdue',
     label: '超过约定期限',
@@ -228,23 +246,40 @@ export function buildDeterministicFallbackChallenges(
   const baseline = whenEvaluable(() => scenario?.apply());
   if (!scenario || !baseline) return [];
   const found = new Map<WhatIfChallengeCategory, WhatIfChallenge>();
+  const isRequest = step.entityKind === 'fulfillment_request';
+  const due = whenEvaluable(baseline.requestDeadline);
+  const requestOverdue =
+    due &&
+    overdueChallenge(
+      step,
+      due.field,
+      due.value,
+      undefined,
+      missingDelivery(graph, step, scenario.missingConfirmations),
+    );
   const occurrence =
     step.entityKind === 'fulfillment_confirmation'
       ? scenario.inputAttributes.find(
           ({ timeRole }) => timeRole === 'occurrence',
         )
       : undefined;
-  for (const rule of [...rules].sort(
+  for (const rule of [...whatIfRulesForStep(graph, step.entityId, rules)].sort(
     (a, b) => Number(b.kind === 'breach') - Number(a.kind === 'breach'),
   )) {
     const breach = rule.kind === 'breach';
     const offer = (candidate: Candidate | undefined) => {
       if (!candidate || found.has(candidate.category)) return;
-      if (
-        whenEvaluable(
-          () => scenario.apply(candidate.hypothesisDraft).decide(rule).result,
-        ) === breach
-      )
+      const decision = whenEvaluable(() => {
+        const trial = scenario.apply(candidate.hypothesisDraft);
+        if (
+          isRequest &&
+          candidate.category === 'overdue' &&
+          !trial.requestDeadline()?.overdue
+        )
+          return;
+        return trial.decide(rule).result;
+      });
+      if (decision === breach)
         found.set(candidate.category, {
           ...candidate,
           id: `fallback:${rule.id}:${candidate.category}`,
@@ -257,10 +292,13 @@ export function buildDeterministicFallbackChallenges(
       () => compileCelExpression(rule.expression).expr.ast,
     );
     if (!bindings || !ast) continue;
+    // An open request may already be incomplete. Its own deadline makes the
+    // later false completion actionable even if the rule reads only the receipt.
+    offer(requestOverdue);
     walkCelAst(ast, (node, scope) => {
       const read = (operand: ASTNode) =>
         boundField(graph, rule, bindings, operand, scope);
-      if (!found.has('overdue')) {
+      if (!isRequest && !found.has('overdue')) {
         const bound = read(node);
         if (bound && isWhatIfDeadline(bound.field))
           offer(overdueChallenge(step, bound.field, bound.value, occurrence));
@@ -288,7 +326,7 @@ export function buildDeterministicFallbackChallenges(
         node.op === '>='
       ) {
         const [left, right] = node.args;
-        if (!found.has('overdue') && !occurrence) {
+        if (!isRequest && !found.has('overdue') && !occurrence) {
           const a = read(left);
           const b = read(right);
           const cutoff = a && isWhatIfDeadline(a.field) ? a : b;
@@ -321,7 +359,7 @@ export function buildDeterministicFallbackChallenges(
         shortfall(node.args[1], node.args[0]);
       }
     });
-    if (!found.has('overdue')) {
+    if (!isRequest && !found.has('overdue')) {
       const deadline = graph.attributesOf(step.entityId).find(isWhatIfDeadline);
       if (
         deadline &&

@@ -24,6 +24,8 @@ export interface FulfillmentPair {
   readonly request: EvidenceEntityAST;
   /** Root Contract of the request's Contract Context, when modeled. */
   readonly contract: EvidenceEntityAST | null;
+  /** The other party to the bilateral contract, opposite the request's right holder. */
+  readonly obligorRoleRef?: string;
   /** `fulfillment_confirmation` moments referencing the request. */
   readonly confirmations: readonly EvidenceEntityAST[];
   /** `other_evidence` moments referencing the request or its confirmations. */
@@ -233,6 +235,11 @@ export function createDomainGraph(document: DomainModelDocument): DomainGraph {
   };
 
   const buildPair = (request: EvidenceEntityAST): FulfillmentPair => {
+    const contract = request.contextRef
+      ? rootContractOf(request.contextRef)
+      : undefined;
+    const parties = contract?.roleRefs;
+    const holder = request.responsibleRoleRef;
     const confirmations = referencesTo(request.id).filter(
       isFulfillmentConfirmation,
     );
@@ -250,10 +257,11 @@ export function createDomainGraph(document: DomainModelDocument): DomainGraph {
 
     return {
       request,
-      contract:
-        request.contextRef === undefined
-          ? null
-          : (rootContractOf(request.contextRef) ?? null),
+      contract: contract ?? null,
+      obligorRoleRef:
+        holder && parties?.length === 2 && parties.includes(holder)
+          ? parties.find((id) => id !== holder)
+          : undefined,
       confirmations,
       proofs,
       completionRules: document.rules.filter(

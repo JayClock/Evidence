@@ -2,12 +2,15 @@ import type {
   DomainModelDocument,
   RuleAST,
 } from '@evidence-poc/evidence-schema';
-import { celValueToJson, compileCelExpression } from './celEvaluator.js';
-import { UnsignedInt, parse } from '@marcbachmann/cel-js/evaluator';
+import { EvaluationError } from '@marcbachmann/cel-js';
+import { resolveCelReference, walkCelAst } from './celAst.js';
 import {
-  isTimestampText,
-  validateTypedValue,
-} from './typedValues.js';
+  celValueToJson,
+  compileCelExpression,
+  type CompiledCel,
+} from './celEvaluator.js';
+import { UnsignedInt, parse } from '@marcbachmann/cel-js/evaluator';
+import { isTimestampText, validateTypedValue } from './typedValues.js';
 
 const parseDuration = parse('duration(value)');
 
@@ -27,6 +30,8 @@ export interface ExampleRuleInputs {
   /** Alias -> concrete modeled values (or list of values for a many binding). */
   readonly bindings: Readonly<Record<string, unknown>>;
   readonly asOf: string;
+  /** Single evidence refs the caller has established may be absent at this step. */
+  readonly absentEvidenceRefs?: ReadonlySet<string>;
 }
 
 /**
@@ -44,6 +49,7 @@ export function evaluateRuleOnExample(
   };
   if (!isTimestampText(inputs.asOf)) fail('asOf must be an RFC 3339 timestamp');
   const activation: Record<string, unknown> = {};
+  const absent = new Map<string, ReadonlySet<string>>();
   for (const alias of Object.keys(inputs.bindings)) {
     if (!(alias in rule.bindings)) fail(`unknown binding '${alias}'`);
   }
@@ -85,12 +91,15 @@ export function evaluateRuleOnExample(
     if (binding.cardinality === 'many') {
       if (!Array.isArray(value)) fail(`'${alias}' requires a list`);
       activation[alias] = (value as unknown[]).map(convert);
+    } else if (value === null && inputs.absentEvidenceRefs?.has(binding.ref)) {
+      activation[alias] = null;
+      absent.set(alias, new Set(entity?.attributes?.map(({ name }) => name)));
     } else activation[alias] = convert(value);
   }
+  let compiled: CompiledCel | undefined;
   try {
-    const value = celValueToJson(
-      compileCelExpression(rule.expression).evaluate(activation),
-    );
+    compiled = compileCelExpression(rule.expression);
+    const value = celValueToJson(compiled.evaluate(activation));
     const problem = validateTypedValue(value, rule.resultType);
     if (problem !== null) fail(`result ${problem}`);
     // CEL must not leak undefined, non-finite values or private runtime classes.
@@ -105,6 +114,25 @@ export function evaluateRuleOnExample(
     });
     return JSON.parse(json);
   } catch (error) {
+    // CEL handles null checks, has(), and short-circuiting itself. A decision
+    // requiring a field of an absent receipt cannot be satisfied by that receipt.
+    if (
+      absent.size &&
+      compiled &&
+      rule.resultType === 'bool' &&
+      error instanceof EvaluationError &&
+      error.code === 'no_such_key'
+    ) {
+      let missingFact = false;
+      walkCelAst(compiled.expr.ast, (node, scope) => {
+        if (node !== error.node) return;
+        const ref = resolveCelReference(node, scope);
+        const field = ref?.members[0];
+        if (ref && field)
+          missingFact = absent.get(ref.root)?.has(field.name) === true;
+      });
+      if (missingFact) return false;
+    }
     throw new Error(
       `${rule.id}: ${error instanceof Error ? error.message : String(error)}`,
       { cause: error },
