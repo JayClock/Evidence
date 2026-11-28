@@ -98,10 +98,15 @@ describe('business questions for deterministic What-If challenges', () => {
 
   it('evaluates absent single evidence without borrowing a later receipt or hiding other errors', () => {
     const graph = createDomainGraph(createProcurementModel());
-    const later = {
+    const later: FlowStepTrace = {
       ...step,
       sequence: 2,
       entityId: 'confirmation.payment',
+      entityKind: 'fulfillment_confirmation',
+      entityLabel: '付款确认',
+      exampleLabel: '款项到账',
+      asOf: '2027-01-01T10:00:00+08:00',
+      basedOn: [`${step.entityId}#${step.exampleLabel}`],
       values: { paid_minor_units: 100 },
     };
     const trial = createWhatIfScenario(graph, [step, later], step).apply();

@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { createDomainGraph } from '@evidence-poc/evidence-model-core';
+import { isFulfillmentRequest } from '@evidence-poc/evidence-schema';
 import { createDesktopFixture } from '@evidence-poc/desktop-testing';
 import { storyFlow, storySnapshot } from '@evidence-poc/desktop-testing/story';
 import {
   blockedStoryScenes,
   evaluateWhatIfCapability,
+  hasWhatIfBreach,
   promotableSceneRequests,
   requestsForProof,
 } from './whatIfCapability';
@@ -266,17 +268,78 @@ describe('What-If capability', () => {
     ).toBe('missing_rules');
   });
 
-  it('recommends the next step with matching rules before steps without rules', () => {
+  it('offers the request and its concrete overdue challenge when only the receipt is bound', () => {
     const model = createDesktopFixture();
-    model.rules[0]!.bindings = {
-      confirmation: { ref: 'evidence.confirmation' },
+    const [contract, request, confirmation] = steps;
+    const current = {
+      ...request!,
+      values: { expired_at: '2026-11-12T08:00:00+08:00' },
     };
-    expect(
-      evaluateWhatIfCapability(createDomainGraph(model), steps, steps[0]!),
-    ).toEqual({
+    const flow = [contract!, current, confirmation!];
+    model.entities.find(isFulfillmentRequest)!.fulfillmentAction =
+      '验收交付成果';
+    const rule = model.rules[0]!;
+    rule.bindings = {
+      receipts: { ref: confirmation!.entityId, cardinality: 'many' },
+    };
+    rule.expression = 'receipts.exists(r, has(r.confirmed_at))';
+    const graph = createDomainGraph(model);
+    expect(evaluateWhatIfCapability(graph, flow, contract!)).toEqual({
       status: 'non_fulfillment_stage',
-      next: { sequence: 3, entityLabel: '交付确认', hasRules: true },
+      next: { sequence: 2, entityLabel: '交付请求', hasRules: true },
     });
+    expect(evaluateWhatIfCapability(graph, flow, current)).toMatchObject({
+      status: 'eligible',
+      challenges: [
+        {
+          category: 'overdue',
+          targetedRuleId: rule.id,
+          question: expect.stringContaining(
+            '采购方（Buyer）仍未完成「验收交付成果」且未出具《交付确认（Delivery Confirmation）》',
+          ),
+          hypothesisDraft: { asOf: '2026-11-13T00:00:00.000Z' },
+        },
+      ],
+    });
+  });
+
+  it('blocks only the request named by a verified completion gap', () => {
+    const request = steps[1]!;
+    const ruleOutcome = {
+      ruleId: 'rule.delivery-completion',
+      kind: 'completion' as const,
+      label: '交付完成',
+      result: false,
+    };
+    const incomplete = {
+      isSpeculative: false as const,
+      ruleOutcomes: [ruleOutcome],
+      ruleOutcome,
+      hypothesis: { asOf: request.asOf },
+      businessImpactExplanation: '尚缺验收凭据。',
+    };
+    expect(hasWhatIfBreach(request, incomplete)).toBe(false);
+    const overdue = {
+      ...incomplete,
+      hypothesis: { asOf: '2026-11-12T08:00:00Z' },
+      completionGap: {
+        requestId: request.entityId,
+        ruleId: ruleOutcome.ruleId,
+        deadline: request.asOf,
+      },
+    };
+    expect(hasWhatIfBreach(request, overdue)).toBe(true);
+    expect(
+      hasWhatIfBreach({ ...request, entityId: 'request.second' }, overdue),
+    ).toBe(false);
+    expect(hasWhatIfBreach(steps[2]!, overdue)).toBe(false);
+    expect(
+      hasWhatIfBreach(request, {
+        isSpeculative: true,
+        ruleOutcomes: [],
+        businessImpactExplanation: '验收可能延迟。',
+      }),
+    ).toBe(false);
   });
 
   it('does not count rules on the contract or offer a dead jump without another step', () => {

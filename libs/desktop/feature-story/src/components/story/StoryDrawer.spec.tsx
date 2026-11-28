@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { createDesktopFixture } from '@evidence-poc/desktop-testing';
 import {
   createEmptyDomainModel,
+  isFulfillmentRequest,
   type DomainModelDocument,
   type RecordBreachOutcomeInput,
 } from '@evidence-poc/evidence-schema';
@@ -91,11 +92,11 @@ const setup = async ({
     const rule = graph.getRule(input.targetedRuleId);
     if (!step || (rule?.kind !== 'completion' && rule?.kind !== 'breach'))
       throw new Error('Expected the challenge’s scene and rule');
-    const decision = createWhatIfScenario(graph, selected.steps, step)
-      .apply(input.hypothesisDraft)
-      .decide(rule);
+    const trial = createWhatIfScenario(graph, selected.steps, step).apply(
+      input.hypothesisDraft,
+    );
     const ruleOutcome = {
-      ...decision,
+      ...trial.decide(rule),
       label: rule.label,
       kind: rule.kind,
       description: rule.description,
@@ -105,6 +106,7 @@ const setup = async ({
       hypothesis: input.hypothesisDraft,
       ruleOutcome,
       ruleOutcomes: [ruleOutcome],
+      completionGap: trial.completionGap([ruleOutcome]),
       businessImpactExplanation: rule.label,
     };
   });
@@ -573,6 +575,118 @@ describe('StoryDrawer', () => {
     expect(screen.getByRole('button', { name: /下一步/ })).toBeEnabled();
     expect(screen.queryByRole('region', { name: '下游协同阻断' })).toBeNull();
   });
+
+  it.each(['compensation_pair', 'terminal_escalation'] as const)(
+    'freezes the dependent confirmation and saves %s from an overdue request without a breach rule',
+    async (kind) => {
+      const model = createDesktopFixture();
+      model.entities.find(isFulfillmentRequest)!.fulfillmentAction =
+        '验收交付成果';
+      const rule = model.rules[0]!;
+      rule.bindings = {
+        receipt: { ref: 'evidence.confirmation' },
+        now: { type: 'timestamp' },
+      };
+      rule.expression = 'receipt.confirmed_at <= now';
+      const { api, recordOutcome } = await setup({
+        model,
+        aiConfigured: false,
+      });
+      const spine = within(
+        screen.getByRole('navigation', { name: '故事步骤' }),
+      );
+      fireEvent.click(spine.getByRole('button', { name: /展开全部 3 幕/ }));
+      fireEvent.click(spine.getByRole('button', { name: /^2/ }));
+      expect(
+        screen.getByRole('region', { name: '本步注解' }),
+      ).toHaveTextContent(`完成规则：${rule.label}`);
+      fireEvent.click(spine.getByRole('button', { name: '推演第 2 幕' }));
+      const card = screen.getByRole('button', {
+        name: /时效逾期 · 超过约定期限/,
+      });
+      expect(card).toHaveTextContent(
+        '采购方（Buyer）仍未完成「验收交付成果」且未出具《交付确认（Delivery Confirmation）》',
+      );
+      fireEvent.click(card);
+      expect(screen.queryByRole('form', { name: '固化违约分支' })).toBeNull();
+      await act(async () =>
+        fireEvent.click(screen.getByRole('button', { name: '推演假设' })),
+      );
+      expect(api.story.whatIf).toHaveBeenCalledWith(
+        expect.objectContaining({
+          currentStepSequence: 2,
+          targetedRuleId: rule.id,
+          localOnly: true,
+        }),
+      );
+      expect(
+        screen.getByRole('list', { name: '履约推演结论' }),
+      ).toHaveTextContent('截止时仍未达成，构成逾期违约');
+      expect(spine.getByRole('button', { name: /^3/ })).toHaveTextContent(
+        '已冻结',
+      );
+      expect(
+        screen.getByRole('region', { name: '下游协同阻断' }),
+      ).toHaveTextContent('第 3 幕 · 交付确认');
+      expect(screen.getByRole('button', { name: /下一步/ })).toBeDisabled();
+      const form = within(screen.getByRole('form', { name: '固化违约分支' }));
+      expect(
+        form.getByText('原履约请求：交付请求（Delivery Request）'),
+      ).toBeVisible();
+      expect(form.getByRole('radio', { name: '约定履约补救' })).toBeChecked();
+      expect(form.getByRole('radio', { name: '启动终极救济' })).toBeEnabled();
+      fireEvent.change(form.getByLabelText('已确认的触发条件'), {
+        target: { value: '交付期限届满仍缺验收凭证' },
+      });
+      if (kind === 'compensation_pair') {
+        fireEvent.change(form.getByLabelText('补救请求名称'), {
+          target: { value: '补办验收请求' },
+        });
+        fireEvent.change(form.getByLabelText('补救确认名称'), {
+          target: { value: '补办验收确认' },
+        });
+      } else {
+        fireEvent.click(form.getByRole('radio', { name: '启动终极救济' }));
+        fireEvent.change(form.getByLabelText('救济方式'), {
+          target: { value: 'contract_termination' },
+        });
+      }
+      await act(async () =>
+        fireEvent.click(form.getByRole('button', { name: /保存.*分支/ })),
+      );
+      expect(recordOutcome).toHaveBeenCalledOnce();
+      const updated = recordOutcome.mock.results[0]!
+        .value as DomainModelDocument;
+      expect(
+        createDomainGraph(updated).breachOutcomesOf('evidence.request'),
+      ).toMatchObject([
+        {
+          kind,
+          edge: {
+            forkExampleRef: 'evidence.request#example-1',
+            notes: '交付期限届满仍缺验收凭证',
+          },
+          ...(kind === 'compensation_pair'
+            ? {
+                compensation: {
+                  request: { label: '补办验收请求' },
+                  confirmations: [{ label: '补办验收确认' }],
+                },
+              }
+            : {
+                remedyKind: 'contract_termination',
+                handoff: { label: '解除合同移交凭证' },
+              }),
+        },
+      ]);
+      await act(async () => vi.advanceTimersByTimeAsync(STORY_REFRESH_DELAY));
+      expect(
+        spine.getByRole('list', { name: '第 2 幕的违约分支' }),
+      ).toHaveTextContent(
+        kind === 'compensation_pair' ? '补办验收请求' : '解除合同',
+      );
+    },
+  );
 
   it('advances the selected scene past a later example without admitting its facts', async () => {
     const { api } = await setup({
